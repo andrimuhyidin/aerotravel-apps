@@ -7,11 +7,7 @@ import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  resendConfirmation,
-  signIn,
-  signInWithGoogle,
-} from '@/lib/actions/auth';
+import { resendConfirmation, signInWithGoogle } from '@/lib/actions/auth';
 
 type LoginFormProps = {
   locale: string;
@@ -24,7 +20,7 @@ export function LoginForm({ locale }: LoginFormProps) {
   const [currentEmail, setCurrentEmail] = useState('');
   const [isPending, startTransition] = useTransition();
 
-  function handleSubmit(formData: FormData) {
+  async function handleSubmit(formData: FormData) {
     setError(null);
     setShowResend(false);
     setResendSuccess(false);
@@ -32,16 +28,28 @@ export function LoginForm({ locale }: LoginFormProps) {
     setCurrentEmail(email);
 
     startTransition(async () => {
-      const result = await signIn(formData);
-      // If we get here, there was an error (redirect throws on success)
-      if (result?.error) {
-        setError(result.error);
-        if (
-          result.error.toLowerCase().includes('email not confirmed') ||
-          result.error.toLowerCase().includes('email link is invalid')
-        ) {
-          setShowResend(true);
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || result.error) {
+          setError(result.error || 'Login gagal');
+          if (
+            result.error?.toLowerCase().includes('email not confirmed') ||
+            result.error?.toLowerCase().includes('email link is invalid')
+          ) {
+            setShowResend(true);
+          }
+        } else if (result.success) {
+          // Redirect on success
+          window.location.href = result.redirectPath;
         }
+      } catch {
+        setError('Terjadi kesalahan, coba lagi.');
       }
     });
   }

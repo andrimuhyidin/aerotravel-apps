@@ -25,7 +25,9 @@ export async function createClient() {
         ) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              const cookieOptions = options as Record<string, unknown> | undefined;
+              const cookieOptions = options as
+                | Record<string, unknown>
+                | undefined;
               cookieStore.set(name, value, {
                 ...cookieOptions,
                 path: '/',
