@@ -4,7 +4,6 @@
  */
 
 import { getRequestConfig } from 'next-intl/server';
-import { notFound } from 'next/navigation';
 
 // Supported locales
 export const locales = ['id', 'en'] as const;
