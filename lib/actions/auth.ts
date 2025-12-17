@@ -58,32 +58,47 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
     return { error: error.message };
   }
 
+  if (!data.user) {
+    return { error: 'Login gagal, coba lagi.' };
+  }
+
+  // Check if user profile exists, create if not
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', data.user.id)
+    .single();
+
+  let role = (profile as { role?: string } | null)?.role;
+
+  // Auto-create profile if doesn't exist
+  if (!profile) {
+    await supabase.from('users').insert({
+      id: data.user.id,
+      email: data.user.email || email,
+      full_name: data.user.user_metadata?.full_name || email.split('@')[0],
+      role: 'customer',
+      is_active: true,
+    } as never);
+    role = 'customer';
+  }
+
   // Determine redirect based on user role
-  let redirectPath = '/id'; // Default to homepage for customers
+  let redirectPath = '/id';
 
-  if (data.user) {
-    const { data: profile } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', data.user.id)
-      .single();
-
-    const role = (profile as { role?: string } | null)?.role;
-
-    if (
-      role === 'super_admin' ||
-      role === 'owner' ||
-      role === 'manager' ||
-      role === 'admin' ||
-      role === 'finance' ||
-      role === 'cs'
-    ) {
-      redirectPath = '/id/console';
-    } else if (role === 'guide') {
-      redirectPath = '/id/guide';
-    } else if (role === 'mitra' || role === 'nta') {
-      redirectPath = '/id/mitra';
-    }
+  if (
+    role === 'super_admin' ||
+    role === 'owner' ||
+    role === 'manager' ||
+    role === 'admin' ||
+    role === 'finance' ||
+    role === 'cs'
+  ) {
+    redirectPath = '/id/console';
+  } else if (role === 'guide') {
+    redirectPath = '/id/guide';
+  } else if (role === 'mitra' || role === 'nta') {
+    redirectPath = '/id/mitra';
   }
 
   revalidatePath('/', 'layout');

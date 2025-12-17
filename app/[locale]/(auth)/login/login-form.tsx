@@ -8,7 +8,11 @@ import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { resendConfirmation, signIn, signInWithGoogle } from '@/lib/actions/auth';
+import {
+  resendConfirmation,
+  signIn,
+  signInWithGoogle,
+} from '@/lib/actions/auth';
 
 type LoginFormProps = {
   locale: string;
@@ -35,8 +39,10 @@ export function LoginForm({ locale }: LoginFormProps) {
         if (result?.error) {
           setError(result.error);
           // Show resend option for unconfirmed email errors
-          if (result.error.toLowerCase().includes('email not confirmed') || 
-              result.error.toLowerCase().includes('email link is invalid')) {
+          if (
+            result.error.toLowerCase().includes('email not confirmed') ||
+            result.error.toLowerCase().includes('email link is invalid')
+          ) {
             setShowResend(true);
           }
         }
