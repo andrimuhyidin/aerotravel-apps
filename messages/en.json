@@ -1,0 +1,121 @@
+{
+  "common": {
+    "app_name": "MyAeroTravel ID",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "actions": "Actions"
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "description": "Sign in to your account",
+      "email": "Email",
+      "password": "Password",
+      "forgot_password": "Forgot password?",
+      "no_account": "Don't have an account?",
+      "register": "Register",
+      "submit_btn": "Sign In"
+    },
+    "register": {
+      "title": "Register",
+      "description": "Create a new account",
+      "email": "Email",
+      "password": "Password",
+      "confirm_password": "Confirm Password",
+      "submit_btn": "Register",
+      "has_account": "Already have an account?",
+      "login": "Login"
+    }
+  },
+  "booking": {
+    "title": "Book Travel Package",
+    "step_1": "Select Package",
+    "step_2": "Select Date & Quantity",
+    "step_3": "Check Availability",
+    "step_4": "Passenger Data",
+    "step_5": "Calculate Price",
+    "step_6": "Calculate Tax",
+    "step_7": "Payment Method",
+    "step_8": "Checkout",
+    "submit_btn": "Book Now"
+  },
+  "navigation": {
+    "home": "Home",
+    "packages": "Travel Packages",
+    "about": "About Us",
+    "contact": "Contact",
+    "my_trips": "My Trips",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome"
+  },
+  "partner": {
+    "dashboard": {
+      "title": "Partner Dashboard",
+      "bookings": "Bookings",
+      "revenue": "Revenue",
+      "deposit_balance": "Deposit Balance"
+    },
+    "wallet": {
+      "title": "Deposit Management",
+      "balance": "Balance",
+      "top_up": "Top Up",
+      "history": "History"
+    }
+  },
+  "console": {
+    "dashboard": {
+      "title": "ERP Dashboard"
+    },
+    "bookings": {
+      "title": "Booking Management"
+    },
+    "finance": {
+      "title": "Finance"
+    },
+    "operations": {
+      "title": "Operations"
+    }
+  },
+  "guide": {
+    "dashboard": {
+      "title": "Guide Dashboard"
+    },
+    "attendance": {
+      "title": "Attendance",
+      "check_in": "Check In",
+      "check_out": "Check Out"
+    },
+    "manifest": {
+      "title": "Manifest"
+    }
+  },
+  "corporate": {
+    "dashboard": {
+      "title": "Corporate Portal"
+    },
+    "employees": {
+      "title": "Employee Management"
+    },
+    "invoices": {
+      "title": "Corporate Invoices"
+    }
+  }
+}
+

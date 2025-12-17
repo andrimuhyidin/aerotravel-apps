@@ -1,0 +1,31 @@
+-- ============================================
+-- MASTER MIGRATION FILE
+-- ============================================
+-- Run this file in Supabase SQL Editor to execute all migrations
+-- Order: 001 -> 012
+-- 
+-- Instructions:
+-- 1. Open Supabase Dashboard -> SQL Editor
+-- 2. Copy content of each file below in order
+-- 3. Or run each file individually
+--
+-- Files to run in order:
+-- 1. 001-rls-policies.sql (existing)
+-- 2. 002-branches-users.sql
+-- 3. 003-packages-pricing.sql
+-- 4. 004-bookings-payments.sql
+-- 5. 005-assets-operations.sql
+-- 6. 006-finance.sql
+-- 7. 007-support-audit.sql
+-- 8. 008-rls-policies.sql
+-- 9. 009-social-commerce.sql
+-- 10. 010-corporate-portal.sql
+-- 11. 011-live-tracking.sql
+-- 12. 012-rls-additional.sql
+-- ============================================
+
+-- To verify tables after migration:
+-- SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;
+
+-- To verify RLS is enabled:
+-- SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' AND rowsecurity = true;

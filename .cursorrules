@@ -1,0 +1,609 @@
+# Cursor Rules - MyAeroTravel ID
+
+## Project Context
+
+This is an **Enterprise-Grade Travel Management System** built with:
+- **Framework:** Next.js 14.2.35+ (App Router, RSC)
+- **Language:** TypeScript (Strict Mode, `noUncheckedIndexedAccess: true`)
+- **Database:** Supabase (PostgreSQL + pgvector)
+- **State:** TanStack Query v5.59.5 (Server) + Zustand v5.0.x (Client)
+- **UI:** Shadcn UI + Tailwind CSS
+- **AI:** DeepSeek-V3.2
+- **Architecture:** Serverless First, Edge Native, Offline-First, AI-Native
+
+## Language Standards
+
+### Strictly English
+- **Code:** All code, comments, variable names, function names MUST be in English
+- **File Names:** All file and folder names MUST be in English
+- **Commit Messages:** All commit messages MUST be in English
+- **Technical Documentation:** All technical docs MUST be in English
+- **Exception:** UI labels visible to users can be in Indonesian (stored separately or hardcoded in JSX)
+- **Why:** Scalability for international developers, consistency with libraries (Next.js, React, Supabase)
+
+## Code Standards
+
+### TypeScript
+- **Strict Mode:** Always enabled
+- **No `any`:** Use proper types or `unknown`
+- **Indexed Access:** Use `noUncheckedIndexedAccess` - always check for undefined
+- **Type Safety:** Use generated types from `types/supabase.ts` for database queries
+
+### Imports
+- **Absolute Imports:** Always use `@/` alias (never `../../`)
+- **Import Order:**
+  1. External packages
+  2. Internal (`@/lib`, `@/components`, `@/hooks`)
+  3. Relative imports (only if necessary)
+- **Barrel Exports:** Use barrel exports when available (`@/components`, `@/lib`)
+- **Named Exports:** Prefer named exports over default exports for better refactoring safety
+
+```tsx
+// ✅ Preferred (Named Export)
+export function Button() { ... }
+
+// ❌ Less preferred (Default Export)
+export default function Button() { ... }
+```
+
+### Naming Conventions
+
+| Entity | Format | Example ✅ | Example ❌ |
+|--------|--------|------------|------------|
+| **Folder/File** | `kebab-case` | `booking-form.tsx`, `user-profile/` | `BookingForm.tsx`, `UserProfile/` |
+| **Component** | `PascalCase` | `BookingCard`, `PrimaryButton` | `bookingCard`, `btn-primary` |
+| **Variable/Function** | `camelCase` | `getUserData`, `isLoggedIn` | `GetUserData`, `is_logged_in` |
+| **Database Table** | `snake_case` (plural) | `bookings`, `user_profiles` | `BookingDetails`, `bookingDetails`, `user` |
+| **Database Column** | `snake_case` | `created_at`, `user_id` | `createdAt`, `userId` |
+| **Constants** | `UPPER_SNAKE_CASE` | `MAX_UPLOAD_SIZE`, `API_URL` | `maxUploadSize`, `apiUrl` |
+| **Types/Interfaces** | `PascalCase` | `Booking`, `UserProfile` | `booking`, `IUser` (no I prefix) |
+| **Zod Schema** | `camelCase` + `Schema` suffix | `loginSchema`, `bookingFormSchema` | `login`, `BookingForm` |
+
+### File Naming Examples
+- **Components:** `booking-card.tsx` (file) → `BookingCard` (component)
+- **Utilities:** `logger.ts`, `sanitize.ts`
+- **Routes:** `booking-list/page.tsx`, `user-profile/page.tsx`
+- **Constants:** `MAX_RETRIES`, `API_BASE_URL`
+
+### Component Structure
+```tsx
+// 1. Imports (external → internal → relative)
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { logger } from '@/lib/utils/logger';
+
+// 2. Types (PascalCase)
+export type ComponentProps = {
+  // ...
+};
+
+// 3. Component (PascalCase, Named Export)
+export function Component({ ...props }: ComponentProps) {
+  // Hooks
+  // State
+  // Effects
+  // Handlers
+  // Render
+}
+```
+
+### Code Structure & Exports
+- **Prefer Named Exports:** Better for refactoring, safer renaming
+- **File:** `components/ui/button.tsx` (kebab-case)
+- **Component:** `Button` (PascalCase)
+
+```tsx
+// ✅ Preferred (Named Export)
+export function Button() { ... }
+
+// Import
+import { Button } from '@/components/ui/button';
+
+// ❌ Less preferred (Default Export)
+export default function Button() { ... }
+
+// Import (risky for refactoring)
+import Button from '@/components/ui/button';
+```
+
+## Architecture Patterns
+
+### API Routes
+- **Always use:** `withErrorHandler` wrapper
+- **Always use:** `logger` instead of `console.log`
+- **Always use:** `apiClient` or Supabase client (never raw fetch)
+- **Always use:** `queryKeys` factory for TanStack Query
+- **Always use:** Type-safe env vars from `@/lib/env`
+
+```tsx
+import { withErrorHandler } from '@/lib/api/error-handler';
+import { logger } from '@/lib/utils/logger';
+import { createClient } from '@/lib/supabase/server';
+
+export const GET = withErrorHandler(async (request: NextRequest) => {
+  logger.info('GET /api/endpoint');
+  const supabase = await createClient();
+  // Implementation
+});
+```
+
+### Database Queries
+- **Always use:** Generated types from `types/supabase.ts`
+- **Always use:** RLS policies (never bypass)
+- **Always use:** Branch injection for multi-tenant queries
+- **Always use:** Parameterized queries (never string concatenation)
+
+```tsx
+import { Database } from '@/types/supabase';
+import { createClient } from '@/lib/supabase/server';
+import queryKeys from '@/lib/queries/query-keys';
+
+type Booking = Database['public']['Tables']['bookings']['Row'];
+
+const { data } = await supabase
+  .from('bookings')
+  .select('*')
+  .eq('branch_id', branchId); // Always filter by branch
+```
+
+### State Management
+- **Server State:** TanStack Query (always use `queryKeys` factory)
+- **Client State:** Zustand (for UI state, form state)
+- **Form State:** React Hook Form + Zod validation
+
+```tsx
+import { useQuery } from '@tanstack/react-query';
+import queryKeys from '@/lib/queries/query-keys';
+
+const { data } = useQuery({
+  queryKey: queryKeys.bookings.detail(id),
+  queryFn: () => getBooking(id),
+});
+```
+
+### Error Handling
+- **Always use:** Error boundaries for React errors
+- **Always use:** `handleApiError` for API errors
+- **Always use:** `logger.error()` instead of `console.error`
+- **Always use:** Sentry for production error tracking
+
+```tsx
+import { logger } from '@/lib/utils/logger';
+import { handleApiError } from '@/lib/api/error-handler';
+
+try {
+  // Code
+} catch (error) {
+  logger.error('Operation failed', error, { context });
+  return handleApiError(error);
+}
+```
+
+## UI/UX Standards
+
+### Components
+- **Use Shadcn UI:** Install via `npx shadcn@latest add <component>`
+- **Use Design Tokens:** Always use design tokens from `@/lib/design/tokens`
+- **Responsive:** Mobile-first approach (use `useIsMobile` hook)
+- **Accessibility:** Always include ARIA labels, alt text, keyboard navigation
+
+```tsx
+import { Container } from '@/components/layout/container';
+import { Section } from '@/components/layout/section';
+import { useIsMobile } from '@/hooks/use-media-query';
+
+export function MyPage() {
+  const isMobile = useIsMobile();
+  
+  return (
+    <Section>
+      <Container>
+        {/* Content */}
+      </Container>
+    </Section>
+  );
+}
+```
+
+### Styling
+- **Tailwind Classes:** Auto-sorted by Prettier
+- **Design Tokens:** Use CSS variables (`bg-primary`, `text-foreground`)
+- **Responsive:** Use breakpoint utilities (`md:`, `lg:`)
+- **No Inline Styles:** Use Tailwind classes or CSS modules
+
+### Forms
+- **Always use:** React Hook Form + Zod
+- **Always validate:** Client-side and server-side
+- **Always sanitize:** Input sanitization before processing
+
+### Zod Schema Naming
+- **Schema:** Use `camelCase` with `Schema` suffix to avoid conflicts with types
+- **Type Inference:** Use `PascalCase` for inferred types
+
+```tsx
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+// Schema naming
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+// Type inference
+export type LoginPayload = z.infer<typeof loginSchema>;
+
+// Usage
+const form = useForm<LoginPayload>({
+  resolver: zodResolver(loginSchema),
+});
+```
+
+## Security Standards
+
+### Environment Variables
+- **Always use:** Type-safe env vars from `@/lib/env`
+- **Never commit:** `.env.local` (in `.gitignore`)
+- **Always validate:** Env vars at build time
+
+```tsx
+import { env } from '@/lib/env';
+
+const url = env.NEXT_PUBLIC_SUPABASE_URL; // Type-safe
+```
+
+### Input Validation
+- **Always sanitize:** Use `sanitizeHtml`, `sanitizeInput` from `@/lib/utils/sanitize`
+- **Always validate:** Use Zod schemas
+- **Never trust:** User input (validate + sanitize)
+
+### Database Security
+- **Always use:** RLS policies
+- **Always filter:** By `branch_id` for multi-tenant
+- **Never bypass:** RLS (even in server components)
+
+## Testing Standards
+
+### Unit Tests (Vitest)
+- **Location:** `tests/unit/`
+- **Naming:** `*.test.ts` or `*.spec.ts`
+- **Coverage:** Aim for 80%+ coverage
+
+### E2E Tests (Playwright)
+- **Location:** `tests/e2e/`
+- **Naming:** `*.spec.ts`
+- **Smoke Tests:** Always include smoke tests
+
+### Test Structure
+```tsx
+import { describe, it, expect } from 'vitest';
+
+describe('FeatureName', () => {
+  it('should do something', () => {
+    // Test
+  });
+});
+```
+
+## Git & Commit Standards
+
+### Commit Messages (Conventional Commits)
+- **Format:** `type(scope): description`
+- **Enforced by:** Commitlint (will reject invalid format)
+- **MUST be in English:** All commit messages must be in English
+- **Types:**
+  - `feat`: New feature
+  - `fix`: Bug fix
+  - `docs`: Documentation changes
+  - `style`: Code style changes (formatting, etc.)
+  - `refactor`: Code refactoring
+  - `test`: Adding or updating tests
+  - `chore`: Maintenance tasks (deps, config, etc.)
+  - `ci`: CI/CD changes
+  - `build`: Build system changes
+  - `revert`: Revert previous commit
+
+- **Examples:**
+  - `feat(auth): add google login support`
+  - `fix(booking): resolve calculation error on weekend price`
+  - `chore(deps): upgrade next.js to 14.2`
+  - `docs(readme): update installation guide`
+  - `refactor(ui): migrate button to shadcn`
+  - `test(booking): add unit tests for price calculation`
+
+### Branch Naming
+- **Format:** `type/description` (kebab-case)
+- **Types:** `feature/`, `fix/`, `docs/`, `refactor/`
+- **MUST be in English:** All branch names must be in English
+- **Examples:**
+  - `feature/booking-wizard`
+  - `fix/payment-timeout`
+  - `docs/api-documentation`
+
+## Code Generation
+
+### Use Plop.js
+- **Command:** `pnpm generate component Button`
+- **Templates:** Located in `templates/`
+- **Always use:** Generators for consistency
+
+### Don't Create Manually
+- Components (use `pnpm generate component`)
+- Pages (use `pnpm generate page`)
+- API routes (use `pnpm generate api`)
+
+## Documentation Standards
+
+### Code Comments
+- **JSDoc:** For public functions/components
+- **Inline Comments:** For complex logic only
+- **Self-Documenting:** Prefer clear code over comments
+
+```tsx
+/**
+ * Calculate booking total with taxes
+ * @param subtotal - Base price before tax
+ * @param taxRate - Tax rate (0.11 for 11%)
+ * @returns Total price including tax
+ */
+export function calculateTotal(subtotal: number, taxRate: number): number {
+  return subtotal * (1 + taxRate);
+}
+```
+
+### README Files
+- **Component README:** In `components/*/README.md` for complex components
+- **Feature README:** In `docs/` for major features
+- **Keep Updated:** Update docs when code changes
+
+## Performance Standards
+
+### Images
+- **Always use:** `next/image` component
+- **Always optimize:** Use Next.js image optimization
+- **Always provide:** `alt` text for accessibility
+
+### Dynamic Imports
+- **Heavy Components:** Use `dynamic()` with `ssr: false`
+- **Examples:** Maps, Charts, PDF viewers
+
+```tsx
+import dynamic from 'next/dynamic';
+
+const Map = dynamic(() => import('@/components/map/dynamic-map'), {
+  ssr: false,
+});
+```
+
+### Code Splitting
+- **Route-based:** Automatic with App Router
+- **Component-based:** Use dynamic imports for heavy components
+
+## Accessibility Standards
+
+### Required
+- **ARIA Labels:** For interactive elements without visible text
+- **Alt Text:** For all images
+- **Keyboard Navigation:** All interactive elements must be keyboard accessible
+- **Focus Management:** Visible focus indicators
+
+### ESLint A11y
+- **Enforced by:** `eslint-plugin-jsx-a11y`
+- **Will error:** If missing alt text, invalid ARIA, etc.
+
+## Logging Standards
+
+### Always Use Structured Logging
+- **Never use:** `console.log`, `console.error` directly
+- **Always use:** `logger` from `@/lib/utils/logger`
+- **Include context:** Always provide context object
+
+```tsx
+import { logger } from '@/lib/utils/logger';
+
+logger.info('User logged in', { userId: '123' });
+logger.error('Payment failed', error, { bookingId: '456' });
+```
+
+## Database Standards
+
+### Table Naming
+- **Always use plural:** Tables contain multiple rows
+  - ✅ `users`, `bookings`, `packages`
+  - ❌ `user`, `booking`, `package`
+- **Always use snake_case:** `booking_details`, `user_profiles`
+
+### Column Naming
+- **Primary Key:** Always `id` (not `user_id` inside `users` table)
+- **Foreign Key:** Always `[singular_table_name]_id`
+  - Example: In `bookings` table, FK to `users` is `user_id` (not `userId` or `user`)
+- **Date/Time Columns:** Use standard suffixes
+  - `created_at` (not `created`, `date_created`)
+  - `updated_at`
+  - `deleted_at` (for soft delete)
+- **Always use snake_case:** `user_id`, `created_at`, `is_active`
+
+### Type Generation
+- **Always regenerate:** After schema changes
+- **Command:** `pnpm update-types`
+- **Never edit:** `types/supabase.ts` manually
+
+### Migrations
+- **Location:** `scripts/migrations/`
+- **Naming:** `001-description.sql`, `002-description.sql`
+- **Always include:** RLS policies
+- **Always test:** On local database first
+
+## API Standards
+
+### Error Responses
+- **Always use:** `handleApiError` wrapper
+- **Always use:** Standard error codes from `@/lib/api/error-handler`
+- **Always log:** Errors with context
+
+### Rate Limiting
+- **Always use:** Rate limiters for public APIs
+- **Always use:** Rate limiters for AI endpoints
+- **Config:** In `lib/integrations/rate-limit.ts`
+
+### Feature Flags
+- **Always check:** Feature flags before enabling features
+- **Use:** `isFeatureEnabled()` from `@/lib/feature-flags/posthog-flags`
+
+## URL Path Structure
+
+### RESTful & SEO Friendly
+- **Use nouns (kebab-case):** `/bookings`, `/user-profile`
+- **List Resource:** `/bookings` (displays list)
+- **Detail Resource:** `/bookings/123` (detail for ID 123)
+- **Create Form:** `/bookings/new` or `/bookings/create`
+- **Action URL (API):** Use verbs only for RPC/Function calls
+  - REST API: `POST /api/v1/bookings` (standard REST)
+  - RPC: `POST /api/rpc/calculate-discount`
+
+## File Organization
+
+### Directory Structure
+```
+app/              # Next.js App Router (pages, routes) - kebab-case
+components/       # React components (UI, layout, features) - kebab-case files
+lib/             # Utilities, helpers, integrations - kebab-case files
+hooks/           # Custom React hooks - kebab-case files
+types/           # TypeScript type definitions
+tests/           # Test files (e2e, unit)
+scripts/         # Build scripts, migrations
+docs/            # Documentation
+public/          # Static assets
+templates/       # Plop.js templates
+```
+
+### Component Organization
+- **UI Components:** `components/ui/` (Shadcn UI)
+- **Layout Components:** `components/layout/`
+- **Feature Components:** `components/features/` (to be created)
+- **Shared Components:** `components/shared/` (to be created)
+
+### Lib Organization
+- **API:** `lib/api/` (client, error-handler)
+- **AI:** `lib/ai/` (RAG, vision)
+- **Analytics:** `lib/analytics/` (PostHog, GA4)
+- **Integrations:** `lib/integrations/` (Midtrans, Resend, etc.)
+- **Utils:** `lib/utils/` (general utilities)
+
+## When Adding New Features
+
+### Checklist
+1. [ ] Use code generator (`pnpm generate`)
+2. [ ] Add types to `types/supabase.ts` (if database changes)
+3. [ ] Add query keys to `lib/queries/query-keys.ts` (if using TanStack Query)
+4. [ ] Add tests (unit or E2E)
+5. [ ] Update documentation if needed
+6. [ ] Check accessibility (A11y)
+7. [ ] Use structured logging
+8. [ ] Handle errors properly
+9. [ ] Follow commit convention
+10. [ ] Update CHANGELOG.md if significant
+
+## Common Patterns
+
+### API Route Pattern
+```tsx
+import { NextRequest, NextResponse } from 'next/server';
+import { withErrorHandler } from '@/lib/api/error-handler';
+import { logger } from '@/lib/utils/logger';
+import { createClient } from '@/lib/supabase/server';
+
+export const GET = withErrorHandler(async (request: NextRequest) => {
+  logger.info('GET /api/endpoint');
+  const supabase = await createClient();
+  // Implementation
+  return NextResponse.json({ data });
+});
+```
+
+### Page Component Pattern
+```tsx
+import { Metadata } from 'next';
+import { Container } from '@/components/layout/container';
+import { Section } from '@/components/layout/section';
+
+export const metadata: Metadata = {
+  title: 'Page Title',
+  description: 'Page description',
+};
+
+export default function Page() {
+  return (
+    <Section>
+      <Container>
+        {/* Content */}
+      </Container>
+    </Section>
+  );
+}
+```
+
+### Client Component Pattern
+```tsx
+'use client';
+
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import queryKeys from '@/lib/queries/query-keys';
+import { logger } from '@/lib/utils/logger';
+
+export function Component() {
+  const { data } = useQuery({
+    queryKey: queryKeys.resource.all,
+    queryFn: fetchResource,
+  });
+  
+  // Implementation
+}
+```
+
+## Documentation Standards
+
+### File Location Rules
+- **Root directory:** ONLY `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`
+- **All other docs:** MUST be in `docs/` folder
+- **NEVER create:** Status files, completion summaries, or audit reports in root
+- **Temporary files:** Use `scripts/` for utility scripts, delete after use
+
+### Documentation Structure
+```
+docs/
+├── ARCHITECTURE.md      # System architecture
+├── API.md               # API documentation
+├── PROJECT_STRUCTURE.md # Folder structure
+├── DESIGN_SYSTEM.md     # UI/UX standards
+├── NAMING_CONVENTIONS.md # Coding standards
+├── I18N.md              # Internationalization
+├── ROUTING_MAP.md       # Route documentation
+└── setup/               # Setup guides
+```
+
+## Important Reminders
+
+1. **Never commit secrets** - Always use `.env.local`
+2. **Always use type-safe env vars** - `env.NEXT_PUBLIC_*`
+3. **Always use query keys factory** - Never hardcode strings
+4. **Always use structured logging** - Never `console.log`
+5. **Always handle errors** - Use error boundaries and handlers
+6. **Always test** - Write tests for new features
+7. **Always document** - Update docs in `docs/` folder (not root)
+8. **Always follow conventions** - Use generators, follow patterns
+9. **Never create markdown in root** - Only README, CHANGELOG, CONTRIBUTING allowed
+
+## Questions?
+
+- **Architecture:** See `docs/ARCHITECTURE.md`
+- **Design System:** See `docs/DESIGN_SYSTEM.md`
+- **API Docs:** See `docs/API.md`
+- **Project Structure:** See `docs/PROJECT_STRUCTURE.md`
+- **Setup Guide:** See `README.md`
+
+---
+
+**Remember:** Consistency is key. Follow these patterns to maintain code quality and team alignment.

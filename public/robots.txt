@@ -1,0 +1,24 @@
+# *
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /console/
+Disallow: /partner/
+Disallow: /guide/
+Disallow: /corporate/
+Disallow: /_next/
+
+# Googlebot
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /console/
+Disallow: /partner/
+Disallow: /guide/
+Disallow: /corporate/
+
+# Host
+Host: http://localhost:3000
+
+# Sitemaps
+Sitemap: http://localhost:3000/sitemap.xml

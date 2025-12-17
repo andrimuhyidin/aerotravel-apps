@@ -1,0 +1,121 @@
+{
+  "common": {
+    "app_name": "MyAeroTravel ID",
+    "loading": "Memuat...",
+    "error": "Terjadi kesalahan",
+    "success": "Berhasil",
+    "cancel": "Batal",
+    "save": "Simpan",
+    "delete": "Hapus",
+    "edit": "Edit",
+    "view": "Lihat",
+    "back": "Kembali",
+    "next": "Selanjutnya",
+    "submit": "Kirim",
+    "search": "Cari",
+    "filter": "Filter",
+    "sort": "Urutkan",
+    "actions": "Aksi"
+  },
+  "auth": {
+    "login": {
+      "title": "Masuk",
+      "description": "Masuk ke akun Anda",
+      "email": "Email",
+      "password": "Kata Sandi",
+      "forgot_password": "Lupa kata sandi?",
+      "no_account": "Belum punya akun?",
+      "register": "Daftar",
+      "submit_btn": "Masuk"
+    },
+    "register": {
+      "title": "Daftar",
+      "description": "Buat akun baru",
+      "email": "Email",
+      "password": "Kata Sandi",
+      "confirm_password": "Konfirmasi Kata Sandi",
+      "submit_btn": "Daftar",
+      "has_account": "Sudah punya akun?",
+      "login": "Masuk"
+    }
+  },
+  "booking": {
+    "title": "Pesan Paket Wisata",
+    "step_1": "Pilih Paket",
+    "step_2": "Pilih Tanggal & Jumlah",
+    "step_3": "Cek Ketersediaan",
+    "step_4": "Data Penumpang",
+    "step_5": "Hitung Harga",
+    "step_6": "Hitung Pajak",
+    "step_7": "Metode Pembayaran",
+    "step_8": "Checkout",
+    "submit_btn": "Pesan Sekarang"
+  },
+  "navigation": {
+    "home": "Beranda",
+    "packages": "Paket Wisata",
+    "about": "Tentang Kami",
+    "contact": "Kontak",
+    "my_trips": "Perjalanan Saya",
+    "login": "Masuk",
+    "register": "Daftar",
+    "logout": "Keluar"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Selamat Datang"
+  },
+  "partner": {
+    "dashboard": {
+      "title": "Dashboard Mitra",
+      "bookings": "Pemesanan",
+      "revenue": "Pendapatan",
+      "deposit_balance": "Saldo Deposit"
+    },
+    "wallet": {
+      "title": "Manajemen Deposit",
+      "balance": "Saldo",
+      "top_up": "Top Up",
+      "history": "Riwayat"
+    }
+  },
+  "console": {
+    "dashboard": {
+      "title": "Dashboard ERP"
+    },
+    "bookings": {
+      "title": "Manajemen Booking"
+    },
+    "finance": {
+      "title": "Keuangan"
+    },
+    "operations": {
+      "title": "Operasional"
+    }
+  },
+  "guide": {
+    "dashboard": {
+      "title": "Dashboard Guide"
+    },
+    "attendance": {
+      "title": "Absensi",
+      "check_in": "Check In",
+      "check_out": "Check Out"
+    },
+    "manifest": {
+      "title": "Manifest"
+    }
+  },
+  "corporate": {
+    "dashboard": {
+      "title": "Corporate Portal"
+    },
+    "employees": {
+      "title": "Manajemen Karyawan"
+    },
+    "invoices": {
+      "title": "Invoice Corporate"
+    }
+  }
+}
+

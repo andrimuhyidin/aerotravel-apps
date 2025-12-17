@@ -1,0 +1,56 @@
+# Ignore from Cursor indexing
+
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Generated files
+*.generated.ts
+types/supabase.ts
+
+# Caches
+.cache/
+.turbo/
+.vercel/
+
+# Test outputs
+coverage/
+test-results/
+playwright-report/
+
+# Storybook
+storybook-static/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Lock files (large, not useful for AI)
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Scripts (temporary utilities)
+scripts/*.js
+!scripts/migrations/
+

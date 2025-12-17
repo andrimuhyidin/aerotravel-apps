@@ -1,0 +1,40 @@
+# CODEOWNERS
+# Defines who must review code in specific directories
+# Format: <path> <@username or email>
+
+# Global owners (all files)
+* @andrimuhyidin
+
+# Critical paths - require senior review
+/app/api/payment/ @andrimuhyidin
+/app/api/webhooks/ @andrimuhyidin
+/lib/integrations/midtrans.ts @andrimuhyidin
+/lib/integrations/rate-limit.ts @andrimuhyidin
+
+# Database & migrations
+/scripts/migrations/ @andrimuhyidin
+/types/supabase.ts @andrimuhyidin
+
+# Security & authentication
+/middleware.ts @andrimuhyidin
+/lib/supabase/ @andrimuhyidin
+/lib/api/error-handler.ts @andrimuhyidin
+
+# AI & sensitive logic
+/lib/ai/ @andrimuhyidin
+/lib/deepseek.ts @andrimuhyidin
+
+# Configuration files
+/next.config.js @andrimuhyidin
+/tsconfig.json @andrimuhyidin
+/package.json @andrimuhyidin
+/.env.example.txt @andrimuhyidin
+
+# CI/CD
+/.github/workflows/ @andrimuhyidin
+
+# Documentation
+/docs/ @andrimuhyidin
+/README.md @andrimuhyidin
+/CHANGELOG.md @andrimuhyidin
+
