@@ -80,23 +80,98 @@ export type PnLSummary = {
  */
 export const DEFAULT_COST_STRUCTURE: Record<string, CostItem[]> = {
   boat_trip: [
-    { category: 'Operasional', description: 'BBM Kapal', amount: 500000, isVariable: false },
-    { category: 'Operasional', description: 'Sewa Kapal', amount: 1500000, isVariable: false },
-    { category: 'Operasional', description: 'Crew Kapal', amount: 300000, isVariable: false },
-    { category: 'Guide', description: 'Fee Guide', amount: 200000, isVariable: false },
-    { category: 'Konsumsi', description: 'Makan per Pax', amount: 50000, isVariable: true },
-    { category: 'Konsumsi', description: 'Snack per Pax', amount: 15000, isVariable: true },
-    { category: 'Perlengkapan', description: 'Alat Snorkeling per Pax', amount: 25000, isVariable: true },
-    { category: 'Asuransi', description: 'Asuransi per Pax', amount: 10000, isVariable: true },
-    { category: 'Dokumentasi', description: 'Foto/Video', amount: 100000, isVariable: false },
+    {
+      category: 'Operasional',
+      description: 'BBM Kapal',
+      amount: 500000,
+      isVariable: false,
+    },
+    {
+      category: 'Operasional',
+      description: 'Sewa Kapal',
+      amount: 1500000,
+      isVariable: false,
+    },
+    {
+      category: 'Operasional',
+      description: 'Crew Kapal',
+      amount: 300000,
+      isVariable: false,
+    },
+    {
+      category: 'Guide',
+      description: 'Fee Guide',
+      amount: 200000,
+      isVariable: false,
+    },
+    {
+      category: 'Konsumsi',
+      description: 'Makan per Pax',
+      amount: 50000,
+      isVariable: true,
+    },
+    {
+      category: 'Konsumsi',
+      description: 'Snack per Pax',
+      amount: 15000,
+      isVariable: true,
+    },
+    {
+      category: 'Perlengkapan',
+      description: 'Alat Snorkeling per Pax',
+      amount: 25000,
+      isVariable: true,
+    },
+    {
+      category: 'Asuransi',
+      description: 'Asuransi per Pax',
+      amount: 10000,
+      isVariable: true,
+    },
+    {
+      category: 'Dokumentasi',
+      description: 'Foto/Video',
+      amount: 100000,
+      isVariable: false,
+    },
   ],
   land_trip: [
-    { category: 'Transportasi', description: 'Sewa Kendaraan', amount: 800000, isVariable: false },
-    { category: 'Transportasi', description: 'BBM', amount: 300000, isVariable: false },
-    { category: 'Guide', description: 'Fee Guide', amount: 200000, isVariable: false },
-    { category: 'Konsumsi', description: 'Makan per Pax', amount: 75000, isVariable: true },
-    { category: 'Tiket', description: 'Tiket Masuk per Pax', amount: 50000, isVariable: true },
-    { category: 'Asuransi', description: 'Asuransi per Pax', amount: 10000, isVariable: true },
+    {
+      category: 'Transportasi',
+      description: 'Sewa Kendaraan',
+      amount: 800000,
+      isVariable: false,
+    },
+    {
+      category: 'Transportasi',
+      description: 'BBM',
+      amount: 300000,
+      isVariable: false,
+    },
+    {
+      category: 'Guide',
+      description: 'Fee Guide',
+      amount: 200000,
+      isVariable: false,
+    },
+    {
+      category: 'Konsumsi',
+      description: 'Makan per Pax',
+      amount: 75000,
+      isVariable: true,
+    },
+    {
+      category: 'Tiket',
+      description: 'Tiket Masuk per Pax',
+      amount: 50000,
+      isVariable: true,
+    },
+    {
+      category: 'Asuransi',
+      description: 'Asuransi per Pax',
+      amount: 10000,
+      isVariable: true,
+    },
   ],
 };
 
@@ -167,7 +242,10 @@ export function generateTripPnL(
 
   const totalPax = revenueItems.reduce((sum, r) => sum + r.paxCount, 0);
   const grossRevenue = revenueItems.reduce((sum, r) => sum + r.grossAmount, 0);
-  const totalDiscounts = revenueItems.reduce((sum, r) => sum + r.discountAmount, 0);
+  const totalDiscounts = revenueItems.reduce(
+    (sum, r) => sum + r.discountAmount,
+    0
+  );
   const netRevenue = grossRevenue - totalDiscounts;
 
   // Calculate costs
@@ -185,7 +263,10 @@ export function generateTripPnL(
   const profitPerPax = totalPax > 0 ? grossProfit / totalPax : 0;
 
   // Breakeven
-  const variableCostPerPax = variableCosts.reduce((sum, c) => sum + c.amount, 0);
+  const variableCostPerPax = variableCosts.reduce(
+    (sum, c) => sum + c.amount,
+    0
+  );
   const avgPricePerPax = totalPax > 0 ? netRevenue / totalPax : 0;
   const breakevenPax = calculateBreakevenPax(
     costCalc.fixed,
@@ -230,13 +311,17 @@ export function generateTripPnL(
 /**
  * Generate P&L summary for multiple trips
  */
-export function generatePnLSummary(tripPnLs: TripPnL[], period: string): PnLSummary {
+export function generatePnLSummary(
+  tripPnLs: TripPnL[],
+  period: string
+): PnLSummary {
   const totalTrips = tripPnLs.length;
   const totalPax = tripPnLs.reduce((sum, t) => sum + t.totalPax, 0);
   const totalRevenue = tripPnLs.reduce((sum, t) => sum + t.netRevenue, 0);
   const totalCost = tripPnLs.reduce((sum, t) => sum + t.totalCost, 0);
   const totalProfit = totalRevenue - totalCost;
-  const averageMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+  const averageMargin =
+    totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
   const profitableTrips = tripPnLs.filter((t) => t.grossProfit > 0).length;
   const unprofitableTrips = totalTrips - profitableTrips;
@@ -268,9 +353,10 @@ export function formatCurrency(amount: number): string {
 /**
  * Get profit status label
  */
-export function getProfitStatus(
-  margin: number
-): { label: string; color: 'green' | 'yellow' | 'red' } {
+export function getProfitStatus(margin: number): {
+  label: string;
+  color: 'green' | 'yellow' | 'red';
+} {
   if (margin >= 30) return { label: 'Sangat Baik', color: 'green' };
   if (margin >= 15) return { label: 'Baik', color: 'green' };
   if (margin >= 0) return { label: 'Tipis', color: 'yellow' };

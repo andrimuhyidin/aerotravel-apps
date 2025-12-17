@@ -49,7 +49,7 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -58,8 +58,36 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
     return { error: error.message };
   }
 
+  // Determine redirect based on user role
+  let redirectPath = '/id'; // Default to homepage for customers
+
+  if (data.user) {
+    const { data: profile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', data.user.id)
+      .single();
+
+    const role = (profile as { role?: string } | null)?.role;
+
+    if (
+      role === 'super_admin' ||
+      role === 'owner' ||
+      role === 'manager' ||
+      role === 'admin' ||
+      role === 'finance' ||
+      role === 'cs'
+    ) {
+      redirectPath = '/id/console';
+    } else if (role === 'guide') {
+      redirectPath = '/id/guide';
+    } else if (role === 'mitra' || role === 'nta') {
+      redirectPath = '/id/mitra';
+    }
+  }
+
   revalidatePath('/', 'layout');
-  redirect('/id/console');
+  redirect(redirectPath);
 }
 
 /**

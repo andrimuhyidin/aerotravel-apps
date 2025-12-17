@@ -187,7 +187,12 @@ export function generateResourceCalendar(
     }
 
     // Check bookings
-    const conflict = checkResourceAvailability(schedules, asset.id, dateStr, dateStr);
+    const conflict = checkResourceAvailability(
+      schedules,
+      asset.id,
+      dateStr,
+      dateStr
+    );
     if (conflict.hasConflict) {
       const firstConflict = conflict.conflicts[0];
       slots.push({
