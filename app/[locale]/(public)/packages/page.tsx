@@ -166,7 +166,7 @@ export default async function PackagesPage({ params }: PageProps) {
       {/* Package Cards */}
       <div className="space-y-4 px-5 pb-8">
         {packages.map((pkg) => (
-          <Link key={pkg.id} href={`/${locale}/packages/all/${pkg.slug}`}>
+          <Link key={pkg.id} href={`/${locale}/packages/detail/${pkg.slug}`}>
             <div className="overflow-hidden rounded-2xl bg-white shadow-md transition-all active:scale-[0.98]">
               {/* Image Header */}
               <div className="relative aspect-[2/1] bg-gradient-to-br from-primary/20 to-aero-teal/20">
