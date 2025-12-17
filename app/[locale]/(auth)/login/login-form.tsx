@@ -8,7 +8,7 @@ import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { signIn, signInWithGoogle } from '@/lib/actions/auth';
+import { resendConfirmation, signIn, signInWithGoogle } from '@/lib/actions/auth';
 
 type LoginFormProps = {
   locale: string;
@@ -16,21 +16,46 @@ type LoginFormProps = {
 
 export function LoginForm({ locale }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null);
+  const [showResend, setShowResend] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [currentEmail, setCurrentEmail] = useState('');
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   function handleSubmit(formData: FormData) {
     setError(null);
+    setShowResend(false);
+    setResendSuccess(false);
+    const email = formData.get('email') as string;
+    setCurrentEmail(email);
+
     startTransition(async () => {
       try {
         const result = await signIn(formData);
         if (result?.error) {
           setError(result.error);
+          // Show resend option for unconfirmed email errors
+          if (result.error.toLowerCase().includes('email not confirmed') || 
+              result.error.toLowerCase().includes('email link is invalid')) {
+            setShowResend(true);
+          }
         }
-        // If no error, redirect is handled by server action
       } catch {
-        // Redirect throws an error in Next.js, this is expected
         router.refresh();
+      }
+    });
+  }
+
+  function handleResend() {
+    setResendSuccess(false);
+    startTransition(async () => {
+      const result = await resendConfirmation(currentEmail);
+      if (result?.success) {
+        setResendSuccess(true);
+        setShowResend(false);
+        setError(null);
+      } else if (result?.error) {
+        setError(result.error);
       }
     });
   }
@@ -124,9 +149,31 @@ export function LoginForm({ locale }: LoginFormProps) {
           />
         </div>
 
+        {resendSuccess && (
+          <div className="rounded-xl bg-green-100 p-3 text-center text-sm text-green-700">
+            Email konfirmasi terkirim! Cek inbox Anda.
+          </div>
+        )}
+
         {error && (
-          <div className="rounded-xl bg-destructive/10 p-3 text-center text-sm text-destructive">
-            {error}
+          <div className="space-y-2">
+            <div className="rounded-xl bg-destructive/10 p-3 text-center text-sm text-destructive">
+              {error}
+            </div>
+            {showResend && (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 w-full rounded-xl text-xs"
+                onClick={handleResend}
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                ) : null}
+                Kirim Ulang Email Konfirmasi
+              </Button>
+            )}
           </div>
         )}
 

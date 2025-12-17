@@ -123,6 +123,27 @@ export async function signOut() {
 }
 
 /**
+ * Resend email confirmation
+ */
+export async function resendConfirmation(email: string): Promise<AuthResult> {
+  const supabase = await createClient();
+
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
+/**
  * Reset password request
  */
 export async function resetPassword(formData: FormData): Promise<AuthResult> {
