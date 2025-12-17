@@ -2,7 +2,6 @@
 
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -22,42 +21,27 @@ export function LoginForm({ locale }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [showResend, setShowResend] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
-  const [loginSuccess, setLoginSuccess] = useState(false);
   const [currentEmail, setCurrentEmail] = useState('');
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
 
   function handleSubmit(formData: FormData) {
     setError(null);
     setShowResend(false);
     setResendSuccess(false);
-    setLoginSuccess(false);
     const email = formData.get('email') as string;
     setCurrentEmail(email);
 
     startTransition(async () => {
-      try {
-        const result = await signIn(formData);
-        if (result?.error) {
-          setError(result.error);
-          // Show resend option for unconfirmed email errors
-          if (
-            result.error.toLowerCase().includes('email not confirmed') ||
-            result.error.toLowerCase().includes('email link is invalid')
-          ) {
-            setShowResend(true);
-          }
-        } else if (result?.success) {
-          setLoginSuccess(true);
-          // Redirect manually after short delay
-          setTimeout(() => {
-            router.push(result.redirectPath || `/${locale}`);
-            router.refresh();
-          }, 500);
+      const result = await signIn(formData);
+      // If we get here, there was an error (redirect throws on success)
+      if (result?.error) {
+        setError(result.error);
+        if (
+          result.error.toLowerCase().includes('email not confirmed') ||
+          result.error.toLowerCase().includes('email link is invalid')
+        ) {
+          setShowResend(true);
         }
-      } catch {
-        // Redirect throws in server action
-        router.refresh();
       }
     });
   }
@@ -164,12 +148,6 @@ export function LoginForm({ locale }: LoginFormProps) {
             className="h-12 rounded-xl"
           />
         </div>
-
-        {loginSuccess && (
-          <div className="rounded-xl bg-green-100 p-3 text-center text-sm text-green-700">
-            Login berhasil! Mengalihkan...
-          </div>
-        )}
 
         {resendSuccess && (
           <div className="rounded-xl bg-green-100 p-3 text-center text-sm text-green-700">

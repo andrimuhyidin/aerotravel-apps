@@ -50,18 +50,24 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
+  console.log('[AUTH] Attempting login for:', email);
+
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
+    console.log('[AUTH] Login error:', error.message);
     return { error: error.message };
   }
 
   if (!data.user) {
+    console.log('[AUTH] No user returned');
     return { error: 'Login gagal, coba lagi.' };
   }
+
+  console.log('[AUTH] Login successful for user:', data.user.id);
 
   // Check if user profile exists, create if not
   const { data: profile } = await supabase
@@ -102,11 +108,19 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
     redirectPath = '/id/mitra';
   }
 
-  revalidatePath('/', 'layout');
+  console.log('[AUTH] User role:', role, '-> redirect to:', redirectPath);
 
-  // Return success with redirect path instead of calling redirect()
-  // This allows client to show success message before redirecting
-  return { success: true, redirectPath };
+  // Get the session to verify it's set
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  console.log('[AUTH] Session exists:', !!session, session?.user.id);
+
+  revalidatePath('/', 'layout');
+  revalidatePath(redirectPath, 'page');
+
+  // Use server-side redirect to properly persist cookies
+  redirect(redirectPath);
 }
 
 /**
