@@ -1,6 +1,6 @@
 /**
  * Package Detail Page - Mobile Native Style
- * Route: /packages/detail/[slug]
+ * Route: /packages/[city]/[slug]
  */
 
 import {
@@ -25,7 +25,7 @@ import { locales } from '@/i18n';
 import { createClient } from '@/lib/supabase/server';
 
 type Props = {
-  params: Promise<{ locale: string; slug: string }>;
+  params: Promise<{ locale: string; city: string; slug: string }>;
 };
 
 export const dynamic = 'force-dynamic';
@@ -61,7 +61,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PackageDetailPage({ params }: Props) {
-  const { locale, slug } = await params;
+  const { locale, city, slug } = await params;
   setRequestLocale(locale);
 
   const supabase = await createClient();

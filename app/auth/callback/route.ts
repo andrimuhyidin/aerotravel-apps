@@ -48,6 +48,11 @@ export async function GET(request: NextRequest) {
         redirectPath = '/id?verified=true';
       }
 
+      // For password recovery, redirect to reset password page
+      if (type === 'recovery') {
+        redirectPath = '/id/reset-password';
+      }
+
       return NextResponse.redirect(`${origin}${redirectPath}`);
     }
   }

@@ -2,7 +2,8 @@
 
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,23 +16,29 @@ type LoginFormProps = {
 
 export function LoginForm({ locale }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
-  async function handleSubmit(formData: FormData) {
-    setLoading(true);
+  function handleSubmit(formData: FormData) {
     setError(null);
-
-    const result = await signIn(formData);
-
-    if (result?.error) {
-      setError(result.error);
-      setLoading(false);
-    }
+    startTransition(async () => {
+      try {
+        const result = await signIn(formData);
+        if (result?.error) {
+          setError(result.error);
+        }
+        // If no error, redirect is handled by server action
+      } catch {
+        // Redirect throws an error in Next.js, this is expected
+        router.refresh();
+      }
+    });
   }
 
-  async function handleGoogleLogin() {
-    setLoading(true);
-    await signInWithGoogle();
+  function handleGoogleLogin() {
+    startTransition(async () => {
+      await signInWithGoogle();
+    });
   }
 
   return (
@@ -42,7 +49,7 @@ export function LoginForm({ locale }: LoginFormProps) {
         variant="outline"
         className="h-12 w-full gap-3 rounded-xl text-sm font-medium"
         onClick={handleGoogleLogin}
-        disabled={loading}
+        disabled={isPending}
       >
         <svg className="h-5 w-5" viewBox="0 0 24 24">
           <path
@@ -89,7 +96,7 @@ export function LoginForm({ locale }: LoginFormProps) {
             type="email"
             placeholder="nama@email.com"
             required
-            disabled={loading}
+            disabled={isPending}
             className="h-12 rounded-xl"
           />
         </div>
@@ -112,7 +119,7 @@ export function LoginForm({ locale }: LoginFormProps) {
             type="password"
             placeholder="••••••••"
             required
-            disabled={loading}
+            disabled={isPending}
             className="h-12 rounded-xl"
           />
         </div>
@@ -126,9 +133,9 @@ export function LoginForm({ locale }: LoginFormProps) {
         <Button
           type="submit"
           className="h-12 w-full rounded-xl text-sm font-semibold"
-          disabled={loading}
+          disabled={isPending}
         >
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Masuk
         </Button>
       </form>
