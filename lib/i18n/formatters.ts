@@ -37,12 +37,14 @@ export function useDateFormatter() {
 
   return (date: Date | string, options?: Intl.DateTimeFormatOptions) => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return format.dateTime(dateObj, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      ...(options as Record<string, unknown>),
-    } as Parameters<typeof format.dateTime>[1]);
+    const formatOptions = {
+      year: 'numeric' as const,
+      month: 'long' as const,
+      day: 'numeric' as const,
+      ...options,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return format.dateTime(dateObj, formatOptions as any);
   };
 }
 
@@ -59,11 +61,13 @@ export function useTimeFormatter() {
 
   return (date: Date | string, options?: Intl.DateTimeFormatOptions) => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return format.dateTime(dateObj, {
-      hour: 'numeric',
-      minute: 'numeric',
-      ...(options as Record<string, unknown>),
-    } as Parameters<typeof format.dateTime>[1]);
+    const formatOptions = {
+      hour: 'numeric' as const,
+      minute: 'numeric' as const,
+      ...options,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return format.dateTime(dateObj, formatOptions as any);
   };
 }
 

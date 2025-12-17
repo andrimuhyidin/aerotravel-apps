@@ -1,37 +1,33 @@
-/** @type {import('next').NextConfig} */
-const withSerwist = require('@serwist/next').default({
+import withSerwistInit from '@serwist/next';
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withSerwist = withSerwistInit({
   swSrc: 'public/sw.ts',
   swDest: 'public/sw.js',
   disable: process.env.NODE_ENV === 'development',
 });
 
 // next-intl plugin
-const createNextIntlPlugin = require('next-intl/plugin');
 const withNextIntl = createNextIntlPlugin('./i18n.ts');
 
 // Bundle analyzer (optional, only if ANALYZE=true)
 let withBundleAnalyzer = (config) => config;
 if (process.env.ANALYZE === 'true') {
-  try {
-    withBundleAnalyzer = require('@next/bundle-analyzer')({
-      enabled: true,
-    });
-  } catch (e) {
-    console.warn('Bundle analyzer not installed. Run: pnpm add -D @next/bundle-analyzer');
-  }
+  const { default: analyzer } = await import('@next/bundle-analyzer');
+  withBundleAnalyzer = analyzer({
+    enabled: true,
+  });
 }
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone', // Docker compatibility
   poweredByHeader: false, // Hide "X-Powered-By" header
-  
+
   // i18n configuration (handled by next-intl middleware)
   // Locales: id (default), en
-  
+
   async headers() {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
-    
     return [
       {
         source: '/:path*',
@@ -41,8 +37,11 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-          
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
+
           // Content Security Policy
           {
             key: 'Content-Security-Policy',
@@ -108,4 +107,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withBundleAnalyzer(withNextIntl(withSerwist(nextConfig)));
+export default withBundleAnalyzer(withNextIntl(withSerwist(nextConfig)));

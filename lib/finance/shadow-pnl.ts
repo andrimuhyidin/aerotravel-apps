@@ -6,7 +6,8 @@
 import type { Database } from '@/types/supabase';
 
 type Booking = Database['public']['Tables']['bookings']['Row'];
-type TripSchedule = Database['public']['Tables']['trip_schedules']['Row'];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TripSchedule = any; // TODO: Regenerate types after DB migration
 
 export type CostItem = {
   category: string;
@@ -218,7 +219,8 @@ export function calculateBreakevenPax(
  */
 export function generateTripPnL(
   trip: TripSchedule,
-  bookings: Booking[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  bookings: any[], // TODO: Regenerate types after DB migration
   costs: CostItem[],
   packageName: string
 ): TripPnL {

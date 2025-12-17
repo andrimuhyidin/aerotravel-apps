@@ -53,11 +53,11 @@ export async function GET() {
   try {
     const dbStart = Date.now();
     const supabase = await createClient();
-    const { error } = await supabase.from('_health').select('1').limit(1);
+    // Use a real table for health check (branches is lightweight)
+    const { error } = await supabase.from('branches').select('id').limit(1);
     const dbTime = Date.now() - dbStart;
 
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116 = table doesn't exist (expected for health check)
+    if (error) {
       health.services.database = {
         status: 'unhealthy',
         responseTime: dbTime,

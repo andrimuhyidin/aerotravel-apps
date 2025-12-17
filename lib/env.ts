@@ -30,9 +30,10 @@ export const env = createEnv({
     XENDIT_WEBHOOK_TOKEN: z.string().min(1).optional(),
     XENDIT_IS_PRODUCTION: z
       .string()
+      .optional()
       .transform((val) => val === 'true')
       .pipe(z.boolean())
-      .default('false'),
+      .default(false),
 
     // Resend Email
     RESEND_API_KEY: z.string().min(1).optional(),

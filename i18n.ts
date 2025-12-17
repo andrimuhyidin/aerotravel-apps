@@ -20,13 +20,17 @@ export const localeConfig = {
   localePrefix: 'always' as const, // Always show locale in URL: /id/..., /en/...
 };
 
-export default getRequestConfig(async ({ locale }) => {
+export default getRequestConfig(async ({ requestLocale }) => {
+  // Get locale from requestLocale (next-intl v4 breaking change)
+  let locale = await requestLocale;
+  
   // Validate that the incoming `locale` parameter is valid
-  if (!locales.includes(locale as Locale)) {
-    notFound();
+  if (!locale || !locales.includes(locale as Locale)) {
+    locale = defaultLocale;
   }
 
   return {
+    locale,
     messages: (await import(`./messages/${locale}.json`)).default,
   };
 });

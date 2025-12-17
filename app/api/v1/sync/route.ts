@@ -23,14 +23,16 @@ export async function POST(request: NextRequest) {
         switch (mutation.type) {
           case 'attendance':
             // Sync attendance data
-            result = await supabase
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            result = await (supabase as any)
               .from('attendances')
               .insert(mutation.data);
             break;
 
           case 'documentation':
             // Sync documentation upload
-            result = await supabase
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            result = await (supabase as any)
               .from('trip_documentations')
               .insert(mutation.data);
             break;
