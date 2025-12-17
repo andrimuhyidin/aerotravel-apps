@@ -7,10 +7,11 @@
  * 4. Branch injection (multi-tenant)
  */
 
-import { createServerClient } from '@supabase/ssr';
 import createMiddleware from 'next-intl/middleware';
 import { NextResponse, type NextRequest } from 'next/server';
+
 import { defaultLocale, localeConfig } from './i18n';
+import { updateSession } from './lib/supabase/middleware';
 
 // Create i18n middleware
 const intlMiddleware = createMiddleware({
@@ -30,7 +31,8 @@ export async function middleware(request: NextRequest) {
   if (
     !pathnameHasLocale &&
     !pathname.startsWith('/api') &&
-    !pathname.startsWith('/_next')
+    !pathname.startsWith('/_next') &&
+    !pathname.startsWith('/auth')
   ) {
     // Redirect to default locale if no locale in path
     const locale = defaultLocale;
@@ -39,61 +41,23 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // Run i18n middleware
-  const intlResponse = intlMiddleware(request);
-  if (intlResponse) {
-    // Continue with auth/authorization checks
-    return handleAuthAndAuthorization(request, intlResponse);
-  }
+  // Update Supabase session first (this refreshes auth tokens)
+  const { supabaseResponse, user, supabase } = await updateSession(request);
 
-  return intlResponse;
-}
-
-async function handleAuthAndAuthorization(
-  request: NextRequest,
-  response: NextResponse
-): Promise<NextResponse> {
-  // Extract locale from pathname for route matching
-  const pathname = request.nextUrl.pathname;
+  // Extract locale for route matching
   const locale = pathname.split('/')[1] || defaultLocale;
   const pathWithoutLocale = pathname.replace(`/${locale}`, '') || '/';
 
   // Skip auth checks for API routes and static files
-  if (pathname.startsWith('/api') || pathname.startsWith('/_next')) {
-    return response;
+  if (
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/auth')
+  ) {
+    return supabaseResponse;
   }
 
-  // Skip auth if Supabase is not configured (development mode)
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return response;
-  }
-
-  // Create Supabase client
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(
-        cookiesToSet: Array<{ name: string; value: string; options?: unknown }>
-      ) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value)
-        );
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options as Record<string, unknown>)
-        );
-      },
-    },
-  });
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Protected routes (updated to use new route structure with locale)
+  // Protected routes
   const protectedPaths = [
     `/${locale}/console`,
     `/${locale}/partner`,
@@ -179,11 +143,12 @@ async function handleAuthAndAuthorization(
 
     // Inject branch_id to headers for server components
     if (branchId) {
-      response.headers.set('x-branch-id', branchId);
+      supabaseResponse.headers.set('x-branch-id', branchId);
     }
   }
 
-  return response;
+  // Return supabaseResponse which has properly set cookies
+  return supabaseResponse;
 }
 
 export const config = {

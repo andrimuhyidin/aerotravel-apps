@@ -22,6 +22,7 @@ export function LoginForm({ locale }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [showResend, setShowResend] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
   const [currentEmail, setCurrentEmail] = useState('');
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -30,6 +31,7 @@ export function LoginForm({ locale }: LoginFormProps) {
     setError(null);
     setShowResend(false);
     setResendSuccess(false);
+    setLoginSuccess(false);
     const email = formData.get('email') as string;
     setCurrentEmail(email);
 
@@ -45,8 +47,16 @@ export function LoginForm({ locale }: LoginFormProps) {
           ) {
             setShowResend(true);
           }
+        } else if (result?.success) {
+          setLoginSuccess(true);
+          // Redirect manually after short delay
+          setTimeout(() => {
+            router.push(result.redirectPath || `/${locale}`);
+            router.refresh();
+          }, 500);
         }
       } catch {
+        // Redirect throws in server action
         router.refresh();
       }
     });
@@ -154,6 +164,12 @@ export function LoginForm({ locale }: LoginFormProps) {
             className="h-12 rounded-xl"
           />
         </div>
+
+        {loginSuccess && (
+          <div className="rounded-xl bg-green-100 p-3 text-center text-sm text-green-700">
+            Login berhasil! Mengalihkan...
+          </div>
+        )}
 
         {resendSuccess && (
           <div className="rounded-xl bg-green-100 p-3 text-center text-sm text-green-700">

@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 export type AuthResult = {
   error?: string;
   success?: boolean;
+  redirectPath?: string;
 };
 
 /**
@@ -102,7 +103,10 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   }
 
   revalidatePath('/', 'layout');
-  redirect(redirectPath);
+
+  // Return success with redirect path instead of calling redirect()
+  // This allows client to show success message before redirecting
+  return { success: true, redirectPath };
 }
 
 /**
