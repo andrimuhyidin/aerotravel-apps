@@ -88,7 +88,7 @@
     "@svgr/webpack": "^8.1.0",
     "@t3-oss/env-nextjs": "^0.7.1",
     "@types/leaflet": "^1.9.8",
-    "@types/node": "^20",
+    "@types/node": "^25",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^4.0.16",
