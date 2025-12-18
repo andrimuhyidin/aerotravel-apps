@@ -1,11 +1,11 @@
 /**
  * Excel Import Functions
- * Sesuai PRD - Excel Parser (SheetJS)
+ * Sesuai PRD - Excel Parser (Migrated to ExcelJS)
  * 
  * Import data from Excel format (.xlsx)
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 /**
  * Parse Excel file to JSON
@@ -15,61 +15,83 @@ export function parseExcelFile<T = unknown>(
 ): Promise<T[]> {
   return new Promise((resolve, reject) => {
     try {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        try {
-          const data = e.target?.result;
-          if (!data) {
-            reject(new Error('Failed to read file'));
-            return;
-          }
-
-          const workbook = XLSX.read(data, { type: 'binary' });
-          const firstSheetName = workbook.SheetNames[0];
-          if (!firstSheetName) {
-            throw new Error('Workbook has no sheets');
-          }
-          const worksheet = workbook.Sheets[firstSheetName];
-          if (!worksheet) {
-            throw new Error('Worksheet not found');
-          }
-          
-          // Convert to JSON
-          const jsonData = XLSX.utils.sheet_to_json<T>(worksheet);
-          
-          resolve(jsonData);
-        } catch (error) {
-          reject(error);
-        }
-      };
-      
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      
       if (file instanceof File) {
-        reader.readAsBinaryString(file);
+        // Read File using FileReader
+        const reader = new FileReader();
+        
+        reader.onload = async (e) => {
+          try {
+            const arrayBuffer = e.target?.result;
+            if (!arrayBuffer || !(arrayBuffer instanceof ArrayBuffer)) {
+              reject(new Error('Failed to read file'));
+              return;
+            }
+
+            const data = await parseArrayBuffer<T>(arrayBuffer);
+            resolve(data);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsArrayBuffer(file);
       } else {
         // ArrayBuffer
-        const binaryString = new Uint8Array(file)
-          .reduce((data, byte) => data + String.fromCharCode(byte), '');
-        const workbook = XLSX.read(binaryString, { type: 'binary' });
-        const firstSheetName = workbook.SheetNames[0];
-        if (!firstSheetName) {
-          reject(new Error('Workbook has no sheets'));
-          return;
-        }
-        const worksheet = workbook.Sheets[firstSheetName];
-        if (!worksheet) {
-          reject(new Error('Worksheet not found'));
-          return;
-        }
-        const jsonData = XLSX.utils.sheet_to_json<T>(worksheet);
-        resolve(jsonData);
+        parseArrayBuffer<T>(file)
+          .then(resolve)
+          .catch(reject);
       }
     } catch (error) {
       reject(error);
     }
   });
+}
+
+/**
+ * Parse ArrayBuffer to JSON using ExcelJS
+ */
+async function parseArrayBuffer<T = unknown>(buffer: ArrayBuffer): Promise<T[]> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) {
+    throw new Error('Workbook has no sheets');
+  }
+  
+  // Get headers from first row
+  const headers: string[] = [];
+  const firstRow = worksheet.getRow(1);
+  firstRow.eachCell((cell, colNumber) => {
+    headers[colNumber - 1] = String(cell.value || '');
+  });
+  
+  if (headers.length === 0) {
+    throw new Error('Worksheet has no headers');
+  }
+  
+  // Convert rows to JSON
+  const jsonData: T[] = [];
+  worksheet.eachRow((row, rowNumber) => {
+    // Skip header row
+    if (rowNumber === 1) return;
+    
+    const rowData: Record<string, unknown> = {};
+    row.eachCell((cell, colNumber) => {
+      const header = headers[colNumber - 1];
+      if (header) {
+        rowData[header] = cell.value;
+      }
+    });
+    
+    // Only add row if it has data
+    if (Object.keys(rowData).length > 0) {
+      jsonData.push(rowData as T);
+    }
+  });
+  
+  return jsonData;
 }
 
 /**
@@ -160,4 +182,3 @@ export function validateExcelData(
     errors,
   };
 }
-

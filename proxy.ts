@@ -1,5 +1,6 @@
 /**
- * Middleware - Route Protection + i18n
+ * Proxy (Next.js 16+ Middleware Replacement)
+ * Route Protection + i18n
  * Handles:
  * 1. Internationalization (locale detection & routing)
  * 2. Authentication (session check)
@@ -20,7 +21,7 @@ const intlMiddleware = createMiddleware({
   localePrefix: localeConfig.localePrefix,
 });
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Extract locale from pathname
   const pathname = request.nextUrl.pathname;
   const pathnameHasLocale = localeConfig.locales.some(
@@ -77,18 +78,18 @@ export async function middleware(request: NextRequest) {
     // Get user profile for role and consent
     const { data: profile } = await supabase
       .from('users')
-      .select('role, branch_id, consent_agreed')
+      .select('role, branch_id, is_contract_signed')
       .eq('id', user.id)
       .single();
 
     const userProfile = profile as {
       role: string;
       branch_id: string | null;
-      consent_agreed: boolean | null;
+      is_contract_signed: boolean | null;
     } | null;
     const userRole = userProfile?.role;
     const branchId = userProfile?.branch_id;
-    const hasConsent = userProfile?.consent_agreed;
+    const hasConsent = userProfile?.is_contract_signed;
 
     // Check consent - redirect to legal sign if not agreed
     const consentExemptPaths = [

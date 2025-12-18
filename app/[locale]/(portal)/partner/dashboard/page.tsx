@@ -3,11 +3,12 @@
  * Route: /[locale]/partner/dashboard
  */
 
-import { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
 import { locales } from '@/i18n';
+import { Metadata } from 'next';
+import { setRequestLocale } from 'next-intl/server';
+import { PartnerDashboardClient } from './partner-dashboard-client';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -39,15 +40,7 @@ export default async function PartnerDashboardPage({ params }: PageProps) {
   return (
     <Section>
       <Container>
-        <div className="py-8">
-          <h1 className="text-3xl font-bold mb-6">Partner Dashboard</h1>
-          
-          <div className="bg-muted p-8 rounded-lg">
-            <p className="text-muted-foreground">
-              Partner Dashboard page will be implemented here.
-            </p>
-          </div>
-        </div>
+        <PartnerDashboardClient />
       </Container>
     </Section>
   );

@@ -93,6 +93,7 @@ class Logger {
       }
     } else if (typeof process !== 'undefined') {
       // Server-side Sentry
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const Sentry = require('@sentry/nextjs');
       if (error instanceof Error) {
         Sentry.captureException(error, {

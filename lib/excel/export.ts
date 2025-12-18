@@ -1,37 +1,74 @@
 /**
  * Excel Export Functions
- * Sesuai PRD - Excel Parser (SheetJS)
+ * Sesuai PRD - Excel Parser (Migrated to ExcelJS)
  * 
  * Export data to Excel format (.xlsx)
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 /**
  * Export array of objects to Excel file
  */
-export function exportToExcel<T extends Record<string, unknown>>(
+export async function exportToExcel<T extends Record<string, unknown>>(
   data: T[],
   sheetName: string = 'Sheet1',
   fileName: string = 'export.xlsx'
-): void {
+): Promise<void> {
   // Create workbook
-  const workbook = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(sheetName);
   
-  // Convert data to worksheet
-  const worksheet = XLSX.utils.json_to_sheet(data);
+  if (data.length === 0) {
+    throw new Error('No data to export');
+  }
   
-  // Add worksheet to workbook
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  // Get columns from first row
+  const columns = Object.keys(data[0]!).map((key) => ({
+    header: key,
+    key: key,
+    width: 15,
+  }));
+  
+  worksheet.columns = columns;
+  
+  // Add rows
+  data.forEach((row) => {
+    worksheet.addRow(row);
+  });
+  
+  // Style header row
+  worksheet.getRow(1).font = { bold: true };
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' },
+  };
   
   // Generate Excel file and download
-  XLSX.writeFile(workbook, fileName);
+  const buffer = await workbook.xlsx.writeBuffer();
+  downloadBuffer(buffer, fileName);
+}
+
+/**
+ * Download buffer as file
+ */
+function downloadBuffer(buffer: ExcelJS.Buffer, fileName: string): void {
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  window.URL.revokeObjectURL(url);
 }
 
 /**
  * Export manifest to Excel
  */
-export function exportManifestToExcel(data: {
+export async function exportManifestToExcel(data: {
   tripName: string;
   departureDate: string;
   participants: Array<{
@@ -41,7 +78,7 @@ export function exportManifestToExcel(data: {
     phone?: string;
     emergencyContact?: string;
   }>;
-}): void {
+}): Promise<void> {
   const rows = data.participants.map((p) => ({
     No: p.no,
     Name: p.name,
@@ -50,13 +87,13 @@ export function exportManifestToExcel(data: {
     'Emergency Contact': p.emergencyContact || '',
   }));
 
-  exportToExcel(rows, 'Manifest', `manifest-${data.tripName}-${data.departureDate}.xlsx`);
+  await exportToExcel(rows, 'Manifest', `manifest-${data.tripName}-${data.departureDate}.xlsx`);
 }
 
 /**
  * Export financial report to Excel
  */
-export function exportFinancialReportToExcel(data: {
+export async function exportFinancialReportToExcel(data: {
   period: string;
   bookings: Array<{
     bookingId: string;
@@ -71,45 +108,74 @@ export function exportFinancialReportToExcel(data: {
     totalBookings: number;
     averageBooking: number;
   };
-}): void {
-  const workbook = XLSX.utils.book_new();
+}): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
   
   // Bookings sheet
-  const bookingsSheet = XLSX.utils.json_to_sheet(
-    data.bookings.map((b) => ({
-      'Booking ID': b.bookingId,
-      'Customer': b.customerName,
-      'Trip': b.tripName,
-      'Booking Date': b.bookingDate,
-      'Amount': b.totalAmount,
-      'Status': b.status,
-    }))
-  );
-  XLSX.utils.book_append_sheet(workbook, bookingsSheet, 'Bookings');
+  const bookingsSheet = workbook.addWorksheet('Bookings');
+  bookingsSheet.columns = [
+    { header: 'Booking ID', key: 'bookingId', width: 20 },
+    { header: 'Customer', key: 'customerName', width: 25 },
+    { header: 'Trip', key: 'tripName', width: 30 },
+    { header: 'Booking Date', key: 'bookingDate', width: 15 },
+    { header: 'Amount', key: 'totalAmount', width: 15 },
+    { header: 'Status', key: 'status', width: 15 },
+  ];
+  
+  data.bookings.forEach((booking) => {
+    bookingsSheet.addRow({
+      bookingId: booking.bookingId,
+      customerName: booking.customerName,
+      tripName: booking.tripName,
+      bookingDate: booking.bookingDate,
+      totalAmount: booking.totalAmount,
+      status: booking.status,
+    });
+  });
+  
+  // Style header
+  bookingsSheet.getRow(1).font = { bold: true };
+  bookingsSheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' },
+  };
   
   // Summary sheet
-  const summarySheet = XLSX.utils.json_to_sheet([
-    { Metric: 'Total Revenue', Value: data.summary.totalRevenue },
-    { Metric: 'Total Bookings', Value: data.summary.totalBookings },
-    { Metric: 'Average Booking', Value: data.summary.averageBooking },
-  ]);
-  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+  const summarySheet = workbook.addWorksheet('Summary');
+  summarySheet.columns = [
+    { header: 'Metric', key: 'metric', width: 20 },
+    { header: 'Value', key: 'value', width: 20 },
+  ];
+  
+  summarySheet.addRow({ metric: 'Total Revenue', value: data.summary.totalRevenue });
+  summarySheet.addRow({ metric: 'Total Bookings', value: data.summary.totalBookings });
+  summarySheet.addRow({ metric: 'Average Booking', value: data.summary.averageBooking });
+  
+  // Style header
+  summarySheet.getRow(1).font = { bold: true };
+  summarySheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' },
+  };
   
   // Generate file
-  XLSX.writeFile(workbook, `financial-report-${data.period}.xlsx`);
+  const buffer = await workbook.xlsx.writeBuffer();
+  downloadBuffer(buffer, `financial-report-${data.period}.xlsx`);
 }
 
 /**
  * Export package prices to Excel
  */
-export function exportPackagePricesToExcel(data: Array<{
+export async function exportPackagePricesToExcel(data: Array<{
   packageName: string;
   destination: string;
   pricePublish: number;
   priceNTA: number;
   margin: number;
   isPublished: boolean;
-}>): void {
+}>): Promise<void> {
   const rows = data.map((pkg) => ({
     'Package Name': pkg.packageName,
     Destination: pkg.destination,
@@ -119,6 +185,5 @@ export function exportPackagePricesToExcel(data: Array<{
     'Is Published': pkg.isPublished ? 'Yes' : 'No',
   }));
 
-  exportToExcel(rows, 'Package Prices', 'package-prices.xlsx');
+  await exportToExcel(rows, 'Package Prices', 'package-prices.xlsx');
 }
-

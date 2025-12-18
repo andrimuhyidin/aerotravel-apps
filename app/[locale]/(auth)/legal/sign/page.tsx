@@ -20,6 +20,19 @@ type PageProps = {
   params: Promise<{ locale: string }>;
 };
 
+// Role-based redirect map
+const roleRedirectMap: Record<string, string> = {
+  super_admin: '/console',
+  investor: '/console',
+  finance_manager: '/console',
+  marketing: '/console',
+  ops_admin: '/console',
+  guide: '/guide/attendance',
+  mitra: '/partner/dashboard',
+  corporate: '/corporate',
+  customer: '',
+};
+
 export default async function LegalSignPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -30,10 +43,11 @@ export default async function LegalSignPage({ params }: PageProps) {
     redirect(`/${locale}/login`);
   }
 
-  // Check if already consented
-  const profile = user.profile as { consent_agreed?: boolean } | null;
-  if (profile?.consent_agreed) {
-    redirect(`/${locale}`);
+  // Check if already consented (using is_contract_signed)
+  const profile = user.profile as { is_contract_signed?: boolean; role?: string } | null;
+  if (profile?.is_contract_signed) {
+    const rolePath = roleRedirectMap[profile?.role ?? 'customer'] || '';
+    redirect(`/${locale}${rolePath}`);
   }
 
   return (

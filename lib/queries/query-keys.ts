@@ -81,6 +81,40 @@ const queryKeys = {
     byCityAndSlug: (city: string, slug: string) =>
       [...queryKeys.seoPages.all, city, slug] as const,
   },
+
+  // Guide App
+            guide: {
+              all: ['guide'] as const,
+              status: () => [...queryKeys.guide.all, 'status'] as const,
+              trips: () => [...queryKeys.guide.all, 'trips'] as const,
+              tripsDetail: (tripId: string) =>
+                [...queryKeys.guide.trips(), tripId] as const,
+              manifest: (tripId: string) =>
+                [...queryKeys.guide.all, 'manifest', tripId] as const,
+              wallet: {
+                all: ['guide', 'wallet'] as const,
+                balance: () => [...queryKeys.guide.wallet.all, 'balance'] as const,
+                analytics: (period?: string) => [...queryKeys.guide.wallet.all, 'analytics', period] as const,
+                pending: () => [...queryKeys.guide.wallet.all, 'pending'] as const,
+                forecast: () => [...queryKeys.guide.wallet.all, 'forecast'] as const,
+                transactions: (filters?: Record<string, unknown>) => [...queryKeys.guide.wallet.all, 'transactions', filters] as const,
+                withdrawHistory: () => [...queryKeys.guide.wallet.all, 'withdraw-history'] as const,
+                goals: () => [...queryKeys.guide.wallet.all, 'goals'] as const,
+                milestones: () => [...queryKeys.guide.wallet.all, 'milestones'] as const,
+                insights: () => [...queryKeys.guide.wallet.all, 'insights'] as const,
+              },
+              notifications: () => [...queryKeys.guide.all, 'notifications'] as const,
+              ratings: () => [...queryKeys.guide.all, 'ratings'] as const,
+              stats: () => [...queryKeys.guide.all, 'stats'] as const,
+              leaderboard: () => [...queryKeys.guide.all, 'leaderboard'] as const,
+              insights: {
+                monthly: () => [...queryKeys.guide.all, 'insights', 'monthly'] as const,
+                penalties: () => [...queryKeys.guide.all, 'insights', 'penalties'] as const,
+              },
+              broadcasts: () => [...queryKeys.guide.all, 'broadcasts'] as const,
+              quickActions: () => [...queryKeys.guide.all, 'quick-actions'] as const,
+              menuItems: () => [...queryKeys.guide.all, 'menu-items'] as const,
+            },
 } as const;
 
 export default queryKeys;

@@ -7,13 +7,13 @@
  */
 
 import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    include: ['tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: ['node_modules', 'dist', '.next', 'tests/e2e'],
     coverage: {
       provider: 'v8',
@@ -29,7 +29,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './'),
+      '@': fileURLToPath(new URL('./', import.meta.url)),
     },
   },
 });

@@ -29,9 +29,9 @@ export function initGA4(measurementId: string) {
   if (!window.dataLayer) {
     window.dataLayer = [];
   }
-  window.gtag = function () {
+  window.gtag = function (...args: unknown[]) {
     if (window.dataLayer) {
-      window.dataLayer.push(arguments);
+      window.dataLayer.push(...args);
     }
   };
 

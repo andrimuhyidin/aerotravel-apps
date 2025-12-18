@@ -66,20 +66,51 @@ export function ConsentForm({ locale, userId }: ConsentFormProps) {
     setError('');
 
     try {
+      // Update consent in users table using existing columns
       const { error: updateError } = await supabase
         .from('users')
         .update({
-          consent_agreed: true,
-          consent_agreed_at: new Date().toISOString(),
-        } as never)
+          is_contract_signed: true,
+          contract_signed_at: new Date().toISOString(),
+        })
         .eq('id', userId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Consent update error:', updateError);
+        throw updateError;
+      }
 
-      router.push(`/${locale}`);
+      // Fetch user role to determine redirect
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      const role = profile?.role as string | undefined;
+
+      // Role-based redirect map
+      const roleRedirectMap: Record<string, string> = {
+        super_admin: `/${locale}/console`,
+        investor: `/${locale}/console`,
+        finance_manager: `/${locale}/console`,
+        marketing: `/${locale}/console`,
+        ops_admin: `/${locale}/console`,
+        guide: `/${locale}/guide/attendance`,
+        mitra: `/${locale}/partner/dashboard`,
+        corporate: `/${locale}/corporate`,
+        customer: `/${locale}`,
+      };
+
+      const redirectPath = roleRedirectMap[role ?? 'customer'] || `/${locale}`;
+
+      // Success - redirect based on role
+      router.push(redirectPath);
       router.refresh();
     } catch (err) {
-      setError('Gagal menyimpan persetujuan. Silakan coba lagi.');
+      console.error('Consent submission error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Gagal menyimpan persetujuan: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

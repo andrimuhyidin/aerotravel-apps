@@ -1,15 +1,15 @@
 /**
- * Packages Page
+ * Packages/Explore Page - Premium Mobile Native Style
  * Route: /[locale]/packages
  */
 
-import { Filter, MapPin, Search, Star } from 'lucide-react';
+import { MapPin, Sparkles, Star } from 'lucide-react';
 import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+// Filter removed - search is in header
 import { locales } from '@/i18n';
 
 type PageProps = {
@@ -115,92 +115,93 @@ export default async function PackagesPage({ params }: PageProps) {
     }).format(price);
   };
 
+  // Destination categories
+  const categories = [
+    { label: 'Semua', emoji: '🌊', active: true },
+    { label: 'Lampung', emoji: '🏝️', active: false },
+    { label: 'NTT', emoji: '🦎', active: false },
+    { label: 'Papua', emoji: '🪸', active: false },
+    { label: 'Jawa', emoji: '⛵', active: false },
+  ];
+
   return (
-    <div className="flex flex-col">
-      {/* Header with Search */}
-      <div className="sticky top-12 z-40 bg-background">
-        <div className="px-5 py-4">
-          <h1 className="mb-3 text-xl font-bold">Explore Paket</h1>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Cari destinasi..."
-                className="h-11 rounded-xl border-0 bg-muted/60 pl-11 text-sm"
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-11 w-11 shrink-0 rounded-xl border-2"
-            >
-              <Filter className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Filter Chips */}
-        <div className="no-scrollbar flex gap-2 overflow-x-auto px-5 pb-4">
-          {['Semua', 'Lampung', 'NTT', 'Papua', 'Jawa'].map((filter, i) => (
-            <button
-              key={filter}
-              className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
-                i === 0
-                  ? 'bg-primary text-white shadow-md shadow-primary/25'
-                  : 'bg-muted/60 text-muted-foreground'
-              }`}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
+    <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
+      {/* Category Chips - Sticky */}
+      <div className="no-scrollbar sticky top-14 z-40 flex gap-2 overflow-x-auto bg-slate-50 px-4 py-3 dark:bg-slate-950">
+        {categories.map((cat) => (
+          <button
+            key={cat.label}
+            className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
+              cat.active
+                ? 'bg-primary text-white shadow-md shadow-primary/25'
+                : 'bg-white text-muted-foreground shadow-sm dark:bg-slate-800'
+            }`}
+          >
+            <span>{cat.emoji}</span>
+            {cat.label}
+          </button>
+        ))}
       </div>
 
-      {/* Results */}
-      <div className="px-5 pb-2">
-        <p className="text-xs text-muted-foreground">
-          Menampilkan {packages.length} paket
-        </p>
+      {/* Results Header */}
+      <div className="flex items-center justify-between px-4 pb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-amber-500" />
+          <p className="text-sm font-semibold text-foreground">
+            {packages.length} Paket Tersedia
+          </p>
+        </div>
+        <button className="text-xs font-medium text-primary">Urutkan</button>
       </div>
 
-      {/* Package Cards */}
-      <div className="space-y-4 px-5 pb-8">
-        {packages.map((pkg) => (
-          <Link key={pkg.id} href={`/${locale}/packages/detail/${pkg.slug}`}>
-            <div className="overflow-hidden rounded-2xl bg-white shadow-md transition-all active:scale-[0.98]">
-              {/* Image Header */}
-              <div className="relative aspect-[2/1] bg-gradient-to-br from-primary/20 to-aero-teal/20">
-                <div className="flex h-full items-center justify-center text-5xl">
+      {/* Package Cards - Premium Style */}
+      <div className="px-4 pb-24">
+        {packages.map((pkg, idx) => (
+          <Link key={pkg.id} href={`/${locale}/packages/detail/${pkg.slug}`} className="mb-6 block last:mb-0">
+            <div className="group overflow-hidden rounded-2xl bg-white shadow-lg transition-all active:scale-[0.98] dark:bg-slate-800">
+              {/* Image Header with Gradient Overlay */}
+              <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-primary/20 to-blue-500/20">
+                <div className="flex h-full items-center justify-center text-6xl">
                   {pkg.image}
                 </div>
-                {/* Rating Badge */}
-                <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">
-                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                  {pkg.rating.toFixed(1)}
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                {/* Top Badges */}
+                <div className="absolute left-3 right-3 top-3 flex justify-between">
+                  <div className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-foreground shadow-sm backdrop-blur">
+                    {pkg.duration}
+                  </div>
+                  <div className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1.5 text-xs font-bold text-white backdrop-blur">
+                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                    {pkg.rating.toFixed(1)}
+                  </div>
                 </div>
-                {/* Duration Badge */}
-                <div className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground backdrop-blur">
-                  {pkg.duration}
-                </div>
+                {/* Hot Badge for first item */}
+                {idx === 0 && (
+                  <div className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-2.5 py-1 text-[10px] font-bold text-white">
+                    <Sparkles className="h-3 w-3" />
+                    BEST SELLER
+                  </div>
+                )}
               </div>
               {/* Content */}
               <div className="p-4">
-                <div className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
+                <div className="mb-1.5 flex items-center gap-1 text-xs text-muted-foreground">
                   <MapPin className="h-3 w-3" />
                   {pkg.location}
                 </div>
-                <h3 className="mb-2 line-clamp-2 text-base font-semibold leading-snug">
+                <h3 className="mb-3 line-clamp-2 text-base font-bold leading-snug text-foreground">
                   {pkg.name}
                 </h3>
-                <div className="flex items-center justify-between">
+                <div className="flex items-end justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">Mulai dari</p>
-                    <p className="text-lg font-bold text-primary">
+                    <p className="text-[10px] text-muted-foreground">Mulai dari</p>
+                    <p className="text-xl font-bold text-primary">
                       {formatPrice(pkg.price)}
                     </p>
                   </div>
-                  <Button size="sm" className="h-9 rounded-xl px-4 text-xs">
-                    Lihat Detail
+                  <Button size="sm" className="h-9 rounded-xl px-5 text-xs font-semibold">
+                    Pesan
                   </Button>
                 </div>
               </div>
@@ -208,6 +209,7 @@ export default async function PackagesPage({ params }: PageProps) {
           </Link>
         ))}
       </div>
+
     </div>
   );
 }

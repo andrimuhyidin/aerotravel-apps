@@ -3,13 +3,15 @@
 ## Project Context
 
 This is an **Enterprise-Grade Travel Management System** built with:
-- **Framework:** Next.js 14.2.35+ (App Router, RSC)
+- **Framework:** Next.js 16.0.10+ (App Router, RSC, Turbopack)
 - **Language:** TypeScript (Strict Mode, `noUncheckedIndexedAccess: true`)
 - **Database:** Supabase (PostgreSQL + pgvector)
-- **State:** TanStack Query v5.59.5 (Server) + Zustand v5.0.x (Client)
-- **UI:** Shadcn UI + Tailwind CSS
+- **State:** TanStack Query v5.90+ (Server) + Zustand v5.0.x (Client)
+- **UI:** Shadcn UI + Tailwind CSS v4.1+
 - **AI:** DeepSeek-V3.2
+- **Excel:** ExcelJS v4.4+ (secure, no vulnerabilities)
 - **Architecture:** Serverless First, Edge Native, Offline-First, AI-Native
+- **Node.js:** >=20.19.0 (required for latest dependencies)
 
 ## Language Standards
 
@@ -524,10 +526,18 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
 ### Page Component Pattern
 ```tsx
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
 
+// Viewport export (Next.js 16+ best practice)
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#000000',
+};
+
+// Metadata export (no themeColor/viewport here)
 export const metadata: Metadata = {
   title: 'Page Title',
   description: 'Page description',
@@ -595,6 +605,78 @@ docs/
 7. **Always document** - Update docs in `docs/` folder (not root)
 8. **Always follow conventions** - Use generators, follow patterns
 9. **Never create markdown in root** - Only README, CHANGELOG, CONTRIBUTING allowed
+
+## Next.js 16+ Best Practices
+
+### Viewport & Theme Color
+- **ALWAYS use `export const viewport: Viewport`** for themeColor and viewport config
+- **NEVER put** `themeColor` or `viewport` inside `metadata` export (deprecated in Next.js 16)
+
+```tsx
+// ✅ Correct (Next.js 16+)
+import { Viewport } from 'next';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#000000',
+};
+
+// ❌ Wrong (deprecated)
+export const metadata: Metadata = {
+  themeColor: '#000000', // Don't do this
+  viewport: { ... }, // Don't do this
+};
+```
+
+### Proxy (Middleware Replacement)
+- **File name:** `proxy.ts` (not `middleware.ts` - deprecated in Next.js 16)
+- **Function name:** `export async function proxy(request: NextRequest)`
+- **Location:** Root directory (`/proxy.ts`)
+
+```tsx
+// ✅ Correct (Next.js 16+)
+export async function proxy(request: NextRequest) {
+  // Route protection logic
+}
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)',],
+};
+```
+
+### Excel Processing
+- **ALWAYS use:** `exceljs` (secure, actively maintained)
+- **NEVER use:** `xlsx` (has security vulnerabilities)
+- **Import:** `import ExcelJS from 'exceljs';`
+- **Location:** `lib/excel/import.ts`, `lib/excel/export.ts`
+
+```tsx
+// ✅ Correct
+import ExcelJS from 'exceljs';
+
+const workbook = new ExcelJS.Workbook();
+await workbook.xlsx.load(buffer);
+
+// ❌ Wrong (security issues)
+import * as XLSX from 'xlsx'; // DON'T USE
+```
+
+### Build Scripts
+- **Suppress Serwist warnings:** Add `SERWIST_SUPPRESS_TURBOPACK_WARNING=1` to build scripts
+- **Development:** `SERWIST_SUPPRESS_TURBOPACK_WARNING=1 next dev`
+- **Production:** `SERWIST_SUPPRESS_TURBOPACK_WARNING=1 next build`
+
+## Zero Warnings Policy
+
+This project maintains **ZERO build warnings** and **ZERO security vulnerabilities**.
+
+### Checklist Before Commit:
+1. ✅ `npm run type-check` - No TypeScript errors
+2. ✅ `npm run build` - No build warnings
+3. ✅ `npm audit` - 0 vulnerabilities
+4. ✅ `npm run lint` - No linting errors
+5. ✅ All tests passing
 
 ## Questions?
 

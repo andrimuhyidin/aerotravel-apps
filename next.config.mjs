@@ -39,7 +39,10 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            // Izinkan kamera & mikrofon hanya untuk origin sendiri, dan
+            // geolocation juga untuk origin sendiri (dibutuhkan untuk Guide App).
+            // Format baru Permissions-Policy (Chrome): feature=(self) atau =().
+            value: 'camera=(self), microphone=(self), geolocation=(self)',
           },
 
           // Content Security Policy

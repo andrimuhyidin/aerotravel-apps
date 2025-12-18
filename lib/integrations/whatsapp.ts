@@ -187,6 +187,7 @@ export function verifyWebhookSignature(
     return false;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const crypto = require('crypto');
   const expectedSignature = crypto
     .createHmac('sha256', appSecret)

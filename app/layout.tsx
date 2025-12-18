@@ -1,14 +1,20 @@
-import type { Metadata } from 'next';
-import './globals.css';
-import { GoogleAnalytics } from '@next/third-parties/google';
-import { QueryProvider } from '@/lib/providers/query-provider';
-import { PostHogProvider } from '@/lib/analytics/posthog';
-import { OrganizationSchema } from '@/lib/seo/structured-data';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { PostHogProvider } from '@/lib/analytics/posthog';
 import { env } from '@/lib/env';
-import { fontVariables } from '@/lib/fonts';
+import { QueryProvider } from '@/lib/providers/query-provider';
+import { OrganizationSchema } from '@/lib/seo/structured-data';
+import { GoogleAnalytics } from '@next/third-parties/google';
+import type { Metadata, Viewport } from 'next';
+import './globals.css';
 
 const appUrl = env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#000000',
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
@@ -22,12 +28,6 @@ export const metadata: Metadata = {
   creator: 'Aero Travel Indonesia',
   publisher: 'Aero Travel Indonesia',
   manifest: '/manifest.json',
-  themeColor: '#000000',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-  },
   openGraph: {
     type: 'website',
     locale: 'id_ID',
@@ -72,7 +72,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" className={fontVariables} suppressHydrationWarning>
+    <html lang="id" suppressHydrationWarning>
       <head>
         <OrganizationSchema />
       </head>

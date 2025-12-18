@@ -26,22 +26,21 @@ export async function GET(request: NextRequest) {
         .single();
 
       const role = (profile as { role?: string } | null)?.role;
-      let redirectPath = '/id'; // Default homepage
+      
+      // Role-based redirect map
+      const roleRedirectMap: Record<string, string> = {
+        super_admin: '/id/console',
+        investor: '/id/console',
+        finance_manager: '/id/console',
+        marketing: '/id/console',
+        ops_admin: '/id/console',
+        guide: '/id/guide/attendance',
+        mitra: '/id/partner/dashboard',
+        corporate: '/id/corporate',
+        customer: '/id',
+      };
 
-      if (
-        role === 'super_admin' ||
-        role === 'owner' ||
-        role === 'manager' ||
-        role === 'admin' ||
-        role === 'finance' ||
-        role === 'cs'
-      ) {
-        redirectPath = '/id/console';
-      } else if (role === 'guide') {
-        redirectPath = '/id/guide';
-      } else if (role === 'mitra' || role === 'nta') {
-        redirectPath = '/id/mitra';
-      }
+      let redirectPath = roleRedirectMap[role ?? 'customer'] || '/id';
 
       // For email confirmation, show success message
       if (type === 'email_confirm' || type === 'signup') {

@@ -91,22 +91,24 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   }
 
   // Determine redirect based on user role
-  let redirectPath = '/id';
+  const roleRedirectMap: Record<string, string> = {
+    // Internal Staff -> Console
+    super_admin: '/id/console',
+    investor: '/id/console',
+    finance_manager: '/id/console',
+    marketing: '/id/console',
+    ops_admin: '/id/console',
+    // Guide -> Guide App
+    guide: '/id/guide/attendance',
+    // Partner/Mitra -> Partner Portal
+    mitra: '/id/partner/dashboard',
+    // Corporate -> Corporate Portal
+    corporate: '/id/corporate',
+    // Customer -> Home
+    customer: '/id',
+  };
 
-  if (
-    role === 'super_admin' ||
-    role === 'owner' ||
-    role === 'manager' ||
-    role === 'admin' ||
-    role === 'finance' ||
-    role === 'cs'
-  ) {
-    redirectPath = '/id/console';
-  } else if (role === 'guide') {
-    redirectPath = '/id/guide';
-  } else if (role === 'mitra' || role === 'nta') {
-    redirectPath = '/id/mitra';
-  }
+  const redirectPath = roleRedirectMap[role ?? 'customer'] || '/id';
 
   console.log('[AUTH] User role:', role, '-> redirect to:', redirectPath);
 

@@ -1,15 +1,33 @@
 /**
  * Guide Layout
- * Layout for PWA guide app (mobile-first)
- * Features: Bottom navigation, offline support, GPS integration
+ * Layout untuk Guide App dengan tema emerald/green
  */
 
-import React from 'react';
+import { GuideShell } from '@/components/layout';
+import { getCurrentUser } from '@/lib/supabase/server';
 
-export default function GuideLayout({
-  children,
-}: {
+type GuideLayoutProps = {
   children: React.ReactNode;
-}) {
-  return <>{children}</>;
+  params: Promise<{ locale: string }>;
+};
+
+export default async function GuideLayout({ children, params }: GuideLayoutProps) {
+  const { locale } = await params;
+  const user = await getCurrentUser();
+
+  return (
+    <GuideShell
+      locale={locale}
+      user={
+        user
+          ? {
+              name: user.profile?.full_name || user.email?.split('@')[0],
+              avatar: user.profile?.avatar_url ?? undefined,
+            }
+          : null
+      }
+    >
+      {children}
+    </GuideShell>
+  );
 }
