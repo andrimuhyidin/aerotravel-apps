@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 
 import { GuideSOSButton } from '@/components/layout/guide-sos-button';
 import { OfflineBadge } from '@/components/layout/offline-badge';
+import { RoleSwitcher } from '@/components/role-switcher';
 import { Button } from '@/components/ui/button';
 import { useOfflineStatus } from '@/hooks/use-offline-status';
 import { cn } from '@/lib/utils';
@@ -78,11 +79,24 @@ export function GuideHeader({ locale }: GuideHeaderProps) {
 
         {/* Right Actions */}
         <div className="flex items-center gap-1.5">
-          {/* Offline Status - Always visible, compact on mobile */}
+          {/* Role Switcher - Only show if user has multiple roles */}
           <div className="hidden sm:block">
-            <OfflineBadge online={online} pending={pending} size="sm" />
+            <RoleSwitcher size="sm" variant="ghost" className="text-white hover:bg-white/20" />
           </div>
-          <div className="block sm:hidden">
+
+          {/* Offline Status - Always visible, compact on mobile, clickable to sync status page */}
+          <Link
+            href={`/${locale}/guide/sync-status`}
+            className="hidden sm:block transition-opacity active:opacity-80"
+            aria-label="Status Sinkronisasi"
+          >
+            <OfflineBadge online={online} pending={pending} size="sm" />
+          </Link>
+          <Link
+            href={`/${locale}/guide/sync-status`}
+            className="block sm:hidden transition-opacity active:opacity-80"
+            aria-label="Status Sinkronisasi"
+          >
             <span
               className={cn(
                 'flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-medium',
@@ -90,7 +104,6 @@ export function GuideHeader({ locale }: GuideHeaderProps) {
                   ? 'bg-emerald-500/20 text-emerald-100'
                   : 'bg-red-500/20 text-red-100',
               )}
-              aria-label={online ? 'Online' : 'Offline'}
               title={
                 online
                   ? `Online${pending > 0 ? ` • ${pending} data tertunda` : ''}`
@@ -99,7 +112,7 @@ export function GuideHeader({ locale }: GuideHeaderProps) {
             >
               {online ? '✓' : '!'}
             </span>
-          </div>
+          </Link>
 
           {/* Notifications */}
           <Link href={`/${locale}/guide/notifications`} className="relative">

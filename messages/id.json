@@ -104,6 +104,14 @@
     },
     "manifest": {
       "title": "Manifest"
+    },
+    "contracts": {
+      "title": "Kontrak Kerja",
+      "description": "Lihat dan kelola kontrak kerja Anda",
+      "detail": {
+        "title": "Detail Kontrak",
+        "description": "Lihat detail kontrak kerja"
+      }
     }
   },
   "corporate": {

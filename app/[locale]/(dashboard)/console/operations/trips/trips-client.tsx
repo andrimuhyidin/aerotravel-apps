@@ -76,8 +76,6 @@ export function TripsClient({ trips, locale }: TripsClientProps) {
     }
   };
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
-
   return (
     <div className="space-y-3">
       {trips.map((trip) => {

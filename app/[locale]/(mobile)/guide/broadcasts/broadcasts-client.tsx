@@ -9,6 +9,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Cloud, Info, Megaphone, Waves } from 'lucide-react';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { LoadingState } from '@/components/ui/loading-state';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 
@@ -46,7 +49,7 @@ export function BroadcastsClient({ locale: _locale }: BroadcastsClientProps) {
   const queryClient = useQueryClient();
 
   // Fetch broadcasts
-  const { data, isLoading } = useQuery<{ broadcasts: Broadcast[] }>({
+  const { data, isLoading, error, refetch } = useQuery<{ broadcasts: Broadcast[] }>({
     queryKey: queryKeys.guide.broadcasts(),
     queryFn: async () => {
       const res = await fetch('/api/guide/broadcasts');
@@ -85,26 +88,45 @@ export function BroadcastsClient({ locale: _locale }: BroadcastsClientProps) {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
+  if (isLoading) {
+    return (
+      <div className="space-y-3 pb-6">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <LoadingState variant="skeleton" lines={3} />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardContent>
+          <ErrorState
+            message={error instanceof Error ? error.message : 'Gagal memuat broadcast'}
+            onRetry={() => void refetch()}
+            variant="card"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-3 pb-6">
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="border-0 shadow-sm">
-              <CardContent className="p-4">
-                <div className="h-20 animate-pulse rounded bg-slate-200" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : sortedBroadcasts.length === 0 ? (
+      {sortedBroadcasts.length === 0 ? (
         <Card className="border-0 shadow-sm">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Megaphone className="mb-3 h-12 w-12 text-slate-300" />
-            <p className="text-sm font-medium text-slate-600">Tidak ada broadcast</p>
-            <p className="mt-1 text-xs text-slate-500">
-              Semua informasi penting dari Ops akan muncul di sini
-            </p>
+          <CardContent>
+            <EmptyState
+              icon={Megaphone}
+              title="Tidak ada broadcast"
+              description="Semua informasi penting dari Ops akan muncul di sini"
+              variant="default"
+            />
           </CardContent>
         </Card>
       ) : (

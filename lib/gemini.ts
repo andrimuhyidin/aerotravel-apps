@@ -15,10 +15,13 @@ function getGeminiClient(): GoogleGenerativeAI {
 
 /**
  * Gemini Model Selection (December 2025):
- * - gemini-2.0-flash-exp: Latest, fastest, recommended for general use
- * - gemini-1.5-pro: More capable, for complex reasoning
+ * - gemini-1.5-pro: Recommended for production - More capable, best for complex reasoning
  * - gemini-1.5-flash: Fast, for high-volume tasks
+ * - gemini-2.0-flash-exp: Latest experimental, fastest (use with caution in production)
+ * 
+ * Default: gemini-1.5-pro (most stable and capable for Google AI Studio)
  */
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-pro';
 
 export type ChatMessage = {
   role: 'user' | 'model';
@@ -30,11 +33,12 @@ export type ChatMessage = {
  */
 export async function chat(
   messages: { role: 'user' | 'assistant'; content: string }[],
-  systemPrompt?: string
+  systemPrompt?: string,
+  modelName?: string
 ) {
   const client = getGeminiClient();
   const model = client.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: modelName || DEFAULT_MODEL,
     systemInstruction: systemPrompt,
   });
 
@@ -58,10 +62,14 @@ export async function chat(
 /**
  * Generate content (single turn)
  */
-export async function generateContent(prompt: string, systemPrompt?: string) {
+export async function generateContent(
+  prompt: string,
+  systemPrompt?: string,
+  modelName?: string
+) {
   const client = getGeminiClient();
   const model = client.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: modelName || DEFAULT_MODEL,
     systemInstruction: systemPrompt,
   });
 
@@ -75,10 +83,13 @@ export async function generateContent(prompt: string, systemPrompt?: string) {
 export async function analyzeImage(
   imageBase64: string,
   mimeType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif',
-  prompt: string
+  prompt: string,
+  modelName?: string
 ) {
   const client = getGeminiClient();
-  const model = client.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+  const model = client.getGenerativeModel({
+    model: modelName || DEFAULT_MODEL,
+  });
 
   const result = await model.generateContent([
     {

@@ -104,6 +104,14 @@
     },
     "manifest": {
       "title": "Manifest"
+    },
+    "contracts": {
+      "title": "Work Contract",
+      "description": "View and manage your work contracts",
+      "detail": {
+        "title": "Contract Details",
+        "description": "View contract details"
+      }
     }
   },
   "corporate": {

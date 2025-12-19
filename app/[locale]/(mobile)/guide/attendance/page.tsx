@@ -13,7 +13,8 @@ import { redirect } from 'next/navigation';
 
 import { Container } from '@/components/layout/container';
 import { locales } from '@/i18n';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, getCurrentUser } from '@/lib/supabase/server';
+import { getTypedClient } from '@/lib/supabase/typed-client';
 
 import { AttendanceClient } from './attendance-client';
 
@@ -44,16 +45,17 @@ export default async function GuideAttendancePage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) {
     redirect(`/${locale}/login`);
   }
 
-  // Get trips for today and upcoming
+  const supabase = await createClient();
+  const typedSupabase = getTypedClient(supabase);
+
+  // Get trips for today and upcoming - include package info for better display
   const today = new Date().toISOString().slice(0, 10);
-  const { data: assignments, error: assignmentsError } = await supabase
+  const { data: assignments } = await typedSupabase
     .from('trip_guides')
     .select(`
       trip_id,
@@ -62,13 +64,43 @@ export default async function GuideAttendancePage({ params }: PageProps) {
         trip_code,
         trip_date,
         departure_time,
-        status
+        status,
+        total_pax,
+        package:packages(
+          id,
+          name,
+          destination,
+          city,
+          duration_days,
+          meeting_point
+        )
       )
     `)
-    .eq('guide_id', user.id);
+    .eq('guide_id', user.id)
+    .order('trip_id', { ascending: true });
 
   // Filter trips that are today or upcoming
-  const trips = (assignments ?? [])
+  type TripAssignment = {
+    trip_id: string;
+    trip: {
+      id: string;
+      trip_code: string | null;
+      trip_date: string | null;
+      departure_time: string | null;
+      status: string | null;
+      total_pax: number | null;
+      package?: {
+        id: string;
+        name: string | null;
+        destination: string | null;
+        city: string | null;
+        duration_days: number | null;
+        meeting_point: string | null;
+      } | null;
+    } | null;
+  };
+
+  const trips = ((assignments ?? []) as TripAssignment[])
     .map((a) => a.trip)
     .filter((t): t is NonNullable<typeof t> => {
       if (!t || !t.trip_date) return false;
@@ -76,7 +108,7 @@ export default async function GuideAttendancePage({ params }: PageProps) {
     })
     .sort((a, b) => {
       if (a.trip_date !== b.trip_date) {
-        return a.trip_date.localeCompare(b.trip_date);
+        return (a.trip_date || '').localeCompare(b.trip_date || '');
       }
       return (a.departure_time || '').localeCompare(b.departure_time || '');
     })
@@ -145,6 +177,7 @@ export default async function GuideAttendancePage({ params }: PageProps) {
           : `${selectedTrip.trip_date}T07:30:00`}
         meetingPoint={meetingPoint}
         trips={trips.length > 1 ? trips : undefined}
+        locale={locale}
       />
     </Container>
   );

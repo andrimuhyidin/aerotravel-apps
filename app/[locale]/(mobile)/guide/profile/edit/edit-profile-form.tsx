@@ -20,10 +20,13 @@ type EditProfileFormProps = {
     name: string;
     phone: string;
     email: string;
+    nik?: string;
+    address?: string;
+    avatar_url?: string;
   };
 };
 
-export function EditProfileForm({ locale, initialData }: EditProfileFormProps) {
+export function EditProfileForm({ locale: _locale, initialData }: EditProfileFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
@@ -33,6 +36,8 @@ export function EditProfileForm({ locale, initialData }: EditProfileFormProps) {
   const [formData, setFormData] = useState({
     name: initialData.name,
     phone: initialData.phone,
+    nik: initialData.nik || '',
+    address: initialData.address || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,14 +57,16 @@ export function EditProfileForm({ locale, initialData }: EditProfileFormProps) {
       }
 
       // Update profile in users table
-      const { error: updateError } = await supabase
+      const { error: updateError } = (await supabase
         .from('users')
         .update({
           full_name: formData.name.trim(),
           phone: formData.phone.trim() || null,
+          nik: formData.nik.trim() || null,
+          address: formData.address.trim() || null,
           updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
+        } as Record<string, unknown>)
+        .eq('id', user.id)) as { error: Error | null };
 
       if (updateError) {
         throw updateError;
@@ -77,7 +84,7 @@ export function EditProfileForm({ locale, initialData }: EditProfileFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" suppressHydrationWarning>
       {error && (
         <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
       )}
@@ -117,6 +124,36 @@ export function EditProfileForm({ locale, initialData }: EditProfileFormProps) {
           value={formData.phone}
           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
           placeholder="08xxxxxxxxxx"
+          disabled={loading}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="nik" className="text-sm font-medium text-slate-700">
+          NIK (Nomor Induk Kependudukan) <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id="nik"
+          type="text"
+          value={formData.nik}
+          onChange={(e) => setFormData({ ...formData, nik: e.target.value })}
+          placeholder="16 digit NIK"
+          maxLength={16}
+          disabled={loading}
+        />
+        <p className="text-xs text-slate-500">Diperlukan untuk Guide License</p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="address" className="text-sm font-medium text-slate-700">
+          Alamat
+        </Label>
+        <Input
+          id="address"
+          type="text"
+          value={formData.address}
+          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+          placeholder="Alamat lengkap"
           disabled={loading}
         />
       </div>

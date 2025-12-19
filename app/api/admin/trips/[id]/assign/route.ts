@@ -38,7 +38,7 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
 
   const client = supabase as unknown as any;
 
-  // Get trip info for notification
+  // Get trip info for notification and deadline calculation
   const { data: trip, error: tripError } = await client
     .from('trips')
     .select('trip_code, trip_date')
@@ -66,7 +66,23 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
     return NextResponse.json({ error: 'User is not a guide' }, { status: 400 });
   }
 
-  // Create assignment
+  // Calculate confirmation deadline (H-1 jam 22:00 WIB)
+  const tripDate = new Date(trip.trip_date as string);
+  const hMinusOne = new Date(tripDate);
+  hMinusOne.setDate(hMinusOne.getDate() - 1);
+  hMinusOne.setHours(22, 0, 0, 0);
+  
+  // Minimum deadline: hari ini jam 22:00 (jika trip_date < 2 hari dari sekarang)
+  const now = new Date();
+  const minimumDeadline = new Date(now);
+  minimumDeadline.setHours(22, 0, 0, 0);
+  if (minimumDeadline < now) {
+    minimumDeadline.setDate(minimumDeadline.getDate() + 1);
+  }
+  
+  const confirmationDeadline = hMinusOne < minimumDeadline ? minimumDeadline : hMinusOne;
+
+  // Create assignment with pending_confirmation status
   const { data: assignmentData, error: assignError } = await client
     .from('trip_guides')
     .insert({
@@ -74,6 +90,10 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
       guide_id: body.guide_id,
       guide_role: body.guide_role ?? 'lead',
       fee_amount: body.fee_amount ?? 300000,
+      assignment_status: 'pending_confirmation',
+      confirmation_deadline: confirmationDeadline.toISOString(),
+      assignment_method: 'manual',
+      assigned_at: new Date().toISOString(),
     })
     .select()
     .single();
@@ -93,13 +113,14 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
     return NextResponse.json({ error: 'Failed to create assignment' }, { status: 500 });
   }
 
-  // Send notification to guide
+  // Send notification to guide with deadline
   const guidePhone = guide.phone as string | null;
   if (guidePhone) {
     await notifyGuideAssignment(
       guidePhone,
       trip.trip_code as string,
-      trip.trip_date as string
+      trip.trip_date as string,
+      confirmationDeadline.toISOString()
     );
   }
 

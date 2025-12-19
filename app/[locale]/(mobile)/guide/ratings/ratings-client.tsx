@@ -9,6 +9,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Minus, Star, TrendingDown, TrendingUp } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
+import { ErrorState } from '@/components/ui/error-state';
+import { LoadingState } from '@/components/ui/loading-state';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 
@@ -44,7 +46,7 @@ type RatingsClientProps = {
 };
 
 export function RatingsClient({ locale: _locale }: RatingsClientProps) {
-  const { data, isLoading, error } = useQuery<RatingsResponse>({
+  const { data, isLoading, error, refetch } = useQuery<RatingsResponse>({
     queryKey: queryKeys.guide.ratings(),
     queryFn: async () => {
       const res = await fetch('/api/guide/ratings');
@@ -61,7 +63,7 @@ export function RatingsClient({ locale: _locale }: RatingsClientProps) {
       <div className="space-y-4">
         <Card className="border-0 bg-gradient-to-br from-amber-50 to-amber-100/50 shadow-sm">
           <CardContent className="p-6">
-            <div className="h-20 animate-pulse rounded bg-slate-200" />
+            <LoadingState variant="skeleton" lines={3} />
           </CardContent>
         </Card>
       </div>
@@ -71,8 +73,12 @@ export function RatingsClient({ locale: _locale }: RatingsClientProps) {
   if (error || !data) {
     return (
       <Card className="border-0 shadow-sm">
-        <CardContent className="p-6 text-center text-sm text-red-600">
-          Gagal memuat rating. Silakan coba lagi.
+        <CardContent>
+          <ErrorState
+            message={error instanceof Error ? error.message : 'Gagal memuat rating'}
+            onRetry={() => void refetch()}
+            variant="card"
+          />
         </CardContent>
       </Card>
     );

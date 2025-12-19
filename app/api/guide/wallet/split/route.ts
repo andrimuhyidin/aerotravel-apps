@@ -33,7 +33,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   try {
     // Get all guides for this trip
-    let tripGuidesQuery = client.from('trip_guides')
+    const tripGuidesQuery = client.from('trip_guides')
       .select('guide_id, guide_role, fee_amount, trip_id')
       .eq('trip_id', tripId);
 

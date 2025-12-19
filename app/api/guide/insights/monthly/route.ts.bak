@@ -1,0 +1,347 @@
+/**
+ * API: Guide Monthly Insights
+ * GET /api/guide/insights/monthly - Get monthly summary for guide (trips, guests, income, penalties, rating)
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+
+import { withErrorHandler } from '@/lib/api/error-handler';
+import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
+import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
+
+export const GET = withErrorHandler(async (request: NextRequest) => {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const monthParam = searchParams.get('month'); // Format: YYYY-MM
+
+  // Get date range for selected month
+  let startDate: Date;
+  let endDate: Date;
+
+  if (monthParam) {
+    const parts = monthParam.split('-');
+    const year = parts[0] ? parseInt(parts[0], 10) : new Date().getFullYear();
+    const month = parts[1] ? parseInt(parts[1], 10) : new Date().getMonth() + 1;
+    startDate = new Date(year, month - 1, 1);
+    endDate = new Date(year, month, 0, 23, 59, 59);
+  } else {
+    // Default to current month
+    const now = new Date();
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  }
+
+  const branchContext = await getBranchContext(user.id);
+  const client = supabase as unknown as any;
+
+  try {
+    // Get total trips in this month
+    let totalTripsQuery = client.from('trip_guides')
+      .select('*', { count: 'exact', head: true })
+      .eq('guide_id', user.id)
+      .gte('check_in_at', startDate.toISOString())
+      .lte('check_in_at', endDate.toISOString())
+      .not('check_in_at', 'is', null)
+      .not('check_out_at', 'is', null);
+    
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      totalTripsQuery = totalTripsQuery.eq('branch_id', branchContext.branchId);
+    }
+    
+    const { count: totalTrips } = await totalTripsQuery;
+
+    // Get trip IDs for this guide in this month
+    const tripGuidesQuery = client.from('trip_guides')
+      .select('trip_id')
+      .eq('guide_id', user.id)
+      .gte('check_in_at', startDate.toISOString())
+      .lte('check_in_at', endDate.toISOString())
+      .not('check_in_at', 'is', null)
+      .not('check_out_at', 'is', null);
+    
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      tripGuidesQuery = tripGuidesQuery.eq('branch_id', branchContext.branchId);
+    }
+    
+    const { data: tripGuides } = await tripGuidesQuery;
+
+    const tripIds = tripGuides?.map((tg: { trip_id: string }) => tg.trip_id) || [];
+
+    // Get total guests (from bookings in these trips)
+    let totalGuests = 0;
+    if (tripIds.length > 0) {
+      let tripBookingsQuery = client.from('trip_bookings')
+        .select('booking_id')
+        .in('trip_id', tripIds);
+      
+      if (!branchContext.isSuperAdmin && branchContext.branchId) {
+        tripBookingsQuery = tripBookingsQuery.eq('branch_id', branchContext.branchId);
+      }
+      
+      const { data: tripBookings } = await tripBookingsQuery;
+
+      if (tripBookings && tripBookings.length > 0) {
+        const bookingIds = tripBookings.map((tb: { booking_id: string }) => tb.booking_id);
+
+        const { data: bookings } = await client
+          .from('bookings')
+          .select('adult_pax, child_pax, infant_pax')
+          .in('id', bookingIds);
+
+        if (bookings) {
+          totalGuests = bookings.reduce(
+            (sum: number, b: { adult_pax: number; child_pax: number; infant_pax: number }) => {
+              return sum + (b.adult_pax || 0) + (b.child_pax || 0) + (b.infant_pax || 0);
+            },
+            0,
+          );
+        }
+      }
+    }
+
+    // Get total income/earnings (from guide_wallet_transactions)
+    let totalIncome = 0;
+
+    // First get wallet_id
+    let walletQuery = client.from('guide_wallets')
+      .select('id')
+      .eq('guide_id', user.id);
+    
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      walletQuery = walletQuery.eq('branch_id', branchContext.branchId);
+    }
+    
+    const { data: wallet } = await walletQuery.single();
+
+    if (wallet) {
+      const { data: incomeTransactions } = await client
+        .from('guide_wallet_transactions')
+        .select('amount, transaction_type')
+        .eq('wallet_id', (wallet as { id: string }).id)
+        .eq('transaction_type', 'earning')
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString());
+
+      if (incomeTransactions) {
+        totalIncome = incomeTransactions.reduce(
+          (sum: number, t: { amount: number }) => sum + (Number(t.amount) || 0),
+          0,
+        );
+      }
+    }
+
+    // Get total penalties
+    let totalPenalties = 0;
+    let penaltiesQuery = client.from('salary_deductions')
+      .select('amount')
+      .eq('guide_id', user.id)
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString());
+    
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      penaltiesQuery = penaltiesQuery.eq('branch_id', branchContext.branchId);
+    }
+    
+    const { data: penalties } = await penaltiesQuery;
+
+    if (penalties) {
+      totalPenalties = penalties.reduce((sum: number, p: { amount: number }) => {
+        return sum + (Number(p.amount) || 0);
+      }, 0);
+    }
+
+    // Get average rating for trips in this month
+    let averageRating = 0;
+    let totalRatings = 0;
+
+    if (tripIds.length > 0) {
+      let tripBookingsQuery2 = client.from('trip_bookings')
+        .select('booking_id')
+        .in('trip_id', tripIds);
+      
+      if (!branchContext.isSuperAdmin && branchContext.branchId) {
+        tripBookingsQuery2 = tripBookingsQuery2.eq('branch_id', branchContext.branchId);
+      }
+      
+      const { data: tripBookings } = await tripBookingsQuery2;
+
+      if (tripBookings && tripBookings.length > 0) {
+        const bookingIds = tripBookings.map((tb: { booking_id: string }) => tb.booking_id);
+
+        const { data: reviews } = await client
+          .from('reviews')
+          .select('guide_rating')
+          .in('booking_id', bookingIds)
+          .not('guide_rating', 'is', null);
+
+        if (reviews) {
+          const ratings = reviews
+            .map((r: { guide_rating: number | null }) => r.guide_rating)
+            .filter((r: number | null): r is number => r !== null && r > 0);
+
+          totalRatings = ratings.length;
+          if (ratings.length > 0) {
+            averageRating = ratings.reduce((sum: number, r: number) => sum + r, 0) / ratings.length;
+          }
+        }
+      }
+    }
+
+    // Get weekly breakdown for chart (4 weeks)
+    const weeks: Array<{
+      week: number;
+      weekStart: string;
+      weekEnd: string;
+      trips: number;
+      guests: number;
+      income: number;
+      penalties: number;
+    }> = [];
+
+    for (let week = 1; week <= 4; week++) {
+      const weekStart = new Date(startDate);
+      weekStart.setDate(startDate.getDate() + (week - 1) * 7);
+
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      if (weekEnd > endDate) {
+        weekEnd.setTime(endDate.getTime());
+      }
+
+      // Count trips in this week
+      let weekTripsQuery = client.from('trip_guides')
+        .select('*', { count: 'exact', head: true })
+        .eq('guide_id', user.id)
+        .gte('check_in_at', weekStart.toISOString())
+        .lte('check_in_at', weekEnd.toISOString())
+        .not('check_in_at', 'is', null)
+        .not('check_out_at', 'is', null);
+      
+      if (!branchContext.isSuperAdmin && branchContext.branchId) {
+        weekTripsQuery = weekTripsQuery.eq('branch_id', branchContext.branchId);
+      }
+      
+      const { count: weekTrips } = await weekTripsQuery;
+
+      // Get week trip IDs for guests count
+      let weekTripGuidesQuery = client.from('trip_guides')
+        .select('trip_id')
+        .eq('guide_id', user.id)
+        .gte('check_in_at', weekStart.toISOString())
+        .lte('check_in_at', weekEnd.toISOString())
+        .not('check_in_at', 'is', null)
+        .not('check_out_at', 'is', null);
+      
+      if (!branchContext.isSuperAdmin && branchContext.branchId) {
+        weekTripGuidesQuery = weekTripGuidesQuery.eq('branch_id', branchContext.branchId);
+      }
+      
+      const { data: weekTripGuides } = await weekTripGuidesQuery;
+
+      let weekGuests = 0;
+      if (weekTripGuides && weekTripGuides.length > 0) {
+        const weekTripIds = weekTripGuides.map((tg: { trip_id: string }) => tg.trip_id);
+
+        let weekTripBookingsQuery = client.from('trip_bookings')
+          .select('booking_id')
+          .in('trip_id', weekTripIds);
+        
+        if (!branchContext.isSuperAdmin && branchContext.branchId) {
+          weekTripBookingsQuery = weekTripBookingsQuery.eq('branch_id', branchContext.branchId);
+        }
+        
+        const { data: weekTripBookings } = await weekTripBookingsQuery;
+
+        if (weekTripBookings && weekTripBookings.length > 0) {
+          const weekBookingIds = weekTripBookings.map((tb: { booking_id: string }) => tb.booking_id);
+
+          const { data: weekBookings } = await client
+            .from('bookings')
+            .select('adult_pax, child_pax, infant_pax')
+            .in('id', weekBookingIds);
+
+          if (weekBookings) {
+            weekGuests = weekBookings.reduce(
+              (sum: number, b: { adult_pax: number; child_pax: number; infant_pax: number }) => {
+                return sum + (b.adult_pax || 0) + (b.child_pax || 0) + (b.infant_pax || 0);
+              },
+              0,
+            );
+          }
+        }
+      }
+
+      // Get week income
+      let weekIncome = 0;
+      if (wallet) {
+        const { data: weekIncomeTransactions } = await client
+          .from('guide_wallet_transactions')
+          .select('amount')
+          .eq('wallet_id', (wallet as { id: string }).id)
+          .eq('transaction_type', 'earning')
+          .gte('created_at', weekStart.toISOString())
+          .lte('created_at', weekEnd.toISOString());
+
+        weekIncome =
+          weekIncomeTransactions?.reduce((sum: number, t: { amount: number }) => {
+            return sum + (Number(t.amount) || 0);
+          }, 0) || 0;
+      }
+
+
+      // Get week penalties
+      let weekPenaltiesQuery = client.from('salary_deductions')
+        .select('amount')
+        .eq('guide_id', user.id)
+        .gte('created_at', weekStart.toISOString())
+        .lte('created_at', weekEnd.toISOString());
+      
+      if (!branchContext.isSuperAdmin && branchContext.branchId) {
+        weekPenaltiesQuery = weekPenaltiesQuery.eq('branch_id', branchContext.branchId);
+      }
+      
+      const { data: weekPenalties } = await weekPenaltiesQuery;
+
+      const weekPenaltiesAmount =
+        weekPenalties?.reduce((sum: number, p: { amount: number }) => {
+          return sum + (Number(p.amount) || 0);
+        }, 0) || 0;
+
+      weeks.push({
+        week,
+        weekStart: weekStart.toISOString(),
+        weekEnd: weekEnd.toISOString(),
+        trips: weekTrips || 0,
+        guests: weekGuests,
+        income: weekIncome,
+        penalties: weekPenaltiesAmount,
+      });
+    }
+
+    return NextResponse.json({
+      month: monthParam || new Date().toISOString().slice(0, 7),
+      summary: {
+        totalTrips: totalTrips || 0,
+        totalGuests,
+        totalIncome,
+        totalPenalties,
+        averageRating: Math.round(averageRating * 10) / 10,
+        totalRatings,
+      },
+      weeklyBreakdown: weeks,
+    });
+  } catch (error) {
+    logger.error('Failed to fetch monthly insights', error, { guideId: user.id, month: monthParam });
+    return NextResponse.json({ error: 'Failed to fetch insights' }, { status: 500 });
+  }
+});

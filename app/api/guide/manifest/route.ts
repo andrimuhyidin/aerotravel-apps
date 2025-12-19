@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
+import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -39,17 +39,24 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const client = supabase as unknown as any;
 
   // Pastikan guide ini memang ter-assign ke trip tersebut
-  const { data: assignment, error: assignmentError } = await withBranchFilter(
-    client.from('trip_guides'),
-    branchContext,
-  )
+  let assignmentQuery = client.from('trip_guides')
     .select('trip_id')
     .eq('trip_id', tripId)
-    .eq('guide_id', user.id)
-    .maybeSingle();
+    .eq('guide_id', user.id);
+  
+  if (!branchContext.isSuperAdmin && branchContext.branchId) {
+    assignmentQuery = assignmentQuery.eq('branch_id', branchContext.branchId);
+  }
+  
+  const { data: assignment, error: assignmentError } = await assignmentQuery.maybeSingle();
 
   if (assignmentError) {
-    logger.error('Failed to verify guide assignment', { error: assignmentError.message });
+    logger.error('Failed to verify guide assignment', assignmentError, {
+      tripId,
+      guideId: user.id,
+      errorCode: assignmentError.code,
+      errorMessage: assignmentError.message,
+    });
     return NextResponse.json({ error: 'Failed to verify access' }, { status: 500 });
   }
 
@@ -58,31 +65,43 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Get trip info and documentation URL
-  const { data: trip, error: tripError } = await withBranchFilter(
-    client.from('trips'),
-    branchContext,
-  )
+  let tripQuery = client.from('trips')
     .select('id, trip_code, trip_date, documentation_url')
-    .eq('id', tripId)
-    .single();
+    .eq('id', tripId);
+  
+  if (!branchContext.isSuperAdmin && branchContext.branchId) {
+    tripQuery = tripQuery.eq('branch_id', branchContext.branchId);
+  }
+  
+  const { data: trip, error: tripError } = await tripQuery.single();
 
   if (tripError || !trip) {
-    logger.error('Trip not found for manifest', { tripId, error: tripError?.message });
+    logger.error('Trip not found for manifest', tripError, {
+      tripId,
+      guideId: user.id,
+      errorCode: tripError?.code,
+      errorMessage: tripError?.message,
+    });
     return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
   }
 
   // Ambil semua booking_id untuk trip ini
-  const { data: tripBookings, error: bookingsError } = await withBranchFilter(
-    client.from('trip_bookings'),
-    branchContext,
-  )
+  let tripBookingsQuery = client.from('trip_bookings')
     .select('booking_id')
     .eq('trip_id', tripId);
+  
+  if (!branchContext.isSuperAdmin && branchContext.branchId) {
+    tripBookingsQuery = tripBookingsQuery.eq('branch_id', branchContext.branchId);
+  }
+  
+  const { data: tripBookings, error: bookingsError } = await tripBookingsQuery;
 
   if (bookingsError) {
-    logger.error('Failed to load trip bookings for manifest', {
+    logger.error('Failed to load trip bookings for manifest', bookingsError, {
       tripId,
-      error: bookingsError.message,
+      guideId: user.id,
+      errorCode: bookingsError.code,
+      errorMessage: bookingsError.message,
     });
     return NextResponse.json({ error: 'Failed to load manifest data' }, { status: 500 });
   }
@@ -92,17 +111,23 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   let passengers: PassengerRow[] = [];
 
   if (bookingIds.length > 0) {
-    const { data: passengerRows, error: paxError } = await withBranchFilter(
-      client.from('booking_passengers'),
-      branchContext,
-    )
+    let passengersQuery = client.from('booking_passengers')
       .select('id, booking_id, full_name, phone, passenger_type')
       .in('booking_id', bookingIds);
+    
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      passengersQuery = passengersQuery.eq('branch_id', branchContext.branchId);
+    }
+    
+    const { data: passengerRows, error: paxError } = await passengersQuery;
 
     if (paxError) {
-      logger.error('Failed to load booking passengers for manifest', {
+      logger.error('Failed to load booking passengers for manifest', paxError, {
         tripId,
-        error: paxError.message,
+        guideId: user.id,
+        bookingIdsCount: bookingIds.length,
+        errorCode: paxError.code,
+        errorMessage: paxError.message,
       });
       return NextResponse.json({ error: 'Failed to load passengers' }, { status: 500 });
     }
@@ -111,15 +136,23 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Ambil status boarding/return dari manifest_checks
-  const { data: manifestRows, error: manifestError } = await withBranchFilter(
-    client.from('manifest_checks'),
-    branchContext,
-  )
+  let manifestQuery = client.from('manifest_checks')
     .select('passenger_id, boarded_at, returned_at')
     .eq('trip_id', tripId);
+  
+  if (!branchContext.isSuperAdmin && branchContext.branchId) {
+    manifestQuery = manifestQuery.eq('branch_id', branchContext.branchId);
+  }
+  
+  const { data: manifestRows, error: manifestError } = await manifestQuery;
 
   if (manifestError) {
-    logger.error('Failed to load manifest checks', { tripId, error: manifestError.message });
+    logger.warn('Failed to load manifest checks', {
+      tripId,
+      guideId: user.id,
+      error: manifestError,
+    });
+    // Continue without manifest checks - passengers will show as 'pending'
   }
 
   const statusByPassenger = new Map<

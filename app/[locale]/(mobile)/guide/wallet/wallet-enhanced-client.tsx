@@ -5,29 +5,38 @@
 
 'use client';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowDownCircle,
-  ArrowUpCircle,
-  TrendingUp,
-  TrendingDown,
-  Target,
-  Award,
-  Download,
-  Filter,
-  Search,
-  Wallet,
-  Calendar,
-  BarChart3,
-  Lightbulb,
+    AlertCircle,
+    ArrowDownCircle,
+    ArrowUpCircle,
+    Award,
+    BarChart3,
+    Building2,
+    Calendar,
+    CreditCard,
+    Download,
+    Edit,
+    Lightbulb,
+    Plus,
+    Search,
+    Target,
+    Trash2,
+    TrendingDown,
+    TrendingUp,
+    Wallet,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import queryKeys from '@/lib/queries/query-keys';
+import Link from 'next/link';
 
 type WalletTransaction = {
   id: string;
@@ -141,10 +150,26 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'transactions' | 'goals'>('overview');
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [selectedBankAccount, setSelectedBankAccount] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [transactionFilter, setTransactionFilter] = useState<string>('all');
   const [transactionSearch, setTransactionSearch] = useState('');
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<GoalsResponse['goals'][0] | null>(null);
+  const [goalForm, setGoalForm] = useState<{
+    name: string;
+    targetAmount: string;
+    currentAmount?: string;
+    autoSavePercent: string;
+    autoSaveEnabled: boolean;
+  }>({
+    name: '',
+    targetAmount: '',
+    currentAmount: undefined,
+    autoSavePercent: '0',
+    autoSaveEnabled: false,
+  });
 
   // Main wallet data
   const { data: walletData, isLoading: walletLoading } = useQuery<WalletResponse>({
@@ -155,6 +180,7 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
       return (await res.json()) as WalletResponse;
     },
   });
+
 
   // Analytics
   const { data: analyticsData } = useQuery<AnalyticsResponse>({
@@ -250,6 +276,26 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
     enabled: activeTab === 'transactions',
   });
 
+  // Fetch bank accounts
+  const { data: bankAccountsData } = useQuery<{ accounts: Array<{ id: string; bank_name: string; account_number: string; account_holder_name: string; status: string; is_default: boolean }> }>({
+    queryKey: queryKeys.guide.wallet.bankAccounts(),
+    queryFn: async () => {
+      const res = await fetch('/api/guide/bank-accounts');
+      if (!res.ok) throw new Error('Failed to fetch bank accounts');
+      return res.json();
+    },
+  });
+
+  const approvedBankAccounts = bankAccountsData?.accounts.filter((a) => a.status === 'approved') || [];
+  const defaultBankAccount = approvedBankAccounts.find((a) => a.is_default) || approvedBankAccounts[0];
+
+  // Set default bank account on load
+  useEffect(() => {
+    if (defaultBankAccount && !selectedBankAccount && approvedBankAccounts.length > 0) {
+      setSelectedBankAccount(defaultBankAccount.id);
+    }
+  }, [defaultBankAccount, selectedBankAccount, approvedBankAccounts.length]);
+
   const handleWithdraw = async (quickAction?: 'all' | 'half' | 'preset', presetAmount?: number) => {
     const balance = walletData?.balance ?? 0;
     let amount = 0;
@@ -269,6 +315,18 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
     setSubmitting(true);
     setMessage(null);
 
+    // Validate bank account
+    if (approvedBankAccounts.length === 0) {
+      setMessage('Silakan tambahkan rekening bank terlebih dahulu');
+      return;
+    }
+
+    const bankAccountId = selectedBankAccount || defaultBankAccount?.id;
+    if (!bankAccountId) {
+      setMessage('Silakan pilih rekening bank');
+      return;
+    }
+
     try {
       const res = await fetch('/api/guide/wallet', {
         method: 'POST',
@@ -277,6 +335,7 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
           amount,
           quickAction,
           presetAmount,
+          bank_account_id: bankAccountId,
         }),
       });
       if (!res.ok) {
@@ -316,6 +375,133 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
     }
   };
 
+  // Goal mutations
+  const createGoalMutation = useMutation({
+    mutationFn: async (data: { name: string; targetAmount: number; autoSavePercent?: number; autoSaveEnabled?: boolean }) => {
+      const res = await fetch('/api/guide/wallet/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(error.error || 'Gagal membuat goal');
+      }
+      return (await res.json()) as { goal: GoalsResponse['goals'][0] };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.guide.wallet.goals() });
+      setGoalDialogOpen(false);
+      setGoalForm({ name: '', targetAmount: '', currentAmount: undefined, autoSavePercent: '0', autoSaveEnabled: false });
+      setEditingGoal(null);
+      setMessage('Goal berhasil dibuat');
+    },
+    onError: (error: Error) => {
+      setMessage(error.message);
+    },
+  });
+
+  const updateGoalMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<{ name: string; targetAmount: number; currentAmount: number; autoSavePercent: number; autoSaveEnabled: boolean }> }) => {
+      const res = await fetch(`/api/guide/wallet/goals/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(error.error || 'Gagal mengupdate goal');
+      }
+      return (await res.json()) as { goal: GoalsResponse['goals'][0] };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.guide.wallet.goals() });
+      setGoalDialogOpen(false);
+      setGoalForm({ name: '', targetAmount: '', currentAmount: undefined, autoSavePercent: '0', autoSaveEnabled: false });
+      setEditingGoal(null);
+      setMessage('Goal berhasil diupdate');
+    },
+    onError: (error: Error) => {
+      setMessage(error.message);
+    },
+  });
+
+  const deleteGoalMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/guide/wallet/goals/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const error = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(error.error || 'Gagal menghapus goal');
+      }
+      return (await res.json()) as { success: boolean };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.guide.wallet.goals() });
+      setMessage('Goal berhasil dihapus');
+    },
+    onError: (error: Error) => {
+      setMessage(error.message);
+    },
+  });
+
+  const handleOpenGoalDialog = (goal?: GoalsResponse['goals'][0]) => {
+    if (goal) {
+      setEditingGoal(goal);
+      setGoalForm({
+        name: goal.name,
+        targetAmount: goal.targetAmount.toString(),
+        autoSavePercent: goal.autoSavePercent.toString(),
+        autoSaveEnabled: goal.autoSaveEnabled,
+      });
+    } else {
+      setEditingGoal(null);
+      setGoalForm({ name: '', targetAmount: '', currentAmount: undefined, autoSavePercent: '0', autoSaveEnabled: false });
+    }
+    setGoalDialogOpen(true);
+  };
+
+  const handleSubmitGoal = () => {
+    const targetAmount = Number(goalForm.targetAmount.replace(/[^0-9]/g, ''));
+    const autoSavePercent = Number(goalForm.autoSavePercent);
+    const currentAmount = goalForm.currentAmount ? Number(goalForm.currentAmount.replace(/[^0-9]/g, '')) : undefined;
+
+    if (!goalForm.name.trim() || !targetAmount || targetAmount <= 0) {
+      setMessage('Nama dan target amount harus diisi');
+      return;
+    }
+
+    if (editingGoal) {
+      const updateData: {
+        name: string;
+        targetAmount: number;
+        autoSavePercent: number;
+        autoSaveEnabled: boolean;
+        currentAmount?: number;
+      } = {
+        name: goalForm.name.trim(),
+        targetAmount,
+        autoSavePercent,
+        autoSaveEnabled: goalForm.autoSaveEnabled,
+      };
+      if (currentAmount !== undefined) {
+        updateData.currentAmount = currentAmount;
+      }
+      updateGoalMutation.mutate({
+        id: editingGoal.id,
+        data: updateData,
+      });
+    } else {
+      createGoalMutation.mutate({
+        name: goalForm.name.trim(),
+        targetAmount,
+        autoSavePercent,
+        autoSaveEnabled: goalForm.autoSaveEnabled,
+      });
+    }
+  };
+
   if (walletLoading && !walletData) {
     return (
       <div className="py-8 text-center text-sm text-slate-500">
@@ -330,15 +516,17 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
     <div className="space-y-4">
       {/* Balance Card */}
       <Card className="border-0 bg-emerald-600 text-white shadow-sm">
-        <CardContent className="flex items-center justify-between p-4">
-          <div>
-            <p className="text-xs opacity-80">Saldo Dompet</p>
-            <p className="text-2xl font-bold">
-              Rp {balance.toLocaleString('id-ID')}
-            </p>
-          </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-700/60">
-            <Wallet className="h-6 w-6" />
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-xs opacity-80">Saldo Dompet</p>
+              <p className="text-2xl font-bold">
+                Rp {balance.toLocaleString('id-ID')}
+              </p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-700/60">
+              <Wallet className="h-6 w-6" />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -582,12 +770,77 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
           {/* Smart Withdraw */}
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Tarik Dana</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Tarik Dana</CardTitle>
+                <Link
+                  href={`/${_locale}/guide/wallet/bank-accounts`}
+                  className="text-xs text-emerald-600 hover:text-emerald-700"
+                >
+                  <CreditCard className="mr-1 inline h-3 w-3" />
+                  Kelola Rekening
+                </Link>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <p className="text-xs text-slate-500">
                 Anda dapat mengajukan tarik dana hingga saldo yang tersedia.
               </p>
+
+              {/* Bank Account Selection */}
+              {approvedBankAccounts.length > 0 ? (
+                <div>
+                  <Label htmlFor="bank_account" className="text-xs">
+                    Rekening Tujuan
+                  </Label>
+                  <Select
+                    value={selectedBankAccount || defaultBankAccount?.id || ''}
+                    onValueChange={setSelectedBankAccount}
+                  >
+                    <SelectTrigger id="bank_account">
+                      <SelectValue placeholder="Pilih rekening" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {approvedBankAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            <div>
+                              <div className="font-medium">{account.bank_name}</div>
+                              <div className="text-xs text-slate-500">
+                                {account.account_number} • {account.account_holder_name}
+                                {account.is_default && ' (Utama)'}
+                              </div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-amber-900">
+                        Belum ada rekening bank yang disetujui
+                      </p>
+                      <p className="mt-1 text-xs text-amber-700">
+                        Tambahkan rekening bank terlebih dahulu untuk melakukan penarikan dana.
+                      </p>
+                      <Link
+                        href={`/${_locale}/guide/wallet/bank-accounts`}
+                        className="mt-2 inline-block"
+                      >
+                        <Button size="sm" variant="outline" className="text-xs">
+                          <Plus className="mr-1 h-3 w-3" />
+                          Tambah Rekening Bank
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {/* Quick Actions */}
               <div className="grid grid-cols-2 gap-2">
@@ -834,14 +1087,142 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
       {/* Goals Tab */}
       {activeTab === 'goals' && (
         <div className="space-y-4">
+          {/* Create Goal Button */}
+          <Dialog open={goalDialogOpen} onOpenChange={setGoalDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => handleOpenGoalDialog()}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Buat Goal Baru
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingGoal ? 'Edit Goal' : 'Buat Goal Baru'}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="goal-name">Nama Goal</Label>
+                  <Input
+                    id="goal-name"
+                    placeholder="Contoh: Liburan ke Bali"
+                    value={goalForm.name}
+                    onChange={(e) => setGoalForm({ ...goalForm, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="goal-target">Target Amount (Rp)</Label>
+                  <Input
+                    id="goal-target"
+                    type="text"
+                    placeholder="Contoh: 5000000"
+                    value={goalForm.targetAmount}
+                    onChange={(e) => setGoalForm({ ...goalForm, targetAmount: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="goal-autosave">Auto-Save Percentage</Label>
+                  <Input
+                    id="goal-autosave"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="0"
+                    value={goalForm.autoSavePercent}
+                    onChange={(e) => setGoalForm({ ...goalForm, autoSavePercent: e.target.value })}
+                  />
+                  <p className="text-xs text-slate-500">
+                    Persentase dari setiap earning yang akan otomatis disimpan ke goal ini
+                  </p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="goal-enabled">Aktifkan Auto-Save</Label>
+                  <Switch
+                    id="goal-enabled"
+                    checked={goalForm.autoSaveEnabled}
+                    onCheckedChange={(checked) => setGoalForm({ ...goalForm, autoSaveEnabled: checked })}
+                  />
+                </div>
+                {editingGoal && (
+                  <div className="space-y-2">
+                    <Label htmlFor="goal-current">Current Amount (Rp) - Optional</Label>
+                    <Input
+                      id="goal-current"
+                      type="text"
+                      placeholder={`Saat ini: Rp ${editingGoal.currentAmount.toLocaleString('id-ID')}`}
+                      value={goalForm.currentAmount || ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        setGoalForm({ ...goalForm, currentAmount: value });
+                      }}
+                    />
+                    <p className="text-xs text-slate-500">
+                      Kosongkan jika tidak ingin mengubah current amount
+                    </p>
+                  </div>
+                )}
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                    onClick={handleSubmitGoal}
+                    disabled={createGoalMutation.isPending || updateGoalMutation.isPending}
+                  >
+                    {createGoalMutation.isPending || updateGoalMutation.isPending
+                      ? 'Menyimpan...'
+                      : editingGoal
+                        ? 'Update Goal'
+                        : 'Buat Goal'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setGoalDialogOpen(false);
+                      setEditingGoal(null);
+                      setGoalForm({ name: '', targetAmount: '', currentAmount: undefined, autoSavePercent: '0', autoSaveEnabled: false });
+                    }}
+                  >
+                    Batal
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Goals List */}
           {goalsData && goalsData.goals.length > 0 ? (
             goalsData.goals.map((goal) => (
               <Card key={goal.id} className="border-0 shadow-sm">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Target className="h-4 w-4" />
-                    {goal.name}
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Target className="h-4 w-4" />
+                      {goal.name}
+                    </CardTitle>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenGoalDialog(goal)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`Yakin ingin menghapus goal "${goal.name}"?`)) {
+                            deleteGoalMutation.mutate(goal.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>

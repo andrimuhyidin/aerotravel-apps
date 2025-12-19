@@ -40,6 +40,46 @@ export const GET = withErrorHandler(async () => {
     return NextResponse.json({ error: 'Failed to load wallet' }, { status: 500 });
   }
 
+  // Auto-verify and sync balance if wallet exists (background check)
+  if (walletRow?.id) {
+    try {
+      // Calculate balance from transactions
+      const { data: calculatedBalance, error: calcError } = await client.rpc(
+        'calculate_guide_wallet_balance',
+        { p_wallet_id: walletRow.id }
+      );
+
+      if (!calcError && calculatedBalance !== null) {
+        const storedBalance = Number(walletRow.balance ?? 0);
+        const calculated = Number(calculatedBalance ?? 0);
+        const difference = Math.abs(storedBalance - calculated);
+
+        // Auto-sync if difference > 0.01 (allow small floating point differences)
+        if (difference > 0.01) {
+          logger.warn('Balance mismatch detected, auto-syncing', {
+            guideId: user.id,
+            walletId: walletRow.id,
+            storedBalance,
+            calculatedBalance: calculated,
+            difference,
+          });
+
+          // Update balance
+          await client
+            .from('guide_wallets')
+            .update({ balance: calculated, updated_at: new Date().toISOString() })
+            .eq('id', walletRow.id);
+
+          // Use calculated balance
+          walletRow.balance = calculated;
+        }
+      }
+    } catch (error) {
+      // If RPC function doesn't exist yet (migration not applied), continue with stored balance
+      logger.debug('Auto-verification skipped (function may not exist)', { guideId: user.id });
+    }
+  }
+
   const balance = Number(walletRow?.balance ?? 0);
   const walletId = walletRow?.id ?? null;
 
@@ -101,13 +141,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   let amount = parsed.amount;
+  const bankAccountId = (body as { bank_account_id?: string }).bank_account_id;
   const quickAction = parsed.quickAction;
   const presetAmount = parsed.presetAmount;
 
   const client = supabase as unknown as any;
 
   // Ensure wallet exists
-  let { data: walletRow, error: walletError } = await client
+  const { data: walletRowData, error: walletError } = await client
     .from('guide_wallets')
     .select('id, balance')
     .eq('guide_id', user.id)
@@ -117,6 +158,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     logger.error('Failed to load guide_wallet', walletError, { guideId: user.id });
     return NextResponse.json({ error: 'Failed to load wallet' }, { status: 500 });
   }
+
+  let walletRow = walletRowData;
 
   if (!walletRow) {
     const { data: newWallet, error: insertError } = await client
@@ -131,6 +174,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     }
 
     walletRow = newWallet;
+  }
+
+  if (!walletRow) {
+    return NextResponse.json({ error: 'Failed to initialize wallet' }, { status: 500 });
   }
 
   const walletId = walletRow.id as string;
@@ -164,6 +211,30 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const balanceBefore = currentBalance;
   const balanceAfter = currentBalance; // saldo bisa dikurangi saat approve, bukan saat request
 
+  // If bank account provided, verify it exists and is approved
+  if (bankAccountId) {
+    const { data: bankAccount } = await client
+      .from('guide_bank_accounts')
+      .select('id, status')
+      .eq('id', bankAccountId)
+      .eq('guide_id', user.id)
+      .maybeSingle();
+
+    if (!bankAccount) {
+      return NextResponse.json(
+        { error: 'Rekening bank tidak ditemukan' },
+        { status: 404 },
+      );
+    }
+
+    if (bankAccount.status !== 'approved') {
+      return NextResponse.json(
+        { error: 'Rekening bank belum disetujui' },
+        { status: 400 },
+      );
+    }
+  }
+
   const { error: txError } = await client.from('guide_wallet_transactions').insert({
     wallet_id: walletId,
     transaction_type: 'withdraw_request',
@@ -172,6 +243,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     balance_after: balanceAfter,
     reference_type: 'wallet_withdraw',
     status: 'pending',
+    bank_account_id: bankAccountId || null,
     created_by: user.id,
   });
 

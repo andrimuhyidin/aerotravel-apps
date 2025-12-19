@@ -15,7 +15,8 @@ type RouteContext = {
 
 export const POST = withErrorHandler(async (request: NextRequest, context: RouteContext) => {
   const supabase = await createClient();
-  const { id: tripId } = await context.params;
+  const resolvedParams = await context.params;
+  const { id: tripId } = resolvedParams;
 
   const body = await request.json();
   const { url } = body as { url?: string };
@@ -47,13 +48,13 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
 
   const now = new Date().toISOString();
 
-  const { error } = await supabase
+  const { error } = (await supabase
     .from('trips')
     .update({
       documentation_url: url.trim(),
       documentation_uploaded_at: now,
-    })
-    .eq('id', tripId);
+    } as Record<string, unknown>)
+    .eq('id', tripId)) as { error: Error | null };
 
   if (error) {
     logger.error('Failed to save documentation URL', error, { tripId, guideId: user.id });

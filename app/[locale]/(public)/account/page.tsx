@@ -29,6 +29,8 @@ import { Button } from '@/components/ui/button';
 import { locales } from '@/i18n';
 import { getCurrentUser } from '@/lib/supabase/server';
 
+import { AccountRoleSwitcher } from '@/components/account-role-switcher';
+
 type PageProps = {
   params: Promise<{ locale: string }>;
 };
@@ -224,8 +226,16 @@ function LoggedInAccount({
     <div className="flex flex-col pb-8">
       {/* Header with greeting */}
       <div className="px-4 pb-4 pt-5">
-        <h1 className="text-xl font-bold">Akun Saya</h1>
-        <p className="text-sm text-muted-foreground">Halo, {firstName}! 👋</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold">Akun Saya</h1>
+            <p className="text-sm text-muted-foreground">Halo, {firstName}! 👋</p>
+          </div>
+          {/* Role Switcher - Only show if user has multiple roles */}
+          <div className="flex items-center">
+            <AccountRoleSwitcher size="sm" variant="outline" />
+          </div>
+        </div>
       </div>
 
       {/* Premium Profile Card */}

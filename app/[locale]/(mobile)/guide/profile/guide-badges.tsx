@@ -9,6 +9,7 @@ import { Award, ChevronRight, Star, Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { LoadingState } from '@/components/ui/loading-state';
 import { Progress } from '@/components/ui/progress';
 import { getLevelInfo, type GuideLevel, type GuideStats } from '@/lib/guide/gamification';
 import { cn } from '@/lib/utils';
@@ -33,8 +34,7 @@ export function GuideBadges({ locale: _locale }: GuideBadgesProps) {
         if (mounted) {
           setStats(data);
         }
-      } catch (error) {
-        console.error('Failed to load stats:', error);
+      } catch {
         // Set default stats if API fails
         if (mounted) {
           setStats({
@@ -67,13 +67,7 @@ export function GuideBadges({ locale: _locale }: GuideBadgesProps) {
     return (
       <Card className="border-0 bg-gradient-to-br from-emerald-50 to-emerald-100/50 shadow-sm">
         <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 flex-shrink-0 animate-pulse rounded-2xl bg-slate-200" />
-            <div className="flex-1 space-y-2">
-              <div className="h-5 w-24 animate-pulse rounded bg-slate-200" />
-              <div className="h-4 w-32 animate-pulse rounded bg-slate-200" />
-            </div>
-          </div>
+          <LoadingState variant="skeleton" lines={2} />
         </CardContent>
       </Card>
     );

@@ -53,13 +53,15 @@ export default async function GuideSosPage({ params }: PageProps) {
   }
 
   // Get current active trip for this guide
-  const { data: assignment } = await supabase
+  const { data: assignment } = (await supabase
     .from('trip_guides')
     .select('trip_id')
     .eq('guide_id', user.id)
     .order('created_at', { ascending: false })
     .limit(1)
-    .single();
+    .single()) as {
+    data: { trip_id: string } | null;
+  };
 
   const tripId = assignment?.trip_id || 'no-trip';
 

@@ -5,7 +5,7 @@
  * Form untuk melaporkan kejadian insiden
  */
 
-import { AlertCircle, Camera, FileText, Loader2, Save, X } from 'lucide-react';
+import { AlertCircle, Bot, Camera, FileText, Loader2, Save, Sparkles, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/utils/logger';
 
 type IncidentFormProps = {
   guideId: string;
@@ -77,6 +78,59 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
   const removePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
     setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const [aiReport, setAiReport] = useState<{
+    summary?: string;
+    what?: string;
+    when?: string;
+    where?: string;
+    severity?: string;
+    immediateActions?: string[];
+  } | null>(null);
+  const [generatingAiReport, setGeneratingAiReport] = useState(false);
+
+  const generateAiReport = async () => {
+    if (!chronology.trim()) {
+      setMessage({ type: 'error', text: 'Mohon isi kronologi terlebih dahulu' });
+      return;
+    }
+
+    setGeneratingAiReport(true);
+    try {
+      // Convert photos to base64
+      const images = await Promise.all(
+        photos.map(async (photo) => {
+          const arrayBuffer = await photo.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          return {
+            base64: buffer.toString('base64'),
+            mimeType: photo.type as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif',
+          };
+        })
+      );
+
+      const res = await fetch('/api/guide/incidents/ai-assist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'report',
+          description: chronology,
+          images: images.length > 0 ? images : undefined,
+        }),
+      });
+
+      if (res.ok) {
+        const data = (await res.json()) as { report: typeof aiReport };
+        setAiReport(data.report);
+        setMessage({ type: 'success', text: 'AI report berhasil dibuat' });
+      }
+    } catch (error) {
+      logger.error('Failed to generate AI report', error);
+      setMessage({ type: 'error', text: 'Gagal membuat AI report' });
+    } finally {
+      setGeneratingAiReport(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -140,7 +194,7 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
           fileInputRef.current.value = '';
         }
       }
-    } catch (error) {
+    } catch (_error) {
       setMessage({ type: 'error', text: 'Gagal mengirim laporan. Periksa koneksi internet.' });
     } finally {
       setSubmitting(false);
@@ -197,6 +251,66 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
               required
             />
           </div>
+
+          {/* AI Report Generator */}
+          {chronology.trim() && (
+            <Card className="border-emerald-200 bg-emerald-50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-emerald-600" />
+                    <p className="text-sm font-semibold text-emerald-900">AI Report Assistant</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={generateAiReport}
+                    disabled={generatingAiReport}
+                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                  >
+                    {generatingAiReport ? (
+                      <>
+                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Bot className="mr-2 h-3 w-3" />
+                        Generate Report
+                      </>
+                    )}
+                  </Button>
+                </div>
+                {aiReport && (
+                  <div className="mt-3 space-y-2 rounded-lg border border-emerald-200 bg-white p-3">
+                    <p className="text-xs font-semibold text-emerald-900">AI Generated Report:</p>
+                    <div className="space-y-1 text-xs text-slate-700">
+                      {aiReport.summary && (
+                        <p>
+                          <span className="font-medium">Summary:</span> {aiReport.summary}
+                        </p>
+                      )}
+                      {aiReport.what && (
+                        <p>
+                          <span className="font-medium">What:</span> {aiReport.what}
+                        </p>
+                      )}
+                      {aiReport.immediateActions && aiReport.immediateActions.length > 0 && (
+                        <div>
+                          <p className="font-medium">Immediate Actions:</p>
+                          <ul className="ml-4 list-disc">
+                            {aiReport.immediateActions.map((action, i) => (
+                              <li key={i}>{action}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Witnesses */}
           <div className="space-y-2">

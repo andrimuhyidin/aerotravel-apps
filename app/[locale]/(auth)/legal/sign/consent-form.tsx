@@ -67,7 +67,8 @@ export function ConsentForm({ locale, userId }: ConsentFormProps) {
 
     try {
       // Update consent in users table using existing columns
-      const { error: updateError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: updateError } = await (supabase as any)
         .from('users')
         .update({
           is_contract_signed: true,
@@ -87,7 +88,8 @@ export function ConsentForm({ locale, userId }: ConsentFormProps) {
         .eq('id', userId)
         .single();
 
-      const role = profile?.role as string | undefined;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const role = (profile as any)?.role as string | undefined;
 
       // Role-based redirect map
       const roleRedirectMap: Record<string, string> = {
@@ -96,9 +98,9 @@ export function ConsentForm({ locale, userId }: ConsentFormProps) {
         finance_manager: `/${locale}/console`,
         marketing: `/${locale}/console`,
         ops_admin: `/${locale}/console`,
-        guide: `/${locale}/guide/attendance`,
+        guide: `/${locale}/guide`,
         mitra: `/${locale}/partner/dashboard`,
-        corporate: `/${locale}/corporate`,
+        corporate: `/${locale}/corporate/employees`,
         customer: `/${locale}`,
       };
 

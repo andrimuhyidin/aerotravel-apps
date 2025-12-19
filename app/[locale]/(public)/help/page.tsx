@@ -21,6 +21,11 @@ import { Section } from '@/components/layout/section';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { locales } from '@/i18n';
+import { createClient, getCurrentUser } from '@/lib/supabase/server';
+import { getTypedClient } from '@/lib/supabase/typed-client';
+
+import { FeedbackSectionWrapper } from './feedback-section-wrapper';
+import { IncidentFormWrapper } from './incident-form-wrapper';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -56,6 +61,27 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function HelpPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
+
+  // Check if user is guide to show incident form
+  const user = await getCurrentUser();
+  const isGuide = user?.activeRole === 'guide' || (user?.profile as { role?: string } | null)?.role === 'guide';
+  
+  // Get current active trip for guide (if guide)
+  let tripId: string | undefined;
+  if (isGuide && user) {
+    const supabase = await createClient();
+    const typedSupabase = getTypedClient(supabase);
+    const { data: assignment } = (await typedSupabase
+      .from('trip_guides')
+      .select('trip_id')
+      .eq('guide_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()) as {
+      data: { trip_id: string } | null;
+    };
+    tripId = assignment?.trip_id as string | undefined;
+  }
 
   const faqItems = [
     {
@@ -254,6 +280,44 @@ export default async function HelpPage({ params }: PageProps) {
           </div>
         </Container>
       </Section>
+
+      {/* Incident Report Section (for guides only) */}
+      {isGuide && user && (
+        <Section className="bg-muted/30">
+          <Container>
+            <div className="py-12">
+              <div className="mb-8 text-center">
+                <h2 className="mb-2 text-3xl font-bold">Laporan Insiden</h2>
+                <p className="text-muted-foreground">
+                  Laporkan kejadian insiden yang terjadi selama trip untuk keperluan dokumentasi
+                </p>
+              </div>
+              <div className="mx-auto max-w-3xl">
+                <IncidentFormWrapper guideId={user.id} tripId={tripId} />
+              </div>
+            </div>
+          </Container>
+        </Section>
+      )}
+
+      {/* Feedback & Saran Section (for guides only) */}
+      {isGuide && user && (
+        <Section>
+          <Container>
+            <div className="py-12">
+              <div className="mb-8 text-center">
+                <h2 className="mb-2 text-3xl font-bold">Feedback & Saran</h2>
+                <p className="text-muted-foreground">
+                  Berikan feedback dan saran untuk perbaikan perusahaan dan layanan
+                </p>
+              </div>
+              <div className="mx-auto max-w-3xl">
+                <FeedbackSectionWrapper locale={locale} />
+              </div>
+            </div>
+          </Container>
+        </Section>
+      )}
 
       {/* Operating Hours */}
       <Section className="bg-muted/30">

@@ -7,6 +7,8 @@ import { FileText, Home, User, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
 
+import { RoleSwitcher } from '@/components/role-switcher';
+
 export default function PortalLayout({
   children,
 }: {
@@ -21,9 +23,13 @@ export default function PortalLayout({
           <header className="sticky top-0 z-50 border-b bg-orange-500 text-white">
             <div className="flex h-14 items-center justify-between px-4">
               <span className="text-lg font-bold">Mitra Portal</span>
-              <Link href="/id/partner/dashboard">
-                <User className="h-5 w-5" />
-              </Link>
+              <div className="flex items-center gap-2">
+                {/* Role Switcher - Only show if user has multiple roles */}
+                <RoleSwitcher size="sm" variant="ghost" className="text-white hover:bg-white/20" />
+                <Link href="/id/partner/dashboard">
+                  <User className="h-5 w-5" />
+                </Link>
+              </div>
             </div>
           </header>
 

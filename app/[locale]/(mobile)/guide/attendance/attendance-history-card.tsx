@@ -5,9 +5,11 @@
  * Shows recent attendance history with timeline
  */
 
-import { Calendar, Clock, History, MapPin } from 'lucide-react';
+import { Calendar, ChevronRight, Clock, History, MapPin } from 'lucide-react';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -26,9 +28,10 @@ type AttendanceHistoryItem = {
 type AttendanceHistoryCardProps = {
   guideId: string;
   currentTripId: string;
+  locale?: string;
 };
 
-export function AttendanceHistoryCard({ guideId, currentTripId }: AttendanceHistoryCardProps) {
+export function AttendanceHistoryCard({ guideId, currentTripId, locale = 'id' }: AttendanceHistoryCardProps) {
   const [history, setHistory] = useState<AttendanceHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,7 +43,7 @@ export function AttendanceHistoryCard({ guideId, currentTripId }: AttendanceHist
           const data = await response.json();
           setHistory(data.history || []);
         }
-      } catch (error) {
+      } catch (_error) {
         // Silent fail
       } finally {
         setLoading(false);
@@ -84,10 +87,18 @@ export function AttendanceHistoryCard({ guideId, currentTripId }: AttendanceHist
   return (
     <Card className="border-0 shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
-          <History className="h-5 w-5 text-blue-600" />
-          Riwayat Absensi
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
+            <History className="h-5 w-5 text-blue-600" />
+            Riwayat Absensi
+          </CardTitle>
+          <Link href={`/${locale}/guide/attendance/history`}>
+            <Button variant="ghost" size="sm" className="h-7 text-xs">
+              Lihat Semua
+              <ChevronRight className="ml-1 h-3.5 w-3.5" />
+            </Button>
+          </Link>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {history.map((item, index) => (

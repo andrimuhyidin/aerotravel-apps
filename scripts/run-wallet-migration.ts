@@ -27,6 +27,10 @@ async function runMigration() {
   console.log('📋 SQL length:', migrationSQL.length, 'characters\n');
 
   // Create Supabase client with service role
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  }
+  
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: {
       autoRefreshToken: false,
@@ -55,7 +59,7 @@ async function runMigration() {
 
       for (let i = 0; i < statements.length; i++) {
         const statement = statements[i];
-        if (statement.length < 10) continue; // Skip very short statements
+        if (!statement || statement.length < 10) continue; // Skip very short statements
 
         try {
           // Use raw query via REST API
@@ -63,8 +67,8 @@ async function runMigration() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'apikey': SUPABASE_SERVICE_ROLE_KEY,
-              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'apikey': SUPABASE_SERVICE_ROLE_KEY ?? '',
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY ?? ''}`,
             },
             body: JSON.stringify({ sql: statement }),
           });

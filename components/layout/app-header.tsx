@@ -9,6 +9,7 @@ import { Plane, Search, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { RoleSwitcher } from '@/components/role-switcher';
 import { cn } from '@/lib/utils';
 
 type AppHeaderProps = {
@@ -58,30 +59,36 @@ export function AppHeader({
           </span>
         </button>
 
-        {/* User Avatar - Link to Account Page */}
-        {user ? (
-          <Link
-            href={`/${locale}/account`}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-600 text-xs font-bold text-white ring-2 ring-background active:scale-95"
-          >
-            {user.avatar ? (
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="h-full w-full rounded-full object-cover"
-              />
-            ) : (
-              user.name?.charAt(0).toUpperCase() || 'U'
-            )}
-          </Link>
-        ) : (
-          <Link
-            href={`/${locale}/login`}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 active:bg-slate-200 dark:bg-slate-800"
-          >
-            <User className="h-4 w-4 text-muted-foreground" />
-          </Link>
-        )}
+        {/* Right Actions */}
+        <div className="flex items-center gap-2">
+          {/* Role Switcher - Only show if user has multiple roles */}
+          {user && <RoleSwitcher size="sm" variant="ghost" />}
+
+          {/* User Avatar - Link to Account Page */}
+          {user ? (
+            <Link
+              href={`/${locale}/account`}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-600 text-xs font-bold text-white ring-2 ring-background active:scale-95"
+            >
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="h-full w-full rounded-full object-cover"
+                />
+              ) : (
+                user.name?.charAt(0).toUpperCase() || 'U'
+              )}
+            </Link>
+          ) : (
+            <Link
+              href={`/${locale}/login`}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 active:bg-slate-200 dark:bg-slate-800"
+            >
+              <User className="h-4 w-4 text-muted-foreground" />
+            </Link>
+          )}
+        </div>
       </div>
     </header>
   );

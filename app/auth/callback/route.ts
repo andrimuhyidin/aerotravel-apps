@@ -18,14 +18,19 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}${next}`);
       }
 
-      // Determine redirect based on user role
+      // Get active role (multi-role support)
+      const { getActiveRole } = await import('@/lib/session/active-role');
+      const activeRole = await getActiveRole(data.user.id);
+      
+      // Fallback to profile role if no active role
       const { data: profile } = await supabase
         .from('users')
         .select('role')
         .eq('id', data.user.id)
         .single();
 
-      const role = (profile as { role?: string } | null)?.role;
+      const profileRole = (profile as { role?: string } | null)?.role;
+      const finalRole = activeRole || profileRole;
       
       // Role-based redirect map
       const roleRedirectMap: Record<string, string> = {
@@ -34,13 +39,14 @@ export async function GET(request: NextRequest) {
         finance_manager: '/id/console',
         marketing: '/id/console',
         ops_admin: '/id/console',
-        guide: '/id/guide/attendance',
+        guide: '/id/guide',
         mitra: '/id/partner/dashboard',
-        corporate: '/id/corporate',
+        nta: '/id/partner/dashboard',
+        corporate: '/id/corporate/employees',
         customer: '/id',
       };
 
-      let redirectPath = roleRedirectMap[role ?? 'customer'] || '/id';
+      let redirectPath = roleRedirectMap[finalRole ?? 'customer'] || '/id';
 
       // For email confirmation, show success message
       if (type === 'email_confirm' || type === 'signup') {

@@ -20,7 +20,8 @@ export const PATCH = withErrorHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string; taskId: string }> },
 ) => {
-  const { id: tripId, taskId } = await params;
+  const resolvedParams = await params;
+  const { id: tripId, taskId } = resolvedParams;
   const supabase = await createClient();
   const payload = updateTaskSchema.parse(await request.json());
 
@@ -109,6 +110,22 @@ export const PATCH = withErrorHandler(async (
         } catch (feedbackError) {
           logger.error('Failed to send feedback requests', feedbackError, { tripId });
           // Don't fail the request if feedback sending fails
+        }
+
+        // Auto-process payment for completed trip (async, don't wait)
+        // Payment will be processed using fee from trip_guides
+        try {
+          const { processTripPayment } = await import('@/lib/guide/contract-payment');
+          processTripPayment(tripId, user.id).catch((paymentError) => {
+            logger.warn('Failed to auto-process trip payment', paymentError, {
+              tripId,
+              guideId: user.id,
+            });
+            // Don't fail - payment can be processed manually later
+          });
+        } catch (importError) {
+          logger.warn('Failed to import payment processor', importError);
+          // Don't fail - payment can be processed manually later
         }
       }
     }

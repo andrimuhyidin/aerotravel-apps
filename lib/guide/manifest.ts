@@ -12,6 +12,9 @@ export type Passenger = {
   type: 'adult' | 'child' | 'infant';
   status: 'pending' | 'boarded' | 'returned';
   notes?: string;
+  allergy?: string;
+  seasick?: boolean;
+  specialRequest?: string;
 };
 
 export type TripManifest = {
@@ -45,6 +48,60 @@ export async function getTripManifest(tripId: string): Promise<TripManifest> {
   }
 
   return data;
+}
+
+/**
+ * Update passenger notes and details (works offline via mutation queue)
+ */
+export async function updatePassengerDetails(
+  tripId: string,
+  passengerId: string,
+  details: {
+    notes?: string;
+    allergy?: string;
+    seasick?: boolean;
+    specialRequest?: string;
+  },
+): Promise<{ success: boolean; message: string }> {
+  const payload = {
+    tripId,
+    passengerId,
+    ...details,
+  };
+
+  try {
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      const response = await fetch('/api/guide/manifest/details', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        await queueMutation('UPDATE_MANIFEST_DETAILS', payload);
+        return {
+          success: true,
+          message: 'Tidak ada koneksi. Catatan akan disinkronkan saat online.',
+        };
+      }
+    } else {
+      await queueMutation('UPDATE_MANIFEST_DETAILS', payload);
+      return {
+        success: true,
+        message: 'Tidak ada koneksi. Catatan akan disinkronkan saat online.',
+      };
+    }
+
+    return { success: true, message: 'Catatan penumpang tersimpan.' };
+  } catch {
+    await queueMutation('UPDATE_MANIFEST_DETAILS', payload);
+    return {
+      success: true,
+      message: 'Tidak ada koneksi. Catatan akan disinkronkan saat online.',
+    };
+  }
 }
 
 /**

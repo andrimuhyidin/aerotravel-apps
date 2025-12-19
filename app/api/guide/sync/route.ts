@@ -17,7 +17,8 @@ type MutationType =
   | 'UPLOAD_EVIDENCE'
   | 'ADD_EXPENSE'
   | 'TRACK_POSITION'
-  | 'UPDATE_MANIFEST';
+  | 'UPDATE_MANIFEST'
+  | 'UPDATE_MANIFEST_DETAILS';
 
 type QueuedMutation = {
   id: string;
@@ -29,7 +30,15 @@ type QueuedMutation = {
 
 const mutationSchema = z.object({
   id: z.string().min(1),
-  type: z.enum(['CHECK_IN', 'CHECK_OUT', 'UPLOAD_EVIDENCE', 'ADD_EXPENSE', 'TRACK_POSITION', 'UPDATE_MANIFEST']),
+  type: z.enum([
+    'CHECK_IN',
+    'CHECK_OUT',
+    'UPLOAD_EVIDENCE',
+    'ADD_EXPENSE',
+    'TRACK_POSITION',
+    'UPDATE_MANIFEST',
+    'UPDATE_MANIFEST_DETAILS',
+  ]),
   payload: z.record(z.string(), z.unknown()),
   timestamp: z.number(),
   retryCount: z.number(),
@@ -172,6 +181,45 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
           },
           { onConflict: 'trip_id,passenger_id' }
         );
+
+        if (error) throw error;
+
+        break;
+      }
+
+      case 'UPDATE_MANIFEST_DETAILS': {
+        const {
+          tripId,
+          passengerId,
+          notes,
+          allergy,
+          seasick,
+          specialRequest,
+        } = mutation.payload as {
+          tripId?: string;
+          passengerId?: string;
+          notes?: string;
+          allergy?: string;
+          seasick?: boolean;
+          specialRequest?: string;
+        };
+
+        if (!tripId || !passengerId) {
+          throw new Error('Invalid UPDATE_MANIFEST_DETAILS payload');
+        }
+
+        const { error } = await withBranchFilter(
+          client.from('manifest_passengers'),
+          branchContext,
+        )
+          .update({
+            notes: notes ?? null,
+            allergy: allergy ?? null,
+            seasick: seasick ?? null,
+            special_request: specialRequest ?? null,
+          } as never)
+          .eq('trip_id', tripId)
+          .eq('passenger_id', passengerId);
 
         if (error) throw error;
 

@@ -41,7 +41,18 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     .from('salary_payments')
     .select('id, guide_id, branch_id, period_start, period_end, status, all_docs_uploaded')
     .eq('period_start', periodStart)
-    .eq('period_end', periodEnd);
+    .eq('period_end', periodEnd) as {
+      data: Array<{
+        id: string;
+        guide_id: string;
+        branch_id: string;
+        period_start: string;
+        period_end: string;
+        status: string;
+        all_docs_uploaded: boolean;
+      }> | null;
+      error: Error | null;
+    };
 
   if (payError) {
     logger.error('Failed to load salary_payments for gatekeeper', payError);
@@ -69,7 +80,18 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       )
       .eq('guide_id', guideId)
       .gte('trip.trip_date', periodStart)
-      .lte('trip.trip_date', periodEnd);
+      .lte('trip.trip_date', periodEnd) as {
+        data: Array<{
+          trip_id: string;
+          trip: {
+            id: string;
+            trip_code: string;
+            trip_date: string;
+            documentation_url: string | null;
+          } | null;
+        }> | null;
+        error: Error | null;
+      };
 
     if (tripsError) {
       logger.error('Failed to load trips for gatekeeper', tripsError, {
@@ -100,7 +122,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       const { data: bookingIdsData, error: bookingIdsError } = await supabase
         .from('trip_bookings')
         .select('booking_id')
-        .eq('trip_id', trip.id);
+        .eq('trip_id', trip.id) as {
+          data: Array<{ booking_id: string }> | null;
+          error: Error | null;
+        };
 
       if (bookingIdsError) {
         logger.error('Failed to load trip_bookings for gatekeeper', bookingIdsError, {
@@ -155,13 +180,17 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const shouldBeReady = allDocsOk && allManifestOk;
 
     if (shouldBeReady) {
-      const { error: updateError } = await supabase
+      const newStatus = pay.status === 'pending' || pay.status === 'documentation_required' 
+        ? 'ready' 
+        : pay.status;
+      
+      const { error: updateError } = (await supabase
         .from('salary_payments')
         .update({
           all_docs_uploaded: true,
-          status: pay.status === 'pending' || pay.status === 'documentation_required' ? 'ready' : pay.status,
-        })
-        .eq('id', pay.id);
+          status: newStatus,
+        } as Record<string, unknown>)
+        .eq('id', pay.id)) as { error: Error | null };
 
       if (!updateError) {
         updated += 1;

@@ -57,10 +57,25 @@ export async function getInventoryItems(branchId: string): Promise<InventoryItem
     .from('inventory')
     .select('*')
     .eq('branch_id', branchId)
-    .order('name');
+    .order('name') as {
+      data: Array<{
+        id: string;
+        name: string;
+        sku: string | null;
+        unit: string;
+        current_stock: number;
+        min_stock: number;
+        unit_cost: number;
+      }> | null;
+      error: Error | null;
+    };
 
   if (error) {
     logger.error('Failed to get inventory', error);
+    return [];
+  }
+
+  if (!data) {
     return [];
   }
 

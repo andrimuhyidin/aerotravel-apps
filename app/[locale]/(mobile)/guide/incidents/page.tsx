@@ -12,6 +12,7 @@ import { redirect } from 'next/navigation';
 import { Container } from '@/components/layout/container';
 import { locales } from '@/i18n';
 import { createClient } from '@/lib/supabase/server';
+import { getTypedClient } from '@/lib/supabase/typed-client';
 
 import { IncidentForm } from './incident-form';
 
@@ -43,6 +44,7 @@ export default async function GuideIncidentsPage({ params }: PageProps) {
   setRequestLocale(locale);
 
   const supabase = await createClient();
+  const typedSupabase = getTypedClient(supabase);
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -52,15 +54,17 @@ export default async function GuideIncidentsPage({ params }: PageProps) {
   }
 
   // Get current active trip for this guide
-  const { data: assignment } = await supabase
+  const { data: assignment } = (await typedSupabase
     .from('trip_guides')
     .select('trip_id')
     .eq('guide_id', user.id)
     .order('created_at', { ascending: false })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle()) as {
+    data: { trip_id: string } | null;
+  };
 
-  const tripId = assignment?.trip_id;
+  const tripId = assignment?.trip_id as string | undefined;
 
   return (
     <Container className="py-6">

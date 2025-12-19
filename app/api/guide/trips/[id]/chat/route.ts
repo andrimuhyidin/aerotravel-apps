@@ -18,10 +18,11 @@ const sendMessageSchema = z.object({
 });
 
 export const GET = withErrorHandler(async (
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) => {
-  const { id: tripId } = await params;
+  const resolvedParams = await params;
+  const { id: tripId } = resolvedParams;
   const supabase = await createClient();
 
   const {
@@ -48,30 +49,76 @@ export const GET = withErrorHandler(async (
 
   // Check if guide is assigned to trip (if not ops/admin)
   if (userRole === 'guide') {
-    const { data: assignment } = await withBranchFilter(
+    const { data: assignment, error: assignmentError } = await withBranchFilter(
       client.from('trip_guides'),
       branchContext,
     )
-      .select('id')
+      .select('id, assignment_status')
       .eq('trip_id', tripId)
       .eq('guide_id', user.id)
       .maybeSingle();
 
+    if (assignmentError) {
+      logger.error('Failed to check trip assignment for GET chat', assignmentError, {
+        tripId,
+        guideId: user.id,
+      });
+      return NextResponse.json(
+        { error: 'Gagal memverifikasi assignment trip' },
+        { status: 500 }
+      );
+    }
+
     if (!assignment) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      logger.warn('Guide not assigned to trip for GET chat', {
+        tripId,
+        guideId: user.id,
+      });
+      return NextResponse.json(
+        { error: 'Anda tidak di-assign ke trip ini' },
+        { status: 403 }
+      );
     }
   }
 
   // Get chat messages
   const { data: messages, error: messagesError } = await client
     .from('trip_chat_messages')
-    .select('id, sender_id, sender_role, message_text, template_type, created_at, sender:users(full_name, avatar_url)')
+    .select(`
+      id,
+      sender_id,
+      sender_role,
+      message_text,
+      template_type,
+      created_at,
+      sender:users!trip_chat_messages_sender_id_fkey(
+        full_name,
+        avatar_url
+      )
+    `)
     .eq('trip_id', tripId)
     .order('created_at', { ascending: true });
 
   if (messagesError) {
-    logger.error('Failed to fetch trip chat messages', messagesError, { tripId, guideId: user.id });
-    return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 });
+    logger.error('Failed to fetch trip chat messages', messagesError, { 
+      tripId, 
+      guideId: user.id,
+      errorCode: (messagesError as any)?.code,
+      errorMessage: (messagesError as any)?.message,
+    });
+    
+    // Check if table doesn't exist
+    if ((messagesError as any)?.code === '42P01' || (messagesError as any)?.code === 'PGRST205') {
+      return NextResponse.json(
+        { error: 'Fitur chat belum tersedia. Silakan hubungi admin.' },
+        { status: 503 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: 'Gagal memuat pesan chat' },
+      { status: 500 }
+    );
   }
 
   const formattedMessages = (messages || []).map((msg: any) => ({
@@ -92,7 +139,8 @@ export const POST = withErrorHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) => {
-  const { id: tripId } = await params;
+  const resolvedParams = await params;
+  const { id: tripId } = resolvedParams;
   const supabase = await createClient();
   const payload = sendMessageSchema.parse(await request.json());
 
@@ -126,17 +174,35 @@ export const POST = withErrorHandler(async (
 
   // Check if guide is assigned to trip (if not ops/admin)
   if (senderRole === 'guide') {
-    const { data: assignment } = await withBranchFilter(
+    const { data: assignment, error: assignmentError } = await withBranchFilter(
       client.from('trip_guides'),
       branchContext,
     )
-      .select('id')
+      .select('id, assignment_status')
       .eq('trip_id', tripId)
       .eq('guide_id', user.id)
       .maybeSingle();
 
+    if (assignmentError) {
+      logger.error('Failed to check trip assignment for chat', assignmentError, {
+        tripId,
+        guideId: user.id,
+      });
+      return NextResponse.json(
+        { error: 'Gagal memverifikasi assignment trip' },
+        { status: 500 }
+      );
+    }
+
     if (!assignment) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      logger.warn('Guide not assigned to trip for chat', {
+        tripId,
+        guideId: user.id,
+      });
+      return NextResponse.json(
+        { error: 'Anda tidak di-assign ke trip ini. Tidak dapat mengirim pesan.' },
+        { status: 403 }
+      );
     }
   }
 
@@ -155,8 +221,19 @@ export const POST = withErrorHandler(async (
     .single();
 
   if (insertError || !message) {
-    logger.error('Failed to send trip chat message', insertError, { tripId, guideId: user.id });
-    return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
+    logger.error('Failed to send trip chat message', insertError, { 
+      tripId, 
+      guideId: user.id,
+      errorCode: (insertError as any)?.code,
+      errorMessage: (insertError as any)?.message,
+    });
+    
+    // Better error message
+    const errorMsg = (insertError as any)?.message || 'Gagal mengirim pesan';
+    return NextResponse.json(
+      { error: errorMsg },
+      { status: 500 }
+    );
   }
 
   logger.info('Trip chat message sent', {

@@ -8,8 +8,10 @@
 'use client';
 
 import React from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { logger } from '@/lib/utils/logger';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -38,18 +40,28 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log error to Sentry
-    if (typeof window !== 'undefined' && window.Sentry) {
-      window.Sentry.captureException(error, {
-        contexts: {
-          react: {
-            componentStack: errorInfo.componentStack,
-          },
-        },
-      });
-    }
+    // Log error using structured logger
+    logger.error('ErrorBoundary caught an error', error, {
+      componentStack: errorInfo.componentStack,
+      boundary: 'ErrorBoundary',
+    });
 
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Also log to Sentry if available
+    if (typeof window !== 'undefined') {
+      const windowWithSentry = window as unknown as { Sentry?: { captureException: (error: Error, context: unknown) => void } };
+      if (windowWithSentry.Sentry) {
+        windowWithSentry.Sentry.captureException(error, {
+          contexts: {
+            react: {
+              componentStack: errorInfo.componentStack,
+            },
+          },
+          tags: {
+            errorBoundary: 'ErrorBoundary',
+          },
+        });
+      }
+    }
   }
 
   resetError = () => {

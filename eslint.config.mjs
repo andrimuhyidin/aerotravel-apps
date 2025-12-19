@@ -21,6 +21,19 @@ export default tseslint.config(
     },
   },
   {
+    files: ['scripts/**/*.{ts,js,mjs}', 'public/sw.ts'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        fetch: 'readonly',
+      },
+    },
+  },
+  {
     ignores: [
       'node_modules/**',
       '.next/**',

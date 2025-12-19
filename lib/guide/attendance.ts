@@ -84,7 +84,10 @@ export async function performCheckIn(
   tripId: string,
   guideId: string,
   location: Coordinates,
-  _meetingPointId?: string
+  meetingPointId?: string,
+  photoUrl?: string,
+  happiness?: number,
+  description?: string,
 ): Promise<CheckInResult> {
   // Validate location (geofencing)
   const validation = validateCheckIn(location);
@@ -96,13 +99,23 @@ export async function performCheckIn(
     };
   }
 
-  const payload = {
+  const payload: Record<string, unknown> = {
     tripId,
     guideId,
     latitude: location.latitude,
     longitude: location.longitude,
-    accuracy: undefined,
+    accuracy: location.accuracy,
   };
+
+  if (photoUrl) {
+    payload.photoUrl = photoUrl;
+  }
+  if (happiness !== undefined && happiness !== null) {
+    payload.happiness = happiness;
+  }
+  if (description) {
+    payload.description = description;
+  }
 
   try {
     if (typeof navigator !== 'undefined' && navigator.onLine) {

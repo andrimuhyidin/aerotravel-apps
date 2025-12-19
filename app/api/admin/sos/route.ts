@@ -96,10 +96,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     };
   }
 
-  const { error } = await supabase
+  const { error } = (await supabase
     .from('sos_alerts')
-    .update(updateData)
-    .eq('id', id);
+    .update(updateData as Record<string, unknown>)
+    .eq('id', id)) as { error: Error | null };
 
   if (error) {
     logger.error('Failed to update SOS alert', error, { id, action });

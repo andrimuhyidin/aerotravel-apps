@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
+import { getBranchContext } from '@/lib/branch/branch-injection';
 import {
     calculateBadges,
     calculateLevel,
@@ -32,19 +32,15 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const client = supabase as unknown as any;
 
   // Get user join date from users table
-  const { data: userProfile } = await withBranchFilter(
-    client.from('users'),
-    branchContext,
-  )
+  const { data: userProfile } = await client
+    .from('users')
     .select('created_at')
     .eq('id', user.id)
     .single();
 
   // Get total completed trips
-  const { count: totalTrips, error: tripsError } = await withBranchFilter(
-    client.from('trip_guides'),
-    branchContext,
-  )
+  const { count: totalTrips, error: tripsError } = await client
+    .from('trip_guides')
     .select('*', { count: 'exact', head: true })
     .eq('guide_id', user.id)
     .not('check_in_at', 'is', null)
@@ -63,10 +59,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   try {
     // Get trip IDs for this guide
-    const { data: guideTrips } = await withBranchFilter(
-      client.from('trip_guides'),
-      branchContext,
-    )
+    const { data: guideTrips } = await client
+      .from('trip_guides')
       .select('trip_id')
       .eq('guide_id', user.id);
 
@@ -74,10 +68,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       const tripIds = guideTrips.map((gt: { trip_id: string }) => gt.trip_id);
 
       // Get bookings for these trips
-      const { data: tripBookings } = await withBranchFilter(
-        client.from('trip_bookings'),
-        branchContext,
-      )
+      const { data: tripBookings } = await client
+        .from('trip_bookings')
         .select('booking_id')
         .in('trip_id', tripIds);
 
@@ -85,13 +77,20 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         const bookingIds = tripBookings.map((tb: { booking_id: string }) => tb.booking_id);
 
         // Get reviews for these bookings
-        const { data: reviewsData } = await client
+        const { data: reviewsData, error: reviewsQueryError } = await client
           .from('reviews')
           .select('guide_rating')
           .in('booking_id', bookingIds)
           .not('guide_rating', 'is', null);
 
-        if (reviewsData) {
+        if (reviewsQueryError) {
+          logger.warn('Failed to fetch reviews for stats', {
+            guideId: user.id,
+            bookingIdsCount: bookingIds.length,
+            error: reviewsQueryError,
+          });
+          // Continue with default values (0 rating)
+        } else if (reviewsData) {
           const ratings = reviewsData
             .map((r: { guide_rating: number | null }) => r.guide_rating)
             .filter((r: number | null) => r !== null && r > 0) as number[];
@@ -113,10 +112,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const { count: complaints, error: complaintsError } = await withBranchFilter(
-    client.from('tickets'),
-    branchContext,
-  )
+  const { count: complaints, error: complaintsError } = await client
+    .from('tickets')
     .select('*', { count: 'exact', head: true })
     .eq('reported_by', user.id)
     .gte('created_at', thirtyDaysAgo.toISOString());
@@ -129,10 +126,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const threeMonthsAgo = new Date();
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
-  const { count: penalties, error: penaltiesError } = await withBranchFilter(
-    client.from('salary_deductions'),
-    branchContext,
-  )
+  const { count: penalties, error: penaltiesError } = await client
+    .from('salary_deductions')
     .select('*', { count: 'exact', head: true })
     .eq('guide_id', user.id)
     .gte('created_at', threeMonthsAgo.toISOString());

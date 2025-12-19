@@ -4,16 +4,19 @@
  */
 
 import {
-  Calendar,
-  CreditCard,
-  FileText,
-  Home,
-  Package,
-  Settings,
-  Users,
+    Brain,
+    Calendar,
+    CreditCard,
+    FileText,
+    Home,
+    Package,
+    Settings,
+    Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
+
+import { RoleSwitcher } from '@/components/role-switcher';
 
 const sidebarItems = [
   { href: '/id/console', label: 'Dashboard', icon: Home },
@@ -21,6 +24,7 @@ const sidebarItems = [
   { href: '/id/console/products', label: 'Products', icon: Package },
   { href: '/id/console/finance', label: 'Finance', icon: CreditCard },
   { href: '/id/console/users', label: 'Users', icon: Users },
+  { href: '/id/console/ai-documents', label: 'AI Documents', icon: Brain },
   { href: '/id/console/reports', label: 'Reports', icon: FileText },
   { href: '/id/console/settings', label: 'Settings', icon: Settings },
 ];
@@ -62,6 +66,8 @@ export default function DashboardLayout({
             <span className="text-lg font-semibold lg:hidden">AeroConsole</span>
           </div>
           <div className="flex items-center gap-4">
+            {/* Role Switcher - Only show if user has multiple roles (internal roles cannot switch) */}
+            <RoleSwitcher size="sm" variant="outline" />
             <span className="text-sm text-muted-foreground">Admin</span>
           </div>
         </header>

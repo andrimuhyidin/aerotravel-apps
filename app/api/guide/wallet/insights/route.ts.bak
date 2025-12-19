@@ -1,0 +1,241 @@
+/**
+ * API: Guide Wallet Financial Insights & Recommendations
+ * GET /api/guide/wallet/insights - Get financial insights, trends, and recommendations
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+
+import { withErrorHandler } from '@/lib/api/error-handler';
+import { getBranchContext } from '@/lib/branch/branch-injection';
+import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
+
+export const GET = withErrorHandler(async () => {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const branchContext = await getBranchContext(user.id);
+  const client = supabase as unknown as any;
+
+  try {
+    const { data: wallet } = await client
+      .from('guide_wallets')
+      .select('id, balance')
+      .eq('guide_id', user.id)
+      .maybeSingle();
+
+    if (!wallet) {
+      return NextResponse.json({
+        trend: 'neutral',
+        trendPercent: 0,
+        performance: 'average',
+        percentile: 50,
+        recommendations: [],
+        seasonalPattern: null,
+      });
+    }
+
+    const walletId = wallet.id as string;
+    const balance = Number(wallet.balance || 0);
+
+    // Get last 3 months earnings for trend
+    const now = new Date();
+    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+
+    const { data: recentEarnings } = await client
+      .from('guide_wallet_transactions')
+      .select('amount, created_at')
+      .eq('wallet_id', walletId)
+      .eq('transaction_type', 'earning')
+      .gte('created_at', threeMonthsAgo.toISOString())
+      .order('created_at', { ascending: true });
+
+    // Calculate trend
+    let trend: 'up' | 'down' | 'neutral' = 'neutral';
+    let trendPercent = 0;
+
+    if (recentEarnings && recentEarnings.length >= 2) {
+      const firstHalf = recentEarnings.slice(0, Math.floor(recentEarnings.length / 2));
+      const secondHalf = recentEarnings.slice(Math.floor(recentEarnings.length / 2));
+
+      const firstHalfTotal = firstHalf.reduce(
+        (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),
+        0,
+      );
+      const secondHalfTotal = secondHalf.reduce(
+        (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),
+        0,
+      );
+
+      if (firstHalfTotal > 0) {
+        trendPercent = ((secondHalfTotal - firstHalfTotal) / firstHalfTotal) * 100;
+        if (trendPercent > 5) {
+          trend = 'up';
+        } else if (trendPercent < -5) {
+          trend = 'down';
+        }
+      }
+    }
+
+    // Get comparison data (anonymized - get average from branch)
+    let branchAverage = 0;
+    let userMonthlyAverage = 0;
+
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    // User's monthly average
+    const { data: userEarnings } = await client
+      .from('guide_wallet_transactions')
+      .select('amount')
+      .eq('wallet_id', walletId)
+      .eq('transaction_type', 'earning')
+      .gte('created_at', monthStart.toISOString())
+      .lte('created_at', monthEnd.toISOString());
+
+    userMonthlyAverage = (userEarnings || []).reduce(
+      (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),
+      0,
+    );
+
+    // Branch average (anonymized - aggregate from all guides in branch)
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      // Get all guide wallets in branch
+      const { data: branchWallets } = await client
+        .from('guide_wallets')
+        .select('id, guide_id')
+        .in('guide_id', 
+          client.from('users')
+            .select('id')
+            .eq('branch_id', branchContext.branchId)
+            .eq('role', 'guide')
+        );
+
+      if (branchWallets && branchWallets.length > 0) {
+        const walletIds = branchWallets.map((w: { id: string }) => w.id);
+
+        const { data: branchEarnings } = await client
+          .from('guide_wallet_transactions')
+          .select('amount')
+          .in('wallet_id', walletIds)
+          .eq('transaction_type', 'earning')
+          .gte('created_at', monthStart.toISOString())
+          .lte('created_at', monthEnd.toISOString());
+
+        const branchTotal = (branchEarnings || []).reduce(
+          (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),
+          0,
+        );
+
+        branchAverage = branchWallets.length > 0 ? branchTotal / branchWallets.length : 0;
+      }
+    }
+
+    // Calculate percentile (simplified)
+    let percentile = 50;
+    let performance: 'top' | 'above' | 'average' | 'below' = 'average';
+
+    if (branchAverage > 0) {
+      const ratio = userMonthlyAverage / branchAverage;
+      if (ratio >= 1.5) {
+        percentile = 90;
+        performance = 'top';
+      } else if (ratio >= 1.2) {
+        percentile = 75;
+        performance = 'above';
+      } else if (ratio >= 0.8) {
+        percentile = 50;
+        performance = 'average';
+      } else {
+        percentile = 25;
+        performance = 'below';
+      }
+    }
+
+    // Generate recommendations
+    const recommendations: Array<{ type: string; title: string; description: string }> = [];
+
+    // Check documentation bonus opportunity
+    const tripGuidesQuery = client.from('trip_guides')
+      .select('documentation_uploaded')
+      .eq('guide_id', user.id)
+      .gte('check_in_at', monthStart.toISOString())
+      .lte('check_in_at', monthEnd.toISOString())
+      .not('check_in_at', 'is', null);
+
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      const { data: trips } = await client
+        .from('trips')
+        .select('id')
+        .eq('branch_id', branchContext.branchId)
+        .gte('trip_date', monthStart.toISOString().split('T')[0])
+        .lte('trip_date', monthEnd.toISOString().split('T')[0]);
+
+      const tripIds = trips?.map((t: { id: string }) => t.id) || [];
+      if (tripIds.length > 0) {
+        tripGuidesQuery = tripGuidesQuery.in('trip_id', tripIds);
+      }
+    }
+
+    const { data: tripGuides } = await tripGuidesQuery;
+
+    const incompleteDocs = (tripGuides || []).filter(
+      (tg: { documentation_uploaded: boolean }) => !tg.documentation_uploaded,
+    ).length;
+
+    if (incompleteDocs > 0) {
+      recommendations.push({
+        type: 'bonus',
+        title: 'Lengkapi Dokumentasi',
+        description: `Anda memiliki ${incompleteDocs} trip dengan dokumentasi belum lengkap. Lengkapi untuk mendapatkan bonus Rp 100,000 per trip.`,
+      });
+    }
+
+    // Check on-time bonus
+    const lateTrips = (tripGuides || []).filter(
+      (tg: { is_late: boolean }) => tg.is_late,
+    ).length;
+
+    if (lateTrips > 0) {
+      recommendations.push({
+        type: 'performance',
+        title: 'Tingkatkan Ketepatan Waktu',
+        description: `Hindari keterlambatan check-in untuk mendapatkan bonus on-time Rp 50,000 per trip.`,
+      });
+    }
+
+    // Rating recommendation
+    if (performance === 'below') {
+      recommendations.push({
+        type: 'performance',
+        title: 'Tingkatkan Rating',
+        description: 'Fokus pada pelayanan yang lebih baik untuk mendapatkan rating tinggi dan bonus lebih besar.',
+      });
+    }
+
+    // Seasonal pattern (simplified - check if December/January has higher earnings)
+    const seasonalPattern = null; // Can be enhanced with historical data analysis
+
+    return NextResponse.json({
+      trend,
+      trendPercent: Math.round(trendPercent * 100) / 100,
+      performance,
+      percentile,
+      userMonthlyAverage: Math.round(userMonthlyAverage),
+      branchAverage: Math.round(branchAverage),
+      recommendations,
+      seasonalPattern,
+    });
+  } catch (error) {
+    logger.error('Failed to fetch insights', error, { guideId: user.id });
+    return NextResponse.json({ error: 'Failed to fetch insights' }, { status: 500 });
+  }
+});
+

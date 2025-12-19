@@ -27,9 +27,9 @@ const roleRedirectMap: Record<string, string> = {
   finance_manager: '/console',
   marketing: '/console',
   ops_admin: '/console',
-  guide: '/guide/attendance',
+  guide: '/guide',
   mitra: '/partner/dashboard',
-  corporate: '/corporate',
+  corporate: '/corporate/employees',
   customer: '',
 };
 

@@ -12,6 +12,7 @@ import createMiddleware from 'next-intl/middleware';
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { defaultLocale, localeConfig } from './i18n';
+import { getActiveRole } from './lib/session/active-role';
 import { updateSession } from './lib/supabase/middleware';
 
 // Create i18n middleware
@@ -58,12 +59,41 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Protected routes
+  // Public landing pages (accessible without login)
+  const publicLandingPages = [
+    '/guide',
+    '/partner',
+    '/corporate',
+    '/customer',
+  ];
+  const isPublicLanding =
+    publicLandingPages.some(
+      (path) =>
+        pathWithoutLocale === path ||
+        pathWithoutLocale.startsWith(`${path}/apply`)
+    ) || pathWithoutLocale.startsWith('/guide/apply') ||
+    pathWithoutLocale.startsWith('/partner/apply') ||
+    pathWithoutLocale.startsWith('/corporate/apply');
+
+  // Allow public landing pages without authentication
+  if (isPublicLanding && !user) {
+    return supabaseResponse;
+  }
+
+  // Protected routes (only check if not public landing page)
   const protectedPaths = [
     `/${locale}/console`,
-    `/${locale}/partner`,
-    `/${locale}/guide`,
-    `/${locale}/corporate`,
+    `/${locale}/partner/dashboard`,
+    `/${locale}/partner/bookings`,
+    `/${locale}/partner/invoices`,
+    `/${locale}/partner/wallet`,
+    `/${locale}/partner/whitelabel`,
+    `/${locale}/guide/trips`,
+    `/${locale}/guide/attendance`,
+    `/${locale}/guide/manifest`,
+    `/${locale}/guide/sos`,
+    `/${locale}/corporate/employees`,
+    `/${locale}/corporate/invoices`,
   ];
   const isProtectedPath = protectedPaths.some((path) =>
     pathname.startsWith(path)
@@ -87,9 +117,26 @@ export async function proxy(request: NextRequest) {
       branch_id: string | null;
       is_contract_signed: boolean | null;
     } | null;
-    const userRole = userProfile?.role;
+    
+    // Get active role (multi-role support)
+    // Priority: activeRole from session > primary role from user_roles > users.role
+    const activeRole = await getActiveRole(user.id);
+    const userRole = activeRole || userProfile?.role; // Use active role, fallback to profile role
     const branchId = userProfile?.branch_id;
     const hasConsent = userProfile?.is_contract_signed;
+    
+    // Debug logging for role detection
+    if (pathWithoutLocale === '/' || pathWithoutLocale === '') {
+      const { logger } = await import('@/lib/utils/logger');
+      logger.info('[PROXY] Home page access - Role detection', {
+        userId: user.id,
+        activeRole,
+        profileRole: userProfile?.role,
+        finalRole: userRole,
+        branchId,
+        hasConsent,
+      });
+    }
 
     // Check consent - redirect to legal sign if not agreed
     const consentExemptPaths = [
@@ -108,23 +155,59 @@ export async function proxy(request: NextRequest) {
       );
     }
 
-    // Guide can only access /guide
-    if (userRole === 'guide' && !pathWithoutLocale.startsWith('/guide')) {
-      return NextResponse.redirect(new URL(`/${locale}/guide`, request.url));
-    }
+    // Public landing pages are already handled above, skip role checks for them
+    if (!isPublicLanding) {
+      // Guide routes - only allow if active role is guide
+      if (
+        pathWithoutLocale.startsWith('/guide') &&
+        !pathWithoutLocale.startsWith('/guide/apply') &&
+        userRole !== 'guide'
+      ) {
+        // Redirect to landing page if not guide
+        return NextResponse.redirect(new URL(`/${locale}/guide`, request.url));
+      }
 
-    // Mitra can only access /partner (not /console)
-    if (userRole === 'mitra' && pathWithoutLocale.startsWith('/console')) {
-      return NextResponse.redirect(
-        new URL(`/${locale}/partner/dashboard`, request.url)
-      );
-    }
+      // Partner routes - only allow if active role is mitra
+      // Note: /partner is public landing page, /partner/dashboard/* is protected
+      if (
+        pathWithoutLocale.startsWith('/partner/dashboard') ||
+        pathWithoutLocale.startsWith('/partner/bookings') ||
+        pathWithoutLocale.startsWith('/partner/invoices') ||
+        pathWithoutLocale.startsWith('/partner/wallet') ||
+        pathWithoutLocale.startsWith('/partner/whitelabel')
+      ) {
+        if (userRole !== 'mitra') {
+          return NextResponse.redirect(new URL(`/${locale}/partner`, request.url));
+        }
+      }
 
-    // Corporate can only access /corporate
-    if (userRole === 'corporate' && pathWithoutLocale.startsWith('/console')) {
-      return NextResponse.redirect(
-        new URL(`/${locale}/corporate`, request.url)
-      );
+      // Corporate routes - only allow if active role is corporate
+      if (
+        pathWithoutLocale.startsWith('/corporate') &&
+        !pathWithoutLocale.startsWith('/corporate/apply') &&
+        userRole !== 'corporate'
+      ) {
+        return NextResponse.redirect(
+          new URL(`/${locale}/corporate`, request.url)
+        );
+      }
+
+      // Mitra cannot access console
+      if (userRole === 'mitra' && pathWithoutLocale.startsWith('/console')) {
+        return NextResponse.redirect(
+          new URL(`/${locale}/partner/dashboard`, request.url)
+        );
+      }
+
+      // Corporate cannot access console
+      if (
+        userRole === 'corporate' &&
+        pathWithoutLocale.startsWith('/console')
+      ) {
+        return NextResponse.redirect(
+          new URL(`/${locale}/corporate/employees`, request.url)
+        );
+      }
     }
 
     // Console access only for internal roles

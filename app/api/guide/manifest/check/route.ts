@@ -37,14 +37,17 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       : { returned_at: now, returned_by: guideId };
 
   // Upsert manifest check
-  const { error } = await supabase.from('manifest_checks').upsert(
-    {
-      trip_id: tripId,
-      passenger_id: passengerId,
-      ...updateData,
-    },
-    { onConflict: 'trip_id,passenger_id' }
-  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = (await (supabase as any)
+    .from('manifest_checks')
+    .upsert(
+      {
+        trip_id: tripId,
+        passenger_id: passengerId,
+        ...updateData,
+      },
+      { onConflict: 'trip_id,passenger_id' }
+    )) as { error: Error | null };
 
   if (error) {
     logger.error('Manifest check failed', { error: error.message });

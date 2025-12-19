@@ -22,7 +22,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Get booking data
-  const { data: booking, error: bookingError } = await supabase
+  const { data: booking, error: bookingError } = (await supabase
     .from('bookings')
     .select(`
       id,
@@ -38,7 +38,21 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     `)
     .eq('id', bookingId)
     .eq('mitra_id', mitraId)
-    .single();
+    .single()) as {
+    data: {
+      id: string;
+      booking_code: string;
+      trip_date: string;
+      adult_pax: number;
+      child_pax: number;
+      infant_pax: number;
+      total_amount: number;
+      status: string;
+      customer_name: string | null;
+      package: { name: string | null } | null;
+    } | null;
+    error: Error | null;
+  };
 
   if (bookingError || !booking) {
     return NextResponse.json(

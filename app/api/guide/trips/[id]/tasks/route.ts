@@ -6,15 +6,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
+import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 export const GET = withErrorHandler(async (
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) => {
-  const { id: tripId } = await params;
+  const resolvedParams = await params;
+  const { id: tripId } = resolvedParams;
   const supabase = await createClient();
 
   const {
@@ -29,10 +30,7 @@ export const GET = withErrorHandler(async (
   const client = supabase as unknown as any;
 
   // Get trip with package info (including itinerary JSONB and package_id for package_itineraries)
-  const { data: trip, error: tripError } = await withBranchFilter(
-    client.from('trips'),
-    branchContext,
-  )
+  let tripQuery = client.from('trips')
     .select(
       `
       id,
@@ -44,8 +42,13 @@ export const GET = withErrorHandler(async (
       )
     `,
     )
-    .eq('id', tripId)
-    .single();
+    .eq('id', tripId);
+  
+  if (!branchContext.isSuperAdmin && branchContext.branchId) {
+    tripQuery = tripQuery.eq('branch_id', branchContext.branchId);
+  }
+  
+  const { data: trip, error: tripError } = await tripQuery.single();
 
   if (tripError || !trip) {
     logger.error('Trip not found', tripError, { tripId, guideId: user.id });
@@ -53,12 +56,15 @@ export const GET = withErrorHandler(async (
   }
 
   // Get or create tasks for this trip
-  const { data: existingTasks, error: tasksError } = await withBranchFilter(
-    client.from('trip_tasks'),
-    branchContext,
-  )
+  let tasksQuery = client.from('trip_tasks')
     .select('*')
-    .eq('trip_id', tripId)
+    .eq('trip_id', tripId);
+  
+  if (!branchContext.isSuperAdmin && branchContext.branchId) {
+    tasksQuery = tasksQuery.eq('branch_id', branchContext.branchId);
+  }
+  
+  const { data: existingTasks, error: tasksError } = await tasksQuery
     .order('order_index', { ascending: true });
 
   if (tasksError) {
@@ -78,10 +84,7 @@ export const GET = withErrorHandler(async (
     
     // Insert tasks
     if (tasks.length > 0) {
-      const { error: insertError } = await withBranchFilter(
-        client.from('trip_tasks'),
-        branchContext,
-      ).insert(
+      const { error: insertError } = await client.from('trip_tasks').insert(
         tasks.map((task, index) => ({
           trip_id: tripId,
           branch_id: branchContext.branchId,
@@ -98,12 +101,15 @@ export const GET = withErrorHandler(async (
     }
 
     // Fetch again after creation
-    const { data: newTasks } = await withBranchFilter(
-      client.from('trip_tasks'),
-      branchContext,
-    )
+    let newTasksQuery = client.from('trip_tasks')
       .select('*')
-      .eq('trip_id', tripId)
+      .eq('trip_id', tripId);
+    
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      newTasksQuery = newTasksQuery.eq('branch_id', branchContext.branchId);
+    }
+    
+    const { data: newTasks } = await newTasksQuery
       .order('order_index', { ascending: true });
 
     return NextResponse.json({
@@ -154,11 +160,28 @@ async function generateTasksFromPackage(
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const supabaseClient = client as any;
-      const { data: packageItineraries } = await supabaseClient
+      const { data: packageItineraries, error: packageItinerariesError } = await supabaseClient
         .from('package_itineraries')
         .select('day_number, title, description')
         .eq('package_id', packageId)
         .order('day_number', { ascending: true });
+
+      if (packageItinerariesError) {
+        // Check if it's an RLS/permission error
+        const isRlsError = packageItinerariesError.code === 'PGRST301' || 
+                           packageItinerariesError.message?.includes('permission') ||
+                           packageItinerariesError.message?.includes('policy') ||
+                           packageItinerariesError.message?.includes('row-level security');
+        
+        logger.warn('Failed to fetch package itineraries for tasks', {
+          packageId,
+          error: packageItinerariesError,
+          errorCode: packageItinerariesError.code,
+          errorMessage: packageItinerariesError.message,
+          isRlsError,
+        });
+        // Continue without package itineraries - will fall back to JSONB or default template
+      }
 
       if (packageItineraries && packageItineraries.length > 0) {
         // Parse activities from itinerary descriptions

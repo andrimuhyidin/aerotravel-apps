@@ -42,7 +42,7 @@ export default async function TrackingPage({ params }: PageProps) {
     redirect(`/${locale}/login`);
   }
 
-  const { data: assignment } = await supabase
+  const { data: assignment } = (await supabase
     .from('trip_guides')
     .select(
       `
@@ -57,7 +57,16 @@ export default async function TrackingPage({ params }: PageProps) {
     .eq('guide_id', user.id)
     .order('trip_id', { ascending: true })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle()) as {
+    data: {
+      trip_id: string;
+      trip: {
+        id: string;
+        trip_code: string;
+        trip_date: string;
+      } | null;
+    } | null;
+  };
 
   const trip = assignment?.trip ?? null;
 

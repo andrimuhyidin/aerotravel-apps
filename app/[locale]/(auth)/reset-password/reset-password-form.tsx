@@ -12,7 +12,7 @@ type Props = {
   locale: string;
 };
 
-export function ResetPasswordForm({ locale }: Props) {
+export function ResetPasswordForm({ locale: _locale }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 

@@ -47,33 +47,75 @@ export default async function HomePage({ params }: PageProps) {
 
   // Get current user
   const user = await getCurrentUser();
-  const profile = user?.profile as {
-    role?: string;
-    full_name?: string;
-  } | null;
-  const userRole = profile?.role;
-  const userName = profile?.full_name?.split(' ')[0] || 'Traveler';
+  
+  if (user) {
+    const profile = user?.profile as {
+      role?: string;
+      full_name?: string;
+    } | null;
+    
+    // CRITICAL: Use activeRole for multi-role support, fallback to profile.role
+    // activeRole comes from getActiveRole() which checks:
+    // 1. Session metadata (if user switched role)
+    // 2. Primary role from user_roles table
+    // 3. Fallback to users.role
+    const userRole = user?.activeRole || profile?.role;
+    
+    // Debug logging
+    const { logger } = await import('@/lib/utils/logger');
+    logger.info('HomePage - Role detection', {
+      userId: user.id,
+      activeRole: user?.activeRole,
+      profileRole: profile?.role,
+      allRoles: user?.roles,
+      finalRole: userRole,
+    });
+    
+    // IMPORTANT: Redirect based on active role BEFORE showing any dashboard
+    // This ensures guide users go to /guide, not customer dashboard
+    if (userRole === 'guide') {
+      logger.info('HomePage - Redirecting guide to /guide', { userId: user.id });
+      redirect(`/${locale}/guide`);
+    }
+    if (userRole === 'mitra' || userRole === 'nta') {
+      logger.info('HomePage - Redirecting partner to /partner/dashboard', { userId: user.id });
+      redirect(`/${locale}/partner/dashboard`);
+    }
+    if (
+      userRole === 'super_admin' ||
+      userRole === 'owner' ||
+      userRole === 'manager' ||
+      userRole === 'admin' ||
+      userRole === 'finance' ||
+      userRole === 'cs' ||
+      userRole === 'ops_admin' ||
+      userRole === 'finance_manager' ||
+      userRole === 'marketing' ||
+      userRole === 'investor'
+    ) {
+      logger.info('HomePage - Redirecting internal staff to /console', { userId: user.id, role: userRole });
+      redirect(`/${locale}/console`);
+    }
+    if (userRole === 'corporate') {
+      logger.info('HomePage - Redirecting corporate to /corporate/employees', { userId: user.id });
+      redirect(`/${locale}/corporate/employees`);
+    }
 
-  // Redirect other roles to their dashboards
-  if (userRole === 'guide') {
-    redirect(`/${locale}/guide`);
-  }
-  if (userRole === 'mitra' || userRole === 'nta') {
-    redirect(`/${locale}/mitra`);
-  }
-  if (
-    userRole === 'super_admin' ||
-    userRole === 'owner' ||
-    userRole === 'manager' ||
-    userRole === 'admin' ||
-    userRole === 'finance' ||
-    userRole === 'cs'
-  ) {
-    redirect(`/${locale}/console`);
-  }
-
-  // If logged in as customer, show superapps dashboard
-  if (user && (!userRole || userRole === 'customer')) {
+    // Only show customer dashboard if role is customer or null/undefined
+    if (!userRole || userRole === 'customer') {
+      logger.info('HomePage - Showing customer dashboard', { userId: user.id, role: userRole });
+      const userName = profile?.full_name?.split(' ')[0] || 'Traveler';
+      return <CustomerDashboard locale={locale} userName={userName} />;
+    }
+    
+    // Fallback: if role is detected but not handled above, log warning
+    logger.warn('HomePage - Unhandled role, showing customer dashboard', { 
+      userId: user.id, 
+      role: userRole,
+      activeRole: user?.activeRole,
+      profileRole: profile?.role,
+    });
+    const userName = profile?.full_name?.split(' ')[0] || 'Traveler';
     return <CustomerDashboard locale={locale} userName={userName} />;
   }
 

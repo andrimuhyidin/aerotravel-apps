@@ -27,7 +27,12 @@ type MutationType =
   | 'UPLOAD_EVIDENCE'
   | 'ADD_EXPENSE'
   | 'TRACK_POSITION'
-  | 'UPDATE_MANIFEST';
+  | 'UPDATE_MANIFEST'
+  | 'UPDATE_MANIFEST_DETAILS';
+
+export type SyncMode = 'normal' | 'data_saver';
+
+const SYNC_MODE_STORAGE_KEY = 'guide_sync_mode';
 
 type QueuedMutation = {
   id: string;
@@ -88,6 +93,38 @@ export async function initDB(): Promise<IDBPDatabase> {
   });
 
   return db;
+}
+
+/**
+ * Get current sync mode (normal or data_saver)
+ */
+export function getSyncMode(): SyncMode {
+  if (typeof window === 'undefined') return 'normal';
+  try {
+    const stored = window.localStorage.getItem(SYNC_MODE_STORAGE_KEY);
+    if (stored === 'data_saver' || stored === 'normal') {
+      return stored;
+    }
+  } catch {
+    // Ignore storage errors and fallback to normal
+  }
+  return 'normal';
+}
+
+/**
+ * Set sync mode preference
+ */
+export function setSyncMode(mode: SyncMode): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(SYNC_MODE_STORAGE_KEY, mode);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function isHeavyMutation(type: MutationType): boolean {
+  return type === 'UPLOAD_EVIDENCE' || type === 'ADD_EXPENSE';
 }
 
 /**
@@ -238,8 +275,27 @@ export async function syncMutations(): Promise<{ synced: number; failed: number 
   let synced = 0;
   let failedCount = 0;
 
+  const mode = typeof window !== 'undefined' ? getSyncMode() : 'normal';
+  const connection = typeof navigator !== 'undefined'
+    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (navigator as any).connection
+    : undefined;
+  const isCellular =
+    connection &&
+    typeof connection.effectiveType === 'string' &&
+    (connection.effectiveType.includes('cell') ||
+      connection.effectiveType.includes('3g') ||
+      connection.effectiveType.includes('4g') ||
+      connection.effectiveType.includes('5g'));
+
   for (const mutation of allMutations) {
     try {
+      // In data saver mode on cellular, skip heavy mutations for now
+      if (mode === 'data_saver' && isCellular && isHeavyMutation(mutation.type)) {
+        // Leave as pending/failed; will be retried later (e.g. on Wi-Fi or manual action)
+        continue;
+      }
+
       // Check if enough time has passed since last attempt (exponential backoff)
       const now = Date.now();
       const lastAttemptTime = mutation.timestamp + getBackoffDelay(mutation.retryCount - 1);
@@ -327,6 +383,55 @@ export async function clearLocalData(): Promise<void> {
 
   await tx.done;
   logger.info('[Offline] Cleared local data');
+}
+
+/**
+ * Update local manifest passenger details (offline-safe)
+ */
+export async function updateLocalManifestPassenger(
+  tripId: string,
+  passengerId: string,
+  details: {
+    notes?: string;
+    allergy?: string;
+    seasick?: boolean;
+    specialRequest?: string;
+  },
+): Promise<void> {
+  const database = await initDB();
+
+  const all = (await database.getAllFromIndex(STORES.MANIFEST, 'tripId', tripId)) as Array<
+    Record<string, unknown>
+  >;
+
+  const updated: Array<Record<string, unknown>> = [];
+
+  for (const record of all) {
+    if (record.id === passengerId) {
+      updated.push({
+        ...record,
+        ...details,
+        updatedAt: new Date().toISOString(),
+      });
+    } else {
+      updated.push(record);
+    }
+  }
+
+  const tx = database.transaction(STORES.MANIFEST, 'readwrite');
+  const store = tx.objectStore(STORES.MANIFEST);
+
+  for (const record of updated) {
+    await store.put(record);
+  }
+
+  await tx.done;
+
+  await queueMutation('UPDATE_MANIFEST_DETAILS', {
+    tripId,
+    passengerId,
+    ...details,
+  });
 }
 
 /**

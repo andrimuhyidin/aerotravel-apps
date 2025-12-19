@@ -19,7 +19,7 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { data: locations, error: locError } = await supabase
+  const { data: locations, error: locError } = (await supabase
     .from('guide_locations')
     .select(
       `
@@ -33,17 +33,38 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
       guide:users(full_name, phone),
       trip:trips(trip_code, trip_date)
     `
-    );
+    )) as {
+    data: Array<{
+      guide_id: string;
+      trip_id: string | null;
+      latitude: number;
+      longitude: number;
+      accuracy_meters: number | null;
+      is_online: boolean;
+      last_seen_at: string;
+      guide: { full_name: string | null; phone: string | null } | null;
+      trip: { trip_code: string | null; trip_date: string | null } | null;
+    }> | null;
+    error: Error | null;
+  };
 
   if (locError) {
     logger.error('Failed to fetch guide_locations', locError);
     return NextResponse.json({ error: 'Failed to load locations' }, { status: 500 });
   }
 
-  const { data: sosAlerts, error: sosError } = await supabase
+  const { data: sosAlerts, error: sosError } = (await supabase
     .from('sos_alerts')
     .select('id, trip_id, guide_id, status')
-    .eq('status', 'active');
+    .eq('status', 'active')) as {
+    data: Array<{
+      id: string;
+      trip_id: string;
+      guide_id: string;
+      status: string;
+    }> | null;
+    error: Error | null;
+  };
 
   if (sosError) {
     logger.error('Failed to fetch SOS alerts', sosError);

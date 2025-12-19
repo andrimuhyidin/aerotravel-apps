@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
+import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -33,16 +33,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const todayStart = today.toISOString();
 
     // Get today's stats
-    let todayQuery = withBranchFilter(
-      client.from('trip_guides'),
-      branchContext,
-    )
+    // Note: trip_guides doesn't have branch_id, filter via trips table instead
+    const { data: todayRecords } = await client.from('trip_guides')
       .select('id, check_in_at, is_late')
       .eq('guide_id', guideId)
       .gte('check_in_at', todayStart)
       .not('check_in_at', 'is', null);
-
-    const { data: todayRecords } = await todayQuery;
 
     const todayStats = {
       total: todayRecords?.length || 0,
@@ -80,17 +76,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const averageCheckInTime = count > 0 ? totalMinutes / count : null;
 
     // Weekly streak (consecutive days with check-ins)
-    const streakQuery = withBranchFilter(
-      client.from('trip_guides'),
-      branchContext,
-    )
+    // Note: trip_guides doesn't have branch_id, filter via trips table instead
+    const { data: streakRecords } = await client.from('trip_guides')
       .select('check_in_at')
       .eq('guide_id', guideId)
       .gte('check_in_at', weekStartStr)
       .not('check_in_at', 'is', null)
       .order('check_in_at', { ascending: false });
-
-    const { data: streakRecords } = await streakQuery;
 
     // Calculate streak
     let streak = 0;

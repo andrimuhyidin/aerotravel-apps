@@ -5,9 +5,12 @@
 
 'use client';
 
+import { AlertTriangle } from 'lucide-react';
 import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+import { Card, CardContent } from '@/components/ui/card';
+import { ErrorState } from '@/components/ui/error-state';
+import { logger } from '@/lib/utils/logger';
 
 export default function Error({
   error,
@@ -17,37 +20,54 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log error to Sentry
-    console.error('Route error:', error);
+    // Log error using structured logger
+    logger.error('Route error boundary caught an error', error, {
+      digest: error.digest,
+      boundary: 'RouteErrorBoundary',
+    });
+
+    // Also log to Sentry if available
+    if (typeof window !== 'undefined') {
+      const windowWithSentry = window as unknown as { Sentry?: { captureException: (error: Error, context: unknown) => void } };
+      if (windowWithSentry.Sentry) {
+        windowWithSentry.Sentry.captureException(error, {
+          tags: {
+            errorBoundary: 'RouteErrorBoundary',
+          },
+          extra: {
+            digest: error.digest,
+          },
+        });
+      }
+    }
   }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Terjadi Kesalahan</CardTitle>
-          <CardDescription>
-            Maaf, halaman ini mengalami masalah. Silakan coba lagi.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {process.env.NODE_ENV === 'development' && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
-              <p className="font-semibold">Error:</p>
-              <pre className="mt-2 overflow-auto">{error.message}</pre>
-              {error.digest && (
-                <p className="mt-2 text-xs">Digest: {error.digest}</p>
-              )}
-            </div>
-          )}
-          <div className="flex gap-2">
-            <Button onClick={reset} variant="default">
-              Coba Lagi
-            </Button>
-            <Button onClick={() => (window.location.href = '/')} variant="outline">
-              Kembali ke Beranda
-            </Button>
-          </div>
+      <Card className="w-full max-w-md border-0 shadow-sm">
+        <CardContent className="p-6">
+          <ErrorState
+            icon={AlertTriangle}
+            title="Terjadi Kesalahan"
+            message="Maaf, halaman ini mengalami masalah. Silakan coba lagi."
+            onRetry={reset}
+            variant="default"
+            showDetails={process.env.NODE_ENV === 'development'}
+            details={
+              error.digest
+                ? `${error.message}\n\nDigest: ${error.digest}`
+                : error.message
+            }
+            actions={[
+              {
+                label: 'Kembali ke Beranda',
+                onClick: () => {
+                  window.location.href = '/';
+                },
+                variant: 'outline' as const,
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

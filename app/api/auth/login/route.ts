@@ -60,7 +60,12 @@ export async function POST(request: NextRequest) {
       role = 'customer';
     }
 
-    // Determine redirect based on user role
+    // Get active role (multi-role support)
+    const { getActiveRole } = await import('@/lib/session/active-role');
+    const activeRole = await getActiveRole(data.user.id);
+    const finalRole = activeRole || role; // Use active role, fallback to profile role
+
+    // Determine redirect based on active role
     const roleRedirectMap: Record<string, string> = {
       // Internal Staff -> Console
       super_admin: '/id/console',
@@ -69,18 +74,19 @@ export async function POST(request: NextRequest) {
       marketing: '/id/console',
       ops_admin: '/id/console',
       // Guide -> Guide App
-      guide: '/id/guide/attendance',
+      guide: '/id/guide',
       // Partner/Mitra -> Partner Portal
       mitra: '/id/partner/dashboard',
+      nta: '/id/partner/dashboard',
       // Corporate -> Corporate Portal
-      corporate: '/id/corporate',
+      corporate: '/id/corporate/employees',
       // Customer -> Home
       customer: '/id',
     };
 
-    const redirectPath = roleRedirectMap[role ?? 'customer'] || '/id';
+    const redirectPath = roleRedirectMap[finalRole ?? 'customer'] || '/id';
 
-    console.log('[AUTH API] User role:', role, '-> redirect to:', redirectPath);
+    console.log('[AUTH API] User role:', role, 'Active role:', finalRole, '-> redirect to:', redirectPath);
 
     // Return success with redirect path
     return NextResponse.json({

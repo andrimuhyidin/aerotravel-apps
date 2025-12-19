@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 import type { Database } from '@/types/supabase';
+import { getActiveRole, getUserRoles } from '@/lib/session/active-role';
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -45,7 +46,7 @@ export async function createClient() {
 }
 
 /**
- * Get current user with profile
+ * Get current user with profile and multi-role support
  */
 export async function getCurrentUser() {
   const supabase = await createClient();
@@ -66,19 +67,44 @@ export async function getCurrentUser() {
     | Database['public']['Tables']['users']['Row']
     | null;
 
+  // Get active role (server-side session)
+  const activeRole = await getActiveRole(user.id);
+
+  // Get all user roles
+  const roles = await getUserRoles(user.id);
+
   return {
     ...user,
     profile,
+    activeRole, // New field: current active role
+    roles, // New field: all active roles
   };
 }
 
 /**
  * Check if user has required role
+ * Supports both active role and all roles
  */
 export async function hasRole(
   requiredRoles: Database['public']['Enums']['user_role'][]
 ) {
   const user = await getCurrentUser();
-  if (!user?.profile?.role) return false;
-  return requiredRoles.includes(user.profile.role);
+  if (!user) return false;
+  
+  // Check active role first
+  if (user.activeRole && requiredRoles.includes(user.activeRole)) {
+    return true;
+  }
+  
+  // Check all roles
+  if (user.roles && user.roles.some((role) => requiredRoles.includes(role))) {
+    return true;
+  }
+  
+  // Fallback: check profile.role for backward compatibility
+  if (user.profile?.role && requiredRoles.includes(user.profile.role)) {
+    return true;
+  }
+  
+  return false;
 }

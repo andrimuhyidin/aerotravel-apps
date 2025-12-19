@@ -10,6 +10,7 @@ import { Calendar, Medal, Star, TrendingUp, Trophy } from 'lucide-react';
 import { useState } from 'react';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Progress } from '@/components/ui/progress';
 import {
     getLevelInfo,
@@ -79,7 +80,7 @@ export function LeaderboardClient({ locale: _locale, userId }: LeaderboardClient
   });
 
   // Fetch current guide stats
-  const { data: currentStats, isLoading: statsLoading } = useQuery<GuideStats & { joinDate?: string }>({
+  const { data: currentStats } = useQuery<GuideStats & { joinDate?: string }>({
     queryKey: queryKeys.guide.stats(),
     queryFn: async () => {
       const res = await fetch('/api/guide/stats');
@@ -392,14 +393,13 @@ export function LeaderboardClient({ locale: _locale, userId }: LeaderboardClient
               ))}
             </div>
           ) : !leaderboardData || leaderboardData.leaderboard.length === 0 ? (
-            <div className="py-12 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-                <Trophy className="h-8 w-8 text-slate-400" />
-              </div>
-              <h3 className="mb-2 text-sm font-semibold text-slate-900">Belum ada data leaderboard</h3>
-              <p className="text-xs text-slate-500">
-                Leaderboard akan muncul setelah ada guide yang menyelesaikan trip pada bulan ini
-              </p>
+            <div className="py-12">
+              <EmptyState
+                icon={Trophy}
+                title="Belum ada data leaderboard"
+                description="Leaderboard akan muncul setelah ada guide yang menyelesaikan trip pada bulan ini"
+                variant="subtle"
+              />
             </div>
           ) : (
             <div className="space-y-2">

@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
+import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -32,10 +32,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const branchContext = await getBranchContext(user.id);
   const client = supabase as unknown as any;
 
-  const { data: attendance, error } = await withBranchFilter(
-    client.from('trip_guides'),
-    branchContext,
-  )
+  // Note: trip_guides doesn't have branch_id, filter via trips table instead
+  const { data: attendance, error } = await client.from('trip_guides')
     .select('check_in_at, check_out_at, is_late')
     .eq('trip_id', tripId)
     .eq('guide_id', guideId)
@@ -52,15 +50,17 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   // Get late penalty amount if late
   let lateFine: number | undefined;
   if (attendance?.is_late) {
-    const { data: deduction } = await withBranchFilter(
-      client.from('salary_deductions'),
-      branchContext,
-    )
+    let deductionQuery = client.from('salary_deductions')
       .select('amount')
       .eq('trip_id', tripId)
       .eq('guide_id', guideId)
-      .eq('deduction_type', 'late_penalty')
-      .single();
+      .eq('deduction_type', 'late_penalty');
+
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      deductionQuery = deductionQuery.eq('branch_id', branchContext.branchId);
+    }
+
+    const { data: deduction } = await deductionQuery.maybeSingle();
 
     lateFine = deduction?.amount ? Number(deduction.amount) : 25_000; // Default penalty
   }

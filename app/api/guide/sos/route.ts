@@ -92,7 +92,13 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     .eq('id', user.id)
     .single();
 
+  // Google Maps link
+  const mapsLink = latitude && longitude 
+    ? `https://www.google.com/maps?q=${latitude},${longitude}`
+    : null;
+
   try {
+    // Notify Ops
     const opsPhone = process.env.WHATSAPP_OPS_PHONE;
     if (opsPhone) {
       const alertTextLines = [
@@ -101,7 +107,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         `Trip : ${tripData?.trip_code ?? '-'} (${tripData?.package?.name ?? '-'})`,
         `Guide: ${guideData?.full_name ?? user.id} (${guideData?.phone ?? '-'})`,
         `Type : ${alertType}`,
-        `Loc  : ${latitude ?? '-'}, ${longitude ?? '-'}`,
+        latitude && longitude ? `Loc  : ${latitude}, ${longitude}` : null,
+        mapsLink ? `Map  : ${mapsLink}` : null,
         message ? `Note : ${message}` : null,
         '',
         'Mohon segera tindak lanjuti dari dashboard Ops.',
@@ -109,6 +116,53 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
       const text = alertTextLines.join('\n');
       await sendTextMessage(opsPhone, text);
+    }
+
+    // Auto-notify emergency contacts
+    if (latitude && longitude) {
+      const { data: emergencyContacts } = await client
+        .from('guide_emergency_contacts')
+        .select('name, phone, relationship')
+        .eq('guide_id', user.id)
+        .eq('auto_notify', true)
+        .eq('is_active', true)
+        .order('priority', { ascending: true })
+        .limit(5); // Max 5 contacts
+
+      if (emergencyContacts && emergencyContacts.length > 0) {
+        const emergencyMessage = [
+          `🚨 *DARURAT - ${guideData?.full_name ?? 'Guide'}* 🚨`,
+          '',
+          `${guideData?.full_name ?? 'Guide'} mengaktifkan tombol SOS darurat.`,
+          '',
+          `📍 Lokasi:`,
+          mapsLink ? mapsLink : `${latitude}, ${longitude}`,
+          '',
+          `Jenis: ${alertType}`,
+          message ? `Catatan: ${message}` : null,
+          '',
+          'Mohon segera hubungi atau cek kondisinya.',
+        ].filter(Boolean).join('\n');
+
+        // Send to all emergency contacts
+        const notifyPromises = emergencyContacts.map(async (contact: { name: string; phone: string; relationship?: string }) => {
+          try {
+            await sendTextMessage(contact.phone, emergencyMessage);
+            logger.info('SOS notification sent to emergency contact', {
+              contactName: contact.name,
+              contactPhone: contact.phone,
+              guideId: user.id,
+            });
+          } catch (error) {
+            logger.error('Failed to notify emergency contact', error, {
+              contactName: contact.name,
+              contactPhone: contact.phone,
+            });
+          }
+        });
+
+        await Promise.allSettled(notifyPromises);
+      }
     }
   } catch (waError) {
     logger.error('Failed to send WhatsApp SOS notification', waError, {

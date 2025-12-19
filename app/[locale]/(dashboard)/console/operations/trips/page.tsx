@@ -52,9 +52,8 @@ export default async function ConsoleOperationsTripsPage({ params }: PageProps) 
   }
 
   const supabase = await createClient();
-  const client = supabase as unknown as any;
 
-  const { data: tripsData } = await client
+  const { data: tripsData } = await supabase
     .from('trips')
     .select(
       `

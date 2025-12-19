@@ -8,6 +8,7 @@
 import {
     ArrowLeftRight,
     CheckCircle,
+    Lightbulb,
     Link as LinkIcon,
     Loader2,
     Search,
@@ -17,7 +18,10 @@ import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
+import { LoadingState } from '@/components/ui/loading-state';
 import {
     getTripManifest,
     markPassengerBoarded,
@@ -25,8 +29,11 @@ import {
     Passenger,
     saveTripDocumentationUrl,
     TripManifest,
+    updatePassengerDetails,
 } from '@/lib/guide';
 import { cn } from '@/lib/utils';
+
+import { ManifestAiSuggestions } from './manifest-ai-suggestions';
 
 type ManifestClientProps = {
   tripId: string;
@@ -41,24 +48,33 @@ const passengerTypeLabels: Record<string, string> = {
 export function ManifestClient({ tripId }: ManifestClientProps) {
   const [manifest, setManifest] = useState<TripManifest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [driveUrl, setDriveUrl] = useState('');
   const [savingDoc, setSavingDoc] = useState(false);
   const [docSaved, setDocSaved] = useState(false);
 
   const [filter, setFilter] = useState<'all' | 'pending' | 'boarded' | 'returned'>('all');
-
-  useEffect(() => {
-    loadManifest();
-  }, [tripId]);
+  const [editingPassenger, setEditingPassenger] = useState<Passenger | null>(null);
+  const [savingPassenger, setSavingPassenger] = useState(false);
 
   const loadManifest = async () => {
-    setLoading(true);
-    const data = await getTripManifest(tripId);
-    setManifest(data);
-    setDriveUrl(data.documentationUrl ?? '');
-    setLoading(false);
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getTripManifest(tripId);
+      setManifest(data);
+      setDriveUrl(data.documentationUrl ?? '');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Gagal memuat manifest');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    void loadManifest();
+  }, [tripId]);
 
   const handleBoard = async (passengerId: string) => {
     await markPassengerBoarded(tripId, passengerId);
@@ -112,21 +128,39 @@ export function ManifestClient({ tripId }: ManifestClientProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-      </div>
+      <Card className="border-0 shadow-sm">
+        <CardContent>
+          <LoadingState variant="spinner" message="Memuat manifest..." />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardContent>
+          <ErrorState
+            message={error}
+            onRetry={loadManifest}
+            variant="card"
+            showIcon={false}
+          />
+        </CardContent>
+      </Card>
     );
   }
 
   if (!manifest) {
     return (
       <Card className="border-0 shadow-sm">
-        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-          <Ship className="mb-3 h-12 w-12 text-slate-300" />
-          <p className="text-sm font-medium text-slate-600">Manifest tidak tersedia</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Data manifest untuk trip ini belum dapat dimuat
-          </p>
+        <CardContent>
+          <EmptyState
+            icon={Ship}
+            title="Manifest tidak tersedia"
+            description="Data manifest untuk trip ini belum dapat dimuat"
+            variant="subtle"
+          />
         </CardContent>
       </Card>
     );
@@ -136,6 +170,9 @@ export function ManifestClient({ tripId }: ManifestClientProps) {
 
   return (
     <div className="space-y-4">
+      {/* AI Suggestions - Auto-load high-priority alerts */}
+      <ManifestAiSuggestions tripId={tripId} autoLoadAlerts={true} />
+
       {/* Trip Info */}
       <Card className="border-0 bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-sm">
         <CardContent className="p-4">
@@ -237,6 +274,15 @@ export function ManifestClient({ tripId }: ManifestClientProps) {
                       <p className="mt-0.5 text-xs text-slate-500">
                         {passengerTypeLabels[passenger.type] ?? passenger.type}
                       </p>
+                      {(passenger.notes || passenger.allergy || passenger.specialRequest) && (
+                        <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-500">
+                          {passenger.notes && <span>Catatan: {passenger.notes}. </span>}
+                          {passenger.allergy && <span>Alergi: {passenger.allergy}. </span>}
+                          {passenger.specialRequest && (
+                            <span>Permintaan: {passenger.specialRequest}.</span>
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -268,6 +314,14 @@ export function ManifestClient({ tripId }: ManifestClientProps) {
                         <span>Selesai</span>
                       </div>
                     )}
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 border-slate-200 text-slate-500 hover:bg-slate-100 active:scale-95"
+                      onClick={() => setEditingPassenger(passenger)}
+                    >
+                      <span className="text-xs font-semibold">i</span>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -275,6 +329,145 @@ export function ManifestClient({ tripId }: ManifestClientProps) {
           )}
         </CardContent>
       </Card>
+
+      {editingPassenger && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
+          <div className="w-full max-w-md rounded-t-2xl bg-white p-4 shadow-lg sm:rounded-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  Detail Penumpang
+                </p>
+                <p className="text-xs text-slate-500">
+                  {editingPassenger.name} •{' '}
+                  {passengerTypeLabels[editingPassenger.type] ?? editingPassenger.type}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                onClick={() => setEditingPassenger(null)}
+              >
+                Tutup
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[11px] font-medium text-slate-600">Catatan</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs text-emerald-600 hover:text-emerald-700"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/guide/manifest/suggest', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            tripId,
+                            type: 'notes',
+                            passengerId: editingPassenger.id,
+                          }),
+                        });
+                        if (res.ok) {
+                          const data = await res.json();
+                          if (data.suggestedNotes) {
+                            setEditingPassenger((prev) =>
+                              prev ? { ...prev, notes: data.suggestedNotes } : prev,
+                            );
+                          }
+                        }
+                      } catch {
+                        // Ignore errors
+                      }
+                    }}
+                  >
+                    <Lightbulb className="mr-1 h-3 w-3" />
+                    AI Suggest
+                  </Button>
+                </div>
+                <Input
+                  className="mt-1 h-9 text-xs"
+                  placeholder="Catatan singkat (mis. seasick, anak kecil, dll.)"
+                  value={editingPassenger.notes ?? ''}
+                  onChange={(e) =>
+                    setEditingPassenger((prev) =>
+                      prev ? { ...prev, notes: e.target.value } : prev,
+                    )
+                  }
+                />
+              </div>
+              <div>
+                <p className="text-[11px] font-medium text-slate-600">Alergi</p>
+                <Input
+                  className="mt-1 h-9 text-xs"
+                  placeholder="Mis. seafood, obat tertentu, dll."
+                  defaultValue={editingPassenger.allergy ?? ''}
+                  onChange={(e) =>
+                    setEditingPassenger((prev) =>
+                      prev ? { ...prev, allergy: e.target.value } : prev,
+                    )
+                  }
+                />
+              </div>
+              <div>
+                <p className="text-[11px] font-medium text-slate-600">Permintaan Khusus</p>
+                <Input
+                  className="mt-1 h-9 text-xs"
+                  placeholder="Mis. vegetarian, butuh bantuan khusus, dll."
+                  defaultValue={editingPassenger.specialRequest ?? ''}
+                  onChange={(e) =>
+                    setEditingPassenger((prev) =>
+                      prev ? { ...prev, specialRequest: e.target.value } : prev,
+                    )
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 border-slate-200 text-xs text-slate-600 hover:bg-slate-100 active:scale-95"
+                  type="button"
+                  onClick={() => setEditingPassenger(null)}
+                >
+                  Batal
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={savingPassenger}
+                  className="h-8 bg-emerald-600 text-xs font-semibold text-white hover:bg-emerald-700 active:scale-95"
+                  type="button"
+                  onClick={async () => {
+                    if (!editingPassenger) return;
+                    setSavingPassenger(true);
+                    await updatePassengerDetails(tripId, editingPassenger.id, {
+                      notes: editingPassenger.notes,
+                      allergy: editingPassenger.allergy,
+                      specialRequest: editingPassenger.specialRequest,
+                    });
+                    setSavingPassenger(false);
+                    setManifest((prev) => {
+                      if (!prev) return prev;
+                      return {
+                        ...prev,
+                        passengers: prev.passengers.map((p) =>
+                          p.id === editingPassenger.id ? editingPassenger : p,
+                        ),
+                      };
+                    });
+                    setEditingPassenger(null);
+                  }}
+                >
+                  {savingPassenger ? 'Menyimpan...' : 'Simpan'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dokumentasi: Link Drive */}
       <Card className="border-0 shadow-sm">

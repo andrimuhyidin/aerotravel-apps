@@ -51,8 +51,8 @@ export function SOSButton({ guideId, tripId }: SOSButtonProps) {
       if (result.success) {
         setSent(true);
         // Start emergency tracking
-        const stopTracking = startEmergencyTracking(guideId, (loc) => {
-          console.log('Emergency location update:', loc);
+        const stopTracking = startEmergencyTracking(guideId, () => {
+          // Location updates are handled by tracking service
         });
         setTracking(true);
 
@@ -64,7 +64,7 @@ export function SOSButton({ guideId, tripId }: SOSButtonProps) {
       } else {
         setError(result.message);
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Gagal mengirim SOS. Periksa koneksi internet.');
     }
 

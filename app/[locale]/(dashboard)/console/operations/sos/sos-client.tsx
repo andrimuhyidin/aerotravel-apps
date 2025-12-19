@@ -25,7 +25,7 @@ type SOSAlert = {
 
 export function SOSClient() {
   const [alerts, setAlerts] = useState<SOSAlert[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadAlerts = async () => {

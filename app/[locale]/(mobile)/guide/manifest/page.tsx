@@ -13,7 +13,7 @@ import { redirect } from 'next/navigation';
 
 import { Container } from '@/components/layout/container';
 import { locales } from '@/i18n';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, getCurrentUser } from '@/lib/supabase/server';
 
 import { ManifestClient } from './manifest-client';
 
@@ -44,23 +44,30 @@ export default async function GuideManifestPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) {
     redirect(`/${locale}/login`);
   }
 
+  const supabase = await createClient();
+
   // Get one trip assignment for this guide (nearest sample)
-  const { data: assignment } = await supabase
+  const { data: assignment } = (await supabase
     .from('trip_guides')
     .select('trip_id, trip:trips(id, trip_code, trip_date)')
     .eq('guide_id', user.id)
     .order('trip_id', { ascending: true })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle()) as {
+    data: {
+      trip_id: string;
+      trip: {
+        id: string;
+        trip_code: string;
+        trip_date: string;
+      } | null;
+    } | null;
+  };
 
   const trip = assignment?.trip ?? null;
 

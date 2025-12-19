@@ -77,6 +77,41 @@ const features = [
   },
 ];
 
+const openPrograms = [
+  {
+    icon: Award,
+    title: 'Program Tour Guide',
+    description:
+      'Bergabung sebagai guide profesional Aero dan handle trip resmi Aero Travel.',
+    href: '/guide',
+    badge: 'Open Recruitment',
+  },
+  {
+    icon: Users,
+    title: 'Program Mitra B2B',
+    description:
+      'Untuk biro perjalanan / agent yang ingin menjual paket Aero secara resmi.',
+    href: '/partner',
+    badge: 'Untuk Travel Agent',
+  },
+  {
+    icon: Shield,
+    title: 'Program Corporate Travel',
+    description:
+      'Solusi corporate travel untuk perusahaan, dengan approval & invoice terpusat.',
+    href: '/corporate',
+    badge: 'Untuk Perusahaan',
+  },
+  {
+    icon: Users,
+    title: 'Program Influencer Trip',
+    description:
+      'Untuk KOL / Influencer yang ingin membuat trip eksklusif bersama komunitasnya.',
+    href: '/influencer',
+    badge: 'KOL Program',
+  },
+];
+
 export function GuestHomepage({ locale }: GuestHomepageProps) {
   return (
     <div className="flex flex-col">
@@ -292,10 +327,10 @@ export function GuestHomepage({ locale }: GuestHomepageProps) {
 
       {/* Testimonials */}
       <section className="px-4 pb-6">
-        <h2 className="mb-3 text-base font-bold text-foreground">
+        <h2 className="mb-2 text-base font-bold text-foreground">
           Kata Mereka
         </h2>
-        <div className="space-y-3">
+        <div className="-mx-1 flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
           {[
             {
               name: 'Sarah',
@@ -310,36 +345,83 @@ export function GuestHomepage({ locale }: GuestHomepageProps) {
               text: 'Worth it banget! Lumba-lumba nya banyak dan air jernih.',
             },
           ].map((testimonial, idx) => (
-            <div
-              key={idx}
-              className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100 dark:bg-slate-800 dark:ring-slate-700"
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
-                    {testimonial.name[0]}
+            <div key={idx} className="w-64 shrink-0 px-1">
+              <div className="h-full rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100 dark:bg-slate-800 dark:ring-slate-700">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+                      {testimonial.name[0]}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">
+                        {testimonial.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {testimonial.trip}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">
-                      {testimonial.name}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {testimonial.trip}
-                    </p>
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: testimonial.rating }).map((_, i) => (
+                      <Star
+                        key={i}
+                        className="h-3 w-3 fill-amber-400 text-amber-400"
+                      />
+                    ))}
                   </div>
                 </div>
-                <div className="flex gap-0.5">
-                  {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className="h-3 w-3 fill-amber-400 text-amber-400"
-                    />
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  {testimonial.text}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">{testimonial.text}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Open Programs - Guide / Partner / Corporate / Influencer */}
+      <section className="px-4 pb-6">
+        <h2 className="mb-2 text-base font-bold text-foreground">
+          Program Kerja Sama & Karir
+        </h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Untuk kamu yang ingin kerja sama lebih jauh dengan Aero Travel.
+        </p>
+        <div className="-mx-1 flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+          {openPrograms.map((program) => {
+            const Icon = program.icon;
+            return (
+              <Link
+                key={program.title}
+                href={`/${locale}${program.href}`}
+                className="w-64 shrink-0 px-1 active:scale-[0.98]"
+              >
+                <div className="flex h-full flex-col gap-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100 dark:bg-slate-800 dark:ring-slate-700">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <Icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-foreground">
+                          {program.title}
+                        </p>
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                          {program.badge}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        {program.description}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="pt-1 text-[11px] font-semibold text-primary">
+                    Pelajari program →
+                  </p>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
 

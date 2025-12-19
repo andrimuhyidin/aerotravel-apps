@@ -16,6 +16,9 @@ const guideCheckInSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
   accuracy: z.number().optional(),
+  photoUrl: z.string().url(),
+  happiness: z.number().int().min(1).max(5),
+  description: z.string().min(1).max(500),
 });
 
 function calculateLatePenalty(now: Date): { isLate: boolean; penalty: number } {
@@ -38,7 +41,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { tripId, latitude, longitude, accuracy } = body;
+  const { tripId, latitude, longitude, accuracy, photoUrl, happiness, description } = body;
 
   const branchContext = await getBranchContext(user.id);
 
@@ -48,18 +51,23 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const client = supabase as unknown as any;
 
+  const updateData: Record<string, unknown> = {
+    check_in_at: checkInAt,
+    check_in_lat: latitude,
+    check_in_lng: longitude,
+    check_in_location: null,
+    is_late: isLate,
+    check_in_accuracy_meters: accuracy ?? null,
+    check_in_photo_url: photoUrl,
+    check_in_happiness: happiness,
+    check_in_description: description.trim(),
+  };
+
   const { error: updateError } = await withBranchFilter(
     client.from('trip_guides'),
     branchContext,
   )
-    .update({
-      check_in_at: checkInAt,
-      check_in_lat: latitude,
-      check_in_lng: longitude,
-      check_in_location: null,
-      is_late: isLate,
-      check_in_accuracy_meters: accuracy ?? null,
-    })
+    .update(updateData)
     .eq('trip_id', tripId)
     .eq('guide_id', user.id);
 

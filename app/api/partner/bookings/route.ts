@@ -70,7 +70,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Get package pricing
-  const { data: pkg } = await supabase
+  const { data: pkg } = (await supabase
     .from('packages')
     .select(`
       id,
@@ -83,7 +83,18 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       )
     `)
     .eq('id', packageId)
-    .single();
+    .single()) as {
+    data: {
+      id: string;
+      branch_id: string;
+      prices: Array<{
+        min_pax: number;
+        max_pax: number;
+        price_publish: number;
+        price_nta: number;
+      }> | null;
+    } | null;
+  };
 
   if (!pkg) {
     return NextResponse.json({ error: 'Package not found' }, { status: 404 });
@@ -114,7 +125,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const bookingCode = bookingCodeData || `BK-${Date.now()}`;
 
   // Create booking
-  const { data: booking, error: bookingError } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: booking, error: bookingError } = (await (supabase as any)
     .from('bookings')
     .insert({
       branch_id: pkg.branch_id,
@@ -137,16 +149,24 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       customer_phone: customerPhone,
       customer_email: customerEmail,
       special_requests: specialRequests,
-    })
+    } as Record<string, unknown>)
     .select('id, booking_code')
-    .single();
+    .single()) as {
+      data: { id: string; booking_code: string } | null;
+      error: Error | null;
+    };
 
   if (bookingError) {
     logger.error('Create partner booking failed', bookingError);
     return NextResponse.json({ error: 'Failed to create booking' }, { status: 500 });
   }
 
-  logger.info('Partner booking created', { partnerId, bookingId: booking.id, bookingCode });
+  if (!booking) {
+    logger.error('Create partner booking failed - no booking returned');
+    return NextResponse.json({ error: 'Failed to create booking' }, { status: 500 });
+  }
+
+  logger.info('Partner booking created', { partnerId, bookingId: booking.id, bookingCode: booking.booking_code });
 
   return NextResponse.json({
     success: true,

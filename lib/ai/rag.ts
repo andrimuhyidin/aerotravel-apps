@@ -10,9 +10,11 @@
 
 import 'server-only';
 
+import { generateEmbedding } from '@/lib/ai/embeddings';
 import { chat } from '@/lib/gemini';
 import { aiChatRateLimit } from '@/lib/integrations/rate-limit';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
 
 export type RAGContext = {
   packagePrices?: unknown[];
@@ -21,7 +23,7 @@ export type RAGContext = {
 };
 
 /**
- * Retrieve relevant data dari Supabase untuk context
+ * Retrieve relevant data dari Supabase untuk context (legacy - text search)
  */
 export async function retrieveContext(query: string): Promise<RAGContext> {
   const supabase = await createClient();
@@ -53,6 +55,81 @@ export async function retrieveContext(query: string): Promise<RAGContext> {
     packagePrices: packages || [],
     documents: documents || [],
   };
+}
+
+/**
+ * Retrieve relevant data menggunakan vector similarity search (RAG Full)
+ * @param query - User query
+ * @param branchId - Optional branch ID untuk filter documents
+ * @param matchThreshold - Similarity threshold (0-1), default 0.7
+ * @param matchCount - Maximum number of documents to return, default 5
+ */
+export async function retrieveContextWithVector(
+  query: string,
+  branchId?: string | null,
+  matchThreshold = 0.7,
+  matchCount = 5
+): Promise<RAGContext> {
+  const supabase = await createClient();
+
+  try {
+    // Generate embedding dari query
+    const queryEmbedding = await generateEmbedding(query);
+
+    // Search package prices (keep text search for now)
+    const { data: packages } = await supabase
+      .from('package_prices')
+      .select('*')
+      .ilike('package_name', `%${query}%`)
+      .limit(5);
+
+    // Vector similarity search untuk documents/SOP
+    const { data: documents, error } = await supabase.rpc('match_documents', {
+      query_embedding: queryEmbedding,
+      match_threshold: matchThreshold,
+      match_count: matchCount,
+      filter_branch_id: branchId || null,
+    });
+
+    if (error) {
+      logger.error('Vector search failed, falling back to text search', error, {
+        query,
+        branchId,
+      });
+      // Fallback ke text search jika vector search gagal
+      const { data: fallbackDocs } = await supabase
+        .from('ai_documents')
+        .select('*')
+        .textSearch('content', query, {
+          type: 'websearch',
+          config: 'indonesian',
+        })
+        .limit(3);
+
+      return {
+        packagePrices: packages || [],
+        documents: fallbackDocs || [],
+      };
+    }
+
+    logger.info('Vector search successful', {
+      queryLength: query.length,
+      documentsFound: documents?.length || 0,
+      branchId,
+    });
+
+    return {
+      packagePrices: packages || [],
+      documents: documents || [],
+    };
+  } catch (error) {
+    logger.error('Failed to retrieve context with vector search', error, {
+      query,
+      branchId,
+    });
+    // Fallback ke text search
+    return retrieveContext(query);
+  }
 }
 
 /**

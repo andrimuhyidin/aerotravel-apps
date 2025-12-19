@@ -174,11 +174,13 @@ export async function autoAssignTrip(
 
 /**
  * Send assignment notification to guide via WhatsApp
+ * Includes confirmation deadline reminder
  */
 export async function notifyGuideAssignment(
   guidePhone: string,
   tripCode: string,
-  tripDate: string
+  tripDate: string,
+  confirmationDeadline?: string
 ): Promise<{ success: boolean; messageId?: string }> {
   try {
     const dateStr = new Date(tripDate).toLocaleDateString('id-ID', {
@@ -188,13 +190,27 @@ export async function notifyGuideAssignment(
       year: 'numeric',
     });
 
+    let deadlineText = '';
+    if (confirmationDeadline) {
+      const deadline = new Date(confirmationDeadline);
+      const deadlineStr = deadline.toLocaleString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      deadlineText = `\n⏰ *Deadline Konfirmasi:* ${deadlineStr}\n`;
+    }
+
     const text = `📋 *Penugasan Trip Baru*
 
 Anda ditugaskan ke trip:
 *${tripCode}*
-📅 Tanggal: ${dateStr}
+📅 Tanggal: ${dateStr}${deadlineText}
+⚠️ *PENTING:* Silakan konfirmasi bisa/tidak di aplikasi Guide sebelum deadline. Jika tidak dikonfirmasi, trip akan dialihkan ke guide lain.
 
-Silakan buka aplikasi Guide untuk melihat detail trip dan mulai persiapan.
+Silakan buka aplikasi Guide untuk melihat detail dan konfirmasi.
 
 Selamat bekerja! 🎉`;
 
@@ -203,6 +219,7 @@ Selamat bekerja! 🎉`;
       guidePhone,
       tripCode,
       messageId: result.messages[0]?.id,
+      hasDeadline: !!confirmationDeadline,
     });
     return { success: true, messageId: result.messages[0]?.id };
   } catch (error) {

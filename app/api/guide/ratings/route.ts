@@ -6,11 +6,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
+import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
-export const GET = withErrorHandler(async (request: NextRequest) => {
+export const GET = withErrorHandler(async (_request: NextRequest) => {
   const supabase = await createClient();
 
   const {
@@ -26,12 +26,32 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   try {
     // Get trip IDs for this guide
-    const { data: guideTrips } = await withBranchFilter(
-      client.from('trip_guides'),
-      branchContext,
-    )
+    let guideTripsQuery = client.from('trip_guides')
       .select('trip_id')
       .eq('guide_id', user.id);
+    
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      guideTripsQuery = guideTripsQuery.eq('branch_id', branchContext.branchId);
+    }
+    
+    const { data: guideTrips, error: guideTripsError } = await guideTripsQuery;
+
+    if (guideTripsError) {
+      logger.error('Failed to fetch guide trips for ratings', guideTripsError, {
+        guideId: user.id,
+        errorCode: guideTripsError.code,
+        errorMessage: guideTripsError.message,
+      });
+      // Return empty reviews instead of failing
+      return NextResponse.json({
+        reviews: [],
+        summary: {
+          averageRating: 0,
+          totalRatings: 0,
+          ratingDistribution: { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 },
+        },
+      });
+    }
 
     if (!guideTrips || guideTrips.length === 0) {
       return NextResponse.json({
@@ -47,12 +67,33 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const tripIds = guideTrips.map((gt: { trip_id: string }) => gt.trip_id);
 
     // Get bookings for these trips
-    const { data: tripBookings } = await withBranchFilter(
-      client.from('trip_bookings'),
-      branchContext,
-    )
+    let tripBookingsQuery = client.from('trip_bookings')
       .select('booking_id')
       .in('trip_id', tripIds);
+    
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      tripBookingsQuery = tripBookingsQuery.eq('branch_id', branchContext.branchId);
+    }
+    
+    const { data: tripBookings, error: tripBookingsError } = await tripBookingsQuery;
+
+    if (tripBookingsError) {
+      logger.error('Failed to fetch trip bookings for ratings', tripBookingsError, {
+        guideId: user.id,
+        tripIdsCount: tripIds.length,
+        errorCode: tripBookingsError.code,
+        errorMessage: tripBookingsError.message,
+      });
+      // Return empty reviews instead of failing
+      return NextResponse.json({
+        reviews: [],
+        summary: {
+          averageRating: 0,
+          totalRatings: 0,
+          ratingDistribution: { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 },
+        },
+      });
+    }
 
     if (!tripBookings || tripBookings.length === 0) {
       return NextResponse.json({
@@ -68,23 +109,71 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const bookingIds = tripBookings.map((tb: { booking_id: string }) => tb.booking_id);
 
     // Get reviews for these bookings
-    const { data: reviewsData } = await client
+    // Note: reviews table may not have branch_id, RLS should handle access
+    const { data: reviewsData, error: reviewsError } = await client
       .from('reviews')
       .select('id, booking_id, reviewer_name, guide_rating, overall_rating, review_text, created_at')
       .in('booking_id', bookingIds)
       .not('guide_rating', 'is', null)
       .order('created_at', { ascending: false });
 
+    if (reviewsError) {
+      // Check if it's an RLS/permission error
+      const isRlsError = 
+        reviewsError.code === 'PGRST301' || 
+        reviewsError.code === '42501' ||
+        reviewsError.message?.toLowerCase().includes('permission') ||
+        reviewsError.message?.toLowerCase().includes('policy') ||
+        reviewsError.message?.toLowerCase().includes('row-level security');
+      
+      logger.error('Failed to fetch reviews', reviewsError, {
+        guideId: user.id,
+        bookingIdsCount: bookingIds.length,
+        errorCode: reviewsError.code,
+        errorMessage: reviewsError.message,
+        errorDetails: reviewsError.details,
+        errorHint: reviewsError.hint,
+        isRlsError,
+      });
+      
+      // If RLS error, return empty (expected - RLS policy may not be active)
+      // Otherwise, return empty as well (better UX than 500)
+      if (isRlsError) {
+        logger.warn('RLS error detected for reviews - returning empty array', {
+          guideId: user.id,
+          hint: 'Check if RLS policy is active for reviews table',
+        });
+      }
+      
+      // Return empty reviews instead of failing
+      return NextResponse.json({
+        reviews: [],
+        summary: {
+          averageRating: 0,
+          totalRatings: 0,
+          ratingDistribution: { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 },
+        },
+      });
+    }
+
     const reviews =
-      reviewsData?.map((r: any) => ({
+      (reviewsData || []).map((r: {
+        id: string;
+        booking_id: string;
+        reviewer_name: string | null;
+        guide_rating: number | null;
+        overall_rating: number | null;
+        review_text: string | null;
+        created_at: string;
+      }) => ({
         id: r.id,
         bookingId: r.booking_id,
-        reviewerName: r.reviewer_name,
+        reviewerName: r.reviewer_name || 'Anonymous',
         guideRating: r.guide_rating,
         overallRating: r.overall_rating,
         reviewText: r.review_text,
         createdAt: r.created_at,
-      })) || [];
+      }));
 
     // Calculate summary
     const ratings = reviews

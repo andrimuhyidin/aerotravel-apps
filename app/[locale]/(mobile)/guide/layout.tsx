@@ -4,6 +4,7 @@
  */
 
 import { GuideShell } from '@/components/layout';
+import { GuideErrorBoundary } from '@/components/guide/guide-error-boundary';
 import { getCurrentUser } from '@/lib/supabase/server';
 
 type GuideLayoutProps = {
@@ -16,18 +17,20 @@ export default async function GuideLayout({ children, params }: GuideLayoutProps
   const user = await getCurrentUser();
 
   return (
-    <GuideShell
-      locale={locale}
-      user={
-        user
-          ? {
-              name: user.profile?.full_name || user.email?.split('@')[0],
-              avatar: user.profile?.avatar_url ?? undefined,
-            }
-          : null
-      }
-    >
-      {children}
-    </GuideShell>
+    <GuideErrorBoundary>
+      <GuideShell
+        locale={locale}
+        user={
+          user
+            ? {
+                name: user.profile?.full_name || user.email?.split('@')[0],
+                avatar: user.profile?.avatar_url ?? undefined,
+              }
+            : null
+        }
+      >
+        {children}
+      </GuideShell>
+    </GuideErrorBoundary>
   );
 }

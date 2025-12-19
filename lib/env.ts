@@ -20,6 +20,12 @@ export const env = createEnv({
     // Google AI (Gemini) - for Chat & Vision/OCR
     GEMINI_API_KEY: z.string().min(1),
 
+    // OpenWeather API (for weather alerts)
+    OPENWEATHER_API_KEY: z.string().min(1).optional(),
+
+    // VAPID Keys for Web Push
+    VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+
     // Upstash Redis (Rate Limiting)
     UPSTASH_REDIS_REST_URL: z.string().url().optional(),
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
@@ -72,6 +78,12 @@ export const env = createEnv({
     // Sentry
     NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
 
+    // Google Maps API (for route optimization)
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
+
+    // VAPID Public Key for Web Push
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1).optional(),
+
     // App Config
     NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
   },
@@ -84,6 +96,8 @@ export const env = createEnv({
     // Server
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    OPENWEATHER_API_KEY: process.env.OPENWEATHER_API_KEY,
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     XENDIT_SECRET_KEY: process.env.XENDIT_SECRET_KEY,
@@ -104,6 +118,8 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
     NEXT_PUBLIC_GA4_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   },
 

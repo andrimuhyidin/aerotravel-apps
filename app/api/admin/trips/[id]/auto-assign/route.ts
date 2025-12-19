@@ -13,9 +13,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import {
-  autoAssignTrip,
-  calculatePreferenceScore,
-  notifyGuideAssignment,
+    autoAssignTrip,
+    calculatePreferenceScore,
+    notifyGuideAssignment,
 } from '@/lib/integrations/guide-assignment';
 import { createClient, hasRole } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -198,7 +198,23 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
     );
   }
 
-  // Create assignment in database
+  // Calculate confirmation deadline (H-1 jam 22:00 WIB)
+  const tripDate = new Date(tripInfo.trip_date);
+  const hMinusOne = new Date(tripDate);
+  hMinusOne.setDate(hMinusOne.getDate() - 1);
+  hMinusOne.setHours(22, 0, 0, 0);
+  
+  // Minimum deadline: hari ini jam 22:00 (jika trip_date < 2 hari dari sekarang)
+  const now = new Date();
+  const minimumDeadline = new Date(now);
+  minimumDeadline.setHours(22, 0, 0, 0);
+  if (minimumDeadline < now) {
+    minimumDeadline.setDate(minimumDeadline.getDate() + 1);
+  }
+  
+  const confirmationDeadline = hMinusOne < minimumDeadline ? minimumDeadline : hMinusOne;
+
+  // Create assignment with pending_confirmation status
   const { data: assignmentData, error: assignError } = await client
     .from('trip_guides')
     .insert({
@@ -206,6 +222,10 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
       guide_id: assignment.guide_id,
       guide_role: 'lead',
       fee_amount: 300000, // Default fee, can be made configurable
+      assignment_status: 'pending_confirmation',
+      confirmation_deadline: confirmationDeadline.toISOString(),
+      assignment_method: 'auto',
+      assigned_at: new Date().toISOString(),
     })
     .select()
     .single();
@@ -218,10 +238,15 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
     return NextResponse.json({ error: 'Failed to create assignment' }, { status: 500 });
   }
 
-  // Send notification to guide
+  // Send notification to guide with deadline
   const guidePhone = candidates.find((c: typeof candidates[0]) => c.guide_id === assignment.guide_id)?.guide_phone;
   if (guidePhone) {
-    await notifyGuideAssignment(guidePhone, tripInfo.trip_code, tripInfo.trip_date);
+    await notifyGuideAssignment(
+      guidePhone,
+      tripInfo.trip_code,
+      tripInfo.trip_date,
+      confirmationDeadline.toISOString()
+    );
   }
 
   logger.info('Trip auto-assigned successfully', {
