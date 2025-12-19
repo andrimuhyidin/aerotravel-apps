@@ -117,14 +117,17 @@ export const PATCH = withErrorHandler(async (
         try {
           const { processTripPayment } = await import('@/lib/guide/contract-payment');
           processTripPayment(tripId, user.id).catch((paymentError) => {
-            logger.warn('Failed to auto-process trip payment', paymentError, {
+            logger.warn('Failed to auto-process trip payment', {
+              error: paymentError instanceof Error ? paymentError.message : String(paymentError),
               tripId,
               guideId: user.id,
             });
             // Don't fail - payment can be processed manually later
           });
         } catch (importError) {
-          logger.warn('Failed to import payment processor', importError);
+          logger.warn('Failed to import payment processor', {
+            error: importError instanceof Error ? importError.message : String(importError),
+          });
           // Don't fail - payment can be processed manually later
         }
       }

@@ -6,13 +6,13 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowLeft, Calendar, CheckCircle, CheckCircle2, ClipboardList, Clock, Link as LinkIcon, MapPin, MessageSquare, Package, ThermometerSun, Users, XCircle } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Calendar, CheckCircle2, Clock, MapPin, ThermometerSun, Users, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { MapNavigationButtons } from '@/components/guide/map-navigation-buttons';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -34,15 +34,15 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { TripManifest, getTripManifest } from '@/lib/guide';
 import queryKeys from '@/lib/queries/query-keys';
+import { cn } from '@/lib/utils';
 import type { LocationPoint } from '@/lib/utils/maps';
 import { cacheLocationPoint } from '@/lib/utils/maps';
 
-import { TripBriefing } from '@/components/guide/trip-briefing';
-import { GuideAiAssistant } from './guide-ai-assistant';
-import { TripAiChat } from './trip-ai-chat';
-import { TripInsightsWidget } from './trip-insights-widget';
-import { TripItineraryTimeline } from './trip-itinerary-timeline';
-import { TripTasks } from './trip-tasks';
+import { useTripCrew } from '@/hooks/use-trip-crew';
+import { toast } from 'sonner';
+import { CompletionChecklistWidget } from './completion-checklist-widget';
+import { RiskAssessmentDialog } from './risk-assessment-dialog';
+import { TripTimelineView } from './trip-timeline-view';
 
 type TripDetailClientProps = {
   tripId: string;
@@ -58,6 +58,26 @@ const REJECTION_REASONS = [
   { value: 'other', label: 'Lainnya' },
 ];
 
+/**
+ * Mask passenger name for Support Guide
+ */
+function maskPassengerName(name: string): string {
+  if (name.length <= 2) return name;
+  const first = name[0];
+  const last = name[name.length - 1];
+  const masked = '*'.repeat(Math.max(2, name.length - 2));
+  return `${first}${masked}${last}`;
+}
+
+/**
+ * Mask phone number
+ */
+function maskPhone(phone: string): string {
+  if (phone.length <= 4) return phone;
+  const last4 = phone.slice(-4);
+  return `****${last4}`;
+}
+
 export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientProps) {
   const [manifest, setManifest] = useState<TripManifest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,42 +91,118 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState<string>('');
   const [rejectionNote, setRejectionNote] = useState<string>('');
+  const [riskAssessmentOpen, setRiskAssessmentOpen] = useState(false);
+  const [canStartTrip, setCanStartTrip] = useState<boolean | null>(null);
   const queryClient = useQueryClient();
 
-  // Fetch assignment status
-  const { data: assignmentData } = useQuery<{
+  // Get crew role for permissions
+  const { data: crewData } = useTripCrew(tripId);
+  const crewRole = crewData?.currentUserRole ?? null;
+  const isLeadGuide = crewData?.isLeadGuide ?? false;
+
+  // Fetch assignment status, trip status, and trip details
+  const { data: tripStatusData } = useQuery<{
     assignment_status: string | null;
     confirmation_deadline: string | null;
     confirmed_at: string | null;
     rejected_at: string | null;
+    trip_status: string | null;
+    actual_departure_time: string | null;
+    departure_time: string | null;
+    return_time: string | null;
+    destination: string | null;
   }>({
-    queryKey: ['guide', 'trip-assignment', tripId],
+    queryKey: ['guide', 'trip-status', tripId],
     queryFn: async () => {
-      const res = await fetch(`/api/guide/trips`);
-      if (!res.ok) {
-        return {
-          assignment_status: null,
-          confirmation_deadline: null,
-          confirmed_at: null,
-          rejected_at: null,
-        };
+      const tripsRes = await fetch(`/api/guide/trips`);
+      
+      let assignment_status: string | null = null;
+      let confirmation_deadline: string | null = null;
+      let confirmed_at: string | null = null;
+      let rejected_at: string | null = null;
+      let trip_status: string | null = 'scheduled';
+      let departure_time: string | null = null;
+      let return_time: string | null = null;
+      let destination: string | null = null;
+      
+      if (tripsRes.ok) {
+        const data = (await tripsRes.json()) as { trips: Array<{
+          id: string;
+          assignment_status?: string | null;
+          confirmation_deadline?: string | null;
+          confirmed_at?: string | null;
+          rejected_at?: string | null;
+          status?: string;
+          destination?: string | null;
+        }> };
+        const trip = data.trips.find((t) => t.id === tripId);
+        if (trip) {
+          assignment_status = trip.assignment_status || null;
+          confirmation_deadline = trip.confirmation_deadline || null;
+          confirmed_at = trip.confirmed_at || null;
+          rejected_at = trip.rejected_at || null;
+          trip_status = trip.status || 'scheduled';
+          destination = trip.destination || null;
+        }
       }
-      const data = (await res.json()) as { trips: Array<{
-        id: string;
-        assignment_status?: string | null;
-        confirmation_deadline?: string | null;
-        confirmed_at?: string | null;
-        rejected_at?: string | null;
-      }> };
-      const trip = data.trips.find((t) => t.id === tripId);
+      
+      // Fetch detailed trip data for times
+      const tripDetailRes = await fetch(`/api/guide/trips/${tripId}/preload`);
+      if (tripDetailRes.ok) {
+        const detailData = (await tripDetailRes.json()) as {
+          trip?: { 
+            departure_time?: string | null;
+            return_time?: string | null;
+            actual_departure_time?: string | null;
+          };
+        };
+        departure_time = detailData.trip?.departure_time || null;
+        return_time = detailData.trip?.return_time || null;
+      }
+      
       return {
-        assignment_status: trip?.assignment_status || null,
-        confirmation_deadline: trip?.confirmation_deadline || null,
-        confirmed_at: trip?.confirmed_at || null,
-        rejected_at: trip?.rejected_at || null,
+        assignment_status,
+        confirmation_deadline,
+        confirmed_at,
+        rejected_at,
+        trip_status,
+        actual_departure_time: null, // Can be added later if needed
+        departure_time,
+        return_time,
+        destination,
       };
     },
   });
+
+  // Check if trip can start
+  const { data: canStartData } = useQuery<{
+    can_start: boolean;
+    certifications_valid: boolean;
+    risk_assessment_safe: boolean;
+    reasons?: string[];
+  }>({
+    queryKey: ['guide', 'trip-can-start', tripId],
+    queryFn: async () => {
+      const res = await fetch(`/api/guide/trips/${tripId}/can-start`);
+      if (!res.ok) {
+        return {
+          can_start: false,
+          certifications_valid: false,
+          risk_assessment_safe: false,
+          reasons: ['Tidak dapat memeriksa status'],
+        };
+      }
+      return res.json();
+    },
+    enabled: !!tripId && isLeadGuide,
+    refetchInterval: 30000, // Check every 30 seconds
+  });
+
+  useEffect(() => {
+    if (canStartData) {
+      setCanStartTrip(canStartData.can_start);
+    }
+  }, [canStartData]);
 
   const confirmMutation = useMutation({
     mutationFn: async ({ action, reason }: { action: 'accept' | 'reject'; reason?: string }) => {
@@ -123,7 +219,7 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guide', 'trip-assignment', tripId] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.guide.trips() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.guide.trips.all() });
       setConfirmDialogOpen(false);
       setRejectionReason('');
       setRejectionNote('');
@@ -303,18 +399,53 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
     {
       label: 'Check-in di lokasi',
       done: (manifest.boardedCount ?? 0) + (manifest.returnedCount ?? 0) > 0,
+      canDo: isLeadGuide || crewRole === 'support', // Both can check-in
     },
     {
       label: 'Upload dokumentasi wajib',
       done: Boolean(manifest.documentationUrl),
+      canDo: isLeadGuide || crewRole === 'support', // Both can upload
     },
     {
       label: 'Semua tamu kembali',
       done: manifest.returnedCount >= manifest.totalPax && manifest.totalPax > 0,
+      canDo: true, // Read-only status
+    },
+    {
+      label: 'Start/End Trip',
+      done: false, // This would be tracked separately
+      canDo: isLeadGuide, // Only Lead Guide can start/end trip
     },
   ];
 
+  const assignmentData = tripStatusData ? {
+    assignment_status: tripStatusData.assignment_status,
+    confirmation_deadline: tripStatusData.confirmation_deadline,
+    confirmed_at: tripStatusData.confirmed_at,
+    rejected_at: tripStatusData.rejected_at,
+  } : null;
+  
   const isPendingConfirmation = assignmentData?.assignment_status === 'pending_confirmation';
+  
+  // Determine current phase
+  const getCurrentPhase = (): 'pre_trip' | 'before_departure' | 'during_trip' | 'post_trip' => {
+    if (assignmentData?.assignment_status === 'pending_confirmation') {
+      return 'pre_trip';
+    }
+    
+    const tripStatus = tripStatusData?.trip_status || 'scheduled';
+    
+    if (tripStatus === 'completed') {
+      return 'post_trip';
+    }
+    
+    if (tripStatus === 'on_trip' || tripStatus === 'on_the_way') {
+      return 'during_trip';
+    }
+    
+    // scheduled, preparing, atau status lainnya sebelum trip dimulai
+    return 'before_departure';
+  };
 
   return (
     <div className="space-y-4">
@@ -360,59 +491,225 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
         </Card>
       )}
 
-      {/* Trip Header - Enhanced Design */}
-      <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-200/50 ring-1 ring-emerald-400/20">
-        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/10 to-transparent" />
-        <CardContent className="relative p-6">
-          <div className="mb-4">
-            <h1 className="text-2xl font-bold leading-tight drop-shadow-sm">{manifest.tripName}</h1>
-            {tripCode && (
-              <p className="mt-1.5 text-sm font-medium opacity-90 drop-shadow-sm">Kode: {tripCode}</p>
-            )}
-          </div>
-          <div className="grid grid-cols-1 gap-3 text-sm">
-            <div className="flex items-center gap-3 rounded-xl bg-white/20 px-4 py-3 backdrop-blur-md ring-1 ring-white/30 shadow-lg">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/30 backdrop-blur-sm">
-                <Calendar className="h-4 w-4 flex-shrink-0" />
+      {/* Trip Header - Elegant Unified Design */}
+      <div className="space-y-4">
+        {/* Unified Header Card with All Information - Premium Design */}
+        <Card className="border-0 bg-gradient-to-br from-white via-emerald-50/30 to-white shadow-xl ring-1 ring-slate-200/50">
+          <CardContent className="p-5">
+            {/* Top Section: Date Badge, Title, Code, Destination, Status */}
+            <div className="flex items-start gap-4 mb-5">
+              {/* Date Badge */}
+              {manifest.date && (() => {
+                const tripDate = new Date(manifest.date);
+                const day = tripDate.getDate().toString().padStart(2, '0');
+                const month = tripDate.toLocaleDateString('id-ID', { month: 'short' });
+                
+                return (
+                  <div className="relative flex h-16 w-16 flex-shrink-0 flex-col items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 via-emerald-400 to-teal-500 shadow-lg shadow-emerald-200/50">
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+                    <span className="relative text-xl font-bold text-white drop-shadow-sm">{day}</span>
+                    <span className="relative text-[10px] font-semibold uppercase text-emerald-50 drop-shadow-sm">
+                      {month}
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* Trip Title, Code & Destination */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-lg font-bold leading-tight text-slate-900">
+                      {manifest.tripName}
+                    </h1>
+                    {tripCode && (
+                      <p className="mt-0.5 text-xs font-medium text-slate-500">Kode: {tripCode}</p>
+                    )}
+                    {tripStatusData?.destination && (
+                      <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
+                        <MapPin className="h-3 w-3" />
+                        {tripStatusData.destination}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Status Badge - Compact & Premium */}
+                  {(() => {
+                    const status = tripStatusData?.trip_status || 'scheduled';
+                    const assignmentStatus = assignmentData?.assignment_status;
+                    
+                    let statusConfig;
+                    if (assignmentStatus === 'pending_confirmation') {
+                      statusConfig = {
+                        text: 'Butuh Konfirmasi',
+                        className: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md',
+                      };
+                    } else if (status === 'on_trip' || status === 'on_the_way') {
+                      statusConfig = {
+                        text: 'Berlangsung',
+                        className: 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md',
+                      };
+                    } else if (status === 'completed') {
+                      statusConfig = {
+                        text: 'Selesai',
+                        className: 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md',
+                      };
+                    } else if (status === 'cancelled') {
+                      statusConfig = {
+                        text: 'Dibatalkan',
+                        className: 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md',
+                      };
+                    } else {
+                      statusConfig = {
+                        text: 'Terjadwal',
+                        className: 'bg-gradient-to-r from-slate-500 to-slate-600 text-white shadow-md',
+                      };
+                    }
+                    
+                    return (
+                      <div className={cn(
+                        'flex-shrink-0 rounded-full px-3 py-1.5 text-[10px] font-bold shadow-sm',
+                        statusConfig.className
+                      )}>
+                        {statusConfig.text}
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
-              <span className="font-semibold">{dateLabel || '-'}</span>
             </div>
-            <div className="flex items-center gap-3 rounded-xl bg-white/20 px-4 py-3 backdrop-blur-md ring-1 ring-white/30 shadow-lg">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/30 backdrop-blur-sm">
-                <MapPin className="h-4 w-4 flex-shrink-0" />
+
+            {/* Info Grid: Date & Time, Total Pax, Meeting Point, Weather */}
+            <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
+              {/* Date & Time */}
+              <div className="flex items-start gap-2.5">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100">
+                  <Calendar className="h-4.5 w-4.5 text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Tanggal & Waktu</p>
+                  {manifest.date && (
+                    <p className="mt-0.5 text-xs font-bold text-slate-900">
+                      {new Date(manifest.date).toLocaleDateString('id-ID', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short',
+                      })}
+                    </p>
+                  )}
+                  {tripStatusData?.departure_time && (
+                    <p className="mt-0.5 text-[10px] text-slate-600">
+                      {typeof tripStatusData.departure_time === 'string' ? tripStatusData.departure_time.slice(0, 5) : tripStatusData.departure_time} WIB
+                    </p>
+                  )}
+                  {tripStatusData?.return_time && (
+                    <p className="text-[10px] text-slate-600">
+                      ~{typeof tripStatusData.return_time === 'string' ? tripStatusData.return_time.slice(0, 5) : tripStatusData.return_time} WIB
+                    </p>
+                  )}
+                </div>
               </div>
-              <span className="truncate font-semibold">{meetingPoint?.name || meetingPointName}</span>
+
+              {/* Total Pax & Progress */}
+              <div className="flex items-start gap-2.5">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100">
+                  <Users className="h-4.5 w-4.5 text-emerald-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Total Tamu</p>
+                  <p className="mt-0.5 text-sm font-bold text-slate-900">{manifest.totalPax}</p>
+                  {manifest.totalPax > 0 && (manifest.boardedCount + manifest.returnedCount) > 0 && (
+                    <>
+                      <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-slate-200">
+                        <div
+                          className="h-full bg-emerald-500 transition-all"
+                          style={{ width: `${Math.min(100, ((manifest.boardedCount + manifest.returnedCount) / manifest.totalPax) * 100)}%` }}
+                        />
+                      </div>
+                      <p className="mt-1 text-[10px] font-semibold text-emerald-700">
+                        {manifest.boardedCount + manifest.returnedCount}/{manifest.totalPax} checked-in
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Meeting Point */}
+              {(meetingPoint?.name || meetingPointName) && (
+                <div className="flex items-start gap-2.5">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-purple-100">
+                    <MapPin className="h-4.5 w-4.5 text-purple-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Meeting Point</p>
+                    <p className="mt-0.5 text-xs font-bold text-slate-900 line-clamp-1">
+                      {meetingPoint?.name || meetingPointName}
+                    </p>
+                    {meetingPoint && (
+                      <MapNavigationButtons
+                        latitude={meetingPoint.lat}
+                        longitude={meetingPoint.lng}
+                        label={meetingPoint.name}
+                        className="mt-1.5 h-6 text-[10px]"
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Weather */}
+              <div className="flex items-start gap-2.5">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-100">
+                  <ThermometerSun className="h-4.5 w-4.5 text-amber-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Cuaca</p>
+                  {weatherSummary ? (
+                    <>
+                      <p className="mt-0.5 text-sm font-bold text-slate-900">
+                        {weatherSummary.temp}°C
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-slate-600 line-clamp-1">
+                        {weatherSummary.description}
+                      </p>
+                      {weatherSummary.hasAlert && (
+                        <p className="mt-0.5 text-[10px] font-semibold text-amber-700">
+                          ⚠️ Cuaca buruk
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="mt-0.5 text-xs text-slate-500">Tidak tersedia</p>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3 rounded-xl bg-white/20 px-4 py-3 backdrop-blur-md ring-1 ring-white/30 shadow-lg">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/30 backdrop-blur-sm">
-                <Users className="h-4 w-4 flex-shrink-0" />
-              </div>
-              <span className="font-semibold">{manifest.totalPax} tamu</span>
-            </div>
-            {weatherSummary && (
-              <div className="flex items-center gap-2 rounded-lg bg-emerald-500/20 px-3 py-2 backdrop-blur-sm">
-                <ThermometerSun className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate text-xs font-medium">
-                  {weatherSummary.temp}°C
-                  {weatherSummary.description
-                    ? ` • ${weatherSummary.description}`
-                    : ''}
-                  {weatherSummary.hasAlert && ' • ⚠️ Peringatan cuaca'}
-                </span>
-              </div>
-            )}
-          </div>
-        </CardContent>
-        <div className="border-t border-emerald-500/30 bg-emerald-500/10 px-5 pb-4 pt-3">
-          <MapNavigationButtons
-            latitude={meetingPoint?.lat ?? -8.1319}
-            longitude={meetingPoint?.lng ?? 114.3656}
-            label={meetingPoint?.name || meetingPointName}
-            className="w-full justify-center bg-white/10 hover:bg-white/20 text-white border-white/20"
-          />
-        </div>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Completion Checklist Widget - Always shown below header for Lead Guide */}
+      {isLeadGuide && (
+        <CompletionChecklistWidget
+          tripId={tripId}
+          locale={locale}
+          isLeadGuide={isLeadGuide}
+          onEndTrip={async () => {
+            if (confirm('Yakin ingin menyelesaikan trip ini?')) {
+              const res = await fetch(`/api/guide/trips/${tripId}/end`, {
+                method: 'POST',
+              });
+              if (res.ok) {
+                toast.success('Trip berhasil diselesaikan');
+                queryClient.invalidateQueries({ queryKey: queryKeys.guide.tripsDetail(tripId) });
+              } else {
+                const body = (await res.json()) as { error?: string };
+                toast.error(body.error || 'Gagal end trip');
+              }
+            }
+          }}
+        />
+      )}
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
@@ -508,165 +805,80 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
         </DialogContent>
       </Dialog>
 
-      {/* Quick Actions Grid */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href={`/${locale}/guide/trips/${tripCode || tripId}/chat`}>
-          <Card className="border-0 shadow-sm transition-all hover:shadow-md active:scale-[0.98]">
-            <CardContent className="flex flex-col items-center justify-center gap-2 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
-                <MessageSquare className="h-5 w-5 text-emerald-600" />
-              </div>
-              <span className="text-center text-sm font-medium text-slate-900">Chat Ops</span>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href={`/${locale}/guide/trips/${tripCode || tripId}/equipment`}>
-          <Card className="border-0 shadow-sm transition-all hover:shadow-md active:scale-[0.98]">
-            <CardContent className="flex flex-col items-center justify-center gap-2 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100">
-                <Package className="h-5 w-5 text-orange-600" />
-              </div>
-              <span className="text-center text-sm font-medium text-slate-900">Equipment</span>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href={`/${locale}/guide/trips/${tripCode || tripId}/evidence`}>
-          <Card className="border-0 shadow-sm transition-all hover:shadow-md active:scale-[0.98]">
-            <CardContent className="flex flex-col items-center justify-center gap-2 p-4">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${manifest.documentationUrl ? 'bg-emerald-100' : 'bg-amber-100'}`}>
-                <LinkIcon className={`h-5 w-5 ${manifest.documentationUrl ? 'text-emerald-600' : 'text-amber-600'}`} />
-              </div>
-              <span className="text-center text-sm font-medium text-slate-900">Dokumentasi</span>
-              {manifest.documentationUrl ? (
-                <span className="text-[10px] text-emerald-600">✓ Selesai</span>
-              ) : (
-                <span className="text-[10px] text-amber-600">Belum</span>
-              )}
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href={`/${locale}/guide/trips/${tripCode || tripId}/expenses`}>
-          <Card className="border-0 shadow-sm transition-all hover:shadow-md active:scale-[0.98]">
-            <CardContent className="flex flex-col items-center justify-center gap-2 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-                <ClipboardList className="h-5 w-5 text-blue-600" />
-              </div>
-              <span className="text-center text-sm font-medium text-slate-900">Pengeluaran</span>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href={`/${locale}/guide/manifest?tripId=${tripId}`}>
-          <Card className="border-0 shadow-sm transition-all hover:shadow-md active:scale-[0.98]">
-            <CardContent className="flex flex-col items-center justify-center gap-2 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100">
-                <Users className="h-5 w-5 text-purple-600" />
-              </div>
-              <span className="text-center text-sm font-medium text-slate-900">Manifest</span>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
+      {/* Risk Assessment Dialog */}
+      <RiskAssessmentDialog
+        open={riskAssessmentOpen}
+        onOpenChange={setRiskAssessmentOpen}
+        onComplete={async (canStart) => {
+          if (canStart) {
+            // Try to start trip
+            const res = await fetch(`/api/guide/trips/${tripId}/start`, {
+              method: 'POST',
+            });
+            if (res.ok) {
+              toast.success('Trip berhasil dimulai');
+              queryClient.invalidateQueries({ queryKey: queryKeys.guide.tripsDetail(tripId) });
+              queryClient.invalidateQueries({ queryKey: ['guide', 'trip-can-start', tripId] });
+            } else {
+              const body = (await res.json()) as { error?: string; reasons?: string[] };
+              if (body.reasons && body.reasons.length > 0) {
+                toast.error(`Trip tidak dapat dimulai: ${body.reasons.join(', ')}`, { duration: 5000 });
+              } else {
+                toast.error(body.error || 'Gagal start trip');
+              }
+            }
+          } else {
+            toast.warning('Risk assessment menunjukkan risiko tinggi. Admin perlu approve untuk memulai trip.');
+          }
+        }}
+        tripId={tripId}
+      />
 
-      {/* Manifest / Guest List - Enhanced */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base font-semibold">
-              <ClipboardList className="h-5 w-5 text-emerald-600" />
-              Daftar Tamu
-            </CardTitle>
-            <div className="flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1">
-              <span className="text-sm font-semibold text-emerald-700">
-                {manifest.boardedCount + manifest.returnedCount}/{manifest.totalPax}
-              </span>
-              <span className="text-xs text-emerald-600">hadir</span>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="space-y-2">
-            {manifest.passengers.map((guest, index) => {
-              const statusColors = {
-                pending: 'bg-slate-100 text-slate-600',
-                boarded: 'bg-blue-100 text-blue-700',
-                returned: 'bg-emerald-100 text-emerald-700',
-              };
-              
-              return (
-                <div
-                  key={guest.id}
-                  className="flex items-center gap-3 rounded-lg border border-slate-100 bg-white p-3 transition-colors hover:bg-slate-50"
-                >
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-50 to-emerald-100 text-sm font-semibold text-emerald-700">
-                    {index + 1}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-900">{guest.name}</p>
-                    {guest.phone && (
-                      <p className="mt-0.5 text-xs text-slate-500">{guest.phone}</p>
-                    )}
-                  </div>
-                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium capitalize ${statusColors[guest.status] || statusColors.pending}`}>
-                    {guest.status === 'pending' ? 'Menunggu' : guest.status === 'boarded' ? 'Naik' : 'Kembali'}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Itinerary Timeline */}
-      <TripItineraryTimeline tripId={tripId} locale={locale} />
-
-      {/* Trip Tasks Checklist */}
-      <TripTasks tripId={tripId} />
-
-      {/* Trip Briefing */}
-      <TripBriefing tripId={tripId} locale={locale} />
-
-      {/* AI Assistant Coaching */}
-      <GuideAiAssistant locale={locale} />
-
-      {/* AI Trip Insights */}
-      <TripInsightsWidget tripId={tripId} locale={locale} />
-
-      {/* AI Chat Assistant */}
-      <TripAiChat tripId={tripId} locale={locale} />
-
-      {/* Completion Checklist - Enhanced */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold">
-            <CheckCircle className="h-5 w-5 text-emerald-600" />
-            Checklist Penyelesaian
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {checklist.map((item) => (
-            <div
-              key={item.label}
-              className={`flex items-center justify-between rounded-lg border p-3.5 text-sm transition-colors ${
-                item.done
-                  ? 'border-emerald-200 bg-emerald-50'
-                  : 'border-amber-200 bg-amber-50'
-              }`}
-            >
-              <span className={`font-medium ${item.done ? 'text-emerald-900' : 'text-amber-900'}`}>
-                {item.label}
-              </span>
-              {item.done ? (
-                <div className="flex items-center gap-1.5 text-emerald-600">
-                  <CheckCircle className="h-5 w-5" />
-                  <span className="text-xs font-medium">Selesai</span>
-                </div>
-              ) : (
-                <span className="text-xs font-medium text-amber-600">Belum</span>
-              )}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      {/* Trip Timeline View - Industry Best Practice */}
+      <TripTimelineView
+        tripId={tripId}
+        locale={locale}
+        isLeadGuide={isLeadGuide}
+        crewRole={crewRole}
+        manifest={{
+          tripName: manifest.tripName,
+          tripCode: tripCode,
+          date: manifest.date || '',
+          totalPax: manifest.totalPax,
+          boardedCount: manifest.boardedCount,
+          returnedCount: manifest.returnedCount,
+          documentationUrl: manifest.documentationUrl,
+          passengers: manifest.passengers,
+        }}
+        assignmentStatus={assignmentData?.assignment_status as 'pending_confirmation' | 'confirmed' | 'rejected' | null | undefined}
+        currentPhase={getCurrentPhase()}
+        onStartTrip={() => {
+          if (canStartTrip === false) {
+            const reasons = canStartData?.reasons || [];
+            if (reasons.some((r) => r.includes('Risk assessment'))) {
+              setRiskAssessmentOpen(true);
+            } else {
+              toast.error(`Trip tidak dapat dimulai: ${reasons.join(', ')}`, { duration: 5000 });
+            }
+            return;
+          }
+          setRiskAssessmentOpen(true);
+        }}
+        onEndTrip={async () => {
+          if (confirm('Yakin ingin menyelesaikan trip ini?')) {
+            const res = await fetch(`/api/guide/trips/${tripId}/end`, {
+              method: 'POST',
+            });
+            if (res.ok) {
+              toast.success('Trip berhasil diselesaikan');
+              queryClient.invalidateQueries({ queryKey: queryKeys.guide.tripsDetail(tripId) });
+            } else {
+              const body = (await res.json()) as { error?: string };
+              toast.error(body.error || 'Gagal end trip');
+            }
+          }
+        }}
+      />
 
     </div>
   );

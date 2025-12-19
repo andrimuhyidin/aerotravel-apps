@@ -28,11 +28,20 @@ export function Tabs({ value, onValueChange, children, className }: TabsProps) {
 type TabsListProps = {
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 };
 
-export function TabsList({ children, className }: TabsListProps) {
+export function TabsList({ children, className, style }: TabsListProps) {
+  const baseClasses = 'h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-500';
+  // Check if className includes grid, if so use grid, otherwise inline-flex
+  const hasGrid = className?.includes('grid') || className?.includes('inline-grid');
+  const displayClass = hasGrid ? '' : 'inline-flex';
+  
   return (
-    <div className={cn('inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-500', className)}>
+    <div 
+      className={cn(displayClass, baseClasses, className)} 
+      style={style}
+    >
       {children}
     </div>
   );

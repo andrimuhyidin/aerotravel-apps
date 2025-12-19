@@ -128,12 +128,9 @@ export async function processTripPayment(
           payment_method: 'wallet',
           notes: `Payment for trip ${tripId} - fee from trip assignment`,
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
           // Don't fail if contract payment link fails
-          logger.warn('Failed to link payment to contract', error, {
-            contractId: masterContract.id,
-            transactionId: transaction.id,
-          });
+          logger.warn('Failed to link payment to contract', { error, contractId: masterContract.id, transactionId: transaction.id });
         });
     }
 
@@ -147,12 +144,9 @@ export async function processTripPayment(
         })
         .eq('contract_id', masterContract.id)
         .eq('trip_id', tripId)
-        .catch((error) => {
+        .catch((error: unknown) => {
           // Don't fail if contract_trips update fails
-          logger.warn('Failed to update contract_trips status', error, {
-            contractId: masterContract.id,
-            tripId,
-          });
+          logger.warn('Failed to update contract_trips status', { error, contractId: masterContract.id, tripId });
         });
     }
 

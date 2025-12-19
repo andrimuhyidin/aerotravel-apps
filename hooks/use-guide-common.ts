@@ -32,7 +32,7 @@ export function useGuideStatus() {
  */
 export function useGuideTrips() {
   return useQuery({
-    queryKey: queryKeys.guide.trips(),
+    queryKey: queryKeys.guide.trips.all(),
     queryFn: async () => {
       const res = await fetch('/api/guide/trips');
       if (!res.ok) {

@@ -51,15 +51,23 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
   }
 
-  // Verify guide assignment
-  const { data: assignment } = await client
+  // Verify guide assignment (check both trip_crews and trip_guides)
+  const { data: crewAssignment } = await client
+    .from('trip_crews')
+    .select('id')
+    .eq('trip_id', trip.id)
+    .eq('guide_id', user.id)
+    .in('status', ['assigned', 'confirmed'])
+    .maybeSingle();
+
+  const { data: legacyAssignment } = await client
     .from('trip_guides')
     .select('id')
     .eq('trip_id', trip.id)
     .eq('guide_id', user.id)
     .maybeSingle();
 
-  if (!assignment) {
+  if (!crewAssignment && !legacyAssignment) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

@@ -21,16 +21,11 @@ import {
     BarChart3,
     Calendar,
     CheckCircle,
-    ChevronDown,
     ChevronRight,
-    ChevronUp,
-    ClipboardList,
     Clock,
-    FileText,
     GraduationCap,
     HelpCircle,
     MapPin,
-    Megaphone,
     Pause,
     Play,
     RefreshCw,
@@ -38,7 +33,7 @@ import {
     TrendingUp,
     Users,
     Wallet,
-    XCircle,
+    XCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -57,7 +52,6 @@ import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-    useGuideQuickActions,
     useGuideStats,
     useGuideStatus,
     useGuideTrips,
@@ -67,8 +61,9 @@ import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
 
-import { getContextualActions, getTimeOfDay, type GuideContext } from '@/lib/guide/contextual-actions';
+import { CareerOverviewWidget } from './widgets/career-overview-widget';
 import { ChallengesWidget } from './widgets/challenges-widget';
+import { SuperAppMenuGrid } from './widgets/super-app-menu-grid';
 import { WeatherWidget } from './widgets/weather-widget';
 
 // Stats Cards Component
@@ -196,18 +191,6 @@ type GuideDashboardClientProps = {
   locale: string;
 };
 
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  MapPin: MapPin,
-  ClipboardList: ClipboardList,
-  AlertTriangle: AlertTriangle,
-  BarChart3: BarChart3,
-  FileText: FileText,
-  Calendar: Calendar,
-  Clock: Clock,
-  Settings: Settings,
-  Wallet: Wallet,
-  Megaphone: Megaphone,
-};
 
 export function GuideDashboardClient({ userName, locale }: GuideDashboardClientProps) {
   const router = useRouter();
@@ -220,7 +203,6 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Use shared hooks
-  const { data: quickActionsData, isLoading: quickActionsLoading, error: quickActionsError, refetch: refetchQuickActions } = useGuideQuickActions();
   const { data: statusData, isLoading: statusLoading, error: statusError, refetch: refetchStatus } = useGuideStatus();
   const { data: tripsData, isLoading: tripsLoading, error: tripsError, refetch: refetchTrips } = useGuideTrips();
   const { data: statsData, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useGuideStats();
@@ -277,53 +259,6 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
     { value: 'not_available' as const, label: 'Tidak Tersedia', icon: XCircle, color: 'slate' },
   ];
 
-  // Get next trip time for contextual actions
-  const nextTrip = tripsData?.trips.find((trip) => trip.status === 'upcoming');
-  // Calculate nextTripTime from trip date (format: YYYY-MM-DD)
-  // Default to 8 AM if no specific time available
-  const nextTripTime = nextTrip?.date 
-    ? `${nextTrip.date}T08:00:00`
-    : undefined;
-
-  // Build guide context for contextual actions
-  const guideContext: GuideContext = {
-    hasActiveTrip: !!tripsData?.trips.find((trip) => trip.status === 'ongoing'),
-    hasUpcomingTrip: !!tripsData?.trips.find((trip) => trip.status === 'upcoming'),
-    hasCompletedTripToday: !!tripsData?.trips.find((trip) => {
-      if (trip.status !== 'completed') return false;
-      if (!trip.date) return false;
-      return trip.date === now.toISOString().slice(0, 10);
-    }),
-    currentStatus: currentStatus as 'standby' | 'on_trip' | 'not_available',
-    timeOfDay: getTimeOfDay(),
-    nextTripTime,
-  };
-
-  // Get filtered and contextual actions
-  const filteredActions = quickActionsData?.actions.filter((action, index, self) => {
-    // Remove duplicates by href
-    const isUnique = index === self.findIndex((a) => a.href === action.href);
-    if (!isUnique) return false;
-    
-    // Filter out items that are already in bottom navigation
-    const bottomNavHrefs = [
-      '/guide',
-      '/guide/trips',
-      '/guide/attendance',
-      '/guide/manifest',
-      '/guide/profile',
-      '/guide/shifts',
-    ];
-    return !bottomNavHrefs.includes(action.href);
-  }) ?? [];
-
-  // Get contextual actions
-  const { primary: primaryActions, secondary: secondaryActions } = getContextualActions(
-    filteredActions,
-    guideContext,
-  );
-
-  const [showMoreActions, setShowMoreActions] = useState(false);
 
   // Check onboarding status
   const { data: onboardingData } = useQuery<{
@@ -347,7 +282,6 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
     setIsRefreshing(true);
     try {
       await Promise.all([
-        refetchQuickActions(),
         refetchStatus(),
         refetchTrips(),
         refetchStats(),
@@ -409,30 +343,6 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
     };
   }, [pullDistance, isRefreshing]);
 
-  // Check if action has updates (for badges)
-  const hasUpdates = (href: string): boolean => {
-    // This can be enhanced with actual notification counts
-    if (href === '/guide/broadcasts') {
-      // Check for unread broadcasts
-      return false; // Placeholder
-    }
-    if (href === '/guide/notifications') {
-      // Check for unread notifications
-      return false; // Placeholder
-    }
-    return false;
-  };
-
-  // Check if action works offline
-  const isOfflineCapable = (href: string): boolean => {
-    const offlineActions = [
-      '/guide/attendance',
-      '/guide/manifest',
-      '/guide/sos',
-      '/guide/incidents',
-    ];
-    return offlineActions.some((action) => href.startsWith(action));
-  };
 
   return (
     <div
@@ -633,228 +543,95 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
           variant="card"
         />
       ) : activeTrip ? (
-        <Link
-          href={`/${locale}/guide/trips/${activeTrip.trip_code || activeTrip.code || activeTrip.id}`}
-          className="block transition-transform active:scale-[0.98]"
-          aria-label={`Trip aktif: ${activeTrip.trip_code || activeTrip.code || 'Trip'}`}
-        >
-          <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100/50 shadow-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold text-emerald-800">
-                  Trip Aktif
-                </CardTitle>
-                <span className="rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-medium text-white shadow-sm">
-                  {activeTrip.status === 'ongoing' ? 'Berlangsung' : 'Akan Berjalan'}
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <h3 className="text-lg font-bold leading-tight text-slate-900">
-                {activeTrip.trip_code || activeTrip.code || 'Trip'}
-              </h3>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                <div className="flex items-center gap-2.5 text-sm text-slate-600">
-                  <MapPin className="h-4 w-4 flex-shrink-0 text-emerald-600" aria-hidden="true" />
-                  <span className="truncate">Meeting point dermaga</span>
-                </div>
-                <div className="flex items-center gap-2.5 text-sm text-slate-600">
-                  <Clock className="h-4 w-4 flex-shrink-0 text-emerald-600" aria-hidden="true" />
-                  <span>{activeTrip.date}</span>
-                </div>
-                <div className="flex items-center gap-2.5 text-sm text-slate-600">
-                  <Users className="h-4 w-4 flex-shrink-0 text-emerald-600" aria-hidden="true" />
-                  <span>{activeTrip.guests || 0} tamu</span>
-                </div>
-                <div className="flex items-center gap-2.5 text-sm text-slate-600">
-                  <CheckCircle className="h-4 w-4 flex-shrink-0 text-emerald-600" aria-hidden="true" />
-                  <span className="truncate">Pastikan semua tamu absen</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-end gap-1 pt-1 text-emerald-700">
-                <span className="text-sm font-medium">Lihat Detail</span>
-                <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      ) : null}
+        (() => {
+          const tripName = (activeTrip as { name?: string }).name || activeTrip.trip_code || activeTrip.code || 'Trip';
+          const destination = (activeTrip as { destination?: string | null }).destination;
+          const duration = (activeTrip as { duration?: number | null }).duration;
+          const meetingPoint = (activeTrip as { meeting_point?: string | null }).meeting_point;
+          const tripDate = activeTrip.date ? new Date(activeTrip.date) : null;
+          const formattedDate = tripDate
+            ? tripDate.toLocaleDateString('id-ID', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })
+            : activeTrip.date;
 
-      {/* Quick Actions - Enhanced with Visual Improvements */}
-      <div className="space-y-3">
-        <div className="mb-3 flex items-center justify-between px-1">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            AKSI CEPAT
-          </h2>
-          {secondaryActions.length > 0 && (
-            <button
-              onClick={() => setShowMoreActions(!showMoreActions)}
-              className="flex items-center gap-1 text-xs font-medium text-emerald-600 transition-colors hover:text-emerald-700 active:scale-95"
-              aria-label={showMoreActions ? 'Sembunyikan aksi sekunder' : 'Tampilkan lebih banyak aksi'}
-              aria-expanded={showMoreActions}
+          return (
+            <Link
+              href={`/${locale}/guide/trips/${activeTrip.trip_code || activeTrip.code || activeTrip.id}`}
+              className="block transition-transform active:scale-[0.98]"
+              aria-label={`Trip aktif: ${tripName}`}
             >
-              {showMoreActions ? (
-                <>
-                  <span>Sembunyikan</span>
-                  <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
-                </>
-              ) : (
-                <>
-                  <span>Lainnya</span>
-                  <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-                </>
-              )}
-            </button>
-          )}
-        </div>
-        
-        {quickActionsLoading ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i} className="border-0 shadow-sm">
-                <CardContent className="p-3">
-                  <div className="flex flex-col items-center gap-2">
-                    <Skeleton className="h-14 w-14 rounded-xl" />
-                    <Skeleton className="h-3 w-16" />
+              <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100/50 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-semibold text-emerald-800">
+                      Trip Aktif
+                    </CardTitle>
+                    <span className="rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-medium text-white shadow-sm">
+                      {activeTrip.status === 'ongoing' ? 'Berlangsung' : 'Akan Berjalan'}
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-bold leading-tight text-slate-900">
+                      {tripName}
+                    </h3>
+                    {destination && (
+                      <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-600">
+                        <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">{destination}</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                    {tripDate && (
+                      <div className="flex items-center gap-2.5 text-sm text-slate-600">
+                        <Calendar className="h-4 w-4 flex-shrink-0 text-emerald-600" aria-hidden="true" />
+                        <span className="truncate">{formattedDate}</span>
+                      </div>
+                    )}
+                    {duration && (
+                      <div className="flex items-center gap-2.5 text-sm text-slate-600">
+                        <Clock className="h-4 w-4 flex-shrink-0 text-emerald-600" aria-hidden="true" />
+                        <span>{duration} hari</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2.5 text-sm text-slate-600">
+                      <Users className="h-4 w-4 flex-shrink-0 text-emerald-600" aria-hidden="true" />
+                      <span>{activeTrip.guests || 0} tamu</span>
+                    </div>
+                    {meetingPoint && (
+                      <div className="flex items-center gap-2.5 text-sm text-slate-600">
+                        <MapPin className="h-4 w-4 flex-shrink-0 text-emerald-600" aria-hidden="true" />
+                        <span className="truncate">{meetingPoint}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-end gap-1 pt-1 text-emerald-700">
+                    <span className="text-sm font-medium">Lihat Detail</span>
+                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        ) : quickActionsError ? (
-          <ErrorState
-            message="Gagal memuat quick actions"
-            onRetry={() => void refetchQuickActions()}
-            variant="card"
-          />
-        ) : !quickActionsData?.actions || quickActionsData.actions.length === 0 ? (
-          <EmptyState
-            icon={Settings}
-            title="Quick actions belum tersedia"
-            description="Pastikan migration sudah dijalankan untuk mengaktifkan quick actions"
-            variant="subtle"
-          />
-        ) : (
-          <>
-            {/* Primary Actions - Always Visible (Max 4) - Enhanced */}
-            {primaryActions.length > 0 && (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-label="Aksi cepat utama">
-                {primaryActions.map((action) => {
-                  const IconComponent = iconMap[action.icon_name] || MapPin;
-                  const isSOS = action.href === '/guide/sos';
-                  const hasUpdate = hasUpdates(action.href);
-                  const isOffline = isOfflineCapable(action.href);
-                  
-                  return (
-                    <Link
-                      key={action.id}
-                      href={`/${locale}${action.href}`}
-                      className="group relative flex min-h-[85px] flex-col items-center justify-center gap-1.5 rounded-xl bg-white p-2.5 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md active:scale-95"
-                      aria-label={`${action.label}${action.description ? ` - ${action.description}` : ''}`}
-                    >
-                      {/* Update Badge */}
-                      {hasUpdate && (
-                        <span className="absolute -top-1 -right-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm">
-                          !
-                        </span>
-                      )}
-                      
-                      {/* Offline Indicator */}
-                      {isOffline && !online && (
-                        <span
-                          className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 rounded-full bg-slate-600 px-1.5 py-0.5 text-[8px] font-medium text-white"
-                          title="Tersedia offline"
-                        >
-                          Offline
-                        </span>
-                      )}
+            </Link>
+          );
+        })()
+      ) : null}
 
-                      <div
-                        className={cn(
-                          'relative flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-sm transition-transform group-active:scale-110',
-                          action.color,
-                          isSOS && 'animate-pulse', // Pulse animation untuk SOS
-                        )}
-                        aria-hidden="true"
-                      >
-                        <IconComponent className="h-6 w-6" />
-                      </div>
-                      <span className="text-center text-[11px] font-semibold leading-tight text-slate-700 line-clamp-2">
-                        {action.label}
-                      </span>
-                      {action.description && (
-                        <span className="text-center text-[9px] leading-tight text-slate-500 line-clamp-1">
-                          {action.description}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Secondary Actions - Expandable (Max 4) - Enhanced */}
-            {secondaryActions.length > 0 && showMoreActions && (
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-label="Aksi cepat sekunder">
-                {secondaryActions.map((action) => {
-                  const IconComponent = iconMap[action.icon_name] || MapPin;
-                  const hasUpdate = hasUpdates(action.href);
-                  const isOffline = isOfflineCapable(action.href);
-                  
-                  return (
-                    <Link
-                      key={action.id}
-                      href={`/${locale}${action.href}`}
-                      className="group relative flex min-h-[75px] flex-col items-center justify-center gap-1.5 rounded-xl bg-white p-2.5 shadow-sm transition-all hover:bg-slate-50 active:scale-95"
-                      aria-label={`${action.label}${action.description ? ` - ${action.description}` : ''}`}
-                    >
-                      {/* Update Badge */}
-                      {hasUpdate && (
-                        <span className="absolute -top-1 -right-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm">
-                          !
-                        </span>
-                      )}
-
-                      {/* Offline Indicator */}
-                      {isOffline && !online && (
-                        <span
-                          className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 rounded-full bg-slate-600 px-1.5 py-0.5 text-[8px] font-medium text-white"
-                          title="Tersedia offline"
-                        >
-                          Offline
-                        </span>
-                      )}
-
-                      <div
-                        className={cn(
-                          'flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-sm transition-transform group-active:scale-110',
-                          action.color,
-                        )}
-                        aria-hidden="true"
-                      >
-                        <IconComponent className="h-5 w-5" />
-                      </div>
-                      <span className="text-center text-[10px] font-medium leading-tight text-slate-700 line-clamp-2">
-                        {action.label}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Empty State - Show if no actions after filtering */}
-            {primaryActions.length === 0 && secondaryActions.length === 0 && (
-              <EmptyState
-                icon={Settings}
-                title="Tidak ada quick actions tersedia"
-                description="Quick actions akan muncul berdasarkan konteks dan status Anda"
-                variant="subtle"
-              />
-            )}
-          </>
-        )}
+      {/* Super App Menu Grid */}
+      <div>
+        <div className="mb-3 flex items-center justify-between px-1">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            MENU APLIKASI
+          </h2>
+        </div>
+        <SuperAppMenuGrid locale={locale} />
       </div>
+
 
       {/* Offline Status Banner */}
       {!online && pending > 0 && (
@@ -911,11 +688,28 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
       {/* Challenges Widget */}
       <ChallengesWidget locale={locale} />
 
+      {/* Career Overview Widget */}
+      <div>
+        <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          KARIR & PRESTASI
+        </h2>
+        <CareerOverviewWidget locale={locale} variant="compact" />
+      </div>
+
       {/* Stats - Enhanced */}
       <div>
-        <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
-          STATISTIK BULAN INI
-        </h2>
+        <div className="mb-3 flex items-center justify-between px-1">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            STATISTIK BULAN INI
+          </h2>
+          <Link
+            href={`/${locale}/guide/insights`}
+            className="text-xs font-medium text-emerald-600 transition-colors hover:text-emerald-700"
+            aria-label="Lihat detail insight & performance"
+          >
+            Lihat Semua
+          </Link>
+        </div>
         {statsLoading ? (
           <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (

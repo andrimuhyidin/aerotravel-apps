@@ -64,7 +64,7 @@ type AiDocumentsManagementClientProps = {
   locale: string;
 };
 
-const documentTypeLabels: Record<string, { label: string; icon: typeof FileText; color: string }> = {
+const documentTypeLabels: Record<'sop' | 'faq' | 'policy' | 'product_info' | 'training', { label: string; icon: typeof FileText; color: string }> = {
   sop: { label: 'SOP', icon: FileText, color: 'text-red-600 bg-red-50' },
   faq: { label: 'FAQ', icon: BookOpen, color: 'text-blue-600 bg-blue-50' },
   policy: { label: 'Policy', icon: FileText, color: 'text-purple-600 bg-purple-50' },
@@ -81,11 +81,17 @@ export function AiDocumentsManagementClient({ locale: _locale }: AiDocumentsMana
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<AiDocument | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    document_type: 'sop' | 'faq' | 'policy' | 'product_info' | 'training';
+    content: string;
+    branch_id: string | null;
+    is_active: boolean;
+  }>({
     title: '',
-    document_type: 'sop' as const,
+    document_type: 'sop',
     content: '',
-    branch_id: null as string | null,
+    branch_id: null,
     is_active: true,
   });
 
@@ -340,7 +346,7 @@ export function AiDocumentsManagementClient({ locale: _locale }: AiDocumentsMana
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredDocuments.map((doc) => {
-              const typeInfo = documentTypeLabels[doc.document_type] || documentTypeLabels.sop;
+              const typeInfo = documentTypeLabels[doc.document_type] ?? documentTypeLabels.sop;
               const TypeIcon = typeInfo.icon;
 
               return (
@@ -439,8 +445,8 @@ export function AiDocumentsManagementClient({ locale: _locale }: AiDocumentsMana
               <Label htmlFor="document_type">Document Type *</Label>
               <Select
                 value={formData.document_type}
-                onValueChange={(value: typeof formData.document_type) =>
-                  setFormData({ ...formData, document_type: value })
+                onValueChange={(value) =>
+                  setFormData({ ...formData, document_type: value as typeof formData.document_type })
                 }
               >
                 <SelectTrigger>
@@ -529,8 +535,8 @@ export function AiDocumentsManagementClient({ locale: _locale }: AiDocumentsMana
               <Label htmlFor="edit_document_type">Document Type *</Label>
               <Select
                 value={formData.document_type}
-                onValueChange={(value: typeof formData.document_type) =>
-                  setFormData({ ...formData, document_type: value })
+                onValueChange={(value) =>
+                  setFormData({ ...formData, document_type: value as typeof formData.document_type })
                 }
               >
                 <SelectTrigger>

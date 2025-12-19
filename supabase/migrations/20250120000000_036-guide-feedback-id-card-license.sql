@@ -231,6 +231,7 @@ CREATE INDEX IF NOT EXISTS idx_document_verifications_status ON guide_document_v
 -- Guide Feedbacks
 ALTER TABLE guide_feedbacks ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Guides can create feedbacks" ON guide_feedbacks;
 CREATE POLICY "Guides can create feedbacks"
   ON guide_feedbacks FOR INSERT
   TO authenticated
@@ -239,6 +240,7 @@ CREATE POLICY "Guides can create feedbacks"
     (SELECT role FROM users WHERE id = auth.uid()) = 'guide'
   );
 
+DROP POLICY IF EXISTS "Guides can view their own feedbacks" ON guide_feedbacks;
 CREATE POLICY "Guides can view their own feedbacks"
   ON guide_feedbacks FOR SELECT
   TO authenticated
@@ -247,6 +249,7 @@ CREATE POLICY "Guides can view their own feedbacks"
     (SELECT role FROM users WHERE id = auth.uid()) = 'guide'
   );
 
+DROP POLICY IF EXISTS "Admins can view branch feedbacks" ON guide_feedbacks;
 CREATE POLICY "Admins can view branch feedbacks"
   ON guide_feedbacks FOR SELECT
   TO authenticated
@@ -262,6 +265,7 @@ CREATE POLICY "Admins can view branch feedbacks"
     )
   );
 
+DROP POLICY IF EXISTS "Admins can update feedbacks" ON guide_feedbacks;
 CREATE POLICY "Admins can update feedbacks"
   ON guide_feedbacks FOR UPDATE
   TO authenticated
@@ -276,6 +280,7 @@ CREATE POLICY "Admins can update feedbacks"
 -- Feedback Attachments
 ALTER TABLE guide_feedback_attachments ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Guides can view their feedback attachments" ON guide_feedback_attachments;
 CREATE POLICY "Guides can view their feedback attachments"
   ON guide_feedback_attachments FOR SELECT
   TO authenticated
@@ -286,6 +291,7 @@ CREATE POLICY "Guides can view their feedback attachments"
     )
   );
 
+DROP POLICY IF EXISTS "Admins can view all feedback attachments" ON guide_feedback_attachments;
 CREATE POLICY "Admins can view all feedback attachments"
   ON guide_feedback_attachments FOR SELECT
   TO authenticated
@@ -300,6 +306,7 @@ CREATE POLICY "Admins can view all feedback attachments"
 -- Guide ID Cards
 ALTER TABLE guide_id_cards ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Guides can view their own ID card" ON guide_id_cards;
 CREATE POLICY "Guides can view their own ID card"
   ON guide_id_cards FOR SELECT
   TO authenticated
@@ -308,6 +315,7 @@ CREATE POLICY "Guides can view their own ID card"
     (SELECT role FROM users WHERE id = auth.uid()) = 'guide'
   );
 
+DROP POLICY IF EXISTS "Admins can view branch ID cards" ON guide_id_cards;
 CREATE POLICY "Admins can view branch ID cards"
   ON guide_id_cards FOR SELECT
   TO authenticated
@@ -323,6 +331,7 @@ CREATE POLICY "Admins can view branch ID cards"
     )
   );
 
+DROP POLICY IF EXISTS "Admins can manage ID cards" ON guide_id_cards;
 CREATE POLICY "Admins can manage ID cards"
   ON guide_id_cards FOR ALL
   TO authenticated
@@ -335,6 +344,7 @@ CREATE POLICY "Admins can manage ID cards"
   );
 
 -- Public can verify ID card via token (read-only, enforced at API level)
+DROP POLICY IF EXISTS "Public can verify ID card" ON guide_id_cards;
 CREATE POLICY "Public can verify ID card"
   ON guide_id_cards FOR SELECT
   TO anon, authenticated
@@ -343,6 +353,7 @@ CREATE POLICY "Public can verify ID card"
 -- License Applications
 ALTER TABLE guide_license_applications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Guides can view own application" ON guide_license_applications;
 CREATE POLICY "Guides can view own application"
   ON guide_license_applications FOR SELECT
   TO authenticated
@@ -351,6 +362,7 @@ CREATE POLICY "Guides can view own application"
     (SELECT role FROM users WHERE id = auth.uid()) = 'guide'
   );
 
+DROP POLICY IF EXISTS "Admins can view all applications" ON guide_license_applications;
 CREATE POLICY "Admins can view all applications"
   ON guide_license_applications FOR ALL
   TO authenticated
@@ -365,6 +377,7 @@ CREATE POLICY "Admins can view all applications"
 -- Document Verifications
 ALTER TABLE guide_document_verifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Guides can view own document verifications" ON guide_document_verifications;
 CREATE POLICY "Guides can view own document verifications"
   ON guide_document_verifications FOR SELECT
   TO authenticated
@@ -375,6 +388,7 @@ CREATE POLICY "Guides can view own document verifications"
     )
   );
 
+DROP POLICY IF EXISTS "Admins can view all document verifications" ON guide_document_verifications;
 CREATE POLICY "Admins can view all document verifications"
   ON guide_document_verifications FOR ALL
   TO authenticated
@@ -399,21 +413,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_guide_feedbacks_updated_at ON guide_feedbacks;
 CREATE TRIGGER update_guide_feedbacks_updated_at
   BEFORE UPDATE ON guide_feedbacks
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_guide_id_cards_updated_at ON guide_id_cards;
 CREATE TRIGGER update_guide_id_cards_updated_at
   BEFORE UPDATE ON guide_id_cards
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_guide_license_applications_updated_at ON guide_license_applications;
 CREATE TRIGGER update_guide_license_applications_updated_at
   BEFORE UPDATE ON guide_license_applications
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_guide_document_verifications_updated_at ON guide_document_verifications;
 CREATE TRIGGER update_guide_document_verifications_updated_at
   BEFORE UPDATE ON guide_document_verifications
   FOR EACH ROW

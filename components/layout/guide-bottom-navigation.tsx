@@ -6,7 +6,7 @@
  * Touch-optimized dengan safe area support untuk iOS
  */
 
-import { Calendar, ClipboardList, Home, MapPin, User } from 'lucide-react';
+import { Calendar, Home, MapPin, MessageSquare, User } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -30,7 +30,7 @@ export function GuideBottomNavigation({ locale }: GuideBottomNavigationProps) {
     { href: `/${locale}/guide`, label: 'Home', icon: Home },
     { href: `/${locale}/guide/trips`, label: 'Trip', icon: Calendar },
     { href: `/${locale}/guide/attendance`, label: 'Absensi', icon: MapPin },
-    { href: `/${locale}/guide/manifest`, label: 'Manifest', icon: ClipboardList },
+    { href: `/${locale}/guide/chat`, label: 'Chat', icon: MessageSquare },
     { href: `/${locale}/guide/profile`, label: 'Profil', icon: User },
   ];
 

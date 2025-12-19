@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
 import { buildItineraryDaysFromJsonb, buildItineraryDaysFromRows } from '@/lib/guide/itinerary';
+import { generatePredefinedItinerary } from '@/lib/guide/itinerary-presets';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -25,7 +26,7 @@ export const GET = withErrorHandler(async (
   const branchContext = await getBranchContext(user.id);
   const client = supabase as unknown as any;
 
-  // First, fetch trip with package linkage (including package itinerary JSONB)
+  // First, fetch trip with package linkage (including package itinerary JSONB and metadata)
   let tripQuery = client.from('trips')
     .select(
       `
@@ -33,7 +34,10 @@ export const GET = withErrorHandler(async (
       package_id,
       package:packages(
         id,
-        itinerary
+        itinerary,
+        duration_days,
+        destination,
+        meeting_point
       )
     `,
     )
@@ -118,6 +122,29 @@ export const GET = withErrorHandler(async (
         });
       }
     }
+  }
+
+  // If no itinerary data found, generate predefined structure
+  if (days.length === 0) {
+    const packageData = trip.package as {
+      id: string;
+      itinerary?: unknown;
+      duration_days?: number | null;
+      destination?: string | null;
+      meeting_point?: string | null;
+    } | null | undefined;
+
+    const durationDays = packageData?.duration_days || 1;
+    const destination = packageData?.destination || null;
+    const meetingPoint = packageData?.meeting_point || null;
+
+    days = generatePredefinedItinerary(durationDays, destination, meetingPoint);
+
+    logger.info('Generated predefined itinerary structure', {
+      tripId,
+      durationDays,
+      daysGenerated: days.length,
+    });
   }
 
   return NextResponse.json({ days });

@@ -8,7 +8,6 @@
 
 import 'server-only';
 
-import { getGeminiClient } from '@/lib/gemini';
 import { logger } from '@/lib/utils/logger';
 
 const EMBEDDING_DIMENSION = 768; // Gemini embedding-001 dengan output_dimensions=768
@@ -20,17 +19,11 @@ const EMBEDDING_DIMENSION = 768; // Gemini embedding-001 dengan output_dimension
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    const client = getGeminiClient();
-
     // Clean text (remove extra whitespace, limit length)
     // Gemini embedding-001 supports up to 2048 tokens
     const cleanText = text.trim().slice(0, 8000); // Safe limit
 
-    // Use embedContent method from Gemini API
-    const model = client.getGenerativeModel({ model: 'models/embedding-001' });
-    
-    // Note: @google/generative-ai might not have direct embedContent, 
-    // so we'll use the REST API approach
+    // Use REST API approach for embeddings
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY environment variable is not set');

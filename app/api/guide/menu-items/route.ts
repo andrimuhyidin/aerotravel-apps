@@ -129,7 +129,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     .map(([section, items]) => {
       // Reorder items within Pengaturan section
       if (section === 'Pengaturan') {
-        const orderedItems = [...(items || [])].sort((a, b) => {
+        const orderedItems = Array.isArray(items) ? [...items].sort((a, b) => {
           // Define custom order for Pengaturan section
           const orderMap: Record<string, number> = {
             '/guide/settings': 1, // Pengaturan Aplikasi
@@ -140,16 +140,16 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
           const orderA = orderMap[a.href] ?? a.display_order ?? 999;
           const orderB = orderMap[b.href] ?? b.display_order ?? 999;
           return orderA - orderB;
-        });
+        }) : [];
         return {
           section,
           items: orderedItems,
         };
       }
       // For other sections, sort by display_order
-      const sortedItems = [...(items || [])].sort((a, b) => {
+      const sortedItems = Array.isArray(items) ? [...items].sort((a, b) => {
         return (a.display_order ?? 999) - (b.display_order ?? 999);
-      });
+      }) : [];
       return {
         section,
         items: sortedItems,

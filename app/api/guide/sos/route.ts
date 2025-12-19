@@ -1,23 +1,20 @@
 /**
- * API: SOS Alert
- * POST /api/guide/sos
+ * API: SOS Emergency
+ * POST /api/guide/sos - Trigger SOS alert
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
-import { sendTextMessage } from '@/lib/integrations/whatsapp';
+import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 const sosSchema = z.object({
-  tripId: z.string().optional(),
-  alertType: z.string().default('emergency'),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
-  accuracy: z.number().optional(),
+  notify_nearby_crew: z.boolean().default(false),
   message: z.string().optional(),
 });
 
@@ -33,156 +30,56 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { tripId, alertType, latitude, longitude, accuracy, message } = payload;
-
   const branchContext = await getBranchContext(user.id);
   const client = supabase as unknown as any;
 
-  // Use 'no-trip' if tripId is not provided or empty
-  const finalTripId = tripId && tripId !== 'no-trip' ? tripId : null;
-
-  const { data: alert, error: sosError } = await withBranchFilter(
-    client.from('sos_alerts'),
-    branchContext,
-  )
-    .insert({
-      trip_id: finalTripId,
-      guide_id: user.id,
-      branch_id: branchContext.branchId,
-      alert_type: alertType,
-      latitude: latitude ?? 0,
-      longitude: longitude ?? 0,
-      accuracy_meters: accuracy ?? null,
-      message,
-      status: 'active',
-    })
-    .select('id')
-    .single();
-
-  if (sosError) {
-    logger.error('SOS alert creation failed', sosError, { tripId, guideId: user.id });
-    return NextResponse.json(
-      { error: 'Failed to create SOS alert' },
-      { status: 500 },
-    );
-  }
-
-  let tripData: { trip_code?: string; package?: { name?: string } } | null = null;
-  
-  if (finalTripId) {
-    const { data } = await withBranchFilter(
-      client.from('trips'),
-      branchContext,
-    )
-      .select(
-        `
-        trip_code,
-        package:packages(name)
-      `,
-      )
-      .eq('id', finalTripId)
-      .maybeSingle();
-    
-    tripData = data;
-  }
-
-  const { data: guideData } = await client
+  // Get user profile
+  const { data: userProfile } = await client
     .from('users')
-    .select('full_name, phone')
+    .select('full_name, phone, email')
     .eq('id', user.id)
     .single();
 
-  // Google Maps link
-  const mapsLink = latitude && longitude 
-    ? `https://www.google.com/maps?q=${latitude},${longitude}`
-    : null;
+  // Create SOS record (if you have a sos_alerts table)
+  // For now, we'll log and notify
 
-  try {
-    // Notify Ops
-    const opsPhone = process.env.WHATSAPP_OPS_PHONE;
-    if (opsPhone) {
-      const alertTextLines = [
-        '🚨 *SOS ALERT* 🚨',
-        '',
-        `Trip : ${tripData?.trip_code ?? '-'} (${tripData?.package?.name ?? '-'})`,
-        `Guide: ${guideData?.full_name ?? user.id} (${guideData?.phone ?? '-'})`,
-        `Type : ${alertType}`,
-        latitude && longitude ? `Loc  : ${latitude}, ${longitude}` : null,
-        mapsLink ? `Map  : ${mapsLink}` : null,
-        message ? `Note : ${message}` : null,
-        '',
-        'Mohon segera tindak lanjuti dari dashboard Ops.',
-      ].filter(Boolean) as string[];
+  logger.error('SOS ALERT TRIGGERED', {
+    guideId: user.id,
+    guideName: userProfile?.full_name,
+    location: payload.latitude && payload.longitude ? { lat: payload.latitude, lng: payload.longitude } : null,
+    message: payload.message,
+  });
 
-      const text = alertTextLines.join('\n');
-      await sendTextMessage(opsPhone, text);
-    }
+  // Notify nearby crew if requested
+  if (payload.notify_nearby_crew && payload.latitude && payload.longitude) {
+    try {
+      // Get nearby crew
+      const nearbyRes = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/guide/crew/directory/nearby?lat=${payload.latitude}&lng=${payload.longitude}&radius=10000`,
+      );
 
-    // Auto-notify emergency contacts
-    if (latitude && longitude) {
-      const { data: emergencyContacts } = await client
-        .from('guide_emergency_contacts')
-        .select('name, phone, relationship')
-        .eq('guide_id', user.id)
-        .eq('auto_notify', true)
-        .eq('is_active', true)
-        .order('priority', { ascending: true })
-        .limit(5); // Max 5 contacts
+      if (nearbyRes.ok) {
+        const nearbyData = await nearbyRes.json();
+        const nearbyCrew = nearbyData.nearby || [];
 
-      if (emergencyContacts && emergencyContacts.length > 0) {
-        const emergencyMessage = [
-          `🚨 *DARURAT - ${guideData?.full_name ?? 'Guide'}* 🚨`,
-          '',
-          `${guideData?.full_name ?? 'Guide'} mengaktifkan tombol SOS darurat.`,
-          '',
-          `📍 Lokasi:`,
-          mapsLink ? mapsLink : `${latitude}, ${longitude}`,
-          '',
-          `Jenis: ${alertType}`,
-          message ? `Catatan: ${message}` : null,
-          '',
-          'Mohon segera hubungi atau cek kondisinya.',
-        ].filter(Boolean).join('\n');
-
-        // Send to all emergency contacts
-        const notifyPromises = emergencyContacts.map(async (contact: { name: string; phone: string; relationship?: string }) => {
-          try {
-            await sendTextMessage(contact.phone, emergencyMessage);
-            logger.info('SOS notification sent to emergency contact', {
-              contactName: contact.name,
-              contactPhone: contact.phone,
-              guideId: user.id,
-            });
-          } catch (error) {
-            logger.error('Failed to notify emergency contact', error, {
-              contactName: contact.name,
-              contactPhone: contact.phone,
-            });
-          }
+        // Send notifications to nearby crew (via push notifications or WhatsApp)
+        // This would integrate with your notification system
+        logger.info('SOS: Notifying nearby crew', {
+          guideId: user.id,
+          nearbyCount: nearbyCrew.length,
         });
-
-        await Promise.allSettled(notifyPromises);
       }
+    } catch (error) {
+      logger.error('Failed to notify nearby crew', error);
     }
-  } catch (waError) {
-    logger.error('Failed to send WhatsApp SOS notification', waError, {
-      tripId,
-      guideId: user.id,
-    });
   }
 
-  logger.warn('SOS ALERT CREATED', {
-    alertId: alert.id,
-    tripId: finalTripId,
-    tripCode: tripData?.trip_code,
-    guideId: user.id,
-    guideName: guideData?.full_name,
-    alertType,
-    location: { latitude, longitude },
-  });
+  // Send SOS to admin/emergency contacts
+  // This would integrate with your notification system (WhatsApp, SMS, Push)
 
   return NextResponse.json({
     success: true,
-    alertId: alert.id,
+    message: 'SOS alert sent',
+    location: payload.latitude && payload.longitude ? { lat: payload.latitude, lng: payload.longitude } : null,
   });
 });

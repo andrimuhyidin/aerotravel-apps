@@ -6,7 +6,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, CheckCircle2, Edit2, Loader2, Megaphone, Printer, RefreshCw, Share2, Sparkles } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Edit2, Loader2, Megaphone, RefreshCw, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -111,6 +111,7 @@ export function TripBriefing({ tripId, locale }: TripBriefingProps) {
   const handleEditSection = (sectionIndex: number) => {
     if (!briefingData?.briefing) return;
     const section = briefingData.briefing.sections[sectionIndex];
+    if (!section) return;
     setEditingSection(sectionIndex);
     setEditedPoints(section.points.join('\n'));
     setEditDialogOpen(true);
@@ -226,72 +227,37 @@ export function TripBriefing({ tripId, locale }: TripBriefingProps) {
             </CardTitle>
             <div className="flex gap-2 no-print">
               {briefing ? (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      window.print();
-                    }}
-                    title="Print Briefing"
-                  >
-                    <Printer className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      if (navigator.share) {
-                        try {
-                          await navigator.share({
-                            title: 'Trip Briefing',
-                            text: briefing.summary,
-                            url: window.location.href,
-                          });
-                        } catch (err) {
-                          // User cancelled or error
-                        }
-                      } else {
-                        // Fallback: copy to clipboard
-                        const text = `${briefing.summary}\n\n${briefing.sections.map(s => `${s.title}:\n${s.points.map(p => `- ${p}`).join('\n')}`).join('\n\n')}`;
-                        await navigator.clipboard.writeText(text);
-                        alert('Briefing copied to clipboard!');
-                      }
-                    }}
-                    title="Share Briefing"
-                  >
-                    <Share2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => generateMutation.mutate()}
-                    disabled={generateMutation.isPending}
-                    title="Regenerate Briefing"
-                  >
-                    {generateMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                  </Button>
-                </>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => generateMutation.mutate()}
+                  disabled={generateMutation.isPending}
+                  title="Regenerate Briefing"
+                  className="gap-2"
+                >
+                  {generateMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  <span className="hidden sm:inline">Regenerate</span>
+                </Button>
               ) : (
                 <Button
                   size="sm"
                   onClick={() => generateMutation.mutate()}
                   disabled={generateMutation.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700"
+                  className="bg-emerald-600 hover:bg-emerald-700 gap-2"
                 >
                   {generateMutation.isPending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Generating...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generate Briefing
+                      <Sparkles className="h-4 w-4" />
+                      <span>Generate Briefing</span>
                     </>
                   )}
                 </Button>

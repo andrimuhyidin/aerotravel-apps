@@ -10,16 +10,27 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
+  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const body = await request.json();
 
-  const { tripId, passengerId, checkType, guideId } = body;
+  const { tripId, passengerId, checkType } = body;
 
-  if (!tripId || !passengerId || !checkType || !guideId) {
+  if (!tripId || !passengerId || !checkType) {
     return NextResponse.json(
       { error: 'Missing required fields' },
       { status: 400 }
     );
   }
+
+  const guideId = user.id;
 
   if (!['boarding', 'return'].includes(checkType)) {
     return NextResponse.json(

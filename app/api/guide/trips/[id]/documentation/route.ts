@@ -19,9 +19,10 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
   const { id: tripId } = resolvedParams;
 
   const body = await request.json();
-  const { url } = body as { url?: string };
+  const { url, documentationUrl } = body as { url?: string; documentationUrl?: string };
+  const docUrl = url || documentationUrl;
 
-  if (!url || typeof url !== 'string' || url.trim().length === 0) {
+  if (!docUrl || typeof docUrl !== 'string' || docUrl.trim().length === 0) {
     return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
   }
 
@@ -51,7 +52,7 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
   const { error } = (await supabase
     .from('trips')
     .update({
-      documentation_url: url.trim(),
+      documentation_url: docUrl.trim(),
       documentation_uploaded_at: now,
     } as Record<string, unknown>)
     .eq('id', tripId)) as { error: Error | null };

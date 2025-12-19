@@ -7,6 +7,7 @@
 
 import { AlertCircle, Bot, Camera, FileText, Loader2, Save, Sparkles, X } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { SignaturePad, type SignatureData } from '@/components/ui/signature-pad';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
@@ -53,6 +55,7 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [signature, setSignature] = useState<SignatureData | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -144,6 +147,12 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
       return;
     }
 
+    if (!signature) {
+      setMessage({ type: 'error', text: 'Mohon berikan tanda tangan untuk konfirmasi data akurat' });
+      setSubmitting(false);
+      return;
+    }
+
     try {
       // Upload photos first if any
       const photoUrls: string[] = [];
@@ -176,6 +185,10 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
           witnesses: witnesses.trim() || undefined,
           photoUrls,
           tripId: tripId || undefined,
+          signature: signature ? {
+            method: signature.method,
+            data: signature.data,
+          } : undefined,
         }),
       });
 
@@ -183,13 +196,19 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
         const errorData = (await res.json().catch(() => ({}))) as { error?: string };
         setMessage({ type: 'error', text: errorData.error || 'Gagal mengirim laporan insiden' });
       } else {
-        setMessage({ type: 'success', text: 'Laporan insiden berhasil dikirim' });
+        const data = (await res.json()) as { reportNumber?: string };
+        const reportNumber = data.reportNumber || 'N/A';
+        setMessage({ type: 'success', text: `Laporan insiden berhasil dikirim (${reportNumber}). Notifikasi telah dikirim ke asuransi & admin.` });
+        toast.success(`Laporan insiden ${reportNumber} berhasil dikirim`);
+        
         // Reset form
         setIncidentType('');
         setChronology('');
         setWitnesses('');
         setPhotos([]);
         setPhotoPreviews([]);
+        setSignature(null);
+        setAiReport(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -383,11 +402,28 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
             </div>
           )}
 
+          {/* Signature Section */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">
+              Tanda Tangan <span className="text-red-500">*</span>
+            </Label>
+            <p className="text-xs text-slate-500">
+              Tanda tangan untuk konfirmasi bahwa data yang diisi akurat
+            </p>
+            <SignaturePad
+              value={signature}
+              onChange={setSignature}
+              label=""
+              required
+              showGPS={false}
+            />
+          </div>
+
           {/* Submit Button */}
           <Button
             type="submit"
             className="w-full bg-emerald-600 hover:bg-emerald-700"
-            disabled={submitting || !incidentType || !chronology.trim()}
+            disabled={submitting || !incidentType || !chronology.trim() || !signature}
           >
             {submitting ? (
               <>

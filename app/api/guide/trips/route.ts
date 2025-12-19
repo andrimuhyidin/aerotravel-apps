@@ -26,11 +26,22 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
   const branchContext = await getBranchContext(user.id);
   const client = supabase as unknown as any;
 
-  // Get trip_guides with assignment status, then filter trips by branch_id
-  // Only include active assignments: confirmed or pending_confirmation
-  // Exclude: rejected, expired, auto_reassigned
+  // Get assignments from both trip_crews (new) and trip_guides (legacy)
+  // trip_crews (multi-guide system)
+  const tripCrewsQuery = client.from('trip_crews')
+    .select('trip_id, role, status, assigned_at, confirmed_at')
+    .eq('guide_id', user.id)
+    .in('status', ['assigned', 'confirmed']);
+  
+  const { data: tripCrewsData, error: tripCrewsError } = await tripCrewsQuery;
+  
+  if (tripCrewsError) {
+    logger.error('Failed to load trip_crews', tripCrewsError, { guideId: user.id });
+  }
+
+  // trip_guides (legacy single-guide system)
   const tripGuidesQuery = client.from('trip_guides')
-    .select('trip_id, assignment_status, confirmation_deadline, confirmed_at, rejected_at')
+    .select('trip_id, assignment_status, confirmation_deadline, confirmed_at, rejected_at, fee_amount')
     .eq('guide_id', user.id)
     .in('assignment_status', ['confirmed', 'pending_confirmation']);
   
@@ -38,7 +49,6 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
   
   if (tripGuidesError) {
     logger.error('Failed to load trip_guides', tripGuidesError, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to load trips' }, { status: 500 });
   }
   
   // Create map of trip_id -> assignment info
@@ -47,25 +57,50 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
     confirmation_deadline: string | null;
     confirmed_at: string | null;
     rejected_at: string | null;
+    fee_amount: number | null;
+    role?: 'lead' | 'support' | null; // From trip_crews
   };
   
-  const assignmentMap = new Map<string, AssignmentInfo>(
-    (tripGuidesData ?? []).map((tg: {
-      trip_id: string;
-      assignment_status: string;
-      confirmation_deadline: string | null;
-      confirmed_at: string | null;
-      rejected_at: string | null;
-    }) => [
-      tg.trip_id,
-      {
+  const assignmentMap = new Map<string, AssignmentInfo>();
+
+  // Add trip_crews assignments
+  (tripCrewsData ?? []).forEach((tc: {
+    trip_id: string;
+    role: 'lead' | 'support';
+    status: string;
+    assigned_at: string;
+    confirmed_at: string | null;
+  }) => {
+    assignmentMap.set(tc.trip_id, {
+      assignment_status: tc.status === 'confirmed' ? 'confirmed' : 'pending_confirmation',
+      confirmation_deadline: null,
+      confirmed_at: tc.confirmed_at,
+      rejected_at: null,
+      fee_amount: null,
+      role: tc.role,
+    });
+  });
+
+  // Add trip_guides assignments (legacy, don't override if already in map)
+  (tripGuidesData ?? []).forEach((tg: {
+    trip_id: string;
+    assignment_status: string;
+    confirmation_deadline: string | null;
+    confirmed_at: string | null;
+    rejected_at: string | null;
+    fee_amount: number | null;
+  }) => {
+    if (!assignmentMap.has(tg.trip_id)) {
+      assignmentMap.set(tg.trip_id, {
         assignment_status: tg.assignment_status,
         confirmation_deadline: tg.confirmation_deadline,
         confirmed_at: tg.confirmed_at,
         rejected_at: tg.rejected_at,
-      } as AssignmentInfo,
-    ])
-  );
+        fee_amount: tg.fee_amount,
+        role: null, // Legacy assignments don't have role
+      });
+    }
+  });
 
   const tripIds = Array.from(assignmentMap.keys());
   
@@ -132,6 +167,7 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
       }
 
       const assignment = assignmentMap.get(trip.id) || null;
+      const crewRole = assignment?.role ?? null;
       
       const packageData = trip.package as {
         name?: string | null;
@@ -152,10 +188,12 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
         confirmation_deadline: assignment?.confirmation_deadline || null,
         confirmed_at: assignment?.confirmed_at || null,
         rejected_at: assignment?.rejected_at || null,
+        fee_amount: assignment?.fee_amount ?? null,
         // Additional details for enhanced display
         destination: packageData?.destination ?? packageData?.city ?? null,
         duration: packageData?.duration_days ?? null,
         meeting_point: packageData?.meeting_point ?? null,
+        crew_role: crewRole, // Add crew role to response
       };
     });
 

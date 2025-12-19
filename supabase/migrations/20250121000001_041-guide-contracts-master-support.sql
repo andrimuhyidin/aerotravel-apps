@@ -101,6 +101,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger: Auto-link trip when assigned
+DROP TRIGGER IF EXISTS trigger_auto_link_trip_to_master_contract ON trip_guides;
 CREATE TRIGGER trigger_auto_link_trip_to_master_contract
   AFTER INSERT ON trip_guides
   FOR EACH ROW

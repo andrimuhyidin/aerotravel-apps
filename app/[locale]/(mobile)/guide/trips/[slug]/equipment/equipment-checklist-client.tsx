@@ -5,12 +5,14 @@
  * Pre-trip equipment checklist dengan foto bukti peralatan
  */
 
-import { Camera, CheckCircle2, ExternalLink, Package, X } from 'lucide-react';
-import { useState } from 'react';
+import { Camera, CheckCircle2, ExternalLink, MapPin, Package, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { SignaturePad, type SignatureData } from '@/components/ui/signature-pad';
 import { Textarea } from '@/components/ui/textarea';
 import { logger } from '@/lib/utils/logger';
 
@@ -24,6 +26,8 @@ type EquipmentItem = {
   name: string;
   checked: boolean;
   photo_url?: string;
+  photo_gps?: { latitude: number; longitude: number };
+  photo_timestamp?: string;
   notes?: string;
   needs_repair?: boolean;
 };
@@ -46,6 +50,8 @@ export function EquipmentChecklistClient({
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [gpsLocation, setGpsLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [signature, setSignature] = useState<SignatureData | null>(null);
 
   const toggleItem = (id: string) => {
     setItems((prev) =>
@@ -59,13 +65,71 @@ export function EquipmentChecklistClient({
     );
   };
 
-  const handlePhotoUpload = (itemId: string, file: File) => {
-    // Simulate upload - in real app, upload to storage
-    const photoUrl = URL.createObjectURL(file);
-    updateItem(itemId, { photo_url: photoUrl });
+  // Capture GPS location on mount
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setGpsLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (error) => {
+          logger.warn('GPS capture failed', { error: error.message, code: error.code });
+        },
+        { enableHighAccuracy: true, timeout: 5000 },
+      );
+    }
+  }, []);
+
+  const handlePhotoUpload = async (itemId: string, file: File) => {
+    try {
+      // Upload photo with GPS metadata
+      const formData = new FormData();
+      formData.append('file', file);
+      if (gpsLocation) {
+        formData.append('latitude', gpsLocation.latitude.toString());
+        formData.append('longitude', gpsLocation.longitude.toString());
+      }
+
+      const res = await fetch('/api/guide/equipment/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = (await res.json()) as { url: string; gps?: { latitude: number; longitude: number }; timestamp: string };
+      
+      updateItem(itemId, {
+        photo_url: data.url,
+        photo_gps: data.gps || gpsLocation || undefined,
+        photo_timestamp: data.timestamp,
+      });
+
+      toast.success('Foto berhasil diupload');
+    } catch (err) {
+      logger.error('Failed to upload photo', err);
+      toast.error('Gagal upload foto');
+      // Fallback: use object URL
+      const photoUrl = URL.createObjectURL(file);
+      updateItem(itemId, {
+        photo_url: photoUrl,
+        photo_gps: gpsLocation || undefined,
+        photo_timestamp: new Date().toISOString(),
+      });
+    }
   };
 
   const handleSubmit = async () => {
+    if (!signature) {
+      setError('Mohon berikan tanda tangan sebelum menyimpan');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -76,6 +140,12 @@ export function EquipmentChecklistClient({
         body: JSON.stringify({
           tripId,
           equipmentItems: items,
+          latitude: gpsLocation?.latitude,
+          longitude: gpsLocation?.longitude,
+          signature: signature ? {
+            method: signature.method,
+            data: signature.data,
+          } : undefined,
         }),
       });
 
@@ -87,6 +157,7 @@ export function EquipmentChecklistClient({
 
       // Success
       logger.info('Equipment checklist saved', { tripId, itemsCount: items.length });
+      toast.success('Checklist berhasil disimpan');
     } catch (err) {
       logger.error('Failed to save equipment checklist', err, { tripId });
       setError('Gagal menyimpan checklist. Periksa koneksi internet.');
@@ -203,10 +274,16 @@ export function EquipmentChecklistClient({
                             size="sm"
                             variant="destructive"
                             className="absolute right-2 top-2 h-6 w-6 p-0"
-                            onClick={() => updateItem(item.id, { photo_url: undefined })}
+                            onClick={() => updateItem(item.id, { photo_url: undefined, photo_gps: undefined, photo_timestamp: undefined })}
                           >
                             <X className="h-3 w-3" />
                           </Button>
+                          {item.photo_gps && (
+                            <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded bg-black/50 px-2 py-1 text-xs text-white">
+                              <MapPin className="h-3 w-3" />
+                              <span>{item.photo_gps.latitude.toFixed(4)}, {item.photo_gps.longitude.toFixed(4)}</span>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <Label htmlFor={`photo-${item.id}`} className="cursor-pointer">
@@ -279,19 +356,50 @@ export function EquipmentChecklistClient({
         </Card>
       )}
 
+      {/* Signature Section */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold">Tanda Tangan</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SignaturePad
+            value={signature}
+            onChange={setSignature}
+            label="Tanda tangan untuk konfirmasi checklist"
+            required
+            showGPS={true}
+          />
+        </CardContent>
+      </Card>
+
+      {/* GPS Location Display */}
+      {gpsLocation && (
+        <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+          <MapPin className="h-4 w-4" />
+          <span>
+            Lokasi: {gpsLocation.latitude.toFixed(6)}, {gpsLocation.longitude.toFixed(6)}
+          </span>
+        </div>
+      )}
+
       {/* Submit Button */}
       <div className="space-y-2">
         <Button
           className="w-full bg-emerald-600 hover:bg-emerald-700"
           onClick={handleSubmit}
-          disabled={submitting || !allChecked}
+          disabled={submitting || !allChecked || !signature}
         >
-          {submitting ? 'Menyimpan...' : allChecked ? 'Simpan Checklist' : 'Centang Semua Item'}
+          {submitting ? 'Menyimpan...' : allChecked && signature ? 'Simpan Checklist' : 'Lengkapi Semua'}
         </Button>
         {error && <p className="text-xs text-red-500 text-center">{error}</p>}
         {!allChecked && (
           <p className="text-xs text-slate-500 text-center">
             Pastikan semua item sudah dicentang sebelum menyimpan
+          </p>
+        )}
+        {!signature && (
+          <p className="text-xs text-amber-600 text-center">
+            Mohon berikan tanda tangan sebelum menyimpan
           </p>
         )}
       </div>

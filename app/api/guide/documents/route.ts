@@ -210,10 +210,10 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       created_at: doc?.created_at ?? null,
       updated_at: doc?.updated_at ?? null,
       // Educational information
-      why_needed: info.why_needed,
-      usage: info.usage,
-      privacy: info.privacy,
-      additional_info: info.additional_info || null,
+      why_needed: info?.why_needed ?? '',
+      usage: info?.usage ?? '',
+      privacy: info?.privacy ?? '',
+      additional_info: info?.additional_info ?? null,
     };
   });
 
@@ -237,10 +237,10 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         created_at: doc.created_at ?? null,
         updated_at: doc.updated_at ?? null,
         // Educational information
-        why_needed: info.why_needed,
-        usage: info.usage,
-        privacy: info.privacy,
-        additional_info: info.additional_info || null,
+        why_needed: info?.why_needed ?? '',
+        usage: info?.usage ?? '',
+        privacy: info?.privacy ?? '',
+        additional_info: info?.additional_info ?? null,
       });
     }
   });

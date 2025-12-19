@@ -9,6 +9,7 @@
 export type ItineraryActivity = {
   time?: string;
   label: string;
+  location?: string;
 };
 
 export type ItineraryDay = {
@@ -119,9 +120,11 @@ export function buildItineraryDaysFromJsonb(
                 if (typeof act === 'string') {
                   return { label: act };
                 }
+                const actObj = act as { time?: string; label: string; location?: string };
                 return {
-                  time: act.time,
-                  label: act.label,
+                  time: actObj.time,
+                  label: actObj.label,
+                  location: actObj.location,
                 };
               });
             }

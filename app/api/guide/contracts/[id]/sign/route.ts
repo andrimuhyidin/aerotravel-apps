@@ -23,6 +23,9 @@ const signSchema = z.object({
 export const POST = withErrorHandler(async (request: NextRequest, context: RouteContext) => {
   const resolvedParams = await context.params;
   const { id: contractId } = resolvedParams;
+  
+  logger.info('Contract sign request', { contractId });
+  
   const supabase = await createClient();
 
   const {
@@ -30,31 +33,100 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    logger.warn('Unauthorized contract sign attempt', { contractId });
+    return NextResponse.json(
+      { 
+        code: 'UNAUTHORIZED',
+        message: 'Unauthorized',
+        statusCode: 401 
+      },
+      { status: 401 }
+    );
   }
 
-  const body = signSchema.parse(await request.json());
-  const branchContext = await getBranchContext(user.id);
+  let body;
+  try {
+    body = signSchema.parse(await request.json());
+  } catch (error) {
+    logger.error('Invalid request body', error, { contractId, guideId: user.id });
+    return NextResponse.json(
+      { 
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid request body. Signature data is required.',
+        statusCode: 400 
+      },
+      { status: 400 }
+    );
+  }
+
+  let branchContext;
+  try {
+    branchContext = await getBranchContext(user.id);
+  } catch (error) {
+    logger.error('Failed to get branch context', error, { contractId, guideId: user.id });
+    return NextResponse.json(
+      { 
+        code: 'BRANCH_ERROR',
+        message: 'Failed to get branch context',
+        statusCode: 500 
+      },
+      { status: 500 }
+    );
+  }
+  
   const client = supabase as unknown as any;
 
   // Get contract
-  const { data: contract, error: contractError } = await withBranchFilter(
-    client.from('guide_contracts'),
-    branchContext,
-  )
-    .select('*')
-    .eq('id', contractId)
-    .eq('guide_id', user.id)
-    .single();
+  let contract;
+  let contractError;
+  try {
+    const result = await withBranchFilter(
+      client.from('guide_contracts'),
+      branchContext,
+    )
+      .select('*')
+      .eq('id', contractId)
+      .eq('guide_id', user.id)
+      .single();
+    contract = result.data;
+    contractError = result.error;
+  } catch (error) {
+    logger.error('Failed to query contract', error, { contractId, guideId: user.id });
+    return NextResponse.json(
+      { 
+        code: 'DATABASE_ERROR',
+        message: 'Gagal memuat data kontrak',
+        statusCode: 500 
+      },
+      { status: 500 }
+    );
+  }
 
   if (contractError || !contract) {
-    return NextResponse.json({ error: 'Contract not found' }, { status: 404 });
+    logger.error('Contract not found', contractError, { contractId, guideId: user.id });
+    return NextResponse.json(
+      { 
+        code: 'NOT_FOUND',
+        message: 'Contract not found',
+        statusCode: 404 
+      },
+      { status: 404 }
+    );
   }
 
   // Validate status
   if (contract.status !== 'pending_signature') {
+    logger.warn('Contract cannot be signed - invalid status', {
+      contractId,
+      currentStatus: contract.status,
+      guideId: user.id,
+    });
     return NextResponse.json(
-      { error: `Contract tidak dapat ditandatangani. Status: ${contract.status}` },
+      { 
+        code: 'INVALID_STATUS',
+        message: `Contract tidak dapat ditandatangani. Status: ${contract.status}`,
+        statusCode: 400 
+      },
       { status: 400 }
     );
   }
@@ -64,12 +136,33 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
   try {
     if (body.signature_method === 'upload' || body.signature_method === 'draw') {
       // Convert base64 to buffer
-      const base64Data = body.signature_data.replace(/^data:image\/\w+;base64,/, '');
-      const buffer = Buffer.from(base64Data, 'base64');
+      let base64Data: string;
+      try {
+        base64Data = body.signature_data.replace(/^data:image\/\w+;base64,/, '');
+      } catch (error) {
+        logger.error('Invalid base64 signature data', error, { contractId, guideId: user.id });
+        throw new Error('Invalid signature data format');
+      }
+
+      let buffer: Buffer;
+      try {
+        buffer = Buffer.from(base64Data, 'base64');
+      } catch (error) {
+        logger.error('Failed to convert base64 to buffer', error, { contractId, guideId: user.id });
+        throw new Error('Failed to process signature image');
+      }
 
       // Ensure bucket exists
-      const { ensureBucketExists } = await import('@/lib/storage/ensure-bucket');
-      await ensureBucketExists('guide-documents');
+      try {
+        const { ensureBucketExists } = await import('@/lib/storage/ensure-bucket');
+        await ensureBucketExists('guide-documents');
+      } catch (error) {
+        logger.warn('Failed to ensure bucket exists, continuing with fallback', {
+          error,
+          contractId,
+          guideId: user.id,
+        });
+      }
 
       // Upload to Supabase Storage
       const fileName = `contracts/${contractId}/guide-signature-${Date.now()}.png`;
@@ -86,20 +179,33 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
         logger.warn('Storage upload failed, using typed signature as fallback', {
           error: uploadError,
           contractId,
+          guideId: user.id,
         });
         const { data: guideProfile } = await client
           .from('users')
           .select('full_name')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         signatureUrl = `typed:${guideProfile?.full_name || 'Guide'}`;
-      } else {
+      } else if (uploadData?.path) {
         // Get public URL
         const { data: urlData } = supabase.storage
           .from('guide-documents')
-          .getPublicUrl(fileName);
+          .getPublicUrl(uploadData.path);
 
         signatureUrl = urlData.publicUrl;
+      } else {
+        // Fallback if uploadData is null
+        logger.warn('Upload data is null, using typed signature as fallback', {
+          contractId,
+          guideId: user.id,
+        });
+        const { data: guideProfile } = await client
+          .from('users')
+          .select('full_name')
+          .eq('id', user.id)
+          .maybeSingle();
+        signatureUrl = `typed:${guideProfile?.full_name || 'Guide'}`;
       }
     } else {
       // Typed signature - store as text
@@ -107,41 +213,84 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
         .from('users')
         .select('full_name')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       signatureUrl = `typed:${body.signature_data || guideProfile?.full_name || 'Guide'}`;
     }
   } catch (error) {
-    logger.error('Failed to process signature', error, { contractId });
+    logger.error('Failed to process signature', error, { contractId, guideId: user.id });
     // Fallback to typed signature
-    const { data: guideProfile } = await client
-      .from('users')
-      .select('full_name')
-      .eq('id', user.id)
-      .single();
-    signatureUrl = `typed:${guideProfile?.full_name || 'Guide'}`;
+    try {
+      const { data: guideProfile } = await client
+        .from('users')
+        .select('full_name')
+        .eq('id', user.id)
+        .maybeSingle();
+      signatureUrl = `typed:${guideProfile?.full_name || 'Guide'}`;
+    } catch (fallbackError) {
+      logger.error('Failed to get guide profile for fallback', fallbackError, {
+        contractId,
+        guideId: user.id,
+      });
+      signatureUrl = `typed:Guide`;
+    }
+  }
+
+  if (!signatureUrl) {
+    logger.error('Signature URL is null after processing', { contractId, guideId: user.id });
+    return NextResponse.json(
+      { 
+        code: 'SIGNATURE_PROCESSING_FAILED',
+        message: 'Gagal memproses tanda tangan',
+        statusCode: 500 
+      },
+      { status: 500 }
+    );
   }
 
   // Update contract
   const now = new Date().toISOString();
   const newStatus = contract.company_signed_at ? 'active' : 'pending_company';
 
-  const { data: updatedContract, error: updateError } = await withBranchFilter(
-    client.from('guide_contracts'),
-    branchContext,
-  )
-    .update({
-      status: newStatus,
-      guide_signed_at: now,
-      guide_signature_url: signatureUrl,
-      updated_at: now,
-    })
-    .eq('id', contractId)
-    .select()
-    .single();
+  let updatedContract;
+  let updateError;
+  try {
+    const result = await withBranchFilter(
+      client.from('guide_contracts'),
+      branchContext,
+    )
+      .update({
+        status: newStatus,
+        guide_signed_at: now,
+        guide_signature_url: signatureUrl,
+        updated_at: now,
+      })
+      .eq('id', contractId)
+      .select()
+      .single();
+    updatedContract = result.data;
+    updateError = result.error;
+  } catch (error) {
+    logger.error('Failed to update contract - exception', error, { contractId, guideId: user.id });
+    return NextResponse.json(
+      { 
+        code: 'UPDATE_FAILED',
+        message: 'Gagal memperbarui kontrak',
+        statusCode: 500 
+      },
+      { status: 500 }
+    );
+  }
 
   if (updateError) {
-    logger.error('Failed to update contract', updateError, { contractId });
-    return NextResponse.json({ error: 'Gagal memperbarui kontrak' }, { status: 500 });
+    logger.error('Failed to update contract', updateError, { contractId, guideId: user.id });
+    return NextResponse.json(
+      { 
+        code: 'UPDATE_FAILED',
+        message: 'Gagal memperbarui kontrak',
+        statusCode: 500 
+      },
+      { status: 500 }
+    );
   }
 
   // If both signed, PDF will be generated when company signs (handled in admin sign endpoint)
@@ -155,7 +304,7 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
     signatureMethod: body.signature_method,
   });
 
-  // Send notifications
+  // Send notifications (non-blocking)
   try {
     const { notifyAdminContractSigned, createInAppNotification } = await import('@/lib/integrations/contract-notifications');
     
@@ -167,25 +316,39 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
       .maybeSingle();
 
     if (adminUser?.phone) {
-      await notifyAdminContractSigned(
-        adminUser.phone,
-        contract.contract_number || contractId,
-        user.email?.split('@')[0] || 'Guide'
-      );
+      try {
+        await notifyAdminContractSigned(
+          adminUser.phone,
+          contract.contract_number || contractId,
+          user.email?.split('@')[0] || 'Guide'
+        );
+      } catch (notifError) {
+        logger.error('Failed to send WhatsApp notification', notifError, {
+          contractId,
+          adminPhone: adminUser.phone,
+        });
+      }
     }
 
     // In-app notification for admin
     if (contract.created_by) {
-      await createInAppNotification(
-        contract.created_by,
-        'contract_signed',
-        'Kontrak Ditandatangani Guide',
-        `Guide telah menandatangani kontrak ${contract.contract_number || contractId}. Silakan tandatangani sebagai perusahaan.`,
-        contractId
-      );
+      try {
+        await createInAppNotification(
+          contract.created_by,
+          'contract_signed',
+          'Kontrak Ditandatangani Guide',
+          `Guide telah menandatangani kontrak ${contract.contract_number || contractId}. Silakan tandatangani sebagai perusahaan.`,
+          contractId
+        );
+      } catch (notifError) {
+        logger.error('Failed to create in-app notification', notifError, {
+          contractId,
+          adminId: contract.created_by,
+        });
+      }
     }
   } catch (error) {
-    logger.error('Failed to send notifications', error, { contractId });
+    logger.error('Failed to send notifications', error, { contractId, guideId: user.id });
     // Don't fail the request if notification fails
   }
 

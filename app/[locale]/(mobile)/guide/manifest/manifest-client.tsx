@@ -22,6 +22,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import { LoadingState } from '@/components/ui/loading-state';
+import { useTripCrew } from '@/hooks/use-trip-crew';
 import {
     getTripManifest,
     markPassengerBoarded,
@@ -31,12 +32,14 @@ import {
     TripManifest,
     updatePassengerDetails,
 } from '@/lib/guide';
+import { canViewManifest, type CrewRole } from '@/lib/guide/crew-permissions';
 import { cn } from '@/lib/utils';
 
 import { ManifestAiSuggestions } from './manifest-ai-suggestions';
 
 type ManifestClientProps = {
   tripId: string;
+  crewRole?: CrewRole | null; // Optional: if not provided, will fetch from hook
 };
 
 const passengerTypeLabels: Record<string, string> = {
@@ -45,7 +48,28 @@ const passengerTypeLabels: Record<string, string> = {
   infant: 'Bayi',
 };
 
-export function ManifestClient({ tripId }: ManifestClientProps) {
+/**
+ * Mask passenger name for Support Guide
+ * Shows first letter + last letter, masks middle
+ */
+function maskPassengerName(name: string): string {
+  if (name.length <= 2) return name;
+  const first = name[0];
+  const last = name[name.length - 1];
+  const masked = '*'.repeat(Math.max(2, name.length - 2));
+  return `${first}${masked}${last}`;
+}
+
+/**
+ * Mask phone number
+ */
+function maskPhone(phone: string): string {
+  if (phone.length <= 4) return phone;
+  const last4 = phone.slice(-4);
+  return `****${last4}`;
+}
+
+export function ManifestClient({ tripId, crewRole: propCrewRole }: ManifestClientProps) {
   const [manifest, setManifest] = useState<TripManifest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +81,14 @@ export function ManifestClient({ tripId }: ManifestClientProps) {
   const [filter, setFilter] = useState<'all' | 'pending' | 'boarded' | 'returned'>('all');
   const [editingPassenger, setEditingPassenger] = useState<Passenger | null>(null);
   const [savingPassenger, setSavingPassenger] = useState(false);
+
+  // Get crew role (if not provided as prop)
+  const { data: crewData } = useTripCrew(tripId);
+  const crewRole = propCrewRole ?? (crewData?.currentUserRole ?? null);
+  
+  // Check manifest permissions
+  const manifestPermission = canViewManifest(crewRole);
+  const isMasked = manifestPermission.isMasked;
 
   const loadManifest = async () => {
     try {
@@ -270,17 +302,29 @@ export function ManifestClient({ tripId }: ManifestClientProps) {
                       {index + 1}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-slate-900">{passenger.name}</p>
+                      <p className="font-semibold text-slate-900">
+                        {isMasked ? maskPassengerName(passenger.name) : passenger.name}
+                      </p>
                       <p className="mt-0.5 text-xs text-slate-500">
                         {passengerTypeLabels[passenger.type] ?? passenger.type}
+                        {isMasked && passenger.phone && (
+                          <span className="ml-2 text-slate-400">
+                            • {maskPhone(passenger.phone)}
+                          </span>
+                        )}
                       </p>
-                      {(passenger.notes || passenger.allergy || passenger.specialRequest) && (
+                      {!isMasked && (passenger.notes || passenger.allergy || passenger.specialRequest) && (
                         <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-500">
                           {passenger.notes && <span>Catatan: {passenger.notes}. </span>}
                           {passenger.allergy && <span>Alergi: {passenger.allergy}. </span>}
                           {passenger.specialRequest && (
                             <span>Permintaan: {passenger.specialRequest}.</span>
                           )}
+                        </p>
+                      )}
+                      {isMasked && (
+                        <p className="mt-1 text-[10px] text-amber-600 italic">
+                          Data dimask untuk Support Guide
                         </p>
                       )}
                     </div>

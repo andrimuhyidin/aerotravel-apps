@@ -69,14 +69,15 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
   }
 
   // Get guide info separately (handle error gracefully)
+  // Note: email is in auth.users, not users table
   const { data: guideInfo, error: guideInfoError } = await client
     .from('users')
-    .select('id, full_name, email, phone, address')
+    .select('id, full_name, phone, address')
     .eq('id', contract.guide_id)
     .maybeSingle();
 
   if (guideInfoError) {
-    logger.warn('Failed to fetch guide info', guideInfoError, { guideId: contract.guide_id });
+    logger.warn('Failed to fetch guide info', { error: guideInfoError, guideId: contract.guide_id });
   }
 
   // Get contract trips if exists

@@ -17,6 +17,11 @@ const equipmentItemSchema = z.object({
   name: z.string(),
   checked: z.boolean(),
   photo_url: z.string().optional(),
+  photo_gps: z.object({
+    latitude: z.number(),
+    longitude: z.number(),
+  }).optional(),
+  photo_timestamp: z.string().optional(),
   notes: z.string().optional(),
   needs_repair: z.boolean().optional(),
 });
@@ -24,6 +29,12 @@ const equipmentItemSchema = z.object({
 const checklistSchema = z.object({
   tripId: z.string().uuid().optional(),
   equipmentItems: z.array(equipmentItemSchema),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  signature: z.object({
+    method: z.enum(['draw', 'upload', 'typed']),
+    data: z.string(),
+  }).optional(),
 });
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
@@ -82,7 +93,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { tripId, equipmentItems } = payload;
+  const { tripId, equipmentItems, latitude, longitude, signature } = payload;
   const branchContext = await getBranchContext(user.id);
 
   if (!branchContext.branchId && !branchContext.isSuperAdmin) {
@@ -115,6 +126,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     equipment_items: equipmentItems as unknown as any,
     is_completed: equipmentItems.every((item) => item.checked),
     completed_at: equipmentItems.every((item) => item.checked) ? new Date().toISOString() : null,
+    latitude: latitude || null,
+    longitude: longitude || null,
+    location_captured_at: (latitude && longitude) ? new Date().toISOString() : null,
+    signature_data: signature?.data || null,
+    signature_method: signature?.method || null,
+    signature_timestamp: signature ? new Date().toISOString() : null,
     updated_at: new Date().toISOString(),
   };
 

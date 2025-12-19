@@ -26,7 +26,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   // Verify user is guide
   const { data: userProfile } = await supabase
     .from('users')
-    .select('id, role, full_name, email, phone, address, branch_id')
+    .select('id, role, full_name, phone, address, branch_id')
     .eq('id', user.id)
     .single();
 
@@ -38,12 +38,16 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Only guides can create sample contracts for themselves' }, { status: 403 });
   }
 
+  // Get user email from auth (current user's email is available)
+  const userEmail = user.email ?? null;
+
   const branchContext = await getBranchContext(user.id);
-  let branchId = branchContext.branchId || (userProfile.branch_id as string | undefined);
+  const userProfileSafe = userProfile || { full_name: 'Guide', address: undefined, phone: undefined, branch_id: null };
+  let branchId: string | null = branchContext.branchId ?? (userProfileSafe.branch_id as string | null | undefined) ?? null;
 
   if (!branchId) {
     const { data: branchData } = await supabase.from('branches').select('id').limit(1).maybeSingle();
-    branchId = branchData?.id;
+    branchId = branchData?.id ?? null;
   }
 
   if (!branchId) {
@@ -52,7 +56,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   // Generate contract numbers
   const today = new Date();
-  const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+  const dateStr = today.toISOString().split('T')[0]?.replace(/-/g, '') || '';
   const contractNumber1 = `CT-${dateStr}-001`;
   const contractNumber2 = `CT-${dateStr}-002`;
   const contractNumber3 = `CT-${dateStr}-003`;
@@ -78,36 +82,42 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     // Contract 1: Pending Signature
     const contractContent1 = generateDefaultContractContent(
       COMPANY_CONFIG.name,
-      userProfile.full_name || 'Guide',
+      userProfileSafe.full_name || 'Guide',
       contractNumber1,
-      startDate1.toISOString().split('T')[0],
-      endDate1.toISOString().split('T')[0],
+      startDate1.toISOString().split('T')[0] || '',
+      endDate1.toISOString().split('T')[0] || '',
       {
-        address: userProfile.address || undefined,
-        phone: userProfile.phone || undefined,
-        email: userProfile.email || undefined,
+        address: userProfileSafe.address ?? undefined,
+        phone: userProfileSafe.phone ?? undefined,
+        email: userEmail ?? undefined,
       }
     );
     const fullContent1 = formatContractContentForDisplay(contractContent1);
 
+  if (!branchId) {
+    return NextResponse.json({ error: 'Branch ID is required' }, { status: 400 });
+  }
+
+  const branchIdForInsert: string = branchId;
+
     const { data: contract1, error: error1 } = await supabase
       .from('guide_contracts')
       .insert({
-        branch_id: branchId,
+        branch_id: branchIdForInsert,
         guide_id: user.id,
         contract_number: contractNumber1,
         contract_type: 'annual',
         title: `Kontrak Kerja Tahunan ${today.getFullYear()}`,
         description: 'Kontrak kerja tahunan (master contract) yang berlaku untuk semua trip dalam periode 1 tahun. Fee ditentukan per trip assignment.',
-        start_date: startDate1.toISOString().split('T')[0],
-        end_date: endDate1.toISOString().split('T')[0],
-        fee_amount: null,
+        start_date: startDate1.toISOString().split('T')[0] || '',
+        end_date: endDate1.toISOString().split('T')[0] || '',
+        fee_amount: 0.01, // Minimum value to satisfy CHECK constraint, fee is actually in trip_guides
         fee_type: 'per_trip',
         payment_terms: 'Dibayar setelah trip selesai berdasarkan fee di trip assignment',
         status: 'pending_signature',
         is_master_contract: true,
         auto_cover_trips: true,
-        renewal_date: endDate1.toISOString().split('T')[0],
+        renewal_date: endDate1.toISOString().split('T')[0] || '',
         created_by: user.id,
         terms_and_conditions: {
           fullContent: fullContent1,
@@ -128,14 +138,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     // Contract 2: Active
     const contractContent2 = generateDefaultContractContent(
       COMPANY_CONFIG.name,
-      userProfile.full_name || 'Guide',
+      userProfileSafe.full_name || 'Guide',
       contractNumber2,
-      startDate2.toISOString().split('T')[0],
-      endDate2.toISOString().split('T')[0],
+      startDate2.toISOString().split('T')[0] || '',
+      endDate2.toISOString().split('T')[0] || '',
       {
-        address: userProfile.address || undefined,
-        phone: userProfile.phone || undefined,
-        email: userProfile.email || undefined,
+        address: userProfileSafe.address ?? undefined,
+        phone: userProfileSafe.phone ?? undefined,
+        email: userEmail ?? undefined,
       }
     );
     const fullContent2 = formatContractContentForDisplay(contractContent2);
@@ -146,15 +156,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const { data: contract2, error: error2 } = await supabase
       .from('guide_contracts')
       .insert({
-        branch_id: branchId,
+        branch_id: branchIdForInsert,
         guide_id: user.id,
         contract_number: contractNumber2,
         contract_type: 'annual',
         title: `Kontrak Kerja Tahunan ${startDate2.getFullYear()}`,
         description: 'Kontrak kerja tahunan (master contract) yang aktif. Fee ditentukan per trip assignment di trip_guides.',
-        start_date: startDate2.toISOString().split('T')[0],
-        end_date: endDate2.toISOString().split('T')[0],
-        fee_amount: null,
+        start_date: startDate2.toISOString().split('T')[0] || '',
+        end_date: endDate2.toISOString().split('T')[0] || '',
+        fee_amount: 0.01, // Minimum value to satisfy CHECK constraint, fee is actually in trip_guides
         fee_type: 'per_trip',
         payment_terms: 'Dibayar setelah trip selesai berdasarkan fee di trip assignment',
         status: 'active',
@@ -164,7 +174,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         company_signature_url: 'typed:Company Signature',
         is_master_contract: true,
         auto_cover_trips: true,
-        renewal_date: endDate2.toISOString().split('T')[0],
+        renewal_date: endDate2.toISOString().split('T')[0] || '',
         created_by: user.id,
         terms_and_conditions: {
           fullContent: fullContent2,
@@ -185,14 +195,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     // Contract 3: Pending Company
     const contractContent3 = generateDefaultContractContent(
       COMPANY_CONFIG.name,
-      userProfile.full_name || 'Guide',
+      userProfileSafe.full_name || 'Guide',
       contractNumber3,
-      startDate3.toISOString().split('T')[0],
-      endDate3.toISOString().split('T')[0],
+      startDate3.toISOString().split('T')[0] || '',
+      endDate3.toISOString().split('T')[0] || '',
       {
-        address: userProfile.address || undefined,
-        phone: userProfile.phone || undefined,
-        email: userProfile.email || undefined,
+        address: userProfileSafe.address ?? undefined,
+        phone: userProfileSafe.phone ?? undefined,
+        email: userEmail ?? undefined,
       }
     );
     const fullContent3 = formatContractContentForDisplay(contractContent3);
@@ -203,15 +213,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const { data: contract3, error: error3 } = await supabase
       .from('guide_contracts')
       .insert({
-        branch_id: branchId,
+        branch_id: branchIdForInsert,
         guide_id: user.id,
         contract_number: contractNumber3,
         contract_type: 'annual',
         title: `Kontrak Kerja Tahunan ${startDate3.getFullYear()}`,
         description: 'Kontrak kerja tahunan (master contract) menunggu tanda tangan company. Fee ditentukan per trip assignment.',
-        start_date: startDate3.toISOString().split('T')[0],
-        end_date: endDate3.toISOString().split('T')[0],
-        fee_amount: null,
+        start_date: startDate3.toISOString().split('T')[0] || '',
+        end_date: endDate3.toISOString().split('T')[0] || '',
+        fee_amount: 0.01, // Minimum value to satisfy CHECK constraint, fee is actually in trip_guides
         fee_type: 'per_trip',
         payment_terms: 'Dibayar setelah trip selesai berdasarkan fee di trip assignment',
         status: 'pending_company',
@@ -219,7 +229,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         guide_signature_url: 'typed:Guide Signature',
         is_master_contract: true,
         auto_cover_trips: true,
-        renewal_date: endDate3.toISOString().split('T')[0],
+        renewal_date: endDate3.toISOString().split('T')[0] || '',
         created_by: user.id,
         terms_and_conditions: {
           fullContent: fullContent3,

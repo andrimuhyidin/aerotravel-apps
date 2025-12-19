@@ -125,8 +125,8 @@ export function ContractDetailClient({
     queryFn: async () => {
       const res = await fetch(`/api/guide/contracts/${contractId}`);
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const errorMessage = errorData.error || 'Failed to load contract';
+        const errorData = (await res.json().catch(() => ({}))) as { error?: string; message?: string; code?: string };
+        const errorMessage = errorData.message || errorData.error || 'Failed to load contract';
         throw new Error(errorMessage);
       }
       return res.json();
@@ -144,8 +144,9 @@ export function ContractDetailClient({
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        throw new Error(body.error || 'Gagal menandatangani kontrak');
+        const body = (await res.json()) as { error?: string; message?: string; code?: string };
+        const errorMessage = body.message || body.error || 'Gagal menandatangani kontrak';
+        throw new Error(errorMessage);
       }
       return res.json();
     },
@@ -157,7 +158,7 @@ export function ContractDetailClient({
       toast.success(data.message || 'Kontrak berhasil ditandatangani');
     },
     onError: (error) => {
-      logger.error('Failed to sign contract', error);
+      logger.error('Failed to sign contract', error, { contractId });
       toast.error(error instanceof Error ? error.message : 'Gagal menandatangani kontrak');
     },
   });
@@ -170,8 +171,9 @@ export function ContractDetailClient({
         body: JSON.stringify({ rejection_reason: reason }),
       });
       if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        throw new Error(body.error || 'Gagal menolak kontrak');
+        const body = (await res.json()) as { error?: string; message?: string; code?: string };
+        const errorMessage = body.message || body.error || 'Gagal menolak kontrak';
+        throw new Error(errorMessage);
       }
       return res.json();
     },
@@ -196,8 +198,9 @@ export function ContractDetailClient({
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        throw new Error(body.error || 'Gagal mengajukan resign');
+        const body = (await res.json()) as { error?: string; message?: string; code?: string };
+        const errorMessage = body.message || body.error || 'Gagal mengajukan resign';
+        throw new Error(errorMessage);
       }
       return res.json();
     },

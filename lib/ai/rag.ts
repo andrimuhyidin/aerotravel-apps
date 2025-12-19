@@ -85,10 +85,10 @@ export async function retrieveContextWithVector(
 
     // Vector similarity search untuk documents/SOP
     const { data: documents, error } = await supabase.rpc('match_documents', {
-      query_embedding: queryEmbedding,
+      query_embedding: queryEmbedding as unknown as string,
       match_threshold: matchThreshold,
       match_count: matchCount,
-      filter_branch_id: branchId || null,
+      filter_branch_id: branchId ?? undefined,
     });
 
     if (error) {

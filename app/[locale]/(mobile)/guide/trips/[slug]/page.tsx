@@ -74,8 +74,18 @@ export default async function GuideTripDetailPage({ params }: PageProps) {
     redirect(`/${locale}/guide/trips`);
   }
 
-  // Verify guide assignment (only active assignments)
-  const { data: assignment } = await client
+  // Verify guide assignment (check both trip_guides and trip_crews)
+  // First check trip_crews (new multi-guide system)
+  const { data: crewAssignment } = await client
+    .from('trip_crews')
+    .select('id, role, status')
+    .eq('trip_id', trip.id)
+    .eq('guide_id', user.id)
+    .in('status', ['assigned', 'confirmed'])
+    .maybeSingle();
+
+  // Fallback to trip_guides (legacy single-guide system)
+  const { data: legacyAssignment } = await client
     .from('trip_guides')
     .select('id, assignment_status')
     .eq('trip_id', trip.id)
@@ -83,7 +93,8 @@ export default async function GuideTripDetailPage({ params }: PageProps) {
     .in('assignment_status', ['confirmed', 'pending_confirmation'])
     .maybeSingle();
 
-  if (!assignment) {
+  // Allow access if assigned via either system
+  if (!crewAssignment && !legacyAssignment) {
     redirect(`/${locale}/guide/trips`);
   }
   

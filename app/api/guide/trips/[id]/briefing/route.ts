@@ -229,7 +229,7 @@ export const POST = withErrorHandler(async (
       metadata: {
         sectionsCount: briefing.sections.length,
         targetAudience: briefing.targetAudience,
-        totalPax: context.totalPax,
+        totalPax: briefingContext.totalPax,
       },
     });
 

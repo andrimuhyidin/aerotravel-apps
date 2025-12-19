@@ -26,7 +26,9 @@ import {
     Settings,
     Shield,
     Star,
+    TrendingUp,
     User,
+    Users,
     Wallet
 } from 'lucide-react';
 import Link from 'next/link';
@@ -40,10 +42,130 @@ import { useGuideMenuItems, useGuideStats } from '@/hooks/use-guide-common';
 import queryKeys from '@/lib/queries/query-keys';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/utils/logger';
 import { useQuery } from '@tanstack/react-query';
 
-import { GuideBadges } from './guide-badges';
+import { CareerOverviewWidget } from '../widgets/career-overview-widget';
 import { TrainingWidget } from './widgets/training-widget';
+
+// Earnings Summary Card Component
+function EarningsSummaryCard({ locale }: { locale: string }) {
+  const [wallet, setWallet] = useState<{ balance: number } | null>(null);
+  const [walletLoading, setWalletLoading] = useState<boolean>(true);
+  const [monthlyEarnings, setMonthlyEarnings] = useState<{ amount: number; growth: number } | null>(null);
+  const [monthlyLoading, setMonthlyLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadData = async () => {
+      try {
+        // Load wallet balance
+        const walletRes = await fetch('/api/guide/wallet');
+        if (walletRes.ok) {
+          const walletJson = (await walletRes.json()) as { balance?: number };
+          if (mounted) {
+            setWallet({ balance: Number(walletJson.balance ?? 0) });
+          }
+        }
+
+        // Load monthly earnings
+        const analyticsRes = await fetch('/api/guide/wallet/analytics?period=monthly');
+        if (analyticsRes.ok) {
+          const analyticsJson = (await analyticsRes.json()) as { thisMonth?: { amount: number; growth: number } };
+          if (mounted) {
+            setMonthlyEarnings(analyticsJson.thisMonth || { amount: 0, growth: 0 });
+          }
+        }
+      } catch (error) {
+        logger.error('Failed to load earnings data', error);
+      } finally {
+        if (mounted) {
+          setWalletLoading(false);
+          setMonthlyLoading(false);
+        }
+      }
+    };
+
+    void loadData();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardContent className="p-4 space-y-4">
+        {/* Current Balance */}
+        <Link
+          href={`/${locale}/guide/wallet`}
+          className="block rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 p-4 transition-all active:scale-[0.98]"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                <Wallet className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-emerald-50">Saldo Dompet</p>
+                <p className="mt-0.5 text-xl font-bold text-white">
+                  {walletLoading ? (
+                    <span className="inline-block h-6 w-24 animate-pulse rounded bg-emerald-400/50" />
+                  ) : (
+                    `Rp ${Number(wallet?.balance ?? 0).toLocaleString('id-ID')}`
+                  )}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-white/80" />
+          </div>
+        </Link>
+
+        {/* Monthly Earnings with Growth */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 p-3">
+            <p className="text-xs font-medium text-blue-700/80">Pendapatan Bulan Ini</p>
+            <p className="mt-1 text-lg font-bold text-blue-700">
+              {monthlyLoading ? (
+                <span className="inline-block h-5 w-20 animate-pulse rounded bg-blue-200" />
+              ) : (
+                `Rp ${Math.round(monthlyEarnings?.amount ?? 0).toLocaleString('id-ID')}`
+              )}
+            </p>
+            {monthlyEarnings && monthlyEarnings.growth !== 0 && (
+              <div className="mt-1 flex items-center gap-1 text-xs">
+                <TrendingUp
+                  className={cn(
+                    'h-3 w-3',
+                    monthlyEarnings.growth > 0 ? 'text-emerald-600' : 'text-red-600 rotate-180',
+                  )}
+                />
+                <span
+                  className={cn(
+                    'font-medium',
+                    monthlyEarnings.growth > 0 ? 'text-emerald-600' : 'text-red-600',
+                  )}
+                >
+                  {monthlyEarnings.growth > 0 ? '+' : ''}
+                  {monthlyEarnings.growth.toFixed(1)}%
+                </span>
+                <span className="text-blue-600/70">vs bulan lalu</span>
+              </div>
+            )}
+          </div>
+          <Link
+            href={`/${locale}/guide/wallet`}
+            className="flex flex-col items-center justify-center rounded-xl bg-slate-50 p-3 transition-colors hover:bg-slate-100 active:scale-95"
+          >
+            <Wallet className="h-5 w-5 text-slate-600 mb-1" />
+            <p className="text-xs font-medium text-slate-700">Lihat Detail</p>
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 type GuideProfileClientProps = {
   locale: string;
@@ -76,6 +198,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   MessageSquare: MessageSquare,
   BookOpen: BookOpen,
   CreditCard: CreditCard,
+  Users: Users, // For Crew Directory
 };
 
 type MenuItem = {
@@ -93,8 +216,6 @@ type MenuSection = {
 export function GuideProfileClient({ locale, user }: GuideProfileClientProps) {
   const router = useRouter();
   const supabase = createClient();
-  const [wallet, setWallet] = useState<{ balance: number } | null>(null);
-  const [walletLoading, setWalletLoading] = useState<boolean>(false);
 
   // Use shared hooks
   const { data: stats, isLoading: statsLoading } = useGuideStats();
@@ -130,31 +251,6 @@ export function GuideProfileClient({ locale, user }: GuideProfileClientProps) {
   });
 
   const hasActiveTraining = (trainingData?.length ?? 0) > 0;
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadWallet = async () => {
-      try {
-        setWalletLoading(true);
-        const res = await fetch('/api/guide/wallet');
-        if (!res.ok) return;
-        const json = (await res.json()) as { balance?: number };
-        if (!mounted) return;
-        setWallet({ balance: Number(json.balance ?? 0) });
-      } finally {
-        if (mounted) {
-          setWalletLoading(false);
-        }
-      }
-    };
-
-    void loadWallet();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -267,39 +363,24 @@ export function GuideProfileClient({ locale, user }: GuideProfileClientProps) {
             </div>
           </div>
 
-          {/* Wallet Card - Prominent */}
-          <Link
-            href={`/${locale}/guide/wallet`}
-            className="mt-4 block rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 p-4 shadow-sm transition-all active:scale-[0.98]"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                  <Wallet className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-emerald-50">Saldo Dompet</p>
-                  <p className="mt-0.5 text-xl font-bold text-white">
-                    {walletLoading ? (
-                      <span className="inline-block h-6 w-24 animate-pulse rounded bg-emerald-400/50" />
-                    ) : (
-                      `Rp ${Number(wallet?.balance ?? 0).toLocaleString('id-ID')}`
-                    )}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-white/80" />
-            </div>
-          </Link>
         </CardContent>
       </Card>
 
 
-      {/* Guide Badges & Level - Clickable to Leaderboard */}
+      {/* Earnings Summary - Enhanced */}
       <div>
-        <Link href={`/${locale}/guide/leaderboard`} className="block">
-          <GuideBadges locale={locale} />
-        </Link>
+        <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          PENDAPATAN
+        </h2>
+        <EarningsSummaryCard locale={locale} />
+      </div>
+
+      {/* Career Overview - Detailed (Level, Badges, Certifications) */}
+      <div>
+        <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          KARIR & PRESTASI
+        </h2>
+        <CareerOverviewWidget locale={locale} variant="detailed" />
       </div>
 
       {/* Training Widget - Only show if has active training */}
@@ -333,8 +414,10 @@ export function GuideProfileClient({ locale, user }: GuideProfileClientProps) {
               if (item.href === '/guide/performance') {
                 return false;
               }
-              // Add Leaderboard to Insight Pribadi section if not exists
-              // (Leaderboard bisa diakses dari Badges widget, tapi juga bisa di menu)
+              // Hide Crew Directory (sudah ada di Super App Menu di home)
+              if (item.href === '/guide/crew/directory' || item.href.includes('/guide/crew/directory')) {
+                return false;
+              }
               return true;
             });
 

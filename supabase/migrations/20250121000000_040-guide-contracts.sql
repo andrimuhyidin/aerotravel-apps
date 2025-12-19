@@ -153,6 +153,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_generate_contract_number ON guide_contracts;
 CREATE TRIGGER trigger_generate_contract_number
   BEFORE INSERT ON guide_contracts
   FOR EACH ROW
@@ -173,6 +174,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_calculate_expires_at ON guide_contracts;
 CREATE TRIGGER trigger_calculate_expires_at
   BEFORE INSERT OR UPDATE ON guide_contracts
   FOR EACH ROW
@@ -187,6 +189,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_update_contract_updated_at ON guide_contracts;
 CREATE TRIGGER trigger_update_contract_updated_at
   BEFORE UPDATE ON guide_contracts
   FOR EACH ROW
@@ -198,6 +201,15 @@ CREATE TRIGGER trigger_update_contract_updated_at
 ALTER TABLE guide_contracts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guide_contract_trips ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guide_contract_payments ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "guide_contracts_own" ON guide_contracts;
+DROP POLICY IF EXISTS "guide_contracts_sign" ON guide_contracts;
+DROP POLICY IF EXISTS "guide_contracts_admin" ON guide_contracts;
+DROP POLICY IF EXISTS "guide_contract_trips_own" ON guide_contract_trips;
+DROP POLICY IF EXISTS "guide_contract_trips_admin" ON guide_contract_trips;
+DROP POLICY IF EXISTS "guide_contract_payments_own" ON guide_contract_payments;
+DROP POLICY IF EXISTS "guide_contract_payments_admin" ON guide_contract_payments;
 
 -- Guide can view own contracts
 CREATE POLICY "guide_contracts_own" ON guide_contracts

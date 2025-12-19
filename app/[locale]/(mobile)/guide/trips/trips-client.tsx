@@ -6,7 +6,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Calendar, CheckCircle2, ChevronRight, Clock, Users, XCircle } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle2, ChevronRight, Clock, DollarSign, Users, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
@@ -45,6 +45,7 @@ type TripItem = {
   confirmation_deadline?: string | null;
   confirmed_at?: string | null;
   rejected_at?: string | null;
+  fee_amount?: number | null;
 };
 
 type GuideTripsResponse = {
@@ -132,7 +133,7 @@ export function TripsClient({ locale }: TripsClientProps) {
   }, []);
 
   const { data, isLoading, error } = useQuery<GuideTripsResponse>({
-    queryKey: queryKeys.guide.trips(),
+    queryKey: queryKeys.guide.trips.all(),
     queryFn: async () => {
       const res = await fetch('/api/guide/trips');
       if (!res.ok) {
@@ -156,7 +157,7 @@ export function TripsClient({ locale }: TripsClientProps) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.guide.trips() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.guide.trips.all() });
       setConfirmDialogOpen(false);
       setSelectedTrip(null);
       setRejectionReason('');
@@ -219,7 +220,7 @@ export function TripsClient({ locale }: TripsClientProps) {
   };
 
   const refetchTrips = () => {
-    void queryClient.invalidateQueries({ queryKey: queryKeys.guide.trips() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.guide.trips.all() });
   };
 
   if (isLoading) {
@@ -400,29 +401,48 @@ export function TripsClient({ locale }: TripsClientProps) {
 
                       {/* Pending Confirmation Info */}
                       {trip.assignment_status === 'pending_confirmation' && trip.confirmation_deadline && (
-                        <div className="mt-3 rounded-xl border border-amber-200/60 bg-gradient-to-r from-amber-50/80 to-orange-50/50 p-3 shadow-sm ring-1 ring-amber-100/50">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2.5">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
-                                <Clock className="h-4 w-4 text-amber-600" />
-                              </div>
-                              <div>
-                                <p className="text-xs font-semibold text-amber-900">
-                                  {getTimeRemaining(trip.confirmation_deadline) || 'Deadline lewat'}
-                                </p>
-                                <p className="text-[10px] text-amber-700/70">Batas konfirmasi</p>
+                        <div className="mt-3 space-y-2">
+                          {/* Fee Info - Prominent for transparency */}
+                          {trip.fee_amount && (
+                            <div className="rounded-xl border border-emerald-200/60 bg-gradient-to-r from-emerald-50/80 to-teal-50/50 p-3 shadow-sm ring-1 ring-emerald-100/50">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
+                                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-xs font-semibold text-emerald-900">Estimasi Fee</p>
+                                  <p className="mt-0.5 text-sm font-bold text-emerald-700">
+                                    Rp {Number(trip.fee_amount).toLocaleString('id-ID')}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                            <Button
-                              size="sm"
-                              className="h-8 bg-amber-600 text-xs font-semibold text-white shadow-sm hover:bg-amber-700"
-                              onClick={() => {
-                                setSelectedTrip(trip);
-                                setConfirmDialogOpen(true);
-                              }}
-                            >
-                              Konfirmasi
-                            </Button>
+                          )}
+                          {/* Deadline Info */}
+                          <div className="rounded-xl border border-amber-200/60 bg-gradient-to-r from-amber-50/80 to-orange-50/50 p-3 shadow-sm ring-1 ring-amber-100/50">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
+                                  <Clock className="h-4 w-4 text-amber-600" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-semibold text-amber-900">
+                                    {getTimeRemaining(trip.confirmation_deadline) || 'Deadline lewat'}
+                                  </p>
+                                  <p className="text-[10px] text-amber-700/70">Batas konfirmasi</p>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                className="h-8 bg-amber-600 text-xs font-semibold text-white shadow-sm hover:bg-amber-700"
+                                onClick={() => {
+                                  setSelectedTrip(trip);
+                                  setConfirmDialogOpen(true);
+                                }}
+                              >
+                                Konfirmasi
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -441,6 +461,17 @@ export function TripsClient({ locale }: TripsClientProps) {
                             </div>
                             <span className="font-medium">{trip.guests} tamu</span>
                           </div>
+                          {/* Fee Display - Always visible for transparency */}
+                          {trip.fee_amount && (
+                            <div className="flex items-center gap-2 text-emerald-600">
+                              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-100">
+                                <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
+                              </div>
+                              <span className="font-semibold">
+                                Rp {Number(trip.fee_amount).toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <Link
                           href={`/${locale}/guide/trips/${trip.code}`}
@@ -468,6 +499,25 @@ export function TripsClient({ locale }: TripsClientProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Fee Info - Prominent in dialog */}
+            {selectedTrip?.fee_amount && (
+              <div className="rounded-lg border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
+                    <DollarSign className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-emerald-700">Estimasi Fee yang Akan Diterima</p>
+                    <p className="mt-1 text-lg font-bold text-emerald-900">
+                      Rp {Number(selectedTrip.fee_amount).toLocaleString('id-ID')}
+                    </p>
+                    <p className="mt-1 text-xs text-emerald-600/70">
+                      Fee akan dibayarkan setelah trip selesai
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             {selectedTrip?.confirmation_deadline && (
               <div className="rounded-lg bg-slate-50 p-3">
                 <p className="text-xs font-medium text-slate-600">Deadline Konfirmasi</p>

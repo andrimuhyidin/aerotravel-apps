@@ -104,10 +104,7 @@ export async function chatTripAssistant(
           });
         }
       } catch (ragError) {
-        logger.warn('RAG retrieval failed, continuing without SOP context', ragError, {
-          question,
-          branchId,
-        });
+        logger.warn('RAG retrieval failed, continuing without SOP context', { error: ragError, question, branchId });
       }
     }
 

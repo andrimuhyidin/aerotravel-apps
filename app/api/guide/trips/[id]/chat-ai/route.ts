@@ -39,26 +39,23 @@ export const POST = withErrorHandler(async (
   const branchContext = await getBranchContext(user.id);
   const client = supabase as unknown as any;
 
-  // Verify guide assignment
-  const { data: assignment, error: assignmentError } = await client
+  // Verify guide assignment (check both trip_crews and trip_guides)
+  const { data: crewAssignment } = await client
+    .from('trip_crews')
+    .select('id, role, status')
+    .eq('trip_id', tripId)
+    .eq('guide_id', user.id)
+    .in('status', ['assigned', 'confirmed'])
+    .maybeSingle();
+
+  const { data: legacyAssignment } = await client
     .from('trip_guides')
     .select('id, assignment_status')
     .eq('trip_id', tripId)
     .eq('guide_id', user.id)
     .maybeSingle();
 
-  if (assignmentError) {
-    logger.error('Failed to check trip assignment', assignmentError, {
-      tripId,
-      guideId: user.id,
-    });
-    return NextResponse.json(
-      { error: 'Gagal memverifikasi assignment trip' },
-      { status: 500 }
-    );
-  }
-
-  if (!assignment) {
+  if (!crewAssignment && !legacyAssignment) {
     logger.warn('Guide not assigned to trip', {
       tripId,
       guideId: user.id,

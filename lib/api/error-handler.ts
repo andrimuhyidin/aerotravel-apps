@@ -5,8 +5,10 @@
  * Standardized error handling for API routes
  */
 
-import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
+import { NextResponse } from 'next/server';
+
+import { logger } from '@/lib/utils/logger';
 
 export type ApiError = {
   code: string;
@@ -103,7 +105,7 @@ export function handleApiError(error: unknown): NextResponse<ApiError> {
   }
 
   // Handle unknown errors
-  console.error('Unhandled API error:', error);
+  logger.error('Unhandled API error', error);
   
   return NextResponse.json(
     {

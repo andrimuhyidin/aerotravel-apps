@@ -951,6 +951,216 @@ export type Database = {
           },
         ]
       }
+      crew_audit_logs: {
+        Row: {
+          action_details: Json | null
+          action_type: string
+          branch_id: string | null
+          created_at: string | null
+          guide_id: string | null
+          id: string
+          ip_address: unknown
+          performed_at: string | null
+          performed_by: string | null
+          trip_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action_details?: Json | null
+          action_type: string
+          branch_id?: string | null
+          created_at?: string | null
+          guide_id?: string | null
+          id?: string
+          ip_address?: unknown
+          performed_at?: string | null
+          performed_by?: string | null
+          trip_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action_details?: Json | null
+          action_type?: string
+          branch_id?: string | null
+          created_at?: string | null
+          guide_id?: string | null
+          id?: string
+          ip_address?: unknown
+          performed_at?: string | null
+          performed_by?: string | null
+          trip_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_audit_logs_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_audit_logs_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_audit_logs_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_audit_logs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip_profit_loss"
+            referencedColumns: ["trip_id"]
+          },
+          {
+            foreignKeyName: "crew_audit_logs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crew_notes: {
+        Row: {
+          branch_id: string | null
+          created_at: string | null
+          created_by: string
+          id: string
+          is_internal: boolean | null
+          message: string
+          note_type: string | null
+          parent_note_id: string | null
+          trip_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_internal?: boolean | null
+          message: string
+          note_type?: string | null
+          parent_note_id?: string | null
+          trip_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_internal?: boolean | null
+          message?: string
+          note_type?: string | null
+          parent_note_id?: string | null
+          trip_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_notes_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_notes_parent_note_id_fkey"
+            columns: ["parent_note_id"]
+            isOneToOne: false
+            referencedRelation: "crew_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_notes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip_profit_loss"
+            referencedColumns: ["trip_id"]
+          },
+          {
+            foreignKeyName: "crew_notes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crew_profiles_public_internal: {
+        Row: {
+          badges: Json | null
+          branch_id: string | null
+          contact_enabled: boolean | null
+          current_availability: string | null
+          display_name: string
+          is_active: boolean | null
+          last_status_update: string | null
+          photo_url: string | null
+          skills: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          badges?: Json | null
+          branch_id?: string | null
+          contact_enabled?: boolean | null
+          current_availability?: string | null
+          display_name: string
+          is_active?: boolean | null
+          last_status_update?: string | null
+          photo_url?: string | null
+          skills?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          badges?: Json | null
+          branch_id?: string | null
+          contact_enabled?: boolean | null
+          current_availability?: string | null
+          display_name?: string
+          is_active?: boolean | null
+          last_status_update?: string | null
+          photo_url?: string | null
+          skills?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_profiles_public_internal_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_profiles_public_internal_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cron_job_logs: {
         Row: {
           completed_at: string | null
@@ -1997,6 +2207,7 @@ export type Database = {
       }
       guide_contracts: {
         Row: {
+          auto_cover_trips: boolean | null
           branch_id: string | null
           company_signature_url: string | null
           company_signed_at: string | null
@@ -2007,15 +2218,18 @@ export type Database = {
           description: string | null
           end_date: string | null
           expires_at: string | null
-          fee_amount: number
+          fee_amount: number | null
           fee_type: string
           guide_id: string
           guide_signature_url: string | null
           guide_signed_at: string | null
           id: string
+          is_master_contract: boolean | null
           payment_terms: string | null
+          previous_contract_id: string | null
           rejected_at: string | null
           rejection_reason: string | null
+          renewal_date: string | null
           signed_pdf_url: string | null
           start_date: string
           status: Database["public"]["Enums"]["guide_contract_status"] | null
@@ -2027,6 +2241,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          auto_cover_trips?: boolean | null
           branch_id?: string | null
           company_signature_url?: string | null
           company_signed_at?: string | null
@@ -2037,15 +2252,18 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           expires_at?: string | null
-          fee_amount: number
+          fee_amount?: number | null
           fee_type?: string
           guide_id: string
           guide_signature_url?: string | null
           guide_signed_at?: string | null
           id?: string
+          is_master_contract?: boolean | null
           payment_terms?: string | null
+          previous_contract_id?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
+          renewal_date?: string | null
           signed_pdf_url?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["guide_contract_status"] | null
@@ -2057,6 +2275,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          auto_cover_trips?: boolean | null
           branch_id?: string | null
           company_signature_url?: string | null
           company_signed_at?: string | null
@@ -2067,15 +2286,18 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           expires_at?: string | null
-          fee_amount?: number
+          fee_amount?: number | null
           fee_type?: string
           guide_id?: string
           guide_signature_url?: string | null
           guide_signed_at?: string | null
           id?: string
+          is_master_contract?: boolean | null
           payment_terms?: string | null
+          previous_contract_id?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
+          renewal_date?: string | null
           signed_pdf_url?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["guide_contract_status"] | null
@@ -2106,6 +2328,13 @@ export type Database = {
             columns: ["guide_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_contracts_previous_contract_id_fkey"
+            columns: ["previous_contract_id"]
+            isOneToOne: false
+            referencedRelation: "guide_contracts"
             referencedColumns: ["id"]
           },
           {
@@ -6464,6 +6693,87 @@ export type Database = {
           },
         ]
       }
+      trip_crews: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          assignment_notes: string | null
+          branch_id: string | null
+          confirmed_at: string | null
+          created_at: string | null
+          guide_id: string
+          id: string
+          role: string
+          status: string
+          trip_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assignment_notes?: string | null
+          branch_id?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          guide_id: string
+          id?: string
+          role?: string
+          status?: string
+          trip_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assignment_notes?: string | null
+          branch_id?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          guide_id?: string
+          id?: string
+          role?: string
+          status?: string
+          trip_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_crews_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_crews_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_crews_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_crews_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip_profit_loss"
+            referencedColumns: ["trip_id"]
+          },
+          {
+            foreignKeyName: "trip_crews_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_expenses: {
         Row: {
           category: Database["public"]["Enums"]["expense_category"]
@@ -6671,6 +6981,11 @@ export type Database = {
           actual_departure_time: string | null
           actual_return_time: string | null
           branch_id: string
+          briefing_generated_at: string | null
+          briefing_generated_by: string | null
+          briefing_points: Json | null
+          briefing_updated_at: string | null
+          briefing_updated_by: string | null
           completed_at: string | null
           completed_by: string | null
           created_at: string | null
@@ -6694,6 +7009,11 @@ export type Database = {
           actual_departure_time?: string | null
           actual_return_time?: string | null
           branch_id: string
+          briefing_generated_at?: string | null
+          briefing_generated_by?: string | null
+          briefing_points?: Json | null
+          briefing_updated_at?: string | null
+          briefing_updated_by?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string | null
@@ -6717,6 +7037,11 @@ export type Database = {
           actual_departure_time?: string | null
           actual_return_time?: string | null
           branch_id?: string
+          briefing_generated_at?: string | null
+          briefing_generated_by?: string | null
+          briefing_points?: Json | null
+          briefing_updated_at?: string | null
+          briefing_updated_by?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string | null
@@ -6742,6 +7067,20 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_briefing_generated_by_fkey"
+            columns: ["briefing_generated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_briefing_updated_by_fkey"
+            columns: ["briefing_updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -6899,6 +7238,7 @@ export type Database = {
       }
       users: {
         Row: {
+          address: string | null
           avatar_url: string | null
           bank_account_name: string | null
           bank_account_number: string | null
@@ -6921,6 +7261,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
           bank_account_name?: string | null
           bank_account_number?: string | null
@@ -6943,6 +7284,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
           bank_account_name?: string | null
           bank_account_number?: string | null
@@ -7121,6 +7463,16 @@ export type Database = {
           refund_percent: number
         }[]
       }
+      check_contract_renewal: {
+        Args: never
+        Returns: {
+          contract_id: string
+          contract_number: string
+          days_until_renewal: number
+          guide_id: string
+          renewal_date: string
+        }[]
+      }
       check_wallet_milestones: {
         Args: { p_balance: number; p_guide_id: string }
         Returns: {
@@ -7156,6 +7508,33 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      log_crew_audit: {
+        Args: {
+          p_action_details?: Json
+          p_action_type: string
+          p_guide_id: string
+          p_performed_by?: string
+          p_trip_id: string
+        }
+        Returns: string
+      }
+      match_documents: {
+        Args: {
+          filter_branch_id?: string
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          branch_id: string
+          content: string
+          document_type: Database["public"]["Enums"]["ai_document_type"]
+          id: string
+          metadata: Json
+          similarity: number
+          title: string
+        }[]
       }
       sync_all_guide_wallet_balances: {
         Args: never
