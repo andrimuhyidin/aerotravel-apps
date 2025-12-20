@@ -102,30 +102,39 @@ export function TripInfoSection({ tripId, locale: _locale }: TripInfoSectionProp
   const hasFacilities = facilities.length > 0;
   const checklist = checklistData?.checklist || {};
   
-  // Only show included facilities for checklist (excluded tidak perlu dicek)
-  const includedFacilities = facilities.filter((f) => f.status === 'included');
-  
   const handleCheckboxChange = (facilityCode: string, checked: boolean) => {
     updateChecklistMutation.mutate({ facilityCode, checked });
   };
   
-  const checkedCount = includedFacilities.filter((f) => checklist[f.code] === true).length;
-  const totalCount = includedFacilities.length;
-  const allChecked = totalCount > 0 && checkedCount === totalCount;
+  // Group facilities by status
+  const includedFacilities = facilities.filter((f) => f.status === 'included');
+  const excludedFacilities = facilities.filter((f) => f.status === 'excluded');
   
-  // Sort facilities: included first, then by category, then by name
-  const sortedFacilities = [...facilities].sort((a, b) => {
-    // First: included before excluded
-    if (a.status !== b.status) {
-      return a.status === 'included' ? -1 : 1;
-    }
-    // Second: by category
+  // Debug: Log excluded facilities (only in development)
+  if (process.env.NODE_ENV === 'development' && excludedFacilities.length === 0 && facilities.length > 0) {
+    console.log('⚠️ No excluded facilities found. Total facilities:', facilities.length);
+    console.log('Facilities status breakdown:', {
+      included: facilities.filter((f) => f.status === 'included').length,
+      excluded: facilities.filter((f) => f.status === 'excluded').length,
+      allFacilities: facilities.map((f) => ({ name: f.name, status: f.status, code: f.code })),
+    });
+  }
+  
+  // Sort each group: by category, then by name
+  const sortFacilities = (a: FacilityDisplayItem, b: FacilityDisplayItem) => {
     if (a.category !== b.category) {
       return a.category.localeCompare(b.category);
     }
-    // Third: by name
     return a.name.localeCompare(b.name);
-  });
+  };
+  
+  const sortedIncluded = [...includedFacilities].sort(sortFacilities);
+  const sortedExcluded = [...excludedFacilities].sort(sortFacilities);
+  
+  // Calculate checklist progress (only for included facilities)
+  const checkedCount = includedFacilities.filter((f) => checklist[f.code] === true).length;
+  const totalCount = includedFacilities.length;
+  const allChecked = totalCount > 0 && checkedCount === totalCount;
 
   if (isLoading || checklistLoading) {
     return (
@@ -183,122 +192,174 @@ export function TripInfoSection({ tripId, locale: _locale }: TripInfoSectionProp
       <CardContent>
         {hasFacilities ? (
           <TooltipProvider>
-            <div className="space-y-4">
-              {/* Facilities Table - Optimized for mobile */}
-              <div className="w-full overflow-x-auto">
-                <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-0">Nama Item</TableHead>
-                    <TableHead className="w-[110px] px-2">Status</TableHead>
-                    <TableHead className="w-[70px] px-2 text-right">Jumlah</TableHead>
-                    <TableHead className="w-[60px] px-2 text-center">Verifikasi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedFacilities.map((facility) => {
-                    const isIncluded = facility.status === 'included';
-                    const isChecked = isIncluded && checklist[facility.code] === true;
-                    const canCheck = isIncluded; // Only included facilities can be checked
-                    
-                    return (
-                      <TableRow
-                        key={facility.code}
-                        className={cn(
-                          canCheck && 'cursor-pointer hover:bg-slate-50',
-                          isIncluded && isChecked && 'bg-emerald-50/50',
-                          !isIncluded && 'opacity-75'
-                        )}
-                      >
-                        <TableCell className="min-w-0 py-3">
-                          <div className="flex items-start gap-2 min-w-0">
-                            {facility.icon && (
-                              <span className="text-base flex-shrink-0 mt-0.5">{facility.icon}</span>
-                            )}
-                            <div className="min-w-0 flex-1">
-                              {facility.description ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className={cn(
-                                      'text-sm font-medium break-words cursor-help underline decoration-dotted underline-offset-2',
-                                      isIncluded ? 'text-slate-900' : 'text-slate-600'
-                                    )}>
-                                      {facility.name}
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">{facility.description}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              ) : (
-                                <span className={cn(
-                                  'text-sm font-medium break-words',
-                                  isIncluded ? 'text-slate-900' : 'text-slate-600'
-                                )}>
-                                  {facility.name}
-                                </span>
+            <div className="space-y-6">
+              {/* TERMASUK Group */}
+              {sortedIncluded.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-emerald-500 text-white border-0 text-xs px-3 py-1">
+                      TERMASUK
+                    </Badge>
+                    <span className="text-xs text-slate-600">
+                      {sortedIncluded.length} item
+                    </span>
+                  </div>
+                  <div className="w-full overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-0">Item</TableHead>
+                          <TableHead className="w-[80px] px-2 text-right">Jumlah</TableHead>
+                          <TableHead className="w-[70px] px-2 text-center">Verifikasi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedIncluded.map((facility) => {
+                          const isChecked = checklist[facility.code] === true;
+                          
+                          return (
+                            <TableRow
+                              key={facility.code}
+                              className={cn(
+                                'cursor-pointer hover:bg-slate-50',
+                                isChecked && 'bg-emerald-50/50'
                               )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-[110px] px-2 py-3">
-                          <Badge
-                            variant={isIncluded ? 'default' : 'secondary'}
-                            className={cn(
-                              'text-[10px] px-1.5 py-0.5 h-5 whitespace-nowrap',
-                              isIncluded
-                                ? 'bg-emerald-500 text-white border-0'
-                                : 'bg-slate-200 text-slate-700 border-0'
-                            )}
-                          >
-                            {isIncluded ? 'Termasuk' : 'Tdk Termasuk'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="w-[70px] px-2 py-3 text-right">
-                          <span className={cn(
-                            'text-sm font-medium',
-                            facility.quantity ? 'text-slate-900' : 'text-slate-400'
-                          )}>
-                            {facility.quantity ?? '-'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="w-[60px] px-2 py-3 text-center">
-                          {canCheck ? (
-                            <Checkbox
-                              checked={isChecked}
-                              onCheckedChange={(checked: boolean | 'indeterminate') => {
-                                handleCheckboxChange(facility.code, checked === true);
-                              }}
-                              disabled={updateChecklistMutation.isPending}
-                              className="mx-auto"
-                            />
-                          ) : (
-                            <div className="h-4 w-4 mx-auto" />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            
-            {/* Completion Message - only for included facilities */}
-            {allChecked && totalCount > 0 && (
-              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-emerald-900">
-                      Semua fasilitas sudah tersedia
-                    </p>
-                    <p className="text-xs text-emerald-700 mt-0.5">
-                      Trip siap untuk dimulai
-                    </p>
+                            >
+                              <TableCell className="min-w-0 py-3">
+                                <div className="flex items-start gap-2 min-w-0">
+                                  {facility.icon && (
+                                    <span className="text-base flex-shrink-0 mt-0.5">{facility.icon}</span>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    {facility.description ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="text-sm font-medium break-words cursor-help underline decoration-dotted underline-offset-2 text-slate-900">
+                                            {facility.name}
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="max-w-xs">{facility.description}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    ) : (
+                                      <span className="text-sm font-medium break-words text-slate-900">
+                                        {facility.name}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="w-[80px] px-2 py-3 text-right">
+                                <span className={cn(
+                                  'text-sm font-medium',
+                                  facility.quantity ? 'text-slate-900' : 'text-slate-400'
+                                )}>
+                                  {facility.quantity ?? '-'}
+                                </span>
+                              </TableCell>
+                              <TableCell className="w-[70px] px-2 py-3 text-center">
+                                <Checkbox
+                                  checked={isChecked}
+                                  onCheckedChange={(checked: boolean | 'indeterminate') => {
+                                    handleCheckboxChange(facility.code, checked === true);
+                                  }}
+                                  disabled={updateChecklistMutation.isPending}
+                                  className="mx-auto"
+                                />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* TIDAK TERMASUK Group */}
+              {sortedExcluded.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-slate-200 text-slate-700 border-0 text-xs px-3 py-1">
+                      TIDAK TERMASUK
+                    </Badge>
+                    <span className="text-xs text-slate-600">
+                      {sortedExcluded.length} item
+                    </span>
+                  </div>
+                  <div className="w-full overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-0">Item</TableHead>
+                          <TableHead className="w-[80px] px-2 text-right">Jumlah</TableHead>
+                          <TableHead className="w-[70px] px-2 text-center">Verifikasi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedExcluded.map((facility) => (
+                          <TableRow
+                            key={facility.code}
+                            className="opacity-75"
+                          >
+                            <TableCell className="min-w-0 py-3">
+                              <div className="flex items-start gap-2 min-w-0">
+                                {facility.icon && (
+                                  <span className="text-base flex-shrink-0 mt-0.5">{facility.icon}</span>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  {facility.description ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="text-sm font-medium break-words cursor-help underline decoration-dotted underline-offset-2 text-slate-600">
+                                          {facility.name}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p className="max-w-xs">{facility.description}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <span className="text-sm font-medium break-words text-slate-600">
+                                      {facility.name}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="w-[80px] px-2 py-3 text-right">
+                              <span className="text-sm font-medium text-slate-400">
+                                {facility.quantity ?? '-'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="w-[70px] px-2 py-3 text-center">
+                              <div className="h-4 w-4 mx-auto" />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            
+              {/* Completion Message - only for included facilities */}
+              {allChecked && totalCount > 0 && (
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-emerald-900">
+                        Semua fasilitas sudah tersedia
+                      </p>
+                      <p className="text-xs text-emerald-700 mt-0.5">
+                        Trip siap untuk dimulai
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </TooltipProvider>
         ) : (

@@ -42,6 +42,7 @@ import { useTripCrew } from '@/hooks/use-trip-crew';
 import { toast } from 'sonner';
 import { CompletionChecklistWidget } from './completion-checklist-widget';
 import { RiskAssessmentDialog } from './risk-assessment-dialog';
+import { TripReadinessDialog } from './trip-readiness-dialog';
 import { TripTimelineView } from './trip-timeline-view';
 
 type TripDetailClientProps = {
@@ -91,6 +92,7 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState<string>('');
   const [rejectionNote, setRejectionNote] = useState<string>('');
+  const [readinessDialogOpen, setReadinessDialogOpen] = useState(false);
   const [riskAssessmentOpen, setRiskAssessmentOpen] = useState(false);
   const [canStartTrip, setCanStartTrip] = useState<boolean | null>(null);
   const queryClient = useQueryClient();
@@ -805,6 +807,22 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
         </DialogContent>
       </Dialog>
 
+      {/* Trip Readiness Dialog */}
+      <TripReadinessDialog
+        open={readinessDialogOpen}
+        onOpenChange={setReadinessDialogOpen}
+        onContinue={() => {
+          setReadinessDialogOpen(false);
+          setRiskAssessmentOpen(true);
+        }}
+        onOpenRiskAssessment={() => {
+          setReadinessDialogOpen(false);
+          setRiskAssessmentOpen(true);
+        }}
+        tripId={tripId}
+        locale={locale}
+      />
+
       {/* Risk Assessment Dialog */}
       <RiskAssessmentDialog
         open={riskAssessmentOpen}
@@ -853,16 +871,8 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
         assignmentStatus={assignmentData?.assignment_status as 'pending_confirmation' | 'confirmed' | 'rejected' | null | undefined}
         currentPhase={getCurrentPhase()}
         onStartTrip={() => {
-          if (canStartTrip === false) {
-            const reasons = canStartData?.reasons || [];
-            if (reasons.some((r) => r.includes('Risk assessment'))) {
-              setRiskAssessmentOpen(true);
-            } else {
-              toast.error(`Trip tidak dapat dimulai: ${reasons.join(', ')}`, { duration: 5000 });
-            }
-            return;
-          }
-          setRiskAssessmentOpen(true);
+          // Always show readiness dialog first
+          setReadinessDialogOpen(true);
         }}
         onEndTrip={async () => {
           if (confirm('Yakin ingin menyelesaikan trip ini?')) {

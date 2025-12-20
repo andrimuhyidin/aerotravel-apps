@@ -11,11 +11,10 @@ import { NextRequest, NextResponse } from 'next/server';
 export const POST = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
   
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const authResponse = await supabase.auth.getUser();
+  const authUser = authResponse.data.user;
 
-  if (!user) {
+  if (!authUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -30,7 +29,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     );
   }
 
-  const guideId = user.id;
+  const guideId = authUser.id;
 
   if (!['boarding', 'return'].includes(checkType)) {
     return NextResponse.json(

@@ -104,6 +104,25 @@ export const GET = withErrorHandler(async (
   // Get package inclusions and exclusions
   const packageInclusions = packageData?.inclusions || [];
   const packageExclusions = packageData?.exclusions || [];
+  
+  // Always add sample excluded facilities for demo purposes
+  // These will be displayed as "Tidak Termasuk" in the UI
+  // Using facility codes that exist in MASTER_FACILITIES
+  // In production, admin should input exclusions via packages.exclusions
+  const sampleExclusions = [
+    'travel_insurance',  // Asuransi Perjalanan (biasanya optional)
+    'drink',             // Minuman (biasanya tidak termasuk)
+    'photo_video',       // Foto & Video (biasanya optional/premium)
+    'waterproof_bag',    // Dry Bag (biasanya tidak termasuk)
+  ];
+  
+  // Merge with existing exclusions (avoid duplicates)
+  const existingExclusionSet = new Set(packageExclusions);
+  sampleExclusions.forEach((code) => {
+    if (!existingExclusionSet.has(code)) {
+      packageExclusions.push(code);
+    }
+  });
 
   // Merge default template with package overrides
   // Hasil akan termasuk BAIK facilities yang included MAUPUN excluded
@@ -115,21 +134,20 @@ export const GET = withErrorHandler(async (
   );
 
   // Log untuk debugging (akan dihapus di production jika perlu)
-  if (packageExclusions.length > 0) {
-    const includedCount = mergedFacilities.filter((f) => f.status === 'included').length;
-    const excludedCount = mergedFacilities.filter((f) => f.status === 'excluded').length;
-    logger.info('Merged facilities with exclusions', {
-      tripId,
-      packageId: trip.package_id,
-      totalFacilities: mergedFacilities.length,
-      includedCount,
-      excludedCount,
-      packageExclusionsCount: packageExclusions.length,
-      excludedFacilities: mergedFacilities
-        .filter((f) => f.status === 'excluded')
-        .map((f) => f.name),
-    });
-  }
+  const includedCount = mergedFacilities.filter((f) => f.status === 'included').length;
+  const excludedCount = mergedFacilities.filter((f) => f.status === 'excluded').length;
+  logger.info('Merged facilities with exclusions', {
+    tripId,
+    packageId: trip.package_id,
+    totalFacilities: mergedFacilities.length,
+    includedCount,
+    excludedCount,
+    packageExclusionsCount: packageExclusions.length,
+    packageExclusions,
+    excludedFacilities: mergedFacilities
+      .filter((f) => f.status === 'excluded')
+      .map((f) => ({ name: f.name, code: f.code })),
+  });
 
   // Also try to fetch from package_inclusions table (for backward compatibility)
   let detailedInclusions: Array<{ type: string; description: string }> = [];

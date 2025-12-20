@@ -8,6 +8,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
+import {
+    getDefaultTemplate,
+    mergeFacilities,
+} from '@/lib/guide/facilities';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -82,72 +86,140 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
   }
 
-  // Check if trip can start (certifications + risk assessment)
+  // Check if trip can start (ordered by priority: attendance, facility, equipment, risk, cert)
   // Skip check for ops/admin (they can override)
   if (!isOpsAdmin) {
-    const { data: canStart, error: checkError } = await client.rpc('can_trip_start', {
-      trip_uuid: tripId,
+    const reasons: string[] = [];
+
+    // 1. Check attendance (check-in)
+    const { data: tripGuide } = await client
+      .from('trip_guides')
+      .select('check_in_at')
+      .eq('trip_id', tripId)
+      .eq('guide_id', user.id)
+      .maybeSingle();
+
+    if (!tripGuide?.check_in_at) {
+      reasons.push('Belum melakukan absensi check-in');
+    }
+
+    // 2. Check facility checklist
+    const { data: packageTripData } = await client
+      .from('trips')
+      .select(`
+        package:packages(
+          inclusions,
+          exclusions,
+          destination
+        )
+      `)
+      .eq('id', tripId)
+      .single();
+
+    const packageData = packageTripData?.package as {
+      inclusions?: string[] | null;
+      exclusions?: string[] | null;
+      destination?: string | null;
+    } | null;
+
+    // Detect trip type for template
+    let detectedTripType: string | null = null;
+    const destination = packageData?.destination || '';
+    const searchText = destination.toLowerCase();
+    
+    if (searchText.includes('boat') || searchText.includes('kapal') || 
+        searchText.includes('island') || searchText.includes('pulau') ||
+        searchText.includes('snorkel') || searchText.includes('diving') ||
+        searchText.includes('karimun') || searchText.includes('derawan') ||
+        searchText.includes('raja ampat') || searchText.includes('komodo') ||
+        searchText.includes('pahawang') || searchText.includes('kiluan')) {
+      detectedTripType = 'boat_trip';
+    } else if (searchText.includes('land') || searchText.includes('darat') || 
+               searchText.includes('gunung') || searchText.includes('mountain') ||
+               searchText.includes('hiking') || searchText.includes('tracking')) {
+      detectedTripType = 'land_trip';
+    }
+
+    const defaultTemplate = getDefaultTemplate(detectedTripType || undefined);
+    const packageInclusions = packageData?.inclusions || [];
+    const packageExclusions = packageData?.exclusions || [];
+
+    const mergedFacilities = mergeFacilities(
+      defaultTemplate,
+      packageInclusions,
+      packageExclusions
+    );
+
+    const includedFacilities = mergedFacilities.filter((f) => f.status === 'included');
+    const totalFacilities = includedFacilities.length;
+
+    if (totalFacilities > 0) {
+      const { data: checklistData } = await client
+        .from('trip_facility_checklist')
+        .select('facility_code, checked')
+        .eq('trip_id', tripId)
+        .eq('guide_id', user.id);
+
+      const checklistMap = new Map(
+        (checklistData || []).map((item: { facility_code: string; checked: boolean }) => [
+          item.facility_code,
+          item.checked,
+        ])
+      );
+
+      const checkedFacilities = includedFacilities.filter((f) =>
+        checklistMap.get(f.code) === true
+      ).length;
+
+      if (checkedFacilities !== totalFacilities) {
+        reasons.push(`Fasilitas belum lengkap (${checkedFacilities}/${totalFacilities} sudah di-verify)`);
+      }
+    }
+
+    // 3. Check equipment checklist (conditional - only if exists)
+    const { data: equipmentChecklist } = await client
+      .from('guide_equipment_checklists')
+      .select('equipment_items, is_completed')
+      .eq('trip_id', tripId)
+      .eq('guide_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (equipmentChecklist?.equipment_items) {
+      const items = equipmentChecklist.equipment_items as Array<{ checked: boolean }>;
+      const total = items.length;
+      const checked = items.filter((item) => item.checked).length;
+      const isComplete = equipmentChecklist.is_completed || checked === total;
+
+      if (!isComplete) {
+        reasons.push(`Equipment checklist belum lengkap (${checked}/${total} sudah di-check)`);
+      }
+    }
+
+    // 4. Check risk assessment (only check if exists)
+    const { data: assessment } = await client
+      .from('pre_trip_assessments')
+      .select('id, is_safe, risk_level')
+      .eq('trip_id', tripId)
+      .eq('guide_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!assessment?.id) {
+      reasons.push('Risk assessment belum dilakukan');
+    }
+
+    // 5. Check certifications
+    const { data: certValid } = await client.rpc('check_guide_certifications_valid', {
       guide_uuid: user.id,
     });
+    if (!certValid) {
+      reasons.push('Certifications tidak valid atau expired');
+    }
 
-    if (checkError) {
-      logger.warn('Failed to check trip start eligibility, proceeding with manual check', checkError);
-      
-      // Fallback: manual check
-      const { data: certValid } = await client.rpc('check_guide_certifications_valid', {
-        guide_uuid: user.id,
-      });
-
-      const { data: assessment } = await client
-        .from('pre_trip_assessments')
-        .select('is_safe, risk_level')
-        .eq('trip_id', tripId)
-        .eq('guide_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const reasons: string[] = [];
-      if (!certValid) {
-        reasons.push('Certifications tidak valid atau expired');
-      }
-      if (!assessment?.is_safe) {
-        reasons.push(`Risk assessment: ${assessment?.risk_level || 'unknown'} risk - perlu admin approval`);
-      }
-
-      if (reasons.length > 0) {
-        return NextResponse.json(
-          {
-            error: 'Trip tidak dapat dimulai',
-            reasons,
-            can_override: true, // Admin can override
-          },
-          { status: 403 }
-        );
-      }
-    } else if (!canStart) {
-      // Get detailed reasons
-      const reasons: string[] = [];
-      const { data: certValid } = await client.rpc('check_guide_certifications_valid', {
-        guide_uuid: user.id,
-      });
-      if (!certValid) {
-        reasons.push('Certifications tidak valid atau expired');
-      }
-
-      const { data: assessment } = await client
-        .from('pre_trip_assessments')
-        .select('is_safe, risk_level')
-        .eq('trip_id', tripId)
-        .eq('guide_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!assessment?.is_safe) {
-        reasons.push(`Risk assessment: ${assessment?.risk_level || 'unknown'} risk - perlu admin approval`);
-      }
-
+    if (reasons.length > 0) {
       return NextResponse.json(
         {
           error: 'Trip tidak dapat dimulai',

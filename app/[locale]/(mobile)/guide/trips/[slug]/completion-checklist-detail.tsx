@@ -258,30 +258,109 @@ export function CompletionChecklistDetail({
         </div>
       )}
 
-      {/* End Trip Button */}
-      <Button
-        onClick={handleEndTrip}
-        disabled={!status.canComplete}
-        className={cn(
-          'w-full font-semibold',
-          status.canComplete
-            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-            : 'bg-slate-300 text-slate-600 cursor-not-allowed',
+      {/* End Trip Section */}
+      <div className="pt-4 border-t-2 border-slate-200 space-y-4">
+        {/* Summary Status */}
+        <div
+          className={cn(
+            'rounded-lg border-2 p-4',
+            status.canComplete
+              ? 'border-emerald-200 bg-emerald-50/50'
+              : 'border-amber-200 bg-amber-50/50',
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full',
+                status.canComplete ? 'bg-emerald-100' : 'bg-amber-100',
+              )}
+            >
+              {status.canComplete ? (
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-amber-600" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p
+                className={cn(
+                  'text-sm font-semibold',
+                  status.canComplete ? 'text-emerald-900' : 'text-amber-900',
+                )}
+              >
+                {status.canComplete
+                  ? 'Trip Siap untuk Diselesaikan'
+                  : 'Trip Belum Dapat Diselesaikan'}
+              </p>
+              <p
+                className={cn(
+                  'mt-0.5 text-xs',
+                  status.canComplete ? 'text-emerald-700' : 'text-amber-700',
+                )}
+              >
+                {status.canComplete
+                  ? `Semua item wajib sudah selesai (${progress.completed}/${progress.total})`
+                  : `${missingItems.length} item wajib belum selesai`}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Missing Items Warning */}
+        {!status.canComplete && missingItems.length > 0 && (
+          <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+            <div className="flex items-start gap-2">
+              <XCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-red-900 mb-1.5">
+                  Item yang perlu diselesaikan:
+                </p>
+                <ul className="space-y-1">
+                  {missingItems.map((item, idx) => (
+                    <li key={idx} className="text-xs text-red-800 flex items-start gap-1.5">
+                      <span className="mt-0.5">•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
         )}
-        size="lg"
-      >
-        {status.canComplete ? (
-          <>
-            <CheckCircle2 className="mr-2 h-4 w-4" />
-            End Trip ({progress.completed}/{progress.total} Complete)
-          </>
-        ) : (
-          <>
-            <XCircle className="mr-2 h-4 w-4" />
-            Tidak Dapat End Trip ({progress.completed}/{progress.total} Complete)
-          </>
+
+        {/* End Trip Button */}
+        <Button
+          onClick={handleEndTrip}
+          disabled={!status.canComplete}
+          className={cn(
+            'w-full font-semibold text-base py-6 shadow-sm',
+            status.canComplete
+              ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800'
+              : 'bg-slate-200 text-slate-500 cursor-not-allowed',
+          )}
+          size="lg"
+        >
+          {status.canComplete ? (
+            <div className="flex items-center justify-center gap-2">
+              <CheckCircle2 className="h-5 w-5" />
+              <span>Selesaikan Trip</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2">
+              <XCircle className="h-5 w-5" />
+              <span>Tidak Dapat Menyelesaikan</span>
+            </div>
+          )}
+        </Button>
+
+        {/* Helper Text */}
+        {!status.canComplete && (
+          <p className="text-xs text-center text-slate-600 leading-relaxed">
+            Lengkapi semua item wajib di atas untuk dapat menyelesaikan trip
+          </p>
         )}
-      </Button>
+      </div>
     </div>
   );
 }
