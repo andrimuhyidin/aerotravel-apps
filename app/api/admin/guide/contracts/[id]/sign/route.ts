@@ -235,7 +235,7 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
     const { renderToBuffer } = await import('@react-pdf/renderer');
     const contractModule = await import('@/lib/pdf/contract');
     const { ContractPDF } = contractModule;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+     
     type ContractData = Parameters<typeof ContractPDF>[0]['data'];
 
     // Get full contract data with guide info

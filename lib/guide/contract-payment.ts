@@ -15,6 +15,13 @@ export type ProcessTripPaymentResult = {
 /**
  * Process payment for a completed trip
  * Uses fee_amount from trip_guides (not from contract)
+ * 
+ * NOTE: This function is kept for backward compatibility and manual processing.
+ * Automatic payment processing is now handled by database trigger `trigger_auto_process_trip_payment`
+ * which fires when `check_out_at` is set on `trip_guides` table.
+ * 
+ * The trigger will automatically create wallet transaction when a guide checks out,
+ * preventing missing payments and ensuring data consistency.
  */
 export async function processTripPayment(
   tripId: string,
@@ -43,6 +50,7 @@ export async function processTripPayment(
     }
 
     // 2. Check if payment already processed
+    // Note: Trigger may have already processed this payment if check_out_at was set
     const { data: existingPayment } = await client
       .from('guide_wallet_transactions')
       .select('id')
@@ -52,7 +60,10 @@ export async function processTripPayment(
       .maybeSingle();
 
     if (existingPayment) {
-      logger.info('Payment already processed for trip', { tripId, transactionId: existingPayment.id });
+      logger.info('Payment already processed for trip (may have been processed by trigger)', {
+        tripId,
+        transactionId: existingPayment.id,
+      });
       return { success: true, transactionId: existingPayment.id };
     }
 

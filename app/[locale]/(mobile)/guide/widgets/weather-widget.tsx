@@ -6,7 +6,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Cloud, CloudRain, Droplets, Sun, Wind } from 'lucide-react';
+import { ChevronRight, Cloud, CloudRain, Droplets, Sun, Wind } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -37,9 +37,10 @@ type WeatherData = {
 
 type WeatherWidgetProps = {
   locale: string;
+  compact?: boolean;
 };
 
-export function WeatherWidget({ locale }: WeatherWidgetProps) {
+export function WeatherWidget({ locale, compact = false }: WeatherWidgetProps) {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
@@ -86,6 +87,82 @@ export function WeatherWidget({ locale }: WeatherWidgetProps) {
     }
   };
 
+  const hasAlerts = weatherData?.alerts && weatherData.alerts.length > 0;
+
+  // Show fallback UI if weather data is not available
+  if (!weatherData && !isLoading && location) {
+    // Compact version fallback
+    if (compact) {
+      return (
+        <Link href={`/${locale}/guide/weather`} className="flex items-center gap-2 min-w-0 flex-1 group">
+          <Cloud className="h-6 w-6 text-slate-400" />
+          <div className="flex min-w-0 flex-col flex-1">
+            <span className="text-xs font-medium text-slate-500">Cuaca</span>
+            <span className="text-sm font-semibold text-slate-600">Tidak tersedia</span>
+          </div>
+          <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 group-hover:text-slate-600 transition-colors" />
+        </Link>
+      );
+    }
+    // Full version fallback
+    return (
+      <Link href={`/${locale}/guide/weather`} className="block transition-transform active:scale-[0.98]">
+        <Card className="border-slate-200 bg-slate-50/50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <Cloud className="h-6 w-6 text-slate-400" />
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Cuaca</div>
+                <div className="text-xs text-slate-600">Tidak tersedia</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    );
+  }
+
+  // If no weather data and still loading or no location, show loading state
+  if (!weatherData) {
+    if (compact) {
+      return (
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Cloud className="h-6 w-6 text-slate-300 animate-pulse" />
+          <div className="flex min-w-0 flex-col flex-1">
+            <span className="text-xs font-medium text-slate-400">Cuaca</span>
+            <span className="text-sm font-semibold text-slate-400">Memuat...</span>
+          </div>
+        </div>
+      );
+    }
+    return null; // Full version already has loading state above
+  }
+
+  // Compact version for combined status + weather widget
+  if (compact) {
+    return (
+      <Link href={`/${locale}/guide/weather`} className="flex items-center gap-2 min-w-0 flex-1 group">
+        {getWeatherIcon(weatherData.current.weather.main)}
+        <div className="flex min-w-0 flex-col flex-1">
+          <span className="text-xs font-medium text-slate-500">Cuaca</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-sm font-semibold text-slate-900">
+              {Math.round(weatherData.current.temp)}°C
+            </span>
+            {hasAlerts && (
+              <span className="text-[10px] font-medium text-amber-700 flex items-center gap-0.5">
+                <span className="text-amber-600">⚠️</span>
+                <span>{weatherData.alerts.length} peringatan</span>
+              </span>
+            )}
+          </div>
+        </div>
+        <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 group-hover:text-slate-600 transition-colors" />
+      </Link>
+    );
+  }
+
+  // Full version
   if (isLoading || !location) {
     return (
       <Link href={`/${locale}/guide/weather`} className="block">
@@ -97,14 +174,6 @@ export function WeatherWidget({ locale }: WeatherWidgetProps) {
       </Link>
     );
   }
-
-  // Weather widget is optional, so returning null when data unavailable is acceptable
-  // This prevents showing broken UI when weather API fails
-  if (!weatherData) {
-    return null; // Widget is optional, returning null is acceptable
-  }
-
-  const hasAlerts = weatherData.alerts && weatherData.alerts.length > 0;
 
   return (
     <Link href={`/${locale}/guide/weather`} className="block transition-transform active:scale-[0.98]">

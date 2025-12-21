@@ -21,6 +21,7 @@ const riskAssessmentSchema = z.object({
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   notes: z.string().optional(),
+  use_weather_data: z.boolean().optional(), // Auto-fill from weather API
 });
 
 export const GET = withErrorHandler(async (
@@ -98,13 +99,58 @@ export const POST = withErrorHandler(async (
 
   const branchContext = await getBranchContext(user.id);
 
+  // Fetch weather data if requested and coordinates provided
+  let weatherData: unknown = null;
+  let finalPayload = { ...payload };
+
+  if (payload.use_weather_data && payload.latitude && payload.longitude) {
+    try {
+      const weatherResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/guide/weather?lat=${payload.latitude}&lng=${payload.longitude}`
+      );
+      
+      if (weatherResponse.ok) {
+        weatherData = await weatherResponse.json();
+        const weather = weatherData as {
+          current?: { wind_speed?: number; weather?: { main?: string } };
+        };
+        
+        // Auto-fill from weather data if not provided
+        if (!finalPayload.wind_speed && weather.current?.wind_speed) {
+          finalPayload.wind_speed = weather.current.wind_speed;
+        }
+        
+        if (!finalPayload.weather_condition && weather.current?.weather?.main) {
+          const weatherMain = weather.current.weather.main.toLowerCase();
+          if (weatherMain.includes('storm') || weatherMain.includes('thunder')) {
+            finalPayload.weather_condition = 'stormy';
+          } else if (weatherMain.includes('rain') || weatherMain.includes('drizzle')) {
+            finalPayload.weather_condition = 'rainy';
+          } else if (weatherMain.includes('cloud')) {
+            finalPayload.weather_condition = 'cloudy';
+          } else {
+            finalPayload.weather_condition = 'clear';
+          }
+        }
+        
+        // Estimate wave height from wind speed if not provided
+        if (!finalPayload.wave_height && finalPayload.wind_speed) {
+          // Rough approximation: wave_height ≈ wind_speed / 20
+          finalPayload.wave_height = Math.min(2.5, finalPayload.wind_speed / 20);
+        }
+      }
+    } catch (error) {
+      logger.warn('Failed to fetch weather data, using manual input', { error });
+    }
+  }
+
   // Calculate risk score using database function
   const { data: riskScore, error: scoreError } = await client.rpc('calculate_risk_score', {
-    wave_height_val: payload.wave_height || null,
-    wind_speed_val: payload.wind_speed || null,
-    weather_condition_val: payload.weather_condition || null,
-    crew_ready_val: payload.crew_ready,
-    equipment_complete_val: payload.equipment_complete,
+    wave_height_val: finalPayload.wave_height || null,
+    wind_speed_val: finalPayload.wind_speed || null,
+    weather_condition_val: finalPayload.weather_condition || null,
+    crew_ready_val: finalPayload.crew_ready,
+    equipment_complete_val: finalPayload.equipment_complete,
   });
 
   if (scoreError) {
@@ -117,8 +163,8 @@ export const POST = withErrorHandler(async (
     score: riskScore || 0,
   });
 
-  // Determine if safe (low/medium risk OR admin can override later)
-  const isSafe = (riskScore || 0) <= 50; // Low or medium risk
+  // Determine if safe (threshold: risk_score <= 70, OR admin can override later)
+  const isSafe = (riskScore || 0) <= 70; // Updated threshold: > 70 = BLOCK
 
   // Insert assessment
   const { data: assessment, error: insertError } = await withBranchFilter(
@@ -129,17 +175,18 @@ export const POST = withErrorHandler(async (
       trip_id: tripId,
       guide_id: user.id,
       branch_id: branchContext.branchId,
-      wave_height: payload.wave_height || null,
-      wind_speed: payload.wind_speed || null,
-      weather_condition: payload.weather_condition || null,
-      crew_ready: payload.crew_ready,
-      equipment_complete: payload.equipment_complete,
+      wave_height: finalPayload.wave_height || null,
+      wind_speed: finalPayload.wind_speed || null,
+      weather_condition: finalPayload.weather_condition || null,
+      crew_ready: finalPayload.crew_ready,
+      equipment_complete: finalPayload.equipment_complete,
       risk_score: riskScore || 0,
       risk_level: riskLevel || 'low',
       is_safe: isSafe,
-      latitude: payload.latitude || null,
-      longitude: payload.longitude || null,
-      notes: payload.notes || null,
+      weather_data: weatherData || null,
+      latitude: finalPayload.latitude || null,
+      longitude: finalPayload.longitude || null,
+      notes: finalPayload.notes || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -160,14 +207,22 @@ export const POST = withErrorHandler(async (
     isSafe,
   });
 
+  // Check if trip should be blocked (risk_score > 70)
+  const isBlocked = (riskScore || 0) > 70;
+
   return NextResponse.json(
     {
       success: true,
       assessment,
-      can_start: isSafe,
-      message: isSafe
+      can_start: isSafe && !isBlocked,
+      is_blocked: isBlocked,
+      risk_score: riskScore || 0,
+      risk_level: riskLevel || 'low',
+      message: isBlocked
+        ? `Risk score terlalu tinggi (${riskScore || 0} > 70). Trip tidak dapat dimulai. Hubungi Admin Ops untuk override.`
+        : isSafe
         ? 'Assessment selesai. Trip dapat dimulai.'
-        : 'Assessment menunjukkan risiko tinggi. Admin perlu approve untuk memulai trip.',
+        : 'Assessment menunjukkan risiko sedang. Perhatikan kondisi sebelum memulai trip.',
     },
     { status: 201 },
   );

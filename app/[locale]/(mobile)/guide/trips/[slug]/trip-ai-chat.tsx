@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { logger } from '@/lib/utils/logger';
 
 type TripAiChatProps = {
   tripId: string;
@@ -55,7 +56,7 @@ export function TripAiChat({ tripId, locale: _locale }: TripAiChatProps) {
       setInput('');
     },
     onError: (error: Error) => {
-      console.error('Chat AI error:', error);
+      logger.error('Chat AI error', error, { tripId });
       toast.error(error.message || 'Gagal mengirim pesan. Silakan coba lagi.');
       // Still show user message even if AI fails
       setMessages((prev) => [

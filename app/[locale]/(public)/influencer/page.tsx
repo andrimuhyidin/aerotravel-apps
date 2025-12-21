@@ -7,9 +7,10 @@ import { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 
+import { Container } from '@/components/layout/container';
+import { Section } from '@/components/layout/section';
 import { locales } from '@/i18n';
 import { Button } from '@/components/ui/button';
-import { Section } from '@/components/layout/section';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -67,16 +68,17 @@ export default async function InfluencerLandingPage({ params }: PageProps) {
       <main className="flex-1 pb-24">
         {/* Hero Section */}
         <Section className="bg-gradient-to-br from-primary/10 via-primary/5 to-teal-50" spacing="lg">
-          <div className="mx-auto w-full max-w-md px-4 text-center">
-            <h1 className="mb-3 text-3xl font-bold text-foreground">
-              Influencer Trip Program
-            </h1>
-            <p className="mb-5 text-sm text-muted-foreground">
-              Kolaborasi dengan Aero Travel untuk bikin trip eksklusif
-              bareng komunitas kamu. Kami urus operasional, kamu fokus
-              bangun pengalaman & konten.
-            </p>
-            <div className="flex flex-col gap-2">
+          <Container>
+            <div className="text-center">
+              <h1 className="mb-3 text-2xl sm:text-3xl font-bold text-foreground">
+                Influencer Trip Program
+              </h1>
+              <p className="mb-5 text-sm sm:text-base text-muted-foreground">
+                Kolaborasi dengan Aero Travel untuk bikin trip eksklusif
+                bareng komunitas kamu. Kami urus operasional, kamu fokus
+                bangun pengalaman & konten.
+              </p>
+              <div className="flex flex-col gap-2">
               <Button asChild size="lg" className="w-full">
                 <Link href={`/${locale}/influencer/apply`}>
                   Daftar sebagai KOL / Influencer
@@ -92,18 +94,19 @@ export default async function InfluencerLandingPage({ params }: PageProps) {
                   Lihat contoh trip & paket yang tersedia
                 </Link>
               </Button>
+              </div>
             </div>
-          </div>
+          </Container>
         </Section>
 
         {/* Benefits Section */}
         <Section spacing="lg">
-          <div className="mx-auto w-full max-w-md px-4">
+          <Container>
             <div className="mb-4 text-left">
               <p className="text-xs font-medium uppercase tracking-wide text-primary">
                 Untuk KOL & Influencer
               </p>
-              <h2 className="mt-1 text-2xl font-bold text-foreground">
+              <h2 className="mt-1 text-xl sm:text-2xl font-bold text-foreground">
                 Kenapa kolaborasi dengan Aero?
               </h2>
             </div>
@@ -122,14 +125,14 @@ export default async function InfluencerLandingPage({ params }: PageProps) {
                 </div>
               ))}
             </div>
-          </div>
+          </Container>
         </Section>
 
         {/* Requirements Section */}
         <Section spacing="lg">
-          <div className="mx-auto w-full max-w-md px-4">
+          <Container>
             <div className="mb-4 text-left">
-              <h2 className="text-2xl font-bold text-foreground">
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground">
                 Kriteria KOL / Influencer
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -146,13 +149,14 @@ export default async function InfluencerLandingPage({ params }: PageProps) {
                 </div>
               ))}
             </div>
-          </div>
+          </Container>
         </Section>
       </main>
 
       {/* Bottom CTA */}
       <div className="sticky bottom-0 z-20 border-t border-primary/20 bg-gradient-to-r from-primary to-primary/90 px-4 pb-4 pt-3">
-        <div className="mx-auto flex w-full max-w-md flex-col gap-2 text-center">
+        <Container>
+          <div className="flex flex-col gap-2 text-center">
           <div className="space-y-1">
             <h2 className="text-base font-semibold text-primary-foreground">
               Siap bikin Influencer Trip pertama?
@@ -166,7 +170,8 @@ export default async function InfluencerLandingPage({ params }: PageProps) {
               Daftar Program Influencer Trip
             </Link>
           </Button>
-        </div>
+          </div>
+        </Container>
       </div>
     </div>
   );

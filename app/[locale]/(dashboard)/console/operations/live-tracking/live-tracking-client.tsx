@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { createClient } from '@/lib/supabase/client';
+import { logger } from '@/lib/utils/logger';
 
 const MapComponent = dynamic(() => import('@/app/[locale]/(mobile)/guide/tracking/map-component'), {
   ssr: false,
@@ -28,7 +30,9 @@ export function LiveTrackingClient() {
   const [guides, setGuides] = useState<GuideLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
 
+  // Initial fetch
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -46,10 +50,67 @@ export function LiveTrackingClient() {
       }
     };
 
-    fetchData();
-    const interval = setInterval(fetchData, 15000);
-    return () => clearInterval(interval);
+    void fetchData();
   }, []);
+
+  // Real-time subscription for guide_locations updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-live-tracking')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'guide_locations',
+        },
+        async () => {
+          // Refetch data when location changes
+          logger.info('[Live Tracking] Location update received, refetching data');
+          try {
+            const res = await fetch('/api/admin/guide/live-tracking');
+            if (res.ok) {
+              const data = (await res.json()) as { guides: GuideLocation[] };
+              setGuides(data.guides);
+            }
+          } catch (err) {
+            logger.error('[Live Tracking] Failed to refetch after update', err);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gps_pings',
+        },
+        async () => {
+          // Also listen to GPS pings for more frequent updates
+          logger.info('[Live Tracking] GPS ping received, refetching data');
+          try {
+            const res = await fetch('/api/admin/guide/live-tracking');
+            if (res.ok) {
+              const data = (await res.json()) as { guides: GuideLocation[] };
+              setGuides(data.guides);
+            }
+          } catch (err) {
+            logger.error('[Live Tracking] Failed to refetch after GPS ping', err);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          logger.info('[Live Tracking] Realtime subscription active');
+        } else if (status === 'CHANNEL_ERROR') {
+          logger.error('[Live Tracking] Realtime subscription error', { status });
+        }
+      });
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [supabase]);
 
   const hasData = guides.length > 0;
   const center = hasData

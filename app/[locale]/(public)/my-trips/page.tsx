@@ -8,6 +8,8 @@ import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 
+import { Container } from '@/components/layout/container';
+import { Section } from '@/components/layout/section';
 import { Button } from '@/components/ui/button';
 import { locales } from '@/i18n';
 
@@ -50,17 +52,19 @@ export default async function MyTripsPage({ params }: PageProps) {
   const pastTrips: { id: string; name: string; date: string }[] = [];
 
   return (
-    <div className="flex flex-col">
-      {/* Header */}
-      <div className="px-5 pb-4 pt-6">
-        <h1 className="text-xl font-bold">Perjalanan Saya</h1>
-        <p className="text-sm text-muted-foreground">
-          Kelola semua booking dan trip Anda
-        </p>
-      </div>
+    <Section>
+      <Container>
+        <div className="flex flex-col">
+          {/* Header */}
+          <div className="pb-4 pt-6">
+            <h1 className="text-xl font-bold">Perjalanan Saya</h1>
+            <p className="text-sm text-muted-foreground">
+              Kelola semua booking dan trip Anda
+            </p>
+          </div>
 
-      {/* Tab Switcher */}
-      <div className="flex gap-2 px-5 pb-4">
+          {/* Tab Switcher */}
+          <div className="flex gap-2 pb-4">
         <button className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25">
           Akan Datang
         </button>
@@ -70,7 +74,7 @@ export default async function MyTripsPage({ params }: PageProps) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-5">
+      <div className="flex-1">
         {upcomingTrips.length === 0 && pastTrips.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-muted/50">
@@ -111,6 +115,8 @@ export default async function MyTripsPage({ params }: PageProps) {
           </div>
         )}
       </div>
-    </div>
+        </div>
+      </Container>
+    </Section>
   );
 }

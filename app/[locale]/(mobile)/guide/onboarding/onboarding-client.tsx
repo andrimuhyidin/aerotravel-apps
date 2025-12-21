@@ -152,7 +152,9 @@ export function OnboardingClient({ locale }: OnboardingClientProps) {
   });
 
   const steps = data?.steps || [];
-  const progress = progressData?.progress || data?.currentProgress || null;
+  // Always use progress from progress endpoint (which has recalculate logic)
+  // Only fallback to currentProgress if progress endpoint fails
+  const progress = progressData?.progress || (progressData === undefined ? data?.currentProgress : null) || null;
   const completedSteps = progressData?.completedSteps || [];
   const completionPercentage = progress?.completion_percentage || 0;
 
@@ -352,8 +354,19 @@ export function OnboardingClient({ locale }: OnboardingClientProps) {
   }
 
   // In progress
-  const currentStepIndex = steps.findIndex((s) => s.id === progress.current_step_id);
-  const currentStep = currentStepIndex >= 0 ? steps[currentStepIndex] : steps[0];
+  // Find current step: use current_step_id if exists and valid, otherwise find first incomplete step
+  let currentStep: OnboardingStep | undefined;
+  if (progress.current_step_id) {
+    currentStep = steps.find((s) => s.id === progress.current_step_id);
+  }
+  // If current_step_id not found or null, find first incomplete step
+  if (!currentStep) {
+    currentStep = steps.find((s) => !completedSteps.includes(s.id));
+  }
+  // Fallback to first step if all completed or no steps
+  if (!currentStep && steps.length > 0) {
+    currentStep = steps[0];
+  }
 
   return (
     <div className="space-y-4 pb-6">

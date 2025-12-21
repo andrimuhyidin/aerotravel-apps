@@ -22,13 +22,16 @@ type AccordionProps = {
 
 export function Accordion({ children, className, defaultOpen = false, type = 'multiple' }: AccordionProps) {
   const defaultValues = React.useMemo(() => {
-    if (!defaultOpen) return new Set<string>();
     const values: string[] = [];
     React.Children.forEach(children, (child) => {
       if (React.isValidElement(child)) {
-        const props = child.props as { value?: string };
-        if (props?.value) {
-          values.push(props.value);
+        const props = child.props as { value?: string; defaultOpen?: boolean };
+        // If Accordion defaultOpen is true, open all items
+        // Otherwise, only open items that have defaultOpen={true}
+        if (defaultOpen || props?.defaultOpen) {
+          if (props?.value) {
+            values.push(props.value);
+          }
         }
       }
     });
@@ -70,7 +73,8 @@ export function AccordionItem({ value, children, className, defaultOpen }: Accor
   const context = React.useContext(AccordionContext);
   if (!context) throw new Error('AccordionItem must be used within Accordion');
 
-  const isOpen = context.openItems.has(value) || (defaultOpen && context.openItems.size === 0);
+  // Check if this item is open based on context state
+  const isOpen = context.openItems.has(value);
 
   return (
     <div className={cn('border border-slate-200 rounded-lg overflow-hidden', className)}>

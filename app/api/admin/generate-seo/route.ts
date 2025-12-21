@@ -3,17 +3,20 @@
  * Protected route - hanya Super Admin
  */
 
+import { NextRequest, NextResponse } from 'next/server';
+
 import { isFeatureEnabled } from '@/lib/feature-flags/posthog-flags';
 import { generateAllSEOPages } from '@/lib/seo/generate-pages';
 import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 
 export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -48,7 +51,7 @@ export async function POST(request: NextRequest) {
       message: 'SEO pages generated successfully',
     });
   } catch (error) {
-    console.error('Generate SEO error:', error);
+    logger.error('Generate SEO error', error, { userId: user?.id });
     return NextResponse.json(
       { error: 'Failed to generate SEO pages' },
       { status: 500 }

@@ -19,6 +19,7 @@ import {
     Edit,
     Lightbulb,
     Plus,
+    Receipt,
     Search,
     Target,
     Trash2,
@@ -31,8 +32,11 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LoadingState } from '@/components/ui/loading-state';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import queryKeys from '@/lib/queries/query-keys';
@@ -172,7 +176,7 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
   });
 
   // Main wallet data
-  const { data: walletData, isLoading: walletLoading } = useQuery<WalletResponse>({
+  const { data: walletData, isLoading: walletLoading, error: walletError, refetch: refetchWallet } = useQuery<WalletResponse>({
     queryKey: queryKeys.guide.wallet.balance(),
     queryFn: async () => {
       const res = await fetch('/api/guide/wallet');
@@ -503,10 +507,16 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
   };
 
   if (walletLoading && !walletData) {
+    return <LoadingState variant="skeleton-card" message="Memuat data dompet..." />;
+  }
+
+  if (walletError) {
     return (
-      <div className="py-8 text-center text-sm text-slate-500">
-        Memuat data dompet...
-      </div>
+      <ErrorState
+        message={walletError instanceof Error ? walletError.message : 'Gagal memuat data dompet'}
+        onRetry={() => void refetchWallet()}
+        variant="card"
+      />
     );
   }
 
@@ -1075,11 +1085,12 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
               </CardContent>
             </Card>
           ) : (
-            <Card className="border-0 shadow-sm">
-              <CardContent className="py-8 text-center text-sm text-slate-500">
-                Tidak ada transaksi
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Receipt}
+              title="Tidak ada transaksi"
+              description="Riwayat transaksi akan muncul di sini setelah ada aktivitas wallet"
+              variant="subtle"
+            />
           )}
         </div>
       )}

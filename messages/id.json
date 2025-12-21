@@ -91,6 +91,14 @@
     },
     "operations": {
       "title": "Operasional"
+    },
+    "contracts": {
+      "title": "Kontrak Kerja",
+      "description": "Manajemen kontrak kerja guide",
+      "create": {
+        "title": "Buat Kontrak Baru",
+        "description": "Buat kontrak kerja baru untuk guide"
+      }
     }
   },
   "guide": {
@@ -112,6 +120,18 @@
         "title": "Detail Kontrak",
         "description": "Lihat detail kontrak kerja"
       }
+    },
+    "training": {
+      "title": "Pelatihan",
+      "description": "Akses modul pelatihan dan sertifikat",
+      "history": {
+        "title": "Riwayat Pelatihan",
+        "description": "Lihat riwayat pelatihan yang telah diselesaikan"
+      }
+    },
+    "certifications": {
+      "title": "Sertifikat",
+      "description": "Lihat dan kelola sertifikat pelatihan Anda"
     }
   },
   "corporate": {

@@ -8,6 +8,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, CheckCircle2, MapPin, Star, XCircle } from 'lucide-react';
 
+import { Container } from '@/components/layout/container';
+import { Section } from '@/components/layout/section';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
@@ -61,24 +63,28 @@ export function GuideVerificationClient({ token, locale }: GuideVerificationClie
 
   if (!data.verified) {
     return (
-      <div className="py-8">
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center space-y-4 text-center">
-              <XCircle className="h-16 w-16 text-red-600" />
-              <div>
-                <h2 className="text-xl font-bold text-red-900">ID Card Tidak Valid</h2>
-                <p className="mt-2 text-sm text-red-700">
-                  {data.message || 'ID Card tidak dapat diverifikasi atau telah kedaluwarsa'}
-                </p>
-                {data.status && (
-                  <p className="mt-1 text-xs text-red-600">Status: {data.status}</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Section>
+        <Container>
+          <div className="py-8">
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="p-4 sm:pt-6">
+                <div className="flex flex-col items-center space-y-4 text-center">
+                  <XCircle className="h-12 sm:h-16 w-12 sm:w-16 text-red-600" />
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-bold text-red-900">ID Card Tidak Valid</h2>
+                    <p className="mt-2 text-sm text-red-700">
+                      {data.message || 'ID Card tidak dapat diverifikasi atau telah kedaluwarsa'}
+                    </p>
+                    {data.status && (
+                      <p className="mt-1 text-xs text-red-600">Status: {data.status}</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </Container>
+      </Section>
     );
   }
 
@@ -87,11 +93,12 @@ export function GuideVerificationClient({ token, locale }: GuideVerificationClie
   const isExpired = expiryDate < new Date();
 
   return (
-    <div className="py-8">
-      <div className="mx-auto max-w-2xl space-y-6">
-        {/* Verification Badge */}
-        <Card className="border-emerald-200 bg-emerald-50">
-          <CardContent className="pt-6">
+    <Section>
+      <Container>
+        <div className="py-8 space-y-6">
+          {/* Verification Badge */}
+          <Card className="border-emerald-200 bg-emerald-50">
+            <CardContent className="p-4 sm:pt-6">
             <div className="flex flex-col items-center space-y-3 text-center">
               <div className="rounded-full bg-emerald-600 p-3">
                 <CheckCircle2 className="h-8 w-8 text-white" />
@@ -193,7 +200,7 @@ export function GuideVerificationClient({ token, locale }: GuideVerificationClie
 
         {/* Footer */}
         <Card className="border-slate-200 bg-slate-50">
-          <CardContent className="pt-6">
+          <CardContent className="p-4 sm:pt-6">
             <div className="text-center">
               <p className="text-xs text-slate-500">
                 Diverifikasi oleh AeroTravel • {new Date().toLocaleDateString('id-ID')}
@@ -201,7 +208,8 @@ export function GuideVerificationClient({ token, locale }: GuideVerificationClie
             </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
+        </div>
+      </Container>
+    </Section>
   );
 }

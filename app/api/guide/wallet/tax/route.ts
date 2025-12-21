@@ -45,17 +45,31 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
     const walletId = wallet.id as string;
 
-    // Get all earnings for the year
+    // Get all earnings for the year - filter by check_out_at from trip_guides for date consistency
     const yearStart = new Date(year, 0, 1);
     const yearEnd = new Date(year, 11, 31, 23, 59, 59);
 
-    const { data: earnings } = await client
-      .from('guide_wallet_transactions')
-      .select('amount, created_at')
-      .eq('wallet_id', walletId)
-      .eq('transaction_type', 'earning')
-      .gte('created_at', yearStart.toISOString())
-      .lte('created_at', yearEnd.toISOString());
+    // First, get trip IDs with check_out_at in this year
+    const { data: yearTrips } = await client
+      .from('trip_guides')
+      .select('trip_id')
+      .eq('guide_id', user.id)
+      .not('check_out_at', 'is', null)
+      .gte('check_out_at', yearStart.toISOString())
+      .lte('check_out_at', yearEnd.toISOString());
+
+    const yearTripIds = yearTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
+
+    const { data: earnings } =
+      yearTripIds.length > 0
+        ? await client
+            .from('guide_wallet_transactions')
+            .select('amount, created_at')
+            .eq('wallet_id', walletId)
+            .eq('transaction_type', 'earning')
+            .eq('reference_type', 'trip')
+            .in('reference_id', yearTripIds)
+        : { data: [] };
 
     const totalEarnings = (earnings || []).reduce(
       (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),
@@ -76,13 +90,27 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       const monthStart = new Date(year, month, 1);
       const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
 
-      const { data: monthEarnings } = await client
-        .from('guide_wallet_transactions')
-        .select('amount')
-        .eq('wallet_id', walletId)
-        .eq('transaction_type', 'earning')
-        .gte('created_at', monthStart.toISOString())
-        .lte('created_at', monthEnd.toISOString());
+      // Get month earnings - filter by check_out_at
+      const { data: monthTrips } = await client
+        .from('trip_guides')
+        .select('trip_id')
+        .eq('guide_id', user.id)
+        .not('check_out_at', 'is', null)
+        .gte('check_out_at', monthStart.toISOString())
+        .lte('check_out_at', monthEnd.toISOString());
+
+      const monthTripIds = monthTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
+
+      const { data: monthEarnings } =
+        monthTripIds.length > 0
+          ? await client
+              .from('guide_wallet_transactions')
+              .select('amount')
+              .eq('wallet_id', walletId)
+              .eq('transaction_type', 'earning')
+              .eq('reference_type', 'trip')
+              .in('reference_id', monthTripIds)
+          : { data: [] };
 
       const monthTotal = (monthEarnings || []).reduce(
         (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),

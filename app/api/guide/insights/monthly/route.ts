@@ -45,13 +45,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const client = supabase as unknown as any;
 
   try {
-    // Get total trips in this month
+    // Get total trips in this month - use check_out_at for consistency with income calculation
     let totalTripsQuery = client.from('trip_guides')
       .select('*', { count: 'exact', head: true })
       .eq('guide_id', user.id)
-      .gte('check_in_at', startDate.toISOString())
-      .lte('check_in_at', endDate.toISOString())
-      .not('check_in_at', 'is', null)
+      .gte('check_out_at', startDate.toISOString())
+      .lte('check_out_at', endDate.toISOString())
       .not('check_out_at', 'is', null);
     
     if (!branchContext.isSuperAdmin && branchContext.branchId) {
@@ -60,13 +59,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     
     const { count: totalTrips } = await totalTripsQuery;
 
-    // Get trip IDs for this guide in this month
+    // Get trip IDs for this guide in this month - use check_out_at for consistency
     let tripGuidesQuery = client.from('trip_guides')
       .select('trip_id')
       .eq('guide_id', user.id)
-      .gte('check_in_at', startDate.toISOString())
-      .lte('check_in_at', endDate.toISOString())
-      .not('check_in_at', 'is', null)
+      .gte('check_out_at', startDate.toISOString())
+      .lte('check_out_at', endDate.toISOString())
       .not('check_out_at', 'is', null);
     
     if (!branchContext.isSuperAdmin && branchContext.branchId) {
@@ -134,14 +132,17 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     
     const { data: wallet } = await walletQuery.single();
 
-    if (wallet) {
+    // Get total income - filter by check_out_at from trip_guides for date consistency
+    // First get trip IDs with check_out_at in this month
+    if (wallet && tripIds.length > 0) {
+      // Get transactions for trips that were completed (check_out_at) in this month
       const { data: incomeTransactions } = await client
         .from('guide_wallet_transactions')
-        .select('amount, transaction_type')
+        .select('amount, transaction_type, reference_id')
         .eq('wallet_id', (wallet as { id: string }).id)
         .eq('transaction_type', 'earning')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
+        .eq('reference_type', 'trip')
+        .in('reference_id', tripIds);
 
       if (incomeTransactions) {
         totalIncome = incomeTransactions.reduce(

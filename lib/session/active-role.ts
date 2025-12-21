@@ -179,7 +179,7 @@ export async function verifyUserHasRole(userId: string, role: UserRole): Promise
     const supabase = await createClient();
     
     // Type assertion needed until types are regenerated after migration
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data, error } = await (supabase as unknown as {
       from: (table: string) => {
         select: (columns: string) => {
@@ -229,7 +229,7 @@ export async function getUserRoles(userId: string): Promise<UserRole[]> {
     const supabase = await createClient();
     
     // Type assertion needed until types are regenerated after migration
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data, error } = await (supabase as unknown as {
       from: (table: string) => {
         select: (columns: string) => {

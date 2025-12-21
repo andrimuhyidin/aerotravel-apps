@@ -78,9 +78,9 @@ export default async function ContactPage({ params }: PageProps) {
       {/* Hero */}
       <Section className="bg-gradient-to-br from-primary/5 via-background to-aero-teal/5">
         <Container>
-          <div className="py-12 text-center">
-            <h1 className="mb-4 text-4xl font-bold">Hubungi Kami</h1>
-            <p className="mx-auto max-w-2xl text-muted-foreground">
+          <div className="py-8 sm:py-12 text-center">
+            <h1 className="mb-4 text-2xl sm:text-3xl md:text-4xl font-bold">Hubungi Kami</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Ada pertanyaan? Tim kami siap membantu Anda
             </p>
           </div>
@@ -90,12 +90,12 @@ export default async function ContactPage({ params }: PageProps) {
       {/* Contact Info & Form */}
       <Section>
         <Container>
-          <div className="grid gap-8 py-12 md:grid-cols-2">
+          <div className="grid gap-6 sm:gap-8 py-8 sm:py-12 md:grid-cols-2">
             {/* Contact Info */}
             <div className="space-y-6">
               <div>
-                <h2 className="mb-4 text-2xl font-bold">Informasi Kontak</h2>
-                <p className="text-muted-foreground">
+                <h2 className="mb-4 text-xl sm:text-2xl font-bold">Informasi Kontak</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Hubungi kami melalui channel berikut atau isi form di samping.
                 </p>
               </div>
@@ -150,8 +150,8 @@ export default async function ContactPage({ params }: PageProps) {
 
             {/* Contact Form */}
             <Card className="border-none shadow-lg">
-              <CardContent className="p-6">
-                <h2 className="mb-6 text-xl font-bold">Kirim Pesan</h2>
+              <CardContent className="p-4 sm:p-6">
+                <h2 className="mb-4 sm:mb-6 text-lg sm:text-xl font-bold">Kirim Pesan</h2>
                 <form className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
@@ -197,8 +197,8 @@ export default async function ContactPage({ params }: PageProps) {
       {/* Map Placeholder */}
       <Section className="bg-muted/30">
         <Container>
-          <div className="py-12">
-            <h2 className="mb-6 text-center text-2xl font-bold">Lokasi Kami</h2>
+          <div className="py-8 sm:py-12">
+            <h2 className="mb-4 sm:mb-6 text-center text-xl sm:text-2xl font-bold">Lokasi Kami</h2>
             <div className="aspect-[21/9] overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 to-aero-teal/10">
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">

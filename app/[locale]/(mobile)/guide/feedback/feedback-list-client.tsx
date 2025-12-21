@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/utils/logger';
 
 import { FeedbackAiAnalyzer } from './feedback-ai-analyzer';
 
@@ -105,7 +106,7 @@ export function FeedbackListClient({ locale }: FeedbackListClientProps) {
           guideId={undefined}
           onAnalysisComplete={(analysis) => {
             // Could show trends summary
-            console.log('Feedback analysis:', analysis);
+            logger.info('Feedback analysis completed', { analysis });
           }}
         />
       )}

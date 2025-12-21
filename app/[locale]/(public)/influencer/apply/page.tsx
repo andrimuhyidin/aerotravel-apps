@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
 import { toast } from 'sonner';
 
@@ -122,12 +123,12 @@ export default function InfluencerApplyPage({ params }: PageProps) {
     <div className="flex min-h-[100vh] flex-col bg-background">
       <main className="flex-1 pb-8">
         <Section spacing="lg">
-          <div className="mx-auto w-full max-w-md px-4">
+          <Container>
             <div className="mb-4 text-left">
-              <h1 className="text-2xl font-bold text-foreground">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">
                 Form Pendaftaran Influencer Trip
               </h1>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
                 Isi data di bawah ini. Tim Aero akan melakukan kurasi dan
                 menghubungi kamu jika sesuai dengan kebutuhan campaign.
               </p>
@@ -254,7 +255,7 @@ export default function InfluencerApplyPage({ params }: PageProps) {
                 </Button>
               </form>
             </Form>
-          </div>
+          </Container>
         </Section>
       </main>
     </div>

@@ -2,68 +2,33 @@
 
 /**
  * Documentation Section Component
- * For post-trip phase: Upload/save documentation link (Google Drive)
+ * For post-trip phase: Link to evidence upload page
  */
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ExternalLink, FileText, Link as LinkIcon, Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { ExternalLink, FileText, Link as LinkIcon, Upload } from 'lucide-react';
+import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { getTripManifest, type TripManifest } from '@/lib/guide/manifest';
-import queryKeys from '@/lib/queries/query-keys';
 
 type DocumentationSectionProps = {
   tripId: string;
   locale: string;
+  tripCode?: string;
   isLeadGuide: boolean;
 };
 
-export function DocumentationSection({ tripId, locale, isLeadGuide }: DocumentationSectionProps) {
-  const [docDialogOpen, setDocDialogOpen] = useState(false);
-  const [driveUrl, setDriveUrl] = useState('');
-  const queryClient = useQueryClient();
-
+export function DocumentationSection({ tripId, locale, tripCode, isLeadGuide }: DocumentationSectionProps) {
   // Fetch manifest to get documentation URL
   const { data: manifest } = useQuery<TripManifest>({
     queryKey: ['guide', 'manifest', tripId],
     queryFn: () => getTripManifest(tripId),
   });
 
-  useEffect(() => {
-    if (manifest?.documentationUrl) {
-      setDriveUrl(manifest.documentationUrl);
-    }
-  }, [manifest?.documentationUrl]);
-
-  // Save documentation URL
-  const saveDocMutation = useMutation({
-    mutationFn: async (url: string) => {
-      const { saveTripDocumentationUrl } = await import('@/lib/guide/manifest');
-      const result = await saveTripDocumentationUrl(tripId, url);
-      if (!result.success) throw new Error(result.message || 'Failed to save documentation URL');
-      return result;
-    },
-    onSuccess: (result) => {
-      toast.success(result.message || 'Link dokumentasi berhasil disimpan');
-      setDocDialogOpen(false);
-      void queryClient.invalidateQueries({ queryKey: ['guide', 'manifest', tripId] });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.guide.tripsDetail(tripId) });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Gagal menyimpan link dokumentasi');
-    },
-  });
+  // Get trip identifier (code or id) for URL
+  const tripIdentifier = tripCode || tripId;
 
   if (!isLeadGuide) {
     // Support guide hanya bisa lihat, tidak bisa edit
@@ -98,113 +63,66 @@ export function DocumentationSection({ tripId, locale, isLeadGuide }: Documentat
   }
 
   return (
-    <>
-      {manifest?.documentationUrl ? (
-        <Card className="border-emerald-200 bg-emerald-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <FileText className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-emerald-900">Dokumentasi Lengkap</p>
-                  <p className="text-sm text-emerald-700">Link dokumentasi trip telah diupload</p>
+    <Card className={manifest?.documentationUrl ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="flex-shrink-0">
+              {manifest?.documentationUrl ? (
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
+                  <FileText className="h-5 w-5 text-emerald-600" />
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
+                  <Upload className="h-5 w-5 text-amber-600" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`font-semibold ${manifest?.documentationUrl ? 'text-emerald-900' : 'text-amber-900'}`}>
+                {manifest?.documentationUrl ? 'Dokumentasi Lengkap' : 'Upload Link Dokumentasi'}
+              </p>
+              <p className={`text-sm mt-0.5 ${manifest?.documentationUrl ? 'text-emerald-700' : 'text-amber-700'}`}>
+                {manifest?.documentationUrl 
+                  ? 'Link dokumentasi trip telah diupload' 
+                  : 'Simpan link Google Drive folder dokumentasi trip'}
+              </p>
+              {manifest?.documentationUrl && (
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={() => window.open(manifest.documentationUrl || '', '_blank')}
-                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                  className="mt-2 h-7 text-xs text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100 p-0"
                 >
-                  <FileText className="mr-1.5 h-3.5 w-3.5" />
-                  Buka
-                  <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                  <ExternalLink className="mr-1.5 h-3 w-3" />
+                  Buka Link
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDocDialogOpen(true)}
-                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-100"
-                >
-                  <LinkIcon className="mr-1.5 h-3.5 w-3.5" />
-                  Edit
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <FileText className="h-5 w-5 text-amber-600 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-amber-900">Upload Link Dokumentasi</p>
-                  <p className="text-sm text-amber-700">Simpan link Google Drive folder dokumentasi trip</p>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                onClick={() => setDocDialogOpen(true)}
-                className="bg-emerald-600 text-white hover:bg-emerald-700"
-              >
-                <LinkIcon className="mr-1.5 h-3.5 w-3.5" />
-                Tambah Link
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Documentation Link Dialog */}
-      <Dialog open={docDialogOpen} onOpenChange={setDocDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Link Dokumentasi Trip</DialogTitle>
-            <DialogDescription>
-              Simpan 1 link folder Google Drive yang berisi semua foto & video dokumentasi trip.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              placeholder="https://drive.google.com/drive/folders/..."
-              value={driveUrl}
-              onChange={(e) => setDriveUrl(e.target.value)}
-            />
-            {driveUrl && (
-              <a
-                href={driveUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center text-sm text-emerald-600 hover:text-emerald-700"
-              >
-                <ExternalLink className="mr-1.5 h-4 w-4" />
-                Buka link
-              </a>
-            )}
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setDocDialogOpen(false)}>
-                Batal
-              </Button>
-              <Button
-                disabled={!driveUrl.trim() || saveDocMutation.isPending}
-                onClick={() => saveDocMutation.mutate(driveUrl.trim())}
-              >
-                {saveDocMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  'Simpan Link'
-                )}
-              </Button>
+              )}
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          <Link href={`/${locale}/guide/trips/${tripIdentifier}/evidence`}>
+            <Button
+              size="sm"
+              variant={manifest?.documentationUrl ? 'outline' : 'default'}
+              className={manifest?.documentationUrl 
+                ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-100' 
+                : 'bg-emerald-600 text-white hover:bg-emerald-700'}
+            >
+              {manifest?.documentationUrl ? (
+                <>
+                  <LinkIcon className="mr-1.5 h-3.5 w-3.5" />
+                  Edit
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-1.5 h-3.5 w-3.5" />
+                  Upload
+                </>
+              )}
+            </Button>
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -7,7 +7,7 @@ import { generateContent } from '@/lib/gemini';
 import { logger } from '@/lib/utils/logger';
 
 export type BriefingContext = {
-  tripId: string;
+  tripId?: string;
   tripCode: string;
   tripDate: string;
   packageName?: string;
@@ -29,10 +29,12 @@ export type BriefingContext = {
     location?: string;
   }>;
   weather?: {
-    temp: number;
-    description: string;
-    hasAlert: boolean;
+    temp?: number;
+    description?: string;
+    condition?: string;
+    hasAlert?: boolean;
   };
+  language?: 'id' | 'en' | 'zh' | 'ja'; // Multi-language support
 };
 
 export type BriefingPoint = {
@@ -128,10 +130,37 @@ export async function generateBriefingPoints(
       : 'Tidak ada itinerary detail';
 
     const weatherStr = context.weather
-      ? `Cuaca: ${context.weather.description}, ${context.weather.temp}°C${context.weather.hasAlert ? ' - ⚠️ ALERT CUACA' : ''}`
+      ? `Cuaca: ${context.weather.description || context.weather.condition || 'N/A'}${context.weather.temp ? `, ${context.weather.temp}°C` : ''}${context.weather.hasAlert ? ' - ⚠️ ALERT CUACA' : ''}`
       : 'Informasi cuaca tidak tersedia';
 
-    const prompt = `Anda adalah asisten AI untuk tour guide. Generate poin-poin briefing yang dipersonalisasi untuk rombongan ini.
+    // Language-specific prompts
+    const language = context.language || 'id';
+    const languagePrompts: Record<string, { intro: string; instructions: string }> = {
+      id: {
+        intro: 'Anda adalah asisten AI untuk tour guide. Generate poin-poin briefing yang dipersonalisasi untuk rombongan ini.',
+        instructions: 'Return JSON format dengan semua teks dalam Bahasa Indonesia.',
+      },
+      en: {
+        intro: 'You are an AI assistant for tour guides. Generate personalized briefing points for this group.',
+        instructions: 'Return JSON format with all text in English.',
+      },
+      zh: {
+        intro: '您是导游的AI助手。为这个团队生成个性化的简报要点。',
+        instructions: 'Return JSON format with all text in Simplified Chinese.',
+      },
+      ja: {
+        intro: 'あなたはツアーガイドのAIアシスタントです。このグループに合わせたパーソナライズされたブリーフィングポイントを生成してください。',
+        instructions: 'Return JSON format with all text in Japanese.',
+      },
+    };
+
+    const langPrompt = languagePrompts[language] || languagePrompts.id;
+    const finalLangPrompt = langPrompt ?? languagePrompts.id;
+    if (!finalLangPrompt) {
+      throw new Error(`Language prompt not found for: ${language}`);
+    }
+
+    const prompt = `${finalLangPrompt.intro}
 
 PROFIL ROMBONGAN:
 - Total: ${context.totalPax} penumpang
@@ -181,6 +210,8 @@ Sections yang harus ada:
 2. Aktivitas (priority: high/medium) - Activities sesuai profil
 3. Logistik (priority: medium) - Meeting point, schedule, equipment
 4. Kebutuhan Khusus (priority: high jika ada) - Hanya jika ada special needs
+
+${finalLangPrompt.instructions}
 
 Return ONLY the JSON object, no additional text.`;
 

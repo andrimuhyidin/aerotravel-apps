@@ -14,22 +14,11 @@ import { logger } from '@/lib/utils/logger';
 
 const expenseSchema = z.object({
   tripId: z.string().min(1),
-  category: z.enum(['tiket', 'makan', 'transport', 'medis', 'lainnya']),
+  category: z.enum(['fuel', 'food', 'ticket', 'transport', 'equipment', 'emergency', 'other']),
   description: z.string().optional(),
   amount: z.number().positive(),
   receiptUrl: z.string().url().optional(),
 });
-
-const expenseCategoryMap: Record<
-  string,
-  'fuel' | 'food' | 'ticket' | 'transport' | 'equipment' | 'emergency' | 'other'
-> = {
-  tiket: 'ticket',
-  makan: 'food',
-  transport: 'transport',
-  medis: 'emergency',
-  lainnya: 'other',
-};
 
 /**
  * Smart categorization using AI
@@ -48,11 +37,12 @@ Categories: fuel, food, ticket, transport, equipment, emergency, other
 Return ONLY the category name (lowercase, one word).`;
 
     const result = await generateContent(prompt);
-    const category = result.trim().toLowerCase() as typeof expenseCategoryMap[string];
+    const category = result.trim().toLowerCase();
     
-    // Validate category
-    if (Object.values(expenseCategoryMap).includes(category)) {
-      return category;
+    // Validate category against enum values
+    const validCategories = ['fuel', 'food', 'ticket', 'transport', 'equipment', 'emergency', 'other'];
+    if (validCategories.includes(category)) {
+      return category as 'fuel' | 'food' | 'ticket' | 'transport' | 'equipment' | 'emergency' | 'other';
     }
     
     // Fallback based on keywords
@@ -96,14 +86,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const now = new Date().toISOString();
 
-  // Smart categorization: use AI if category is 'lainnya' or not provided
+  // Smart categorization: use AI if category is 'other' and description is provided
   let dbCategory: 'fuel' | 'food' | 'ticket' | 'transport' | 'equipment' | 'emergency' | 'other';
   
-  if (category === 'lainnya' && description) {
+  if (category === 'other' && description) {
     // Use AI to categorize
     dbCategory = await categorizeExpenseWithAI(description, amount);
   } else {
-    dbCategory = expenseCategoryMap[category] ?? 'other';
+    dbCategory = category; // Use category directly (already matches DB enum)
   }
 
   const { error } = await withBranchFilter(

@@ -10,6 +10,7 @@ import { Target, Trophy } from 'lucide-react';
 import Link from 'next/link';
 
 import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import queryKeys from '@/lib/queries/query-keys';
@@ -48,12 +49,14 @@ const challengeTypeLabels: Record<string, string> = {
 };
 
 export function ChallengesWidget({ locale }: ChallengesWidgetProps) {
-  const { data, isLoading } = useQuery<ChallengesResponse>({
+  const { data, isLoading } = useQuery<{ data: ChallengesResponse }>({
     queryKey: queryKeys.guide.challenges(),
     queryFn: async () => {
       const res = await fetch('/api/guide/challenges');
       if (!res.ok) throw new Error('Failed to fetch challenges');
-      return res.json();
+      const json = await res.json();
+      // API returns { data: { challenges: [...] } }, so we need to extract it
+      return json;
     },
     staleTime: 60000,
   });
@@ -73,13 +76,34 @@ export function ChallengesWidget({ locale }: ChallengesWidgetProps) {
     );
   }
 
-  const challenges = data?.challenges || [];
+  const challenges = data?.data?.challenges || [];
   const activeChallenges = challenges.filter((c) => c.status === 'active').slice(0, 2);
 
-  // Don't show widget if no active challenges (acceptable for optional widgets)
-  // But we could show a subtle empty state if needed
+  // Show empty state if no active challenges
   if (activeChallenges.length === 0) {
-    return null; // Widget is optional, returning null is acceptable
+    return (
+      <div>
+        <div className="mb-3 flex items-center justify-between px-1">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            CHALLENGES
+          </h2>
+          <Link
+            href={`/${locale}/guide/challenges`}
+            className="text-xs font-medium text-emerald-600 transition-colors hover:text-emerald-700"
+          >
+            Lihat Semua
+          </Link>
+        </div>
+        <Card className="border-slate-200 bg-slate-50/50">
+          <CardContent className="p-4 text-center">
+            <Target className="h-8 w-8 mx-auto text-slate-400 mb-2" />
+            <p className="text-sm text-slate-600">
+              Belum ada challenge aktif. Challenge akan muncul di sini.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   const getProgress = (challenge: Challenge) => {

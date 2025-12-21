@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import queryKeys from '@/lib/queries/query-keys';
@@ -97,7 +98,7 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Fetch guide skills
-  const { data: skillsData, isLoading: skillsLoading } = useQuery<{
+  const { data: skillsData, isLoading: skillsLoading, error: skillsError, refetch: refetchSkills } = useQuery<{
     skills: GuideSkill[];
   }>({
     queryKey: queryKeys.guide.skills.guide(),
@@ -109,7 +110,7 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
   });
 
   // Fetch skills catalog
-  const { data: catalogData, isLoading: catalogLoading } = useQuery<{
+  const { data: catalogData, isLoading: catalogLoading, error: catalogError, refetch: refetchCatalog } = useQuery<{
     skills: SkillCatalogItem[];
   }>({
     queryKey: queryKeys.guide.skills.catalog(),
@@ -121,7 +122,7 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
   });
 
   // Fetch skill goals
-  const { data: goalsData, isLoading: goalsLoading } = useQuery<{
+  const { data: goalsData, isLoading: goalsLoading, error: goalsError, refetch: refetchGoals } = useQuery<{
     goals: SkillGoal[];
   }>({
     queryKey: queryKeys.guide.skills.goals(),
@@ -131,6 +132,23 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
       return (await res.json()) as { goals: SkillGoal[] };
     },
   });
+
+  // Show error if any query fails
+  if (skillsError || catalogError || goalsError) {
+    const error = skillsError || catalogError || goalsError;
+    const refetch = () => {
+      void refetchSkills();
+      void refetchCatalog();
+      void refetchGoals();
+    };
+    return (
+      <ErrorState
+        message={error instanceof Error ? error.message : 'Gagal memuat data skills'}
+        onRetry={refetch}
+        variant="card"
+      />
+    );
+  }
 
   // Claim skill mutation
   const claimMutation = useMutation({

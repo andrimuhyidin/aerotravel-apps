@@ -15,6 +15,7 @@ import {
     ChevronRight,
     CreditCard,
     FileText,
+    Gift,
     Globe,
     GraduationCap,
     HelpCircle,
@@ -133,35 +134,49 @@ function EarningsSummaryCard({ locale }: { locale: string }) {
                 `Rp ${Math.round(monthlyEarnings?.amount ?? 0).toLocaleString('id-ID')}`
               )}
             </p>
-            {monthlyEarnings && monthlyEarnings.growth !== 0 && (
-              <div className="mt-1 flex items-center gap-1 text-xs">
-                <TrendingUp
-                  className={cn(
-                    'h-3 w-3',
-                    monthlyEarnings.growth > 0 ? 'text-emerald-600' : 'text-red-600 rotate-180',
-                  )}
-                />
-                <span
-                  className={cn(
-                    'font-medium',
-                    monthlyEarnings.growth > 0 ? 'text-emerald-600' : 'text-red-600',
-                  )}
-                >
-                  {monthlyEarnings.growth > 0 ? '+' : ''}
-                  {monthlyEarnings.growth.toFixed(1)}%
-                </span>
-                <span className="text-blue-600/70">vs bulan lalu</span>
+          </div>
+          <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-3">
+            <p className="text-xs font-medium text-emerald-700/80">Perbandingan Bulan Lalu</p>
+            {monthlyLoading ? (
+              <div className="mt-1 h-5 w-20 animate-pulse rounded bg-emerald-200" />
+            ) : monthlyEarnings && monthlyEarnings.growth !== 0 ? (
+              <div className="mt-1 flex flex-col gap-1">
+                <div className="flex items-center gap-1">
+                  <TrendingUp
+                    className={cn(
+                      'h-4 w-4',
+                      monthlyEarnings.growth > 0 ? 'text-emerald-600' : 'text-red-600 rotate-180',
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      'text-lg font-bold',
+                      monthlyEarnings.growth > 0 ? 'text-emerald-600' : 'text-red-600',
+                    )}
+                  >
+                    {monthlyEarnings.growth > 0 ? '+' : ''}
+                    {monthlyEarnings.growth.toFixed(1)}%
+                  </span>
+                </div>
+                <p className="text-[10px] text-emerald-700/70">
+                  {monthlyEarnings.growth > 0 ? 'Naik' : 'Turun'} dari bulan sebelumnya
+                </p>
               </div>
+            ) : (
+              <p className="mt-1 text-sm font-medium text-slate-500">Tidak ada data</p>
             )}
           </div>
-          <Link
-            href={`/${locale}/guide/wallet`}
-            className="flex flex-col items-center justify-center rounded-xl bg-slate-50 p-3 transition-colors hover:bg-slate-100 active:scale-95"
-          >
-            <Wallet className="h-5 w-5 text-slate-600 mb-1" />
-            <p className="text-xs font-medium text-slate-700">Lihat Detail</p>
-          </Link>
         </div>
+        
+        {/* Link to Wallet Detail */}
+        <Link
+          href={`/${locale}/guide/wallet`}
+          className="flex items-center justify-center gap-2 rounded-xl bg-slate-50 p-3 transition-colors hover:bg-slate-100 active:scale-95"
+        >
+          <Wallet className="h-4 w-4 text-slate-600" />
+          <p className="text-xs font-medium text-slate-700">Lihat Detail Dompet</p>
+          <ChevronRight className="h-4 w-4 text-slate-400" />
+        </Link>
       </CardContent>
     </Card>
   );
@@ -199,6 +214,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   BookOpen: BookOpen,
   CreditCard: CreditCard,
   Users: Users, // For Crew Directory
+  Gift: Gift, // For Reward Points
 };
 
 type MenuItem = {
@@ -392,98 +408,110 @@ export function GuideProfileClient({ locale, user }: GuideProfileClientProps) {
           Memuat menu items...
         </div>
       ) : menuItemsData?.menuItems && menuItemsData.menuItems.length > 0 ? (
-        <Accordion type="multiple" defaultOpen={true}>
-          {menuItemsData.menuItems.map((section: MenuSection, sectionIndex: number) => {
-            // Remove duplicates by href within section
+        (() => {
+          // Sections yang selalu expanded (sedikit item)
+          const alwaysExpandedSections = ['Akun', 'Pembelajaran', 'Dukungan', 'Pengaturan'];
+          
+          // Calculate which sections should be open by default
+          const defaultOpenSections = new Set<string>();
+          menuItemsData.menuItems.forEach((section: MenuSection) => {
             const uniqueItems = (section.items as MenuItem[]).filter(
               (item, index, self) => index === self.findIndex((i) => i.href === item.href)
             );
-
-            // Sections yang selalu expanded (sedikit item)
-            const alwaysExpandedSections = ['Akun', 'Dukungan', 'Pengaturan'];
             const shouldCollapse = !alwaysExpandedSections.includes(section.section) && uniqueItems.length > 2;
-
-            // Filter items based on context
-            const filteredItems = uniqueItems.filter((item) => {
-              // Hide Onboarding jika sudah selesai
-              if (item.href === '/guide/onboarding' && !needsOnboarding) {
-                return false;
-              }
-              // Hide Performance menu item (sudah terintegrasi di Insight Pribadi)
-              // User bisa akses performance metrics langsung dari Insight Pribadi
-              if (item.href === '/guide/performance') {
-                return false;
-              }
-              // Hide Crew Directory (sudah ada di Super App Menu di home)
-              if (item.href === '/guide/crew/directory' || item.href.includes('/guide/crew/directory')) {
-                return false;
-              }
-              return true;
-            });
-
-            // Skip section jika tidak ada items setelah filtering
-            if (filteredItems.length === 0) {
-              return null;
+            if (!shouldCollapse) {
+              defaultOpenSections.add(section.section);
             }
-            
-            // Create unique value for accordion to avoid conflicts
-            // Use section name directly (should be unique: 'Akun', 'Pengaturan')
-            const sectionValue = section.section;
-            
-            return (
-              <AccordionItem
-                key={`accordion-${section.section}-${sectionIndex}`}
-                value={sectionValue}
-                defaultOpen={!shouldCollapse}
-                className={cn(sectionIndex > 0 && 'mt-2')}
-              >
-                <AccordionTrigger value={sectionValue} className="px-4 py-3">
-                  <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-700">
-                    {section.section}
-                  </h2>
-                </AccordionTrigger>
-                <AccordionContent value={sectionValue}>
-                  <nav className="divide-y divide-slate-100" aria-label={section.section}>
-                    {filteredItems.map((item, itemIndex) => {
-                      const IconComponent = iconMap[item.icon_name] || FileText;
-                      return (
-                        <Link
-                          key={`${section.section}-${item.href}`}
-                          href={`/${locale}${item.href}`}
-                          className={cn(
-                            'group flex min-h-[60px] items-center gap-4 px-4 py-3.5 transition-colors',
-                            'hover:bg-slate-50 active:bg-slate-100',
-                            itemIndex === filteredItems.length - 1 && 'rounded-b-lg',
-                          )}
-                          aria-label={item.label}
-                        >
-                          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100 group-hover:bg-slate-200 transition-colors">
-                            <IconComponent className="h-5 w-5 text-slate-700" aria-hidden="true" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <div className="font-semibold text-slate-900">{item.label}</div>
-                              {/* Badge indicator untuk items dengan updates (future enhancement) */}
-                            </div>
-                            {item.description && (
-                              <div className="mt-0.5 text-xs text-slate-500 line-clamp-1">
-                                {item.description}
+          });
+
+          return (
+            <Accordion type="multiple" defaultOpen={false}>
+              {menuItemsData.menuItems.map((section: MenuSection, sectionIndex: number) => {
+                // Remove duplicates by href within section
+                const uniqueItems = (section.items as MenuItem[]).filter(
+                  (item, index, self) => index === self.findIndex((i) => i.href === item.href)
+                );
+
+                const shouldCollapse = !alwaysExpandedSections.includes(section.section) && uniqueItems.length > 2;
+
+                // Filter items based on context
+                const filteredItems = uniqueItems.filter((item) => {
+                  // Hide Onboarding jika sudah selesai
+                  if (item.href === '/guide/onboarding' && !needsOnboarding) {
+                    return false;
+                  }
+                  // Hide Crew Directory (sudah ada di Super App Menu di home)
+                  if (item.href === '/guide/crew/directory' || item.href.includes('/guide/crew/directory')) {
+                    return false;
+                  }
+                  return true;
+                });
+
+                // Skip section jika tidak ada items setelah filtering
+                if (filteredItems.length === 0) {
+                  return null;
+                }
+                
+                // Create unique value for accordion to avoid conflicts
+                // Use section name directly (should be unique: 'Akun', 'Pengaturan')
+                const sectionValue = section.section;
+                
+                return (
+                  <AccordionItem
+                    key={`accordion-${section.section}-${sectionIndex}`}
+                    value={sectionValue}
+                    defaultOpen={defaultOpenSections.has(sectionValue)}
+                    className={cn(sectionIndex > 0 && 'mt-2')}
+                  >
+                    <AccordionTrigger value={sectionValue} className="px-4 py-3">
+                      <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-700">
+                        {section.section}
+                      </h2>
+                    </AccordionTrigger>
+                    <AccordionContent value={sectionValue}>
+                      <nav className="divide-y divide-slate-100" aria-label={section.section}>
+                        {filteredItems.map((item, itemIndex) => {
+                          const IconComponent = iconMap[item.icon_name] || FileText;
+                          return (
+                            <Link
+                              key={`${section.section}-${item.href}`}
+                              href={`/${locale}${item.href}`}
+                              className={cn(
+                                'group flex min-h-[60px] items-center gap-4 px-4 py-3.5 transition-colors',
+                                'hover:bg-slate-50 active:bg-slate-100',
+                                itemIndex === filteredItems.length - 1 && 'rounded-b-lg',
+                              )}
+                              aria-label={item.label}
+                            >
+                              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100 group-hover:bg-slate-200 transition-colors">
+                                <IconComponent className="h-5 w-5 text-slate-700" aria-hidden="true" />
                               </div>
-                            )}
-                          </div>
-                          <ChevronRight
-                            className="h-5 w-5 flex-shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5"
-                            aria-hidden="true"
-                          />
-                        </Link>
-                      );
-                    })}
-                  </nav>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <div className="font-semibold text-slate-900">{item.label}</div>
+                                  {/* Badge indicator untuk items dengan updates (future enhancement) */}
+                                </div>
+                                {item.description && (
+                                  <div className="mt-0.5 text-xs text-slate-500 line-clamp-1">
+                                    {item.description}
+                                  </div>
+                                )}
+                              </div>
+                              <ChevronRight
+                                className="h-5 w-5 flex-shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5"
+                                aria-hidden="true"
+                              />
+                            </Link>
+                          );
+                        })}
+                      </nav>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          );
+        })()
       ) : (
         <div className="p-4 text-center text-sm text-slate-500">
           Memuat menu items...

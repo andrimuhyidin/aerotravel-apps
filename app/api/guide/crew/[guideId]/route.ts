@@ -107,7 +107,7 @@ export const GET = withErrorHandler(async (
     // Get ratings
     let averageRating = 0;
     let totalRatings = 0;
-    let ratingDistribution = { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 };
+    const ratingDistribution = { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 };
 
     const { data: guideTrips } = await client
       .from('trip_guides')

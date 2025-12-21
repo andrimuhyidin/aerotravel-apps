@@ -11,7 +11,8 @@ import Link from 'next/link';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/error-state';
+import { LoadingState } from '@/components/ui/loading-state';
 import queryKeys from '@/lib/queries/query-keys';
 
 type ChatClientProps = {
@@ -29,7 +30,7 @@ type TripChatItem = {
 };
 
 export function ChatClient({ locale }: ChatClientProps) {
-  const { data: trips, isLoading } = useQuery<TripChatItem[]>({
+  const { data: trips, isLoading, error, refetch } = useQuery<TripChatItem[]>({
     queryKey: queryKeys.guide.trips.all(),
     queryFn: async () => {
       const res = await fetch('/api/guide/trips');
@@ -55,18 +56,16 @@ export function ChatClient({ locale }: ChatClientProps) {
   });
 
   if (isLoading) {
+    return <LoadingState variant="skeleton-card" lines={3} message="Memuat chat..." />;
+  }
+
+  if (error) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-8 w-48" />
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="border-0 shadow-sm">
-            <CardContent className="p-4">
-              <Skeleton className="h-6 w-full mb-2" />
-              <Skeleton className="h-4 w-2/3" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <ErrorState
+        message={error instanceof Error ? error.message : 'Gagal memuat chat'}
+        onRetry={() => void refetch()}
+        variant="card"
+      />
     );
   }
 

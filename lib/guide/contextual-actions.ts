@@ -4,6 +4,8 @@
  * Determines which quick actions to show based on user context
  */
 
+import { logger } from '@/lib/utils/logger';
+
 export type GuideContext = {
   hasActiveTrip: boolean;
   hasUpcomingTrip: boolean;
@@ -222,7 +224,7 @@ export function getContextualActions(
 
   // Debug logging (development only)
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    console.log('[ContextualActions] Enhanced Debug:', JSON.stringify({
+    logger.debug('[ContextualActions] Enhanced Debug', {
       allActionsCount: allActions.length,
       context,
       actionMapEntries: Array.from(actionMap.entries()).map(([href, action]) => ({
@@ -232,7 +234,7 @@ export function getContextualActions(
         timeBoost: action.timeBasedBoost,
         tripBoost: action.tripBasedBoost,
       })),
-    }, null, 2));
+    });
   }
 
   // Filter actions based on context

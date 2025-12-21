@@ -50,6 +50,11 @@ export function useGuideTrips() {
           destination?: string | null;
           duration?: number | null;
           meeting_point?: string | null;
+          assignment_status?: 'pending_confirmation' | 'confirmed' | 'rejected' | 'expired' | 'auto_reassigned' | null;
+          confirmation_deadline?: string | null;
+          confirmed_at?: string | null;
+          rejected_at?: string | null;
+          fee_amount?: number | null;
         }>;
       };
     },

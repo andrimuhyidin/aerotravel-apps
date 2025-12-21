@@ -5,9 +5,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+
 import { generateRAGResponse } from '@/lib/ai/rag';
 import { isFeatureEnabled } from '@/lib/feature-flags/posthog-flags';
 import { aiChatRateLimit } from '@/lib/integrations/rate-limit';
+import { logger } from '@/lib/utils/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,7 +52,7 @@ export async function POST(request: NextRequest) {
       remaining,
     });
   } catch (error) {
-    console.error('Chat error:', error);
+    logger.error('Chat error', error);
     return NextResponse.json(
       { error: 'Chat processing failed' },
       { status: 500 }

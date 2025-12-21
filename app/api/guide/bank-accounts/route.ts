@@ -140,7 +140,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   return NextResponse.json({ account: newAccount });
 });
 
-// PUT: Update bank account (only pending ones)
+// PUT: Update bank account (pending or approved ones)
 export const PUT = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
 
@@ -173,7 +173,7 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
 
   const client = supabase as unknown as any;
 
-  // Check if account exists and is pending
+  // Check if account exists
   const { data: existing } = await client
     .from('guide_bank_accounts')
     .select('*')
@@ -185,9 +185,21 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Bank account not found' }, { status: 404 });
   }
 
-  if (existing.status !== 'pending') {
+  // Handle different statuses
+  if (existing.status === 'rejected') {
     return NextResponse.json(
-      { error: 'Hanya akun bank dengan status pending yang bisa diubah' },
+      { error: 'Akun bank yang ditolak tidak bisa diubah. Silakan hapus dan buat ulang.' },
+      { status: 400 },
+    );
+  }
+
+  // If status is approved, need to create edit request (status → pending_edit)
+  const isEditApprovedAccount = existing.status === 'approved';
+  const isEditPendingEdit = existing.status === 'pending_edit';
+  
+  if (!isEditPendingEdit && existing.status !== 'pending' && !isEditApprovedAccount) {
+    return NextResponse.json(
+      { error: 'Status akun bank tidak memungkinkan untuk diubah' },
       { status: 400 },
     );
   }
@@ -210,6 +222,19 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     }
   }
 
+  // If editing approved account, backup original data
+  let originalData: Record<string, unknown> | null = null;
+  if (isEditApprovedAccount) {
+    originalData = {
+      bank_name: existing.bank_name,
+      account_number: existing.account_number,
+      account_holder_name: existing.account_holder_name,
+      branch_name: existing.branch_name,
+      branch_code: existing.branch_code,
+      is_default: existing.is_default,
+    };
+  }
+
   // If setting as default, unset existing default
   if (parsed.is_default && !existing.is_default) {
     const { data: existingDefault } = await client
@@ -220,7 +245,7 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
       .eq('status', 'approved')
       .maybeSingle();
 
-    if (existingDefault) {
+    if (existingDefault && existingDefault.id !== body.id) {
       await client
         .from('guide_bank_accounts')
         .update({ is_default: false })
@@ -228,17 +253,28 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     }
   }
 
+  // Prepare update payload
+  const updatePayload: Record<string, unknown> = {
+    bank_name: parsed.bank_name,
+    account_number: parsed.account_number,
+    account_holder_name: parsed.account_holder_name,
+    branch_name: parsed.branch_name || null,
+    branch_code: parsed.branch_code || null,
+    is_default: parsed.is_default,
+  };
+
+  // If editing approved account, set status to pending_edit and backup data
+  if (isEditApprovedAccount) {
+    updatePayload.status = 'pending_edit';
+    updatePayload.original_data = originalData;
+    updatePayload.edit_requested_at = new Date().toISOString();
+    updatePayload.edit_requested_by = user.id;
+  }
+
   // Update account
   const { data: updated, error } = await client
     .from('guide_bank_accounts')
-    .update({
-      bank_name: parsed.bank_name,
-      account_number: parsed.account_number,
-      account_holder_name: parsed.account_holder_name,
-      branch_name: parsed.branch_name || null,
-      branch_code: parsed.branch_code || null,
-      is_default: parsed.is_default,
-    })
+    .update(updatePayload)
     .eq('id', body.id)
     .select('*')
     .single();
@@ -251,9 +287,16 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
   logger.info('Bank account updated', {
     guideId: user.id,
     bankAccountId: body.id,
+    status: isEditApprovedAccount ? 'pending_edit' : existing.status,
+    wasApproved: isEditApprovedAccount,
   });
 
-  return NextResponse.json({ account: updated });
+  return NextResponse.json({ 
+    account: updated,
+    message: isEditApprovedAccount 
+      ? 'Perubahan rekening dikirim untuk persetujuan admin' 
+      : 'Rekening berhasil diperbarui',
+  });
 });
 
 // DELETE: Delete bank account (only pending/rejected)
@@ -291,12 +334,48 @@ export const DELETE = withErrorHandler(async (request: NextRequest) => {
 
   if (existing.status === 'approved') {
     return NextResponse.json(
-      { error: 'Akun bank yang sudah disetujui tidak bisa dihapus' },
+      { error: 'Akun bank yang sudah disetujui tidak bisa dihapus. Silakan edit jika ingin mengubah data.' },
       { status: 400 },
     );
   }
+  
+  // If deleting pending_edit, it means guide wants to cancel edit request
+  // We should restore to approved status instead of deleting
+  if (existing.status === 'pending_edit' && existing.original_data) {
+    // Restore to approved with original data
+    const { error: restoreError } = await client
+      .from('guide_bank_accounts')
+      .update({
+        status: 'approved',
+        bank_name: existing.original_data.bank_name as string,
+        account_number: existing.original_data.account_number as string,
+        account_holder_name: existing.original_data.account_holder_name as string,
+        branch_name: (existing.original_data.branch_name as string) || null,
+        branch_code: (existing.original_data.branch_code as string) || null,
+        is_default: (existing.original_data.is_default as boolean) || false,
+        original_data: null,
+        edit_requested_at: null,
+        edit_requested_by: null,
+      })
+      .eq('id', id);
 
-  // Delete account
+    if (restoreError) {
+      logger.error('Failed to cancel edit request', restoreError, { guideId: user.id, accountId: id });
+      return NextResponse.json({ error: 'Failed to cancel edit request' }, { status: 500 });
+    }
+
+    logger.info('Edit request cancelled, restored to approved', {
+      guideId: user.id,
+      bankAccountId: id,
+    });
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'Permintaan perubahan dibatalkan. Data dikembalikan ke versi sebelumnya.',
+    });
+  }
+
+  // Delete account (only for pending or rejected)
   const { error } = await client.from('guide_bank_accounts').delete().eq('id', id);
 
   if (error) {

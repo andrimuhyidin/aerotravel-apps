@@ -1,11 +1,13 @@
 /**
  * API: Guide Notifications (Unified)
  * GET /api/guide/notifications - Get unified notifications (system notifications + broadcasts)
+ * Note: Promos are not included here - they have dedicated page /guide/promos
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { parsePaginationParams, createPaginationMeta } from '@/lib/api/pagination';
 import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -22,8 +24,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
 
   const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get('limit') || '50', 10);
-  const offset = parseInt(searchParams.get('offset') || '0', 10);
+  const { page, limit, offset } = parsePaginationParams(searchParams, 50);
   const type = searchParams.get('type'); // 'all' | 'system' | 'broadcast'
 
   const branchContext = await getBranchContext(user.id);
@@ -192,7 +193,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       }
     }
 
-    // Combine and sort
+    // Combine and sort (promos removed - they have dedicated page)
     const allNotifications = [...systemNotifications, ...broadcasts].sort((a, b) => {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
@@ -200,8 +201,10 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     // Apply pagination
     const paginatedNotifications = allNotifications.slice(offset, offset + limit);
 
-    // Count unread
-    const unreadCount = allNotifications.filter((n) => {
+    // Count unread by type
+    const systemUnread = allNotifications.filter((n) => n.type === 'system' && n.status !== 'read' && !n.readAt).length;
+    const broadcastUnread = allNotifications.filter((n) => n.type === 'broadcast' && !n.isRead).length;
+    const totalUnread = allNotifications.filter((n) => {
       if (n.type === 'system') {
         return n.status !== 'read' && !n.readAt;
       } else {
@@ -209,11 +212,17 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       }
     }).length;
 
+    const total = allNotifications.length;
+
     return NextResponse.json({
       notifications: paginatedNotifications,
-      unreadCount,
-      total: allNotifications.length,
-      hasMore: offset + limit < allNotifications.length,
+      unreadCount: totalUnread,
+      unreadCountByType: {
+        system: systemUnread,
+        broadcast: broadcastUnread,
+        total: totalUnread,
+      },
+      pagination: createPaginationMeta(total, page, limit),
     });
   } catch (error) {
     logger.error('Failed to fetch unified notifications', error, { userId: user.id });

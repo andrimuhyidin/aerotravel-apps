@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Minus, Star, TrendingDown, TrendingUp } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
 import queryKeys from '@/lib/queries/query-keys';
@@ -47,7 +48,7 @@ type RatingsClientProps = {
 
 export function RatingsClient({ locale: _locale }: RatingsClientProps) {
   const { data, isLoading, error, refetch } = useQuery<RatingsResponse>({
-    queryKey: queryKeys.guide.ratings(),
+    queryKey: queryKeys.guide.ratings.all(),
     queryFn: async () => {
       const res = await fetch('/api/guide/ratings');
       if (!res.ok) {
@@ -222,15 +223,12 @@ export function RatingsClient({ locale: _locale }: RatingsClientProps) {
 
       {/* Reviews List */}
       {reviews.length === 0 ? (
-        <Card className="border-0 shadow-sm">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Star className="mb-3 h-12 w-12 text-slate-300" />
-            <p className="text-sm font-medium text-slate-600">Belum ada ulasan</p>
-            <p className="mt-1 text-xs text-slate-500">
-              Ulasan dari customer akan muncul di sini setelah mereka memberikan rating
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Star}
+          title="Belum ada ulasan"
+          description="Ulasan dari customer akan muncul di sini setelah mereka memberikan rating"
+          variant="default"
+        />
       ) : (
         <div className="space-y-3">
           <div className="flex items-center justify-between">

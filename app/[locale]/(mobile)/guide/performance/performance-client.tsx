@@ -18,6 +18,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
@@ -50,7 +51,7 @@ type PerformanceMetrics = {
 
 export function PerformanceClient({ locale: _locale }: PerformanceClientProps) {
   // Fetch current period metrics
-  const { data: metricsData, isLoading: metricsLoading } = useQuery<{
+  const { data: metricsData, isLoading: metricsLoading, error: metricsError, refetch: refetchMetrics } = useQuery<{
     metrics: PerformanceMetrics;
   }>({
     queryKey: queryKeys.guide.performance.metrics({ period: 'monthly' }),
@@ -62,7 +63,7 @@ export function PerformanceClient({ locale: _locale }: PerformanceClientProps) {
   });
 
   // Fetch AI insights
-  const { data: insightsData } = useQuery<{
+  const { data: insightsData, error: insightsError, refetch: refetchInsights } = useQuery<{
     insights: {
       summary?: string;
       trends?: Array<{ metric: string; trend: 'up' | 'down' | 'stable'; change: number }>;
@@ -83,6 +84,21 @@ export function PerformanceClient({ locale: _locale }: PerformanceClientProps) {
 
   const metrics = metricsData?.metrics;
   const insights = insightsData?.insights;
+
+  if (metricsError || insightsError) {
+    const error = metricsError || insightsError;
+    const refetch = () => {
+      void refetchMetrics();
+      void refetchInsights();
+    };
+    return (
+      <ErrorState
+        message={error instanceof Error ? error.message : 'Gagal memuat data performa'}
+        onRetry={refetch}
+        variant="card"
+      />
+    );
+  }
 
   const getTierColor = (tier: string | null) => {
     switch (tier) {

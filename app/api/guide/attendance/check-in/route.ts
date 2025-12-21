@@ -61,6 +61,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     check_in_photo_url: photoUrl,
     check_in_happiness: happiness,
     check_in_description: description.trim(),
+    // Update assignment status if it was ABSENT (resolved by check-in)
+    assignment_status: 'confirmed',
   };
 
   const { error: updateError } = await withBranchFilter(

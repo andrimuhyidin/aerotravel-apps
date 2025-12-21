@@ -25,6 +25,8 @@ import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 
+import { Container } from '@/components/layout/container';
+import { Section } from '@/components/layout/section';
 import { Button } from '@/components/ui/button';
 import { locales } from '@/i18n';
 import { getCurrentUser } from '@/lib/supabase/server';
@@ -72,15 +74,17 @@ export default async function AccountPage({ params }: PageProps) {
 // ============================================
 function GuestAccount({ locale }: { locale: string }) {
   return (
-    <div className="flex flex-col pb-8">
-      {/* Header */}
-      <div className="px-4 pb-4 pt-5">
-        <h1 className="text-xl font-bold">Akun</h1>
-        <p className="text-sm text-muted-foreground">Login untuk akses fitur</p>
-      </div>
+    <Section>
+      <Container>
+        <div className="flex flex-col pb-8">
+          {/* Header */}
+          <div className="pb-4 pt-5">
+            <h1 className="text-xl font-bold">Akun</h1>
+            <p className="text-sm text-muted-foreground">Login untuk akses fitur</p>
+          </div>
 
-      {/* Login CTA - Clean & Simple */}
-      <div className="px-4 pb-5">
+          {/* Login CTA - Clean & Simple */}
+          <div className="pb-5">
         <div className="rounded-2xl bg-gradient-to-br from-primary to-blue-600 p-5 text-white">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
             <User className="h-6 w-6" />
@@ -109,7 +113,7 @@ function GuestAccount({ locale }: { locale: string }) {
       </div>
 
       {/* Menu Sections - Simplified */}
-      <div className="space-y-2 px-4">
+      <div className="space-y-2">
         {/* Pengaturan */}
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-slate-800">
           <Link
@@ -192,7 +196,9 @@ function GuestAccount({ locale }: { locale: string }) {
         <p>AeroTravel v1.0.0</p>
         <p className="mt-0.5">© 2025 Aero Travel Indonesia</p>
       </div>
-    </div>
+        </div>
+      </Container>
+    </Section>
   );
 }
 
@@ -223,23 +229,25 @@ function LoggedInAccount({
     .slice(0, 2);
 
   return (
-    <div className="flex flex-col pb-8">
-      {/* Header with greeting */}
-      <div className="px-4 pb-4 pt-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold">Akun Saya</h1>
-            <p className="text-sm text-muted-foreground">Halo, {firstName}! 👋</p>
+    <Section>
+      <Container>
+        <div className="flex flex-col pb-8">
+          {/* Header with greeting */}
+          <div className="pb-4 pt-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold">Akun Saya</h1>
+                <p className="text-sm text-muted-foreground">Halo, {firstName}! 👋</p>
+              </div>
+              {/* Role Switcher - Only show if user has multiple roles */}
+              <div className="flex items-center">
+                <AccountRoleSwitcher size="sm" variant="outline" />
+              </div>
+            </div>
           </div>
-          {/* Role Switcher - Only show if user has multiple roles */}
-          <div className="flex items-center">
-            <AccountRoleSwitcher size="sm" variant="outline" />
-          </div>
-        </div>
-      </div>
 
       {/* Premium Profile Card */}
-      <div className="px-4 pb-5">
+      <div className="pb-5">
         <Link href={`/${locale}/account/profile`}>
           <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-50 to-white p-5 shadow-lg ring-1 ring-slate-100 active:scale-[0.98] dark:from-slate-800 dark:to-slate-800 dark:ring-slate-700">
             <div className="flex items-center gap-4">
@@ -279,7 +287,7 @@ function LoggedInAccount({
       </div>
 
       {/* Stats Cards */}
-      <div className="px-4 pb-5">
+      <div className="pb-5">
         <div className="grid grid-cols-3 gap-3">
           <Link
             href={`/${locale}/loyalty`}
@@ -309,7 +317,7 @@ function LoggedInAccount({
       </div>
 
       {/* Menu Sections - Optimized, No Redundancy */}
-      <div className="space-y-3 px-4">
+      <div className="space-y-3">
         {/* Transaksi & Pembayaran */}
         <MenuGroup
           title="Transaksi & Pembayaran"
@@ -395,7 +403,7 @@ function LoggedInAccount({
       </div>
 
       {/* Logout Button */}
-      <div className="mt-4 px-4">
+      <div className="mt-4">
         <Link href={`/${locale}/logout`}>
           <Button
             variant="outline"
@@ -412,7 +420,9 @@ function LoggedInAccount({
         <p>AeroTravel v1.0.0</p>
         <p>© 2025 Aero Travel Indonesia</p>
       </div>
-    </div>
+        </div>
+      </Container>
+    </Section>
   );
 }
 

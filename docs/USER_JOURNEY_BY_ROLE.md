@@ -331,25 +331,44 @@ Dokumen ini menjelaskan journey lengkap setiap role/aplikasi di MyAeroTravel ID,
         ├─> Progress tracking
         └─> Rewards
 
-21. Leaderboard (/guide/leaderboard)
+21. Reward Points (/guide/rewards)
+    └─> Reward System
+        ├─> Points balance (dashboard widget)
+        ├─> Rewards dashboard
+        │   ├─> Current balance
+        │   ├─> Lifetime earned/redeemed
+        │   ├─> Expiring points warning
+        │   └─> Recent transactions
+        ├─> Reward catalog
+        │   ├─> Browse rewards by type
+        │   ├─> Filter by points range
+        │   ├─> Redeem reward
+        │   └─> Delivery info form (for merchandise)
+        └─> Redemption history
+            ├─> View all redemptions
+            ├─> Filter by status
+            ├─> Track redemption status
+            └─> Cancel pending redemptions
+
+22. Leaderboard (/guide/leaderboard)
     └─> Rankings
         ├─> Top guides
         ├─> Badges
         └─> Level progression
 
-22. Training (/guide/training)
+23. Training (/guide/training)
     └─> Learning modules
         ├─> Training content
         ├─> Quizzes
         └─> Certifications
 
-23. Social Feed (/guide/social)
+24. Social Feed (/guide/social)
     └─> Community
         ├─> Share trip experiences
         ├─> Like & comment
         └─> Connect with other guides
 
-24. Insights (/guide/insights)
+25. Insights (/guide/insights)
     └─> AI-powered insights
         ├─> Income predictions
         ├─> Performance recommendations
@@ -750,9 +769,10 @@ Dokumen ini menjelaskan journey lengkap setiap role/aplikasi di MyAeroTravel ID,
 3. **Social Features** - Travel circle, social feed
 
 ### **Retention Points:**
-1. **Loyalty Program** - Points & rewards
-2. **Gamification** - Challenges & leaderboard (Guide)
-3. **Community** - Social feed, travel circle
+1. **Loyalty Program** - Points & rewards (Customer)
+2. **Reward Points System** - Points, challenges, badges, redemptions (Guide)
+3. **Gamification** - Challenges & leaderboard (Guide)
+4. **Community** - Social feed, travel circle
 
 ---
 

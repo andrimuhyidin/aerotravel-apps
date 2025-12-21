@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { parsePaginationParams, createPaginationMeta } from '@/lib/api/pagination';
+import { invalidateCache } from '@/lib/cache/redis-cache';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -17,7 +19,7 @@ const withdrawSchema = z.object({
   presetAmount: z.number().optional(),
 });
 
-export const GET = withErrorHandler(async () => {
+export const GET = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
 
   const {
@@ -83,14 +85,48 @@ export const GET = withErrorHandler(async () => {
   const balance = Number(walletRow?.balance ?? 0);
   const walletId = walletRow?.id ?? null;
 
+  const { searchParams } = new URL(request.url || new URL('http://localhost'));
+  // Support legacy tx_limit/tx_offset params or standard page/limit params
+  const txLimitParam = searchParams.get('tx_limit');
+  const txOffsetParam = searchParams.get('tx_offset');
+  
+  let txPage = 1;
+  let txLimit = 20;
+  let txOffset = 0;
+  
+  if (txLimitParam || txOffsetParam) {
+    // Legacy offset-based pagination
+    txLimit = parseInt(txLimitParam || '20', 10);
+    txOffset = parseInt(txOffsetParam || '0', 10);
+    txPage = Math.floor(txOffset / txLimit) + 1;
+  } else {
+    // Standard page-based pagination
+    const pagination = parsePaginationParams(searchParams, 20);
+    txPage = pagination.page;
+    txLimit = pagination.limit;
+    txOffset = pagination.offset;
+  }
+
   let transactions: unknown[] = [];
+  let transactionsTotal = 0;
+  
   if (walletId) {
+    // Get total count
+    const { count } = await client
+      .from('guide_wallet_transactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('wallet_id', walletId);
+    
+    transactionsTotal = count || 0;
+
+    // Get paginated transactions
     const { data: txData, error: txError } = await client
       .from('guide_wallet_transactions')
       .select('id, transaction_type, amount, balance_before, balance_after, reference_type, reference_id, status, description, created_at')
       .eq('wallet_id', walletId)
       .order('created_at', { ascending: false })
-      .limit(20);
+      .range(txOffset, txOffset + txLimit - 1);
+      
     if (txError) {
       logger.error('Failed to load wallet transactions', txError, { walletId });
       return NextResponse.json(
@@ -116,6 +152,7 @@ export const GET = withErrorHandler(async () => {
   return NextResponse.json({
     balance,
     transactions,
+    transactionsPagination: createPaginationMeta(transactionsTotal, txPage, txLimit),
     salary: salaryData ?? [],
   });
 });
@@ -256,6 +293,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   logger.info('Guide withdraw request created', { guideId: user.id, amount });
+
+  // Invalidate wallet cache for this guide
+  await invalidateCache(`guide:wallet:${user.id}*`);
+  await invalidateCache(`guide:wallet:tx:${user.id}*`);
 
   return NextResponse.json({ success: true });
 });

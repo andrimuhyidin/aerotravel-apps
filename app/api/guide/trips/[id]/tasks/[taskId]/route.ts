@@ -112,23 +112,26 @@ export const PATCH = withErrorHandler(async (
           // Don't fail the request if feedback sending fails
         }
 
-        // Auto-process payment for completed trip (async, don't wait)
+        // NOTE: Automatic payment processing is now handled by database trigger
+        // `trigger_auto_process_trip_payment` which fires when check_out_at is set.
+        // This async call serves as a fallback for edge cases where trigger might not fire.
         // Payment will be processed using fee from trip_guides
         try {
           const { processTripPayment } = await import('@/lib/guide/contract-payment');
           processTripPayment(tripId, user.id).catch((paymentError) => {
-            logger.warn('Failed to auto-process trip payment', {
+            logger.warn('Failed to auto-process trip payment (fallback)', {
               error: paymentError instanceof Error ? paymentError.message : String(paymentError),
               tripId,
               guideId: user.id,
+              note: 'Trigger should have already processed this payment',
             });
-            // Don't fail - payment can be processed manually later
+            // Don't fail - payment can be processed manually later or by trigger
           });
         } catch (importError) {
           logger.warn('Failed to import payment processor', {
             error: importError instanceof Error ? importError.message : String(importError),
           });
-          // Don't fail - payment can be processed manually later
+          // Don't fail - trigger will handle payment processing
         }
       }
     }

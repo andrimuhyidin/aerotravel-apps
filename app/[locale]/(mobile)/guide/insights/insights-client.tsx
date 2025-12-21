@@ -27,7 +27,9 @@ import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { LoadingState } from '@/components/ui/loading-state';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
@@ -144,7 +146,7 @@ export function InsightsClient({ locale }: InsightsClientProps) {
   }).reverse();
 
   // Fetch monthly insights
-  const { data: monthlyData, isLoading: monthlyLoading } = useQuery<MonthlyInsights>({
+  const { data: monthlyData, isLoading: monthlyLoading, error: monthlyError, refetch: refetchMonthly } = useQuery<MonthlyInsights>({
     queryKey: [...queryKeys.guide.insights.monthly(), selectedMonth],
     queryFn: async () => {
       const res = await fetch(`/api/guide/insights/monthly?month=${selectedMonth}`);
@@ -292,7 +294,7 @@ export function InsightsClient({ locale }: InsightsClientProps) {
   };
 
   const { data: ratingsData, isLoading: ratingsLoading } = useQuery<RatingsResponse>({
-    queryKey: queryKeys.guide.ratings(),
+    queryKey: queryKeys.guide.ratings.all(),
     queryFn: async (): Promise<RatingsResponse> => {
       const res = await fetch('/api/guide/ratings');
       if (!res.ok) throw new Error('Failed to load ratings');
@@ -335,15 +337,28 @@ export function InsightsClient({ locale }: InsightsClientProps) {
         </CardContent>
       </Card>
 
+      {/* Error State */}
+      {monthlyError && (
+        <ErrorState
+          message={monthlyError instanceof Error ? monthlyError.message : 'Gagal memuat insights'}
+          onRetry={() => void refetchMonthly()}
+          variant="card"
+        />
+      )}
+
+      {/* Loading State */}
+      {monthlyLoading && (
+        <LoadingState variant="skeleton-card" lines={5} message="Memuat insights..." />
+      )}
+
       {/* AI Insights Card */}
       {aiLoading ? (
         <Card className="border-0 shadow-sm bg-gradient-to-br from-purple-50 to-indigo-50">
           <CardHeader className="pb-3">
-            <Skeleton className="h-5 w-32" />
+            <LoadingState variant="inline" message="Memuat AI insights..." />
           </CardHeader>
           <CardContent className="pt-0 space-y-4">
-            <Skeleton className="h-32 w-full rounded-lg" />
-            <Skeleton className="h-24 w-full rounded-lg" />
+            <LoadingState variant="skeleton" lines={3} />
           </CardContent>
         </Card>
       ) : aiInsights ? (
@@ -488,15 +503,8 @@ export function InsightsClient({ locale }: InsightsClientProps) {
       {/* Performance Metrics - Integrated from Performance API */}
       {performanceLoading ? (
         <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="mt-2 h-3 w-24" />
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-2 gap-4">
-              <Skeleton className="h-24 rounded-xl" />
-              <Skeleton className="h-24 rounded-xl" />
-            </div>
+          <CardContent className="p-6">
+            <LoadingState variant="skeleton" lines={4} />
           </CardContent>
         </Card>
       ) : performanceMetrics ? (
@@ -603,11 +611,7 @@ export function InsightsClient({ locale }: InsightsClientProps) {
         </CardHeader>
         <CardContent className="pt-0">
           {monthlyLoading ? (
-            <div className="grid grid-cols-2 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-24 rounded-xl" />
-              ))}
-            </div>
+            <LoadingState variant="skeleton-card" lines={4} />
           ) : summary ? (
             <div className="grid grid-cols-2 gap-4">
               {/* Total Trips */}
@@ -926,21 +930,14 @@ export function InsightsClient({ locale }: InsightsClientProps) {
         </CardHeader>
         <CardContent className="pt-0">
           {penaltiesLoading ? (
-            <div className="space-y-3 py-4">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-32 rounded-lg" />
-              ))}
-            </div>
+            <LoadingState variant="skeleton-card" lines={3} />
           ) : !penaltiesData || penaltiesData.penalties.length === 0 ? (
-            <div className="py-12 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                <AlertCircle className="h-8 w-8 text-emerald-600" />
-              </div>
-              <h3 className="mb-2 text-sm font-semibold text-slate-900">Tidak ada penalty</h3>
-              <p className="text-xs text-slate-500">
-                Anda tidak memiliki riwayat penalty. Terus pertahankan performa yang baik!
-              </p>
-            </div>
+            <EmptyState
+              icon={AlertCircle}
+              title="Tidak ada penalties"
+              description="Anda belum menerima penalties bulan ini"
+              variant="subtle"
+            />
           ) : (
             <div className="space-y-4">
               {penaltiesData.penalties.map((penalty) => (
@@ -990,14 +987,14 @@ export function InsightsClient({ locale }: InsightsClientProps) {
           )}
         </CardContent>
       </Card>
-        </TabsContent>
+      </TabsContent>
 
         {/* Ratings Tab */}
         <TabsContent value="ratings" className="space-y-4 mt-4">
           {ratingsLoading ? (
             <Card className="border-0 bg-gradient-to-br from-amber-50 to-amber-100/50 shadow-sm">
               <CardContent className="p-6">
-                <Skeleton className="h-32 w-full" />
+                <LoadingState variant="skeleton" lines={4} />
               </CardContent>
             </Card>
           ) : ratingsData ? (
@@ -1145,15 +1142,12 @@ export function InsightsClient({ locale }: InsightsClientProps) {
 
               {/* Reviews List */}
               {ratingsData.reviews.length === 0 ? (
-                <Card className="border-0 shadow-sm">
-                  <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                    <Star className="mb-3 h-12 w-12 text-slate-300" />
-                    <p className="text-sm font-medium text-slate-600">Belum ada ulasan</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Ulasan dari customer akan muncul di sini setelah mereka memberikan rating
-                    </p>
-                  </CardContent>
-                </Card>
+                <EmptyState
+                  icon={Star}
+                  title="Belum ada ulasan"
+                  description="Ulasan dari customer akan muncul di sini setelah mereka memberikan rating"
+                  variant="default"
+                />
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">

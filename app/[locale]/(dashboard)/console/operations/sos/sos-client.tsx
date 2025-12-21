@@ -1,42 +1,64 @@
 'use client';
 
-import { AlertTriangle, CheckCircle, MapPin } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import 'leaflet/dist/leaflet.css';
+
+import { AlertTriangle, CheckCircle, MapPin, Navigation } from 'lucide-react';
+import L from 'leaflet';
+import dynamic from 'next/dynamic';
+import { useEffect, useRef, useState } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+// Dynamic import untuk map component
+const MapComponent = dynamic(() => import('@/app/[locale]/(mobile)/guide/tracking/map-component'), {
+  ssr: false,
+});
+
 type SOSAlert = {
   id: string;
-  trip_id: string;
   guide_id: string;
-  branch_id: string | null;
-  alert_type: string;
-  status: 'active' | 'acknowledged' | 'resolved';
+  guide_name: string;
+  trip_id: string | null;
+  trip_code: string | null;
   latitude: number | null;
   longitude: number | null;
-  accuracy_meters: number | null;
+  last_location_update: string | null;
+  streaming_active: boolean;
   created_at: string;
-  acknowledged_at: string | null;
-  resolved_at: string | null;
-  message: string | null;
-  guide: { full_name: string | null; phone: string | null } | null;
-  trip: { trip_code: string | null; trip_date: string | null } | null;
+  location_history_count: number;
+  locationHistory?: Array<{
+    latitude: number;
+    longitude: number;
+    recorded_at: string;
+  }>;
 };
 
 export function SOSClient() {
   const [alerts, setAlerts] = useState<SOSAlert[]>([]);
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAlert, setSelectedAlert] = useState<SOSAlert | null>(null);
 
   const loadAlerts = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/admin/sos');
+      const res = await fetch('/api/admin/sos/live-map');
       if (!res.ok) {
         throw new Error('Failed to load SOS alerts');
       }
-      const data = (await res.json()) as { alerts: SOSAlert[] };
+      const data = (await res.json()) as { alerts: SOSAlert[]; count: number };
       setAlerts(data.alerts);
+      
+      // Auto-select first active alert if none selected
+      if (!selectedAlert && data.alerts.length > 0) {
+        setSelectedAlert(data.alerts[0] || null);
+      } else if (selectedAlert) {
+        // Update selected alert with latest data
+        const updated = data.alerts.find((a) => a.id === selectedAlert.id);
+        if (updated) {
+          setSelectedAlert(updated);
+        }
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -46,27 +68,38 @@ export function SOSClient() {
 
   useEffect(() => {
     loadAlerts();
-    const interval = setInterval(loadAlerts, 15000);
+    // Update every 10 seconds untuk real-time GPS streaming
+    const interval = setInterval(loadAlerts, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  const updateAlert = async (id: string, action: 'acknowledge' | 'resolve') => {
+  const resolveAlert = async (sosAlertId: string) => {
     try {
-      const res = await fetch('/api/admin/sos', {
+      const res = await fetch('/api/admin/sos/live-map', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, action }),
+        body: JSON.stringify({
+          sos_alert_id: sosAlertId,
+          resolution_notes: 'Resolved by admin',
+        }),
       });
       if (!res.ok) {
-        throw new Error('Failed to update SOS alert');
+        throw new Error('Failed to resolve SOS alert');
       }
       await loadAlerts();
+      if (selectedAlert?.id === sosAlertId) {
+        setSelectedAlert(null);
+      }
     } catch (err) {
       setError((err as Error).message);
     }
   };
 
-  const activeAlerts = alerts.filter((a) => a.status !== 'resolved');
+  const activeAlerts = alerts.filter((a) => a.streaming_active || a.latitude !== null);
+
+  const selectedAlertWithLocation = selectedAlert && selectedAlert.latitude && selectedAlert.longitude
+    ? selectedAlert
+    : null;
 
   return (
     <div className="space-y-4">
@@ -77,8 +110,14 @@ export function SOSClient() {
         <CardContent className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-red-600" />
-            <span>{activeAlerts.length} SOS aktif / belum selesai</span>
+            <span>{activeAlerts.length} SOS aktif dengan GPS streaming</span>
           </div>
+          {activeAlerts.length > 0 && (
+            <div className="ml-auto flex items-center gap-2 text-xs text-slate-500">
+              <Navigation className="h-4 w-4 animate-pulse text-red-600" />
+              <span>Real-time tracking aktif</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -91,37 +130,67 @@ export function SOSClient() {
         </Card>
       )}
 
+      {/* Live Map */}
+      {selectedAlertWithLocation && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Live Map - {selectedAlertWithLocation.guide_name}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-96 overflow-hidden rounded-lg bg-slate-100">
+              <MapComponent
+                center={{
+                  latitude: selectedAlertWithLocation.latitude!,
+                  longitude: selectedAlertWithLocation.longitude!,
+                }}
+                guideLocation={{
+                  latitude: selectedAlertWithLocation.latitude!,
+                  longitude: selectedAlertWithLocation.longitude!,
+                }}
+                meetingPoints={[]}
+              />
+            </div>
+            {selectedAlertWithLocation.locationHistory && selectedAlertWithLocation.locationHistory.length > 1 && (
+              <div className="mt-2 text-xs text-slate-500">
+                <MapPin className="mr-1 inline h-3 w-3" />
+                Trajectory: {selectedAlertWithLocation.locationHistory.length} location points recorded
+              </div>
+            )}
+            {selectedAlertWithLocation.last_location_update && (
+              <div className="mt-1 text-xs text-slate-500">
+                Last update: {new Date(selectedAlertWithLocation.last_location_update).toLocaleString('id-ID')}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Alert List */}
       <div className="space-y-3">
         {alerts.map((a) => {
           const createdAt = new Date(a.created_at).toLocaleString('id-ID');
-          const guideName = a.guide?.full_name ?? a.guide_id;
-          const tripCode = a.trip?.trip_code ?? a.trip_id;
-
-          const statusLabel =
-            a.status === 'active'
-              ? 'Aktif'
-              : a.status === 'acknowledged'
-                ? 'Diproses'
-                : 'Selesai';
-
-          const statusClass =
-            a.status === 'active'
-              ? 'bg-red-100 text-red-700'
-              : a.status === 'acknowledged'
-                ? 'bg-amber-100 text-amber-700'
-                : 'bg-emerald-100 text-emerald-700';
+          const guideName = a.guide_name || a.guide_id;
+          const tripCode = a.trip_code || a.trip_id || 'No Trip';
 
           return (
-            <Card key={a.id} className="border-0 shadow-sm">
+            <Card
+              key={a.id}
+              className={`border-0 shadow-sm transition-colors ${
+                selectedAlert?.id === a.id ? 'border-2 border-blue-500' : ''
+              }`}
+            >
               <CardContent className="space-y-2 p-4 text-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-red-600" />
-                    <span className="font-medium">{a.alert_type.toUpperCase()}</span>
+                    <span className="font-medium">SOS Alert</span>
+                    {a.streaming_active && (
+                      <span className="flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                        <Navigation className="h-3 w-3 animate-pulse" />
+                        Streaming
+                      </span>
+                    )}
                   </div>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusClass}`}>
-                    {statusLabel}
-                  </span>
                 </div>
 
                 <div className="text-xs text-slate-500">
@@ -129,43 +198,50 @@ export function SOSClient() {
                     Trip: {tripCode} • Guide: {guideName}
                   </p>
                   <p>Dibuat: {createdAt}</p>
+                  {a.location_history_count > 0 && (
+                    <p>Location history: {a.location_history_count} points</p>
+                  )}
                 </div>
-
-                {a.message && <p className="text-xs text-slate-600">"{a.message}"</p>}
 
                 {a.latitude !== null && a.longitude !== null && (
                   <div className="flex items-center gap-1 text-xs text-slate-500">
                     <MapPin className="h-3 w-3" />
                     <span>
-                      {a.latitude}, {a.longitude}
+                      {a.latitude.toFixed(6)}, {a.longitude.toFixed(6)}
                     </span>
+                    <a
+                      href={`https://www.google.com/maps?q=${a.latitude},${a.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 text-blue-600 hover:underline"
+                    >
+                      Buka di Maps
+                    </a>
                   </div>
                 )}
 
                 <div className="flex items-center gap-2 pt-1 text-xs">
-                  {a.status === 'active' && (
+                  {a.latitude && a.longitude && (
                     <button
                       type="button"
-                      className="rounded-md bg-amber-100 px-2 py-1 font-medium text-amber-700 hover:bg-amber-200"
-                      onClick={() => updateAlert(a.id, 'acknowledge')}
+                      className={`rounded-md px-2 py-1 font-medium ${
+                        selectedAlert?.id === a.id
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                      onClick={() => setSelectedAlert(a)}
                     >
-                      Tandai Diproses
+                      Tampilkan di Peta
                     </button>
                   )}
-                  {a.status !== 'resolved' && (
+                  {a.streaming_active && (
                     <button
                       type="button"
                       className="rounded-md bg-emerald-100 px-2 py-1 font-medium text-emerald-700 hover:bg-emerald-200"
-                      onClick={() => updateAlert(a.id, 'resolve')}
+                      onClick={() => resolveAlert(a.id)}
                     >
-                      Tandai Selesai
+                      Resolve SOS
                     </button>
-                  )}
-                  {a.status === 'resolved' && (
-                    <div className="flex items-center gap-1 text-emerald-600">
-                      <CheckCircle className="h-3 w-3" />
-                      <span>Sudah diselesaikan</span>
-                    </div>
                   )}
                 </div>
               </CardContent>
@@ -173,6 +249,17 @@ export function SOSClient() {
           );
         })}
       </div>
+
+      {alerts.length === 0 && !loading && (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="flex items-center justify-center p-8 text-slate-500">
+            <div className="text-center">
+              <CheckCircle className="mx-auto h-8 w-8 text-emerald-500" />
+              <p className="mt-2 text-sm">Tidak ada SOS alert aktif</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

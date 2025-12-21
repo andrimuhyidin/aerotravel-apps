@@ -5,11 +5,21 @@
  * Input pengeluaran darurat dengan upload struk
  */
 
-import { AlertTriangle, Camera, Fuel, Plus, Receipt, Trash2 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { AlertCircle, AlertTriangle, Camera, CheckCircle2, Fuel, Plus, Receipt, Trash2, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -21,6 +31,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { queueMutation } from '@/lib/guide';
+import queryKeys from '@/lib/queries/query-keys';
 import { logger } from '@/lib/utils/logger';
 
 import { ExpensesAiEnhanced } from './expenses-ai-enhanced';
@@ -39,15 +50,6 @@ type Expense = {
   fuelLiters?: number; // Konsumsi BBM dalam liter (hanya untuk kategori fuel/transport)
 };
 
-const categories = [
-  { value: 'fuel', label: 'BBM (Konsumsi BBM)' },
-  { value: 'tiket', label: 'Tiket Masuk' },
-  { value: 'makan', label: 'Makan/Minum' },
-  { value: 'transport', label: 'Transportasi' },
-  { value: 'medis', label: 'Medis/P3K' },
-  { value: 'lainnya', label: 'Lainnya' },
-];
-
 // Standar resep BBM (dalam Rupiah)
 const STANDARD_FUEL_COST = {
   boat_trip: 500000, // BBM Kapal
@@ -55,7 +57,15 @@ const STANDARD_FUEL_COST = {
   default: 400000, // Default jika tidak diketahui
 };
 
+type ExpenseCategory = {
+  value: string;
+  label: string;
+  iconName?: string;
+  description?: string;
+};
+
 export function ExpensesClient({ tripId }: ExpensesClientProps) {
+  const queryClient = useQueryClient();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [newExpense, setNewExpense] = useState({
@@ -68,34 +78,104 @@ export function ExpensesClient({ tripId }: ExpensesClientProps) {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [tripType, setTripType] = useState<'boat_trip' | 'land_trip' | 'unknown'>('unknown');
-  const [tripPax, setTripPax] = useState<number>(0);
+  const [submittedExpenses, setSubmittedExpenses] = useState<Expense[]>([]);
 
-  // Fetch trip info untuk mendapatkan trip type dan pax
+  // Fetch expense categories from API
+  const { data: categoriesData, isLoading: categoriesLoading } = useQuery<{ data: { categories: ExpenseCategory[] } }>({
+    queryKey: queryKeys.guide.expenseCategories(),
+    queryFn: async () => {
+      const res = await fetch('/api/guide/expense-categories');
+      if (!res.ok) throw new Error('Failed to fetch expense categories');
+      return res.json();
+    },
+    staleTime: 300000, // Cache for 5 minutes
+  });
+
+  const categories = categoriesData?.data?.categories || [];
+
+  // Fetch trip info and submitted expenses
+  const { data: tripInfo, isLoading: tripInfoLoading } = useQuery({
+    queryKey: ['guide', 'trip', 'info', tripId],
+    queryFn: async () => {
+      const res = await fetch(`/api/guide/trips/${tripId}/preload`);
+      if (!res.ok) return null;
+      const data = (await res.json()) as {
+        trip?: {
+          trip_code?: string | null;
+          trip_date?: string | null;
+          package?: { name?: string | null } | null;
+        };
+        manifest?: Array<{
+          id: string;
+          name: string;
+          phone?: string;
+          type: 'adult' | 'child' | 'infant';
+          status: 'pending' | 'boarded' | 'returned';
+        }>;
+        expenses?: Array<{
+          id: string;
+          category: string;
+          description: string;
+          amount: number;
+          receiptUrl?: string;
+          createdAt?: string;
+        }>;
+        tripType?: 'boat_trip' | 'land_trip' | null;
+      };
+      return data;
+    },
+  });
+
+  // Set submitted expenses from API
   useEffect(() => {
-    const fetchTripInfo = async () => {
-      try {
-        const res = await fetch(`/api/guide/trips/${tripId}/locations`);
-        if (res.ok) {
-          const data = (await res.json()) as { tripType?: string; totalPax?: number };
-          if (data.tripType) {
-            setTripType(data.tripType as 'boat_trip' | 'land_trip');
-          }
-          if (data.totalPax) {
-            setTripPax(data.totalPax);
-          }
-        }
-      } catch {
-        // Ignore error, use defaults
-      }
-    };
-    void fetchTripInfo();
-  }, [tripId]);
+    if (tripInfo?.expenses) {
+      setSubmittedExpenses(
+        tripInfo.expenses.map((exp) => ({
+          id: exp.id,
+          category: exp.category,
+          description: exp.description || '',
+          amount: exp.amount,
+          receiptUrl: exp.receiptUrl,
+        }))
+      );
+    }
+  }, [tripInfo?.expenses]);
 
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  // Get trip type from preload API (no separate fetch needed)
+  const tripType: 'boat_trip' | 'land_trip' | 'unknown' = tripInfo?.tripType || 'unknown';
+
+  // Get trip details
+  const tripName = tripInfo?.trip?.package?.name || tripInfo?.trip?.trip_code || 'Trip';
+  const tripDate = tripInfo?.trip?.trip_date 
+    ? new Date(tripInfo.trip.trip_date).toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : null;
+  const tripCode = tripInfo?.trip?.trip_code || tripId;
+
+  // Combine local expenses (not yet submitted) with submitted expenses
+  const allExpenses = [...submittedExpenses, ...expenses];
+  const totalExpenses = allExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const localExpensesTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
   
-  // Calculate fuel expenses
-  const fuelExpenses = expenses.filter((e) => e.category === 'fuel' || e.category === 'transport');
+  // Calculate expenses by category
+  const expensesByCategory = categories.reduce((acc, cat) => {
+    const catExpenses = allExpenses.filter((e) => e.category === cat.value);
+    acc[cat.value] = {
+      count: catExpenses.length,
+      total: catExpenses.reduce((sum, e) => sum + e.amount, 0),
+    };
+    return acc;
+  }, {} as Record<string, { count: number; total: number }>);
+  
+  // Calculate per-pax cost (from manifest if available)
+  const totalPax = tripInfo?.manifest?.length || 0;
+  
+  // Calculate fuel expenses (from all expenses including submitted)
+  const fuelExpenses = allExpenses.filter((e) => e.category === 'fuel' || e.category === 'transport');
   const totalFuelExpense = fuelExpenses.reduce((sum, e) => sum + e.amount, 0);
   const totalFuelLiters = fuelExpenses.reduce((sum, e) => sum + (e.fuelLiters || 0), 0);
   
@@ -154,7 +234,7 @@ export function ExpensesClient({ tripId }: ExpensesClientProps) {
       for (const expense of expenses) {
         const payload = {
           tripId,
-          category: expense.category as 'tiket' | 'makan' | 'transport' | 'medis' | 'lainnya',
+          category: expense.category as 'fuel' | 'food' | 'ticket' | 'transport' | 'equipment' | 'emergency' | 'other',
           description: expense.description,
           amount: expense.amount,
           receiptUrl: expense.receiptUrl,
@@ -185,6 +265,10 @@ export function ExpensesClient({ tripId }: ExpensesClientProps) {
 
       // Kosongkan daftar setelah berhasil dikirim/diantrekan
       setExpenses([]);
+      toast.success(`${expenses.length} pengeluaran berhasil dikirim`);
+      
+      // Invalidate query to refetch submitted expenses
+      void queryClient.invalidateQueries({ queryKey: ['guide', 'trip', 'info', tripId] });
     } catch (error) {
       logger.error('Failed to submit expenses', error, { tripId, itemCount: expenses.length });
       setSubmitError('Gagal mengirim pengeluaran. Akan dicoba lagi saat online.');
@@ -194,7 +278,7 @@ export function ExpensesClient({ tripId }: ExpensesClientProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <>
       {/* AI Receipt Scanner */}
       <ExpensesAiEnhanced
         tripId={tripId}
@@ -211,125 +295,150 @@ export function ExpensesClient({ tripId }: ExpensesClientProps) {
         }}
       />
 
-      {/* Trip Info */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Trip #{tripId}</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-slate-500">
-          <p>Pahawang Island Tour</p>
-          <p>17 Desember 2024</p>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
 
-      {/* Total Summary */}
-      <Card className="border-0 bg-emerald-600 text-white shadow-sm">
-        <CardContent className="space-y-2 p-4">
-          <div>
-            <p className="text-sm opacity-80">Total Pengeluaran</p>
-            <p className="text-2xl font-bold">
-              Rp {totalExpenses.toLocaleString('id-ID')}
-            </p>
-            <p className="text-xs opacity-70">{expenses.length} item</p>
-          </div>
-          {/* Fuel Expense Comparison */}
-          {fuelExpenses.length > 0 && (
-            <div className="rounded-lg bg-white/10 p-3 text-xs space-y-2">
-              <div className="flex items-center gap-2">
-                <Fuel className="h-4 w-4" />
-                <p className="font-semibold">Konsumsi BBM</p>
+      {/* Total Summary - Simplified */}
+      {allExpenses.length > 0 && (
+        <Card className="border-0 bg-emerald-600 text-white shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm opacity-90">Total Pengeluaran</p>
+                <p className="text-2xl font-bold mt-1">
+                  Rp {totalExpenses.toLocaleString('id-ID')}
+                </p>
               </div>
-              <div className="space-y-1">
-                <div className="flex justify-between">
-                  <span>Total Konsumsi:</span>
-                  <span className="font-medium">
-                    {totalFuelLiters > 0 ? `${totalFuelLiters.toFixed(2)} liter` : '-'}
-                  </span>
+              <div className="text-right text-xs opacity-85">
+                <p>{allExpenses.length} item</p>
+                {submittedExpenses.length > 0 && (
+                  <p className="mt-1">{submittedExpenses.length} sudah disubmit</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Fuel Expense Comparison - Only show if there are fuel expenses */}
+            {fuelExpenses.length > 0 && (
+              <div className="mt-4 rounded-lg bg-white/10 backdrop-blur-sm p-3 text-xs space-y-2">
+                <div className="flex items-center gap-2">
+                  <Fuel className="h-4 w-4" />
+                  <p className="font-semibold">Konsumsi BBM</p>
                 </div>
-                <div className="flex justify-between">
-                  <span>Total Biaya:</span>
-                  <span className="font-medium">Rp {totalFuelExpense.toLocaleString('id-ID')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Standar Resep:</span>
-                  <span className="font-medium">Rp {standardFuelCost.toLocaleString('id-ID')}</span>
-                </div>
-                {fuelVariance !== 0 && (
-                  <div className={`flex justify-between pt-1 border-t border-white/20 ${
-                    hasAbnormalFuelExpense ? 'text-amber-200' : 'text-white/80'
-                  }`}>
-                    <span>Selisih:</span>
-                    <span className={`font-medium ${
-                      fuelVariance > 0 ? 'text-amber-200' : 'text-emerald-200'
-                    }`}>
-                      {fuelVariance > 0 ? '+' : ''}{fuelVariance.toFixed(1)}%
+                <div className="space-y-1">
+                  {totalFuelLiters > 0 && (
+                    <div className="flex justify-between">
+                      <span>Total Konsumsi:</span>
+                      <span className="font-medium">{totalFuelLiters.toFixed(2)} liter</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>Total Biaya:</span>
+                    <span className="font-medium">Rp {totalFuelExpense.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Standar Resep:</span>
+                    <span className="font-medium">
+                      Rp {standardFuelCost.toLocaleString('id-ID')}
+                      <span className="text-xs opacity-75 ml-1">
+                        ({tripType === 'boat_trip' ? 'Kapal' : tripType === 'land_trip' ? 'Darat' : 'Standar'})
+                      </span>
                     </span>
+                  </div>
+                  {fuelVariance !== 0 && (
+                    <div className={`flex justify-between pt-1 border-t border-white/20 ${
+                      hasAbnormalFuelExpense ? 'text-amber-200' : 'text-white/80'
+                    }`}>
+                      <span>Selisih:</span>
+                      <span className={`font-medium ${
+                        fuelVariance > 0 ? 'text-amber-200' : 'text-emerald-200'
+                      }`}>
+                        {fuelVariance > 0 ? '+' : ''}{fuelVariance.toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {hasAbnormalFuelExpense && (
+                  <div className="mt-2 pt-2 border-t border-white/20 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5 text-amber-200" />
+                    <p className="font-medium text-amber-200 text-[11px]">
+                      Pengeluaran BBM {fuelVariance > 0 ? 'melebihi' : 'di bawah'} standar resep lebih dari 20%.
+                      Pastikan sesuai dengan kondisi lapangan.
+                    </p>
                   </div>
                 )}
               </div>
-              {hasAbnormalFuelExpense && (
-                <div className="mt-2 pt-2 border-t border-white/20 flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5 text-amber-200" />
-                  <p className="font-medium text-amber-200">
-                    Pengeluaran BBM {fuelVariance > 0 ? 'melebihi' : 'di bawah'} standar resep lebih dari 20%.
-                    Pastikan sesuai dengan kondisi lapangan dan catat kronologi jika ada kondisi khusus.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Expense List */}
-      {expenses.length > 0 && (
+      {/* Expense List - Simplified: Only show if there are expenses */}
+      {allExpenses.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold text-slate-500">DAFTAR PENGELUARAN</h2>
-          {expenses.map((expense) => (
-            <Card key={expense.id} className="border-0 shadow-sm">
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-                    <Receipt className="h-5 w-5 text-slate-500" />
-                  </div>
-                  <div>
-                    <p className="font-medium">
-                      {categories.find((c) => c.value === expense.category)?.label}
-                    </p>
-                    <p className="text-xs text-slate-500">{expense.description || '-'}</p>
-                    {(expense.category === 'fuel' || expense.category === 'transport') && expense.fuelLiters && (
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Konsumsi: {expense.fuelLiters.toFixed(2)} liter
+          {allExpenses.map((expense) => {
+            const isSubmitted = submittedExpenses.some((e) => e.id === expense.id);
+            return (
+              <Card 
+                key={expense.id} 
+                className={isSubmitted ? 'border-emerald-200 bg-emerald-50/50' : 'border-amber-200 bg-amber-50/30'}
+              >
+                <CardContent className="flex items-center justify-between p-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {isSubmitted ? (
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                    ) : (
+                      <Receipt className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-slate-900 text-sm">
+                        {categories.find((c) => c.value === expense.category)?.label}
                       </p>
+                      {expense.description && (
+                        <p className="text-xs text-slate-600 truncate">{expense.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <p className="font-semibold text-slate-900 text-sm">
+                      Rp {expense.amount.toLocaleString('id-ID')}
+                    </p>
+                    {!isSubmitted && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-500 hover:bg-red-50 h-8 w-8 p-0"
+                        onClick={() => handleRemoveExpense(expense.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold">
-                    Rp {expense.amount.toLocaleString('id-ID')}
-                  </p>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-red-500 hover:bg-red-50"
-                    onClick={() => handleRemoveExpense(expense.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
-      {/* Add Expense Form */}
-      {showForm ? (
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base">Tambah Pengeluaran</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      {/* Add Expense Button */}
+      <Button
+        variant="outline"
+        className="w-full border-dashed"
+        onClick={() => setShowForm(true)}
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        Tambah Pengeluaran
+      </Button>
+
+      {/* Add Expense Dialog */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tambah Pengeluaran</DialogTitle>
+            <DialogDescription>
+              Catat pengeluaran darurat selama trip untuk proses reimbursement
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
             <div>
               <Label>Kategori *</Label>
               <Select
@@ -436,50 +545,87 @@ export function ExpensesClient({ tripId }: ExpensesClientProps) {
               </div>
             </div>
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setShowForm(false)}
-              >
-                Batal
-              </Button>
-              <Button
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                onClick={handleAddExpense}
-                disabled={!newExpense.category || !newExpense.amount}
-              >
-                Simpan
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Button
-          variant="outline"
-          className="w-full border-dashed"
-          onClick={() => setShowForm(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Tambah Pengeluaran
-        </Button>
-      )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowForm(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => {
+                handleAddExpense();
+                setShowForm(false);
+              }}
+              disabled={!newExpense.category || !newExpense.amount}
+            >
+              Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Submit All */}
       {expenses.length > 0 && (
-        <div className="space-y-2">
-          <Button
-            className="w-full bg-emerald-600 hover:bg-emerald-700"
-            onClick={handleSubmitAll}
-            disabled={submitting}
-          >
-            {submitting ? 'Mengirim...' : 'Kirim Laporan Pengeluaran'}
-          </Button>
-          {submitError && (
-            <p className="text-xs text-red-500 text-center">{submitError}</p>
-          )}
-        </div>
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-900">
+                  Ada {expenses.length} pengeluaran yang belum disubmit
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Total: Rp {localExpensesTotal.toLocaleString('id-ID')}. Submit untuk proses reimbursement.
+                </p>
+              </div>
+            </div>
+            <Button
+              className="w-full bg-emerald-600 hover:bg-emerald-700 font-semibold"
+              onClick={handleSubmitAll}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <>
+                  <span>Mengirim...</span>
+                </>
+              ) : (
+                <>
+                  <Receipt className="mr-2 h-4 w-4" />
+                  Kirim {expenses.length} Pengeluaran ({localExpensesTotal.toLocaleString('id-ID')})
+                </>
+              )}
+            </Button>
+            {submitError && (
+              <p className="text-xs text-red-600 text-center bg-red-50 p-2 rounded">
+                {submitError}
+              </p>
+            )}
+          </CardContent>
+        </Card>
       )}
-    </div>
+
+      {/* Info when all expenses submitted */}
+      {expenses.length === 0 && submittedExpenses.length > 0 && (
+        <Card className="border-emerald-200 bg-emerald-50/50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-emerald-900">
+                  Semua pengeluaran sudah disubmit
+                </p>
+                <p className="text-xs text-emerald-700 mt-0.5">
+                  Total {submittedExpenses.length} item (Rp {totalExpenses.toLocaleString('id-ID')}) akan diproses untuk reimbursement.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      </div>
+    </>
   );
 }

@@ -52,15 +52,6 @@ export default async function PreferencesPage({ params }: PageProps) {
     redirect(`/${locale}/login`);
   }
 
-  return (
-    <Container className="py-4">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold leading-tight text-slate-900">Preferences</h1>
-        <p className="mt-1.5 text-sm text-slate-600">
-          Atur preferensi kerja, notifikasi, dan personalisasi pengalaman Anda
-        </p>
-      </div>
-      <PreferencesClient locale={locale} />
-    </Container>
-  );
+  // Redirect to settings page since preferences are now integrated there
+  redirect(`/${locale}/guide/settings`);
 }

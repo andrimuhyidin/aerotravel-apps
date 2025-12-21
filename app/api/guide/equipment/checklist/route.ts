@@ -16,12 +16,15 @@ const equipmentItemSchema = z.object({
   id: z.string(),
   name: z.string(),
   checked: z.boolean(),
+  quantity: z.number().int().min(0).optional(), // Quantity for items like lifejackets
+  condition: z.enum(['excellent', 'good', 'fair', 'poor']).optional(), // Condition rating
   photo_url: z.string().optional(),
   photo_gps: z.object({
     latitude: z.number(),
     longitude: z.number(),
   }).optional(),
   photo_timestamp: z.string().optional(),
+  photo_location_name: z.string().optional(), // Location name from EXIF or GPS
   notes: z.string().optional(),
   needs_repair: z.boolean().optional(),
 });
@@ -98,6 +101,46 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (!branchContext.branchId && !branchContext.isSuperAdmin) {
     return NextResponse.json({ error: 'Branch context required' }, { status: 400 });
+  }
+
+  // Validate lifejacket quantity vs passenger count (if tripId provided)
+  if (tripId) {
+    const lifejacketItem = equipmentItems.find((item) => item.id === 'life_jacket' && item.checked);
+    
+    if (lifejacketItem) {
+      // Get total passenger count for this trip
+      const client = supabase as unknown as any;
+      const { data: tripBookings } = await client
+        .from('trip_bookings')
+        .select('booking_id')
+        .eq('trip_id', tripId);
+
+      const bookingIds = (tripBookings || []).map((tb: { booking_id: string }) => tb.booking_id);
+      
+      let totalPassengers = 0;
+      if (bookingIds.length > 0) {
+        const { count } = await client
+          .from('booking_passengers')
+          .select('id', { count: 'exact', head: true })
+          .in('booking_id', bookingIds);
+        
+        totalPassengers = count || 0;
+      }
+
+      const lifejacketQty = lifejacketItem.quantity || 0;
+      
+      if (lifejacketQty < totalPassengers) {
+        return NextResponse.json(
+          {
+            error: 'Lifejacket tidak mencukupi',
+            message: `Lifejacket tidak mencukupi. Diperlukan: ${totalPassengers}, Tersedia: ${lifejacketQty}`,
+            required: totalPassengers,
+            available: lifejacketQty,
+          },
+          { status: 400 }
+        );
+      }
+    }
   }
 
   // Check if checklist already exists

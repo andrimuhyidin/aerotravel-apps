@@ -12,17 +12,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import {
     AlertCircle,
-    ArrowRight,
     Calendar,
     CheckCircle2,
+    ClipboardList,
+    FileText,
+    Info,
     MapPin,
     MessageSquare,
-    Users,
+    Package,
+    Play,
+    Receipt,
+    ShieldCheck,
+    Trash2,
+    Users
 } from 'lucide-react';
 import * as React from 'react';
 
-import { TripBriefing } from '@/components/guide/trip-briefing';
 import { AddOnsSection } from './add-ons-section';
+import { CompletionChecklistWidget } from './completion-checklist-widget';
 import { CrewNotesSection } from './crew-notes-section';
 import { CrewSection } from './crew-section';
 import { DocumentationSection } from './documentation-section';
@@ -32,12 +39,17 @@ import { LogisticsHandoverSection } from './logistics-handover-section';
 import { ManifestSection } from './manifest-section';
 import { PassengerConsentSection } from './passenger-consent-section';
 import { PaymentSplitSection } from './payment-split-section';
+import { PhaseSectionHeader } from './phase-section-header';
 import { EquipmentChecklistSection, RiskAssessmentSection } from './pre-trip-sections';
+import { StartTripWidget } from './start-trip-widget';
 import { TippingSection } from './tipping-section';
 import { TripInfoSection } from './trip-info-section';
 import { TripItineraryTimeline } from './trip-itinerary-timeline';
+import { TripReadinessWidget } from './trip-readiness-widget';
 import { TripSpecialNotesSection } from './trip-special-notes-section';
+import { TripSummarySection } from './trip-summary-section';
 import { TripTasks } from './trip-tasks';
+import { WasteLogButton } from './waste-log-button';
 
 type TripPhase = 
   | 'pre_trip'           // Konfirmasi, persiapan
@@ -71,6 +83,7 @@ type TripTimelineViewProps = {
   currentPhase: TripPhase;
   onStartTrip?: () => void;
   onEndTrip?: () => void;
+  onOpenReadinessDialog?: () => void;
 };
 
 type PhaseConfig = {
@@ -90,7 +103,10 @@ export function TripTimelineView({
   currentPhase,
   onStartTrip,
   onEndTrip,
+  onOpenReadinessDialog,
 }: TripTimelineViewProps) {
+  // Get trip identifier for URLs (use tripCode if available, fallback to tripId)
+  const tripIdentifier = manifest.tripCode || tripId;
   // Map current phase to tab value
   const getDefaultTab = (phase: TripPhase): string => {
     const phaseMap: Record<TripPhase, string> = {
@@ -245,6 +261,7 @@ export function TripTimelineView({
             isLeadGuide={isLeadGuide}
             manifest={manifest}
             assignmentStatus={assignmentStatus}
+            onOpenReadinessDialog={onOpenReadinessDialog}
           />
         </TabsContent>
 
@@ -259,6 +276,7 @@ export function TripTimelineView({
             manifest={manifest}
             passengers={manifest.passengers}
             onStartTrip={onStartTrip}
+            onOpenReadinessDialog={onOpenReadinessDialog}
           />
         </TabsContent>
 
@@ -306,6 +324,7 @@ type PhaseContentProps = {
   assignmentStatus?: 'pending_confirmation' | 'confirmed' | 'rejected' | null;
   onStartTrip?: () => void;
   onEndTrip?: () => void;
+  onOpenReadinessDialog?: () => void;
 };
 
 function PhaseContent({
@@ -319,12 +338,13 @@ function PhaseContent({
   assignmentStatus,
   onStartTrip,
   onEndTrip,
+  onOpenReadinessDialog,
 }: PhaseContentProps) {
   return (
     <>
       {phase === 'pre_trip' && (
         <>
-          {/* Pending Confirmation Alert */}
+          {/* Pending Confirmation Alert - Top (conditional) */}
           {assignmentStatus === 'pending_confirmation' && (
             <Card className="border-amber-200 bg-amber-50">
               <CardContent className="p-4">
@@ -339,104 +359,233 @@ function PhaseContent({
             </Card>
           )}
 
-          {/* 1. Briefing Points - Auto Generate dengan Refresh */}
-          <TripBriefing tripId={tripId} locale={locale} />
-
-          {/* 2. Informasi Trip */}
-          <TripInfoSection tripId={tripId} locale={locale} />
-
-          {/* 3. Add-ons */}
-          <AddOnsSection tripId={tripId} locale={locale} />
-
-          {/* 4. Catatan Khusus - Selalu ditampilkan */}
-          <TripSpecialNotesSection tripId={tripId} locale={locale} />
-
-          {/* 5. Equipment Checklist */}
-          <EquipmentChecklistSection tripId={tripId} locale={locale} />
-
-          {/* 6. Risk Assessment (Lead Guide only) */}
-          <RiskAssessmentSection tripId={tripId} locale={locale} isLeadGuide={isLeadGuide} />
-
-          {/* 7. Team Crew - Dipisah menjadi 2 section */}
-          <div className="space-y-4 pt-4 border-t border-slate-200">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="h-5 w-5 text-slate-600" />
-              <h3 className="text-base font-semibold text-slate-900">Team</h3>
-            </div>
-            <CrewSection tripId={tripId} locale={locale} />
+          {/* Section A: Trip Information (read-only) */}
+          <PhaseSectionHeader
+            title="Informasi Trip"
+            description="Detail trip, add-ons, dan catatan khusus"
+            icon={Info}
+            className="!pt-0"
+          />
+          <div className="space-y-4">
+            <TripInfoSection tripId={tripId} locale={locale} />
+            <AddOnsSection tripId={tripId} locale={locale} />
+            <TripSpecialNotesSection tripId={tripId} locale={locale} />
           </div>
 
-          {/* 8. Crew Notes - Section terpisah */}
-          <div className="space-y-4 pt-4 border-t border-slate-200">
-            <div className="flex items-center gap-2 mb-2">
-              <MessageSquare className="h-5 w-5 text-slate-600" />
-              <h3 className="text-base font-semibold text-slate-900">Crew Notes</h3>
-            </div>
+          {/* Section B: Team & Communication */}
+          <PhaseSectionHeader
+            title="Team & Komunikasi"
+            description="Informasi crew dan catatan internal"
+            icon={Users}
+          />
+          <div className="space-y-4">
+            <CrewSection tripId={tripId} locale={locale} />
             <CrewNotesSection tripId={tripId} locale={locale} />
           </div>
+
+          {/* Section C: Pre-Trip Checklist (required actions) */}
+          <PhaseSectionHeader
+            title="Checklist Persiapan"
+            description="Risk assessment dan equipment checklist wajib dilakukan sebelum trip"
+            icon={ShieldCheck}
+            required
+          />
+          <div className="space-y-4">
+            {/* Risk Assessment FIRST (risk evaluation before equipment) */}
+            <RiskAssessmentSection tripId={tripId} locale={locale} isLeadGuide={isLeadGuide} />
+            {/* Equipment Checklist AFTER risk assessment */}
+            <EquipmentChecklistSection tripId={tripId} locale={locale} />
+          </div>
+
+          {/* Section D: Readiness Status (summary - LAST) */}
+          {isLeadGuide && (
+            <div className="pt-4 border-t border-slate-200">
+              <TripReadinessWidget
+                tripId={tripId}
+                locale={locale}
+                isLeadGuide={isLeadGuide}
+                onOpenDialog={onOpenReadinessDialog}
+              />
+            </div>
+          )}
         </>
       )}
 
       {phase === 'before_departure' && (
         <>
-          {/* Manifest Section - Full functionality */}
-          <div id="manifest-section">
-            <ManifestSection 
-              tripId={tripId} 
-              locale={locale} 
-              crewRole={crewRole}
-              isLeadGuide={isLeadGuide}
-            />
+          {/* Section A: Passenger Management */}
+          <PhaseSectionHeader
+            title="Manajemen Penumpang"
+            description="Konsensus penumpang dan manifest check-in"
+            icon={Users}
+            className="!pt-0"
+          />
+          <div className="space-y-4">
+            {/* Passenger Consent FIRST (legal requirement) */}
+            <PassengerConsentSection tripId={tripId} locale={locale} />
+            {/* Manifest AFTER consent */}
+            <div id="manifest-section">
+              <ManifestSection 
+                tripId={tripId} 
+                locale={locale} 
+                crewRole={crewRole}
+                isLeadGuide={isLeadGuide}
+              />
+            </div>
           </div>
-          
+
+          {/* Section B: Pre-Departure Tasks */}
+          <PhaseSectionHeader
+            title="Pre-Departure Tasks"
+            description="Task checklist sebelum keberangkatan"
+            icon={ClipboardList}
+          />
           <div id="tasks-section">
             <TripTasks tripId={tripId} />
           </div>
-          <PassengerConsentSection tripId={tripId} locale={locale} />
-          {isLeadGuide && onStartTrip && (
-            <Button onClick={onStartTrip} className="w-full" size="lg">
-              <ArrowRight className="mr-2 h-4 w-4" />
-              Start Trip
-            </Button>
+
+          {/* Section C: Start Trip (Lead Guide only) */}
+          {isLeadGuide && (
+            <>
+              <PhaseSectionHeader
+                title="Mulai Trip"
+                description="Pastikan semua requirement sudah terpenuhi sebelum memulai trip"
+                icon={Play}
+                required
+              />
+              <StartTripWidget
+                tripId={tripId}
+                locale={locale}
+                onStart={onStartTrip}
+                isLeadGuide={isLeadGuide}
+              />
+            </>
           )}
         </>
       )}
 
       {phase === 'during_trip' && (
         <>
+          {/* Section A: Trip Navigation */}
+          <PhaseSectionHeader
+            title="Navigasi Trip"
+            description="Itinerary dan timeline aktivitas trip"
+            icon={MapPin}
+            className="!pt-0"
+          />
           <TripItineraryTimeline tripId={tripId} locale={locale} />
-          <GuestEngagementSection tripId={tripId} locale={locale} />
-          <TippingSection tripId={tripId} locale={locale} />
-          {/* Note: End Trip button is now in Completion Checklist (post_trip phase) */}
+
+          {/* Section B: Guest Management */}
+          <PhaseSectionHeader
+            title="Manajemen Tamu"
+            description="Engagement dan tipping untuk tamu"
+            icon={Users}
+          />
+          <div className="space-y-4">
+            <GuestEngagementSection tripId={tripId} locale={locale} />
+            <TippingSection tripId={tripId} locale={locale} />
+          </div>
+
+          {/* Section C: Quick Actions (Lead Guide only) */}
+          {isLeadGuide && (
+            <>
+              <PhaseSectionHeader
+                title="Quick Actions"
+                description="Akses cepat ke fungsi penting selama trip"
+                icon={AlertCircle}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Scroll to manifest section
+                    const element = document.querySelector('#manifest-section');
+                    element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }}
+                  className="h-12"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Update Manifest
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={onEndTrip}
+                  className="h-12 border-amber-200 text-amber-700 hover:bg-amber-50"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  End Trip
+                </Button>
+              </div>
+            </>
+          )}
         </>
       )}
 
       {phase === 'post_trip' && (
         <>
-          {/* Documentation Section */}
-          <div id="documentation-section">
-            <DocumentationSection 
-              tripId={tripId} 
-              locale={locale} 
-              isLeadGuide={isLeadGuide}
-            />
-          </div>
-          
-          {/* Expenses Section - Pencatatan Pengeluaran */}
-          <div id="expenses-section">
-            <ExpensesClient tripId={tripId} locale={locale} />
-          </div>
-          
-          {/* Logistics Handover Section */}
-          <div id="handover-section">
-            <LogisticsHandoverSection tripId={tripId} locale={locale} />
-          </div>
-          
+          {/* Section A: Completion Status (summary - top) */}
           {isLeadGuide && (
-            <div id="payment-split-section">
-              <PaymentSplitSection tripId={tripId} locale={locale} />
+            <div className="!pt-0">
+              <CompletionChecklistWidget
+                tripId={tripId}
+                locale={locale}
+                isLeadGuide={isLeadGuide}
+                onEndTrip={onEndTrip}
+              />
             </div>
           )}
+
+          {/* Section B: Required Actions (must complete) */}
+          <PhaseSectionHeader
+            title="Tindakan Wajib"
+            description="Semua item ini harus diselesaikan sebelum trip dapat di-mark complete"
+            icon={CheckCircle2}
+            required
+            className={isLeadGuide ? undefined : '!pt-0'}
+          />
+          <div className="space-y-4">
+            <div id="documentation-section">
+              <DocumentationSection 
+                tripId={tripId} 
+                locale={locale}
+                tripCode={(manifest as { tripCode?: string }).tripCode || tripId}
+                isLeadGuide={isLeadGuide}
+              />
+            </div>
+            <div id="handover-section">
+              <LogisticsHandoverSection tripId={tripId} locale={locale} />
+            </div>
+            <div id="waste-log-section">
+              <WasteLogButton tripId={tripId} locale={locale} />
+            </div>
+          </div>
+
+          {/* Section C: Optional Actions (can skip) */}
+          <PhaseSectionHeader
+            title="Tindakan Opsional"
+            description="Item ini dapat dilewati, namun disarankan untuk diselesaikan"
+            icon={Receipt}
+          />
+          <div className="space-y-4">
+            <div id="expenses-section">
+              <ExpensesClient tripId={tripId} locale={locale} />
+            </div>
+            {isLeadGuide && (
+              <div id="payment-split-section">
+                <PaymentSplitSection tripId={tripId} locale={locale} />
+              </div>
+            )}
+          </div>
+
+          {/* Section D: Summary (read-only - bottom) */}
+          <PhaseSectionHeader
+            title="Ringkasan Trip"
+            description="Informasi trip dan pembayaran (read-only)"
+            icon={FileText}
+          />
+          <div id="trip-summary-section">
+            <TripSummarySection tripId={tripId} locale={locale} />
+          </div>
         </>
       )}
     </>

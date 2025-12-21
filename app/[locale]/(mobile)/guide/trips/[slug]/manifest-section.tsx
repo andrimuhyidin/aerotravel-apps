@@ -12,9 +12,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     ArrowLeftRight,
     CheckCircle,
+    Download,
+    Info,
     Lightbulb,
     Loader2,
     Search,
+    Shield,
     Ship
 } from 'lucide-react';
 import { useState } from 'react';
@@ -156,14 +159,43 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
 
       {/* Search & Filters */}
       <div className="space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            placeholder="Cari nama penumpang..."
-            className="pl-9"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              placeholder="Cari nama penumpang..."
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 flex-shrink-0"
+            onClick={async () => {
+              try {
+                const response = await fetch(`/api/guide/manifest/pdf?tripId=${tripId}`);
+                if (!response.ok) {
+                  throw new Error('Failed to download PDF');
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `manifest-${tripId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                toast.success('Manifest PDF berhasil diunduh');
+              } catch (error) {
+                toast.error('Gagal mengunduh PDF');
+              }
+            }}
+          >
+            <Download className="h-4 w-4" />
+          </Button>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2">
           {[
@@ -209,11 +241,19 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100" style={{ userSelect: 'none' } as React.CSSProperties}>
               {filteredPassengers.map((passenger, index) => (
                 <div
                   key={passenger.id}
                   className="flex min-h-[64px] items-center justify-between px-4 py-3 transition-colors hover:bg-slate-50"
+                  style={{ 
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    MozUserSelect: 'none',
+                    msUserSelect: 'none',
+                  } as React.CSSProperties}
+                  onContextMenu={(e) => e.preventDefault()}
+                  onCopy={(e) => e.preventDefault()}
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <div
@@ -229,11 +269,22 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
                       {index + 1}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-slate-900">
+                      <p 
+                        className="font-semibold text-slate-900"
+                        style={{ userSelect: 'none' } as React.CSSProperties}
+                      >
                         {isMasked ? maskPassengerName(passenger.name) : passenger.name}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-500">
+                      <p 
+                        className="mt-0.5 text-xs text-slate-500"
+                        style={{ userSelect: 'none' } as React.CSSProperties}
+                      >
                         {passengerTypeLabels[passenger.type] ?? passenger.type}
+                        {!isMasked && passenger.phone && (
+                          <span className="ml-2 text-slate-600">
+                            • {passenger.phone}
+                          </span>
+                        )}
                         {isMasked && passenger.phone && (
                           <span className="ml-2 text-slate-400">
                             • {maskPhone(passenger.phone)}

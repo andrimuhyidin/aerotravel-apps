@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { getTransactionStatus } from '@/lib/integrations/midtrans';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * Webhook handler untuk Midtrans payment notifications
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
         break;
 
       default:
-        console.log('Unhandled transaction status:', transaction_status);
+        logger.info('Unhandled transaction status', { transaction_status });
     }
 
     // Check fraud status
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Midtrans webhook error:', error);
+    logger.error('Midtrans webhook error', error);
     return NextResponse.json(
       { error: 'Webhook processing failed' },
       { status: 500 }

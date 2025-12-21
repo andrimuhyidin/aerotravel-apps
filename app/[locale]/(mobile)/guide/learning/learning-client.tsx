@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import queryKeys from '@/lib/queries/query-keys';
@@ -111,7 +112,7 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
   const [skillsTab, setSkillsTab] = useState<'my-skills' | 'catalog'>('my-skills');
 
   // Fetch available assessments
-  const { data: availableData, isLoading: availableLoading } = useQuery<{
+  const { data: availableData, isLoading: availableLoading, error: availableError, refetch: refetchAvailable } = useQuery<{
     templates: AssessmentTemplate[];
   }>({
     queryKey: queryKeys.guide.assessments.available(),
@@ -124,7 +125,7 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
   });
 
   // Fetch assessment history
-  const { data: historyData, isLoading: historyLoading } = useQuery<{
+  const { data: historyData, isLoading: historyLoading, error: historyError, refetch: refetchHistory } = useQuery<{
     assessments: Assessment[];
     total: number;
   }>({
@@ -138,7 +139,7 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
   });
 
   // Fetch guide skills
-  const { data: skillsData, isLoading: skillsLoading } = useQuery<{
+  const { data: skillsData, isLoading: skillsLoading, error: skillsError, refetch: refetchSkills } = useQuery<{
     skills: GuideSkill[];
   }>({
     queryKey: queryKeys.guide.skills.guide(),
@@ -151,7 +152,7 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
   });
 
   // Fetch skills catalog
-  const { data: catalogData, isLoading: catalogLoading } = useQuery<{
+  const { data: catalogData, isLoading: catalogLoading, error: catalogError, refetch: refetchCatalog } = useQuery<{
     skills: SkillCatalogItem[];
   }>({
     queryKey: queryKeys.guide.skills.catalog(),
@@ -258,6 +259,16 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
                     <LoadingState variant="skeleton" lines={3} />
                   </CardContent>
                 </Card>
+              ) : availableError ? (
+                <Card className="border-0 shadow-sm">
+                  <CardContent className="p-6">
+                    <ErrorState
+                      message={availableError instanceof Error ? availableError.message : 'Gagal memuat assessment'}
+                      onRetry={() => void refetchAvailable()}
+                      variant="card"
+                    />
+                  </CardContent>
+                </Card>
               ) : availableTemplates.length === 0 ? (
                 <Card className="border-0 shadow-sm">
                   <CardContent className="py-12">
@@ -315,6 +326,16 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
                 <Card className="border-0 shadow-sm">
                   <CardContent className="p-6">
                     <LoadingState variant="skeleton" lines={3} />
+                  </CardContent>
+                </Card>
+              ) : historyError ? (
+                <Card className="border-0 shadow-sm">
+                  <CardContent className="p-6">
+                    <ErrorState
+                      message={historyError instanceof Error ? historyError.message : 'Gagal memuat riwayat assessment'}
+                      onRetry={() => void refetchHistory()}
+                      variant="card"
+                    />
                   </CardContent>
                 </Card>
               ) : historyAssessments.length === 0 ? (
@@ -402,6 +423,16 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
                     <LoadingState variant="skeleton" lines={3} />
                   </CardContent>
                 </Card>
+              ) : skillsError ? (
+                <Card className="border-0 shadow-sm">
+                  <CardContent className="p-6">
+                    <ErrorState
+                      message={skillsError instanceof Error ? skillsError.message : 'Gagal memuat skills'}
+                      onRetry={() => void refetchSkills()}
+                      variant="card"
+                    />
+                  </CardContent>
+                </Card>
               ) : mySkills.length === 0 ? (
                 <Card className="border-0 shadow-sm">
                   <CardContent className="py-12">
@@ -487,6 +518,16 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
                 <Card className="border-0 shadow-sm">
                   <CardContent className="p-6">
                     <LoadingState variant="skeleton" lines={3} />
+                  </CardContent>
+                </Card>
+              ) : catalogError ? (
+                <Card className="border-0 shadow-sm">
+                  <CardContent className="p-6">
+                    <ErrorState
+                      message={catalogError instanceof Error ? catalogError.message : 'Gagal memuat katalog skills'}
+                      onRetry={() => void refetchCatalog()}
+                      variant="card"
+                    />
                   </CardContent>
                 </Card>
               ) : catalog.length === 0 ? (

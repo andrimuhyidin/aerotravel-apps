@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
@@ -50,7 +51,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       });
 
     if (error) {
-      console.error('Photo upload error:', error);
+      logger.error('Photo upload error', error, { guideId, fileName: photo.name });
       continue;
     }
 

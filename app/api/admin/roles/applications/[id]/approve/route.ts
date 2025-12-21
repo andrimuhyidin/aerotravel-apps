@@ -44,7 +44,7 @@ export const POST = withErrorHandler(async (
   try {
     // Get application
     // Type assertion needed until types are regenerated after migration
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: application, error: appError } = await (supabase as unknown as {
       from: (table: string) => {
         select: (columns: string) => {

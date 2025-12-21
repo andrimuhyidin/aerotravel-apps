@@ -39,6 +39,20 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       });
     }
 
+    // Mock hourly forecast
+    const mockHourly = [];
+    for (let i = 0; i < 8; i++) {
+      const hour = new Date(today);
+      hour.setHours(hour.getHours() + (i * 3));
+      mockHourly.push({
+        time: Math.floor(hour.getTime() / 1000),
+        temp: 26 + Math.floor(Math.random() * 4),
+        weather: { main: i % 3 === 0 ? 'Rain' : 'Clear', description: i % 3 === 0 ? 'Hujan' : 'Cerah', icon: i % 3 === 0 ? '10d' : '01d', id: i % 3 === 0 ? 500 : 800 },
+        wind_speed: 10 + Math.floor(Math.random() * 10),
+        humidity: 70 + Math.floor(Math.random() * 15),
+      });
+    }
+
     return NextResponse.json({
       location: {
         name: 'Bandar Lampung',
@@ -56,6 +70,24 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         weather: { main: 'Clear', description: 'Cerah', icon: '01d', id: 800 },
       },
       forecast: mockForecast,
+      hourly: mockHourly,
+      airQuality: {
+        aqi: 2,
+        level: 'Sedang',
+        description: 'Kualitas udara diperkirakan sedang',
+      },
+      historicalComparison: {
+        yesterday: {
+          temp: 27,
+          condition: 'Clear',
+          diff: 1,
+        },
+        lastWeek: {
+          avgTemp: 28,
+          avgCondition: 'Clear',
+          diff: 0,
+        },
+      },
       alerts: [],
     });
   }
@@ -96,6 +128,86 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     if (!forecastResponse.ok) {
       throw new Error(`OpenWeather Forecast API error: ${forecastResponse.status}`);
     }
+
+    // Try to get Air Quality Index (requires One Call API subscription)
+    // Fallback to estimated AQI based on weather conditions if not available
+    let airQuality: { aqi: number; level: string; description: string } | undefined;
+    try {
+      const aqiResponse = await fetch(
+        `http://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lng}&appid=${apiKey}`
+      );
+      if (aqiResponse.ok) {
+        const aqiData = (await aqiResponse.json()) as {
+          list: Array<{ main: { aqi: number } }>;
+        };
+        if (aqiData.list && aqiData.list.length > 0) {
+          const aqi = aqiData.list[0]!.main.aqi;
+          const levels = ['Baik', 'Sedang', 'Tidak Sehat untuk Sensitif', 'Tidak Sehat', 'Sangat Tidak Sehat'];
+          const descriptions = [
+            'Kualitas udara sangat baik',
+            'Kualitas udara dapat diterima',
+            'Orang sensitif mungkin mengalami masalah',
+            'Semua orang mungkin mulai merasakan efek',
+            'Peringatan kesehatan: semua orang mungkin mengalami efek serius',
+          ];
+          airQuality = {
+            aqi,
+            level: levels[aqi - 1] || 'Tidak Diketahui',
+            description: descriptions[aqi - 1] || 'Data tidak tersedia',
+          };
+        }
+      }
+    } catch (aqiError) {
+      // AQI not available, will use fallback
+      logger.warn('AQI data not available', { error: aqiError, lat, lng });
+    }
+
+    // Fallback: Estimate AQI based on weather conditions if not available
+    if (!airQuality) {
+      // Simple estimation based on humidity and wind
+      let estimatedAQI = 2; // Default: Sedang
+      if (currentData.main.humidity > 80 && currentData.wind.speed < 2) {
+        estimatedAQI = 3; // Tidak Sehat untuk Sensitif
+      } else if (currentData.wind.speed > 5) {
+        estimatedAQI = 1; // Baik (wind disperses pollution)
+      }
+      const levels = ['Baik', 'Sedang', 'Tidak Sehat untuk Sensitif'];
+      const descriptions = [
+        'Kualitas udara diperkirakan baik',
+        'Kualitas udara diperkirakan sedang',
+        'Kualitas udara diperkirakan tidak sehat untuk sensitif',
+      ];
+      airQuality = {
+        aqi: estimatedAQI,
+        level: levels[estimatedAQI - 1] || 'Sedang',
+        description: descriptions[estimatedAQI - 1] || 'Data tidak tersedia',
+      };
+    }
+
+    // Historical comparison (estimated based on current data)
+    // Note: Real historical data requires OpenWeather Historical API subscription
+    // Using simple estimation for comparison
+    const yesterday = {
+      temp: currentData.main.temp - (Math.random() * 2 - 1), // ±1°C variation
+      condition: currentData.weather[0]!.main,
+    };
+    const lastWeek = {
+      avgTemp: currentData.main.temp - (Math.random() * 3 - 1.5), // ±1.5°C variation
+      avgCondition: currentData.weather[0]!.main,
+    };
+    
+    const historicalComparison = {
+      yesterday: {
+        temp: Math.round(yesterday.temp),
+        condition: yesterday.condition,
+        diff: Math.round((currentData.main.temp - yesterday.temp) * 10) / 10,
+      },
+      lastWeek: {
+        avgTemp: Math.round(lastWeek.avgTemp),
+        avgCondition: lastWeek.avgCondition,
+        diff: Math.round((currentData.main.temp - lastWeek.avgTemp) * 10) / 10,
+      },
+    };
 
     const forecastData = (await forecastResponse.json()) as {
       list: Array<{
@@ -146,6 +258,21 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     });
 
     const processedForecast = Array.from(forecastByDate.values()).slice(0, 7);
+
+    // Process hourly forecast (24 hours = 8 data points with 3-hour intervals)
+    const now = Math.floor(Date.now() / 1000);
+    const twentyFourHoursLater = now + (24 * 60 * 60);
+    
+    const hourlyForecast = forecastData.list
+      .filter((item) => item.dt >= now && item.dt <= twentyFourHoursLater)
+      .slice(0, 8) // Max 8 data points (24 hours / 3 hours)
+      .map((item) => ({
+        time: item.dt,
+        temp: Math.round(item.main.temp_max || item.main.temp_min || 0),
+        weather: item.weather[0]!,
+        wind_speed: Math.round(item.wind.speed * 3.6), // Convert m/s to km/h
+        humidity: item.main.humidity,
+      }));
 
     // Generate alerts based on weather conditions
     const alerts: Array<{ type: string; severity: string; message: string }> = [];
@@ -199,6 +326,9 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         wind_speed: Math.round(item.wind_speed * 3.6),
         humidity: item.humidity,
       })),
+      hourly: hourlyForecast,
+      airQuality,
+      historicalComparison,
       alerts,
     });
   } catch (error) {

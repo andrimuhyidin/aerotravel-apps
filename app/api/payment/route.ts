@@ -3,9 +3,11 @@
  * Sesuai PRD 2.5.C - Feature Flagging
  */
 
+import { NextRequest, NextResponse } from 'next/server';
+
 import { isFeatureEnabled } from '@/lib/feature-flags/posthog-flags';
 import { createTransaction } from '@/lib/integrations/midtrans';
-import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
       redirectUrl: transactionData.redirect_url,
     });
   } catch (error) {
-    console.error('Payment error:', error);
+    logger.error('Payment error', error);
     return NextResponse.json(
       { error: 'Payment processing failed' },
       { status: 500 }

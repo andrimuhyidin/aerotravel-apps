@@ -11,7 +11,9 @@ import { useEffect, useState } from 'react';
 import { MapNavigationButtons } from '@/components/guide/map-navigation-buttons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/utils/logger';
 import type { LocationPoint } from '@/lib/utils/maps';
 import { getCachedLocationPoints } from '@/lib/utils/maps';
 
@@ -73,7 +75,11 @@ export function OfflineMapClient({ locale: _locale }: OfflineMapClientProps) {
           });
         },
         (error) => {
-          console.warn('GPS capture failed', error);
+          logger.warn('GPS capture failed', {
+            code: error.code,
+            message: error.message,
+            error: String(error),
+          });
         },
         { enableHighAccuracy: true, timeout: 5000 },
       );
@@ -88,7 +94,10 @@ export function OfflineMapClient({ locale: _locale }: OfflineMapClientProps) {
         .then((res) => res.json())
         .then((data) => setDangerZones(data.zones || []))
         .catch((err) => {
-          console.error('Failed to fetch danger zones', err);
+          logger.error('Failed to fetch danger zones', err, { 
+            latitude: userLocation.latitude, 
+            longitude: userLocation.longitude 
+          });
           setDangerZones([]);
         });
 
@@ -97,7 +106,10 @@ export function OfflineMapClient({ locale: _locale }: OfflineMapClientProps) {
         .then((res) => res.json())
         .then((data) => setSignalHotspots(data.hotspots || []))
         .catch((err) => {
-          console.error('Failed to fetch hotspots', err);
+          logger.error('Failed to fetch hotspots', err, { 
+            latitude: userLocation.latitude, 
+            longitude: userLocation.longitude 
+          });
           setSignalHotspots([]);
         });
     }
@@ -105,15 +117,12 @@ export function OfflineMapClient({ locale: _locale }: OfflineMapClientProps) {
 
   if (points.length === 0) {
     return (
-      <Card className="border-0 shadow-sm">
-        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-          <MapPin className="mb-3 h-12 w-12 text-slate-300" />
-          <p className="text-sm font-medium text-slate-600">Belum ada lokasi tersimpan</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Lokasi penting dari trip akan otomatis tersimpan di sini
-          </p>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={MapPin}
+        title="Belum ada lokasi tersimpan"
+        description="Lokasi penting dari trip akan otomatis tersimpan di sini"
+        variant="default"
+      />
     );
   }
 

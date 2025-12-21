@@ -34,7 +34,7 @@ export const GET = withErrorHandler(async (
   try {
     // Get user roles
     // Type assertion needed until types are regenerated after migration
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: userRoles, error } = await (supabase as unknown as {
       from: (table: string) => {
         select: (columns: string) => {

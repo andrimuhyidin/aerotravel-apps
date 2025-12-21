@@ -120,16 +120,14 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const client = supabase as unknown as any;
-
   // Get all documents for this guide (latest version per type)
   let documents: unknown[] = [];
   let documentsError: unknown = null;
 
   try {
-    const { data: docs, error: docsError } = await client
+    const { data: docs, error: docsError } = await supabase
       .from('guide_documents')
-      .select('*')
+      .select('id, document_type, file_url, verification_status, created_at, verified_at, verified_by, verification_notes, expiry_date, is_required')
       .eq('guide_id', user.id)
       .eq('is_active', true)
       .order('created_at', { ascending: false });
@@ -301,6 +299,52 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const body = await request.json();
   const validated = uploadSchema.parse(body);
+
+  // Validate file URL and metadata
+  if (validated.file_size) {
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB for images
+    const MAX_DOC_SIZE = 5 * 1024 * 1024; // 5MB for documents
+    
+    // Determine max size based on document type
+    const isImageType = ['photo'].includes(validated.document_type);
+    const maxSize = isImageType ? MAX_IMAGE_SIZE : MAX_DOC_SIZE;
+    
+    if (validated.file_size > maxSize) {
+      return NextResponse.json(
+        { error: `File size exceeds maximum of ${maxSize / 1024 / 1024}MB` },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Validate MIME type if provided
+  if (validated.mime_type) {
+    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const allowedDocTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const allowedTypes = [...allowedImageTypes, ...allowedDocTypes];
+    
+    if (!allowedTypes.includes(validated.mime_type.toLowerCase())) {
+      return NextResponse.json(
+        { error: 'File type not allowed. Only images (JPG, PNG, WebP) and documents (PDF, DOC, DOCX) are supported.' },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Validate file name extension if provided
+  if (validated.file_name) {
+    const allowedImageExts = ['.jpg', '.jpeg', '.png', '.webp'];
+    const allowedDocExts = ['.pdf', '.doc', '.docx'];
+    const allowedExts = [...allowedImageExts, ...allowedDocExts];
+    
+    const fileExtension = '.' + validated.file_name.split('.').pop()?.toLowerCase();
+    if (!allowedExts.includes(fileExtension)) {
+      return NextResponse.json(
+        { error: 'File extension not allowed. Only images (JPG, PNG, WebP) and documents (PDF, DOC, DOCX) are supported.' },
+        { status: 400 }
+      );
+    }
+  }
 
   // Insert new document
   let document: unknown = null;

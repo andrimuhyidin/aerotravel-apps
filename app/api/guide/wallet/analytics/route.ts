@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
+import { awardPoints, calculatePerformanceBonusPoints } from '@/lib/guide/reward-points';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -62,14 +63,40 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-    // Get today earnings
-    const { data: todayEarnings } = await client
-      .from('guide_wallet_transactions')
-      .select('amount')
-      .eq('wallet_id', walletId)
-      .eq('transaction_type', 'earning')
-      .gte('created_at', todayStart.toISOString())
-      .lt('created_at', todayEnd.toISOString());
+    // Get today earnings - filter by check_out_at from trip_guides for date consistency
+    // First, get trip IDs with check_out_at in today's range
+    let todayTripsQuery = client
+      .from('trip_guides')
+      .select('trip_id')
+      .eq('guide_id', user.id)
+      .not('check_out_at', 'is', null)
+      .gte('check_out_at', todayStart.toISOString())
+      .lt('check_out_at', todayEnd.toISOString());
+
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      const { data: branchTrips } = await client
+        .from('trips')
+        .select('id')
+        .eq('branch_id', branchContext.branchId);
+      const branchTripIds = branchTrips?.map((t: { id: string }) => t.id) || [];
+      if (branchTripIds.length > 0) {
+        todayTripsQuery = todayTripsQuery.in('trip_id', branchTripIds);
+      }
+    }
+
+    const { data: todayTrips } = await todayTripsQuery;
+    const todayTripIds = todayTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
+
+    const { data: todayEarnings } =
+      todayTripIds.length > 0
+        ? await client
+            .from('guide_wallet_transactions')
+            .select('amount')
+            .eq('wallet_id', walletId)
+            .eq('transaction_type', 'earning')
+            .eq('reference_type', 'trip')
+            .in('reference_id', todayTripIds)
+        : { data: [] };
 
     const todayAmount = (todayEarnings ?? []).reduce(
       (sum: number, t: { amount: number }) => sum + (Number(t.amount) || 0),
@@ -82,13 +109,39 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const yesterdayEnd = new Date(yesterdayStart);
     yesterdayEnd.setDate(yesterdayEnd.getDate() + 1);
 
-    const { data: yesterdayEarnings } = await client
-      .from('guide_wallet_transactions')
-      .select('amount')
-      .eq('wallet_id', walletId)
-      .eq('transaction_type', 'earning')
-      .gte('created_at', yesterdayStart.toISOString())
-      .lt('created_at', yesterdayEnd.toISOString());
+    // Get yesterday earnings - filter by check_out_at
+    let yesterdayTripsQuery = client
+      .from('trip_guides')
+      .select('trip_id')
+      .eq('guide_id', user.id)
+      .not('check_out_at', 'is', null)
+      .gte('check_out_at', yesterdayStart.toISOString())
+      .lt('check_out_at', yesterdayEnd.toISOString());
+
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      const { data: branchTrips } = await client
+        .from('trips')
+        .select('id')
+        .eq('branch_id', branchContext.branchId);
+      const branchTripIds = branchTrips?.map((t: { id: string }) => t.id) || [];
+      if (branchTripIds.length > 0) {
+        yesterdayTripsQuery = yesterdayTripsQuery.in('trip_id', branchTripIds);
+      }
+    }
+
+    const { data: yesterdayTrips } = await yesterdayTripsQuery;
+    const yesterdayTripIds = yesterdayTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
+
+    const { data: yesterdayEarnings } =
+      yesterdayTripIds.length > 0
+        ? await client
+            .from('guide_wallet_transactions')
+            .select('amount')
+            .eq('wallet_id', walletId)
+            .eq('transaction_type', 'earning')
+            .eq('reference_type', 'trip')
+            .in('reference_id', yesterdayTripIds)
+        : { data: [] };
 
     const yesterdayAmount = (yesterdayEarnings ?? []).reduce(
       (sum: number, t: { amount: number }) => sum + (Number(t.amount) || 0),
@@ -97,14 +150,39 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
     const todayGrowth = yesterdayAmount > 0 ? ((todayAmount - yesterdayAmount) / yesterdayAmount) * 100 : 0;
 
-    // Get this week earnings
-    const { data: weekEarnings } = await client
-      .from('guide_wallet_transactions')
-      .select('amount')
-      .eq('wallet_id', walletId)
-      .eq('transaction_type', 'earning')
-      .gte('created_at', weekStart.toISOString())
-      .lt('created_at', weekEnd.toISOString());
+    // Get this week earnings - filter by check_out_at
+    let weekTripsQuery = client
+      .from('trip_guides')
+      .select('trip_id')
+      .eq('guide_id', user.id)
+      .not('check_out_at', 'is', null)
+      .gte('check_out_at', weekStart.toISOString())
+      .lt('check_out_at', weekEnd.toISOString());
+
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      const { data: branchTrips } = await client
+        .from('trips')
+        .select('id')
+        .eq('branch_id', branchContext.branchId);
+      const branchTripIds = branchTrips?.map((t: { id: string }) => t.id) || [];
+      if (branchTripIds.length > 0) {
+        weekTripsQuery = weekTripsQuery.in('trip_id', branchTripIds);
+      }
+    }
+
+    const { data: weekTrips } = await weekTripsQuery;
+    const weekTripIds = weekTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
+
+    const { data: weekEarnings } =
+      weekTripIds.length > 0
+        ? await client
+            .from('guide_wallet_transactions')
+            .select('amount')
+            .eq('wallet_id', walletId)
+            .eq('transaction_type', 'earning')
+            .eq('reference_type', 'trip')
+            .in('reference_id', weekTripIds)
+        : { data: [] };
 
     const weekAmount = (weekEarnings ?? []).reduce(
       (sum: number, t: { amount: number }) => sum + (Number(t.amount) || 0),
@@ -117,13 +195,39 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const lastWeekEnd = new Date(lastWeekStart);
     lastWeekEnd.setDate(lastWeekEnd.getDate() + 7);
 
-    const { data: lastWeekEarnings } = await client
-      .from('guide_wallet_transactions')
-      .select('amount')
-      .eq('wallet_id', walletId)
-      .eq('transaction_type', 'earning')
-      .gte('created_at', lastWeekStart.toISOString())
-      .lt('created_at', lastWeekEnd.toISOString());
+    // Get last week earnings - filter by check_out_at
+    let lastWeekTripsQuery = client
+      .from('trip_guides')
+      .select('trip_id')
+      .eq('guide_id', user.id)
+      .not('check_out_at', 'is', null)
+      .gte('check_out_at', lastWeekStart.toISOString())
+      .lt('check_out_at', lastWeekEnd.toISOString());
+
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      const { data: branchTrips } = await client
+        .from('trips')
+        .select('id')
+        .eq('branch_id', branchContext.branchId);
+      const branchTripIds = branchTrips?.map((t: { id: string }) => t.id) || [];
+      if (branchTripIds.length > 0) {
+        lastWeekTripsQuery = lastWeekTripsQuery.in('trip_id', branchTripIds);
+      }
+    }
+
+    const { data: lastWeekTrips } = await lastWeekTripsQuery;
+    const lastWeekTripIds = lastWeekTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
+
+    const { data: lastWeekEarnings } =
+      lastWeekTripIds.length > 0
+        ? await client
+            .from('guide_wallet_transactions')
+            .select('amount')
+            .eq('wallet_id', walletId)
+            .eq('transaction_type', 'earning')
+            .eq('reference_type', 'trip')
+            .in('reference_id', lastWeekTripIds)
+        : { data: [] };
 
     const lastWeekAmount = (lastWeekEarnings ?? []).reduce(
       (sum: number, t: { amount: number }) => sum + (Number(t.amount) || 0),
@@ -132,14 +236,39 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
     const weekGrowth = lastWeekAmount > 0 ? ((weekAmount - lastWeekAmount) / lastWeekAmount) * 100 : 0;
 
-    // Get this month earnings
-    const { data: monthEarnings } = await client
-      .from('guide_wallet_transactions')
-      .select('amount')
-      .eq('wallet_id', walletId)
-      .eq('transaction_type', 'earning')
-      .gte('created_at', monthStart.toISOString())
-      .lte('created_at', monthEnd.toISOString());
+    // Get this month earnings - filter by check_out_at for date consistency
+    let monthTripsQuery = client
+      .from('trip_guides')
+      .select('trip_id')
+      .eq('guide_id', user.id)
+      .not('check_out_at', 'is', null)
+      .gte('check_out_at', monthStart.toISOString())
+      .lte('check_out_at', monthEnd.toISOString());
+
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      const { data: branchTrips } = await client
+        .from('trips')
+        .select('id')
+        .eq('branch_id', branchContext.branchId);
+      const branchTripIds = branchTrips?.map((t: { id: string }) => t.id) || [];
+      if (branchTripIds.length > 0) {
+        monthTripsQuery = monthTripsQuery.in('trip_id', branchTripIds);
+      }
+    }
+
+    const { data: monthTrips } = await monthTripsQuery;
+    const monthTripIds = monthTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
+
+    const { data: monthEarnings } =
+      monthTripIds.length > 0
+        ? await client
+            .from('guide_wallet_transactions')
+            .select('amount')
+            .eq('wallet_id', walletId)
+            .eq('transaction_type', 'earning')
+            .eq('reference_type', 'trip')
+            .in('reference_id', monthTripIds)
+        : { data: [] };
 
     const monthAmount = (monthEarnings ?? []).reduce(
       (sum: number, t: { amount: number }) => sum + (Number(t.amount) || 0),
@@ -150,13 +279,39 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
-    const { data: lastMonthEarnings } = await client
-      .from('guide_wallet_transactions')
-      .select('amount')
-      .eq('wallet_id', walletId)
-      .eq('transaction_type', 'earning')
-      .gte('created_at', lastMonthStart.toISOString())
-      .lte('created_at', lastMonthEnd.toISOString());
+    // Get last month earnings - filter by check_out_at
+    let lastMonthTripsQuery = client
+      .from('trip_guides')
+      .select('trip_id')
+      .eq('guide_id', user.id)
+      .not('check_out_at', 'is', null)
+      .gte('check_out_at', lastMonthStart.toISOString())
+      .lte('check_out_at', lastMonthEnd.toISOString());
+
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      const { data: branchTrips } = await client
+        .from('trips')
+        .select('id')
+        .eq('branch_id', branchContext.branchId);
+      const branchTripIds = branchTrips?.map((t: { id: string }) => t.id) || [];
+      if (branchTripIds.length > 0) {
+        lastMonthTripsQuery = lastMonthTripsQuery.in('trip_id', branchTripIds);
+      }
+    }
+
+    const { data: lastMonthTrips } = await lastMonthTripsQuery;
+    const lastMonthTripIds = lastMonthTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
+
+    const { data: lastMonthEarnings } =
+      lastMonthTripIds.length > 0
+        ? await client
+            .from('guide_wallet_transactions')
+            .select('amount')
+            .eq('wallet_id', walletId)
+            .eq('transaction_type', 'earning')
+            .eq('reference_type', 'trip')
+            .in('reference_id', lastMonthTripIds)
+        : { data: [] };
 
     const lastMonthAmount = (lastMonthEarnings ?? []).reduce(
       (sum: number, t: { amount: number }) => sum + (Number(t.amount) || 0),
@@ -166,12 +321,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const monthGrowth = lastMonthAmount > 0 ? ((monthAmount - lastMonthAmount) / lastMonthAmount) * 100 : 0;
 
     // Get breakdown (base fee, bonus, deductions) from trip_guides
+    // Use check_out_at instead of check_in_at for consistency with earnings calculation
     let tripGuidesQuery = client.from('trip_guides')
       .select('trip_id, fee_amount, is_late, documentation_uploaded')
       .eq('guide_id', user.id)
-      .gte('check_in_at', monthStart.toISOString())
-      .lte('check_in_at', monthEnd.toISOString())
-      .not('check_in_at', 'is', null);
+      .gte('check_out_at', monthStart.toISOString())
+      .lte('check_out_at', monthEnd.toISOString())
+      .not('check_out_at', 'is', null);
 
     if (!branchContext.isSuperAdmin && branchContext.branchId) {
       // Filter through trips table
@@ -278,6 +434,27 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         const penalty = penaltyMap.get(tg.trip_id) || 0;
         deductions += penalty;
       });
+
+      // Award reward points for performance bonuses (10% of bonus amount)
+      // This is calculated per trip, but we'll award points for the total bonus
+      if (bonus > 0) {
+        const pointsToAward = calculatePerformanceBonusPoints(bonus);
+        // Award points asynchronously (don't await to avoid blocking)
+        awardPoints(
+          user.id,
+          pointsToAward,
+          'performance',
+          undefined,
+          `Performance bonus points for ${months} month(s)`,
+          { period: `${months} months`, bonusAmount: bonus }
+        ).catch((error) => {
+          logger.error('Failed to award performance bonus points', error, {
+            guideId: user.id,
+            bonusAmount: bonus,
+            points: pointsToAward,
+          });
+        });
+      }
     }
 
     // Get trends (last N months)
@@ -287,13 +464,39 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       const trendStart = new Date(trendDate.getFullYear(), trendDate.getMonth(), 1);
       const trendEnd = new Date(trendDate.getFullYear(), trendDate.getMonth() + 1, 0, 23, 59, 59);
 
-      const { data: trendEarnings } = await client
-        .from('guide_wallet_transactions')
-        .select('amount')
-        .eq('wallet_id', walletId)
-        .eq('transaction_type', 'earning')
-        .gte('created_at', trendStart.toISOString())
-        .lte('created_at', trendEnd.toISOString());
+      // Get trend earnings - filter by check_out_at
+      let trendTripsQuery = client
+        .from('trip_guides')
+        .select('trip_id')
+        .eq('guide_id', user.id)
+        .not('check_out_at', 'is', null)
+        .gte('check_out_at', trendStart.toISOString())
+        .lte('check_out_at', trendEnd.toISOString());
+
+      if (!branchContext.isSuperAdmin && branchContext.branchId) {
+        const { data: branchTrips } = await client
+          .from('trips')
+          .select('id')
+          .eq('branch_id', branchContext.branchId);
+        const branchTripIds = branchTrips?.map((t: { id: string }) => t.id) || [];
+        if (branchTripIds.length > 0) {
+          trendTripsQuery = trendTripsQuery.in('trip_id', branchTripIds);
+        }
+      }
+
+      const { data: trendTrips } = await trendTripsQuery;
+      const trendTripIds = trendTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
+
+      const { data: trendEarnings } =
+        trendTripIds.length > 0
+          ? await client
+              .from('guide_wallet_transactions')
+              .select('amount')
+              .eq('wallet_id', walletId)
+              .eq('transaction_type', 'earning')
+              .eq('reference_type', 'trip')
+              .in('reference_id', trendTripIds)
+          : { data: [] };
 
       const trendAmount = (trendEarnings ?? []).reduce(
         (sum: number, t: { amount: number }) => sum + (Number(t.amount) || 0),

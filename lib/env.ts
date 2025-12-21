@@ -19,6 +19,9 @@ export const env = createEnv({
 
     // Google AI (Gemini) - for Chat & Vision/OCR
     GEMINI_API_KEY: z.string().min(1),
+    
+    // Google Speech-to-Text API (optional - falls back to GEMINI_API_KEY if not set)
+    GOOGLE_SPEECH_TO_TEXT_API_KEY: z.string().min(1).optional(),
 
     // OpenWeather API (for weather alerts)
     OPENWEATHER_API_KEY: z.string().min(1).optional(),
@@ -96,6 +99,7 @@ export const env = createEnv({
     // Server
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    GOOGLE_SPEECH_TO_TEXT_API_KEY: process.env.GOOGLE_SPEECH_TO_TEXT_API_KEY,
     OPENWEATHER_API_KEY: process.env.OPENWEATHER_API_KEY,
     VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,

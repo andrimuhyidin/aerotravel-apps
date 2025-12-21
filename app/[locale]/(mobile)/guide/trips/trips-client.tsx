@@ -6,10 +6,11 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Calendar, CheckCircle2, ChevronRight, Clock, DollarSign, Users, XCircle } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle2, ChevronRight, Clock, DollarSign, RefreshCw, Users, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
+import { HorizontalDatePicker } from '@/components/guide/horizontal-date-picker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -105,32 +106,12 @@ const REJECTION_REASONS = [
 
 export function TripsClient({ locale }: TripsClientProps) {
   const [filter, setFilter] = useState<FilterStatus>('all');
-  const [dateFilter, setDateFilter] = useState<'all' | 'this_month' | 'next_month' | string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<TripItem | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string>('');
   const [rejectionNote, setRejectionNote] = useState<string>('');
   const queryClient = useQueryClient();
-
-  // Generate month options (current month + next 6 months)
-  const monthOptions = useMemo(() => {
-    const options = [
-      { value: 'all', label: 'Semua Tanggal' },
-      { value: 'this_month', label: 'Bulan Ini' },
-      { value: 'next_month', label: 'Bulan Depan' },
-    ];
-
-    const now = new Date();
-    for (let i = 0; i < 6; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      options.push({
-        value: date.toISOString().slice(0, 7), // YYYY-MM
-        label: date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }),
-      });
-    }
-
-    return options;
-  }, []);
 
   const { data, isLoading, error } = useQuery<GuideTripsResponse>({
     queryKey: queryKeys.guide.trips.all(),
@@ -181,6 +162,11 @@ export function TripsClient({ locale }: TripsClientProps) {
     } else if (dateFilter === 'next_month') {
       startDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
       endDate = new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59);
+    } else if (dateFilter.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Specific date (YYYY-MM-DD format) - from custom date picker
+      const selectedDate = new Date(dateFilter);
+      startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+      endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59);
     } else {
       // Specific month (YYYY-MM format)
       const parts = dateFilter.split('-');
@@ -258,7 +244,13 @@ export function TripsClient({ locale }: TripsClientProps) {
           <EmptyState
             icon={Calendar}
             title="Belum ada penugasan trip"
-            description="Trip yang ditugaskan ke Anda akan muncul di sini"
+            description="Trip yang ditugaskan ke Anda akan muncul di sini. Refresh halaman untuk memuat data terbaru."
+            action={
+              <Button onClick={refetchTrips} variant="outline">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </Button>
+            }
             variant="default"
           />
         </CardContent>
@@ -289,24 +281,12 @@ export function TripsClient({ locale }: TripsClientProps) {
         </Card>
       )}
 
-      {/* Date Filter */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1">
-          <Select value={dateFilter} onValueChange={setDateFilter}>
-            <SelectTrigger className="h-10 w-full border-slate-200 bg-white shadow-sm transition-all hover:border-emerald-300 hover:shadow-md sm:w-[220px]">
-              <Calendar className="mr-2 h-4 w-4 text-slate-500" />
-              <SelectValue placeholder="Pilih periode" />
-            </SelectTrigger>
-            <SelectContent>
-              {monthOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      {/* Horizontal Date Picker */}
+      <HorizontalDatePicker
+        value={dateFilter}
+        onChange={setDateFilter}
+        showAllOption={true}
+      />
 
       {/* Status Filter Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -332,17 +312,20 @@ export function TripsClient({ locale }: TripsClientProps) {
 
       {/* Trips List */}
       {filteredTrips.length === 0 ? (
-        <Card className="border-0 shadow-sm">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Calendar className="mb-3 h-12 w-12 text-slate-300" />
-            <p className="text-sm font-medium text-slate-600">
-              Tidak ada trip dengan status ini
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Coba pilih filter lain untuk melihat trip lainnya
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Calendar}
+          title={
+            filter === 'all'
+              ? 'Tidak ada trip untuk periode ini'
+              : `Tidak ada trip ${filterOptions.find((opt) => opt.key === filter)?.label.toLowerCase()}`
+          }
+          description={
+            filter === 'all' || dateFilter !== 'all'
+              ? 'Coba ubah filter tanggal atau status untuk melihat trip lainnya'
+              : 'Trip dengan status ini akan muncul di sini setelah ditugaskan'
+          }
+          variant="default"
+        />
       ) : (
         <div className="space-y-3">
           {filteredTrips.map((trip) => {

@@ -30,7 +30,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     // Get branch-specific and global skills
     const branchQuery = (supabase as any)
       .from('guide_skills_catalog')
-      .select('*')
+      .select('id, name, description, category, icon_name, levels, validation_method, display_order, is_active')
       .eq('is_active', true);
 
     if (category) {
@@ -47,7 +47,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
     const globalQuery = (supabase as any)
       .from('guide_skills_catalog')
-      .select('*')
+      .select('id, name, description, category, icon_name, levels, validation_method, display_order, is_active')
       .eq('is_active', true)
       .is('branch_id', null);
 

@@ -18,7 +18,8 @@ type MutationType =
   | 'ADD_EXPENSE'
   | 'TRACK_POSITION'
   | 'UPDATE_MANIFEST'
-  | 'UPDATE_MANIFEST_DETAILS';
+  | 'UPDATE_MANIFEST_DETAILS'
+  | 'CHAT_MESSAGE';
 
 type QueuedMutation = {
   id: string;
@@ -38,6 +39,7 @@ const mutationSchema = z.object({
     'TRACK_POSITION',
     'UPDATE_MANIFEST',
     'UPDATE_MANIFEST_DETAILS',
+    'CHAT_MESSAGE',
   ]),
   payload: z.record(z.string(), z.unknown()),
   timestamp: z.number(),
@@ -73,18 +75,47 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   try {
     switch (mutation.type) {
       case 'CHECK_IN': {
-        const { tripId, latitude, longitude } = mutation.payload as {
+        const { tripId, latitude, longitude, timestamp } = mutation.payload as {
           tripId?: string;
           latitude?: number;
           longitude?: number;
+          timestamp?: string;
         };
 
         if (!tripId || latitude === undefined || longitude === undefined) {
           throw new Error('Invalid CHECK_IN payload');
         }
 
+        // Check for conflict: if check_in_at already exists and is different
+        const { data: existing } = await withBranchFilter(
+          client.from('trip_guides'),
+          branchContext,
+        )
+          .select('check_in_at')
+          .eq('trip_id', tripId)
+          .eq('guide_id', user.id)
+          .single();
+
+        const checkInAt = timestamp || new Date().toISOString();
+        
+        // Conflict detection: server already has check-in time
+        if (existing?.check_in_at && existing.check_in_at !== checkInAt) {
+          const now = new Date();
+          const { isLate, penalty } = calculateLatePenalty(now);
+
+          return NextResponse.json({
+            success: false,
+            conflict: true,
+            message: 'Check-in already exists on server',
+            serverData: {
+              check_in_at: existing.check_in_at,
+              is_late: isLate,
+              penalty,
+            },
+          }, { status: 409 });
+        }
+
         const now = new Date();
-        const checkInAt = now.toISOString();
         const { isLate, penalty } = calculateLatePenalty(now);
 
         const { error: updateError } = await withBranchFilter(
@@ -100,7 +131,17 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
           .eq('trip_id', tripId)
           .eq('guide_id', user.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          // Check if it's a conflict error
+          if (updateError.code === '23505') { // Unique violation
+            return NextResponse.json({
+              success: false,
+              conflict: true,
+              message: 'Check-in conflict detected',
+            }, { status: 409 });
+          }
+          throw updateError;
+        }
 
         if (isLate && penalty > 0) {
           const { error: deductionError } = await withBranchFilter(
@@ -362,13 +403,94 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         break;
       }
 
+      case 'CHAT_MESSAGE': {
+        const { tripId, messageText, templateType, senderRole } = mutation.payload as {
+          tripId?: string;
+          messageText?: string;
+          templateType?: string;
+          senderRole?: 'guide' | 'ops' | 'admin';
+        };
+
+        if (!tripId || !messageText) {
+          throw new Error('Invalid CHAT_MESSAGE payload');
+        }
+
+        // Determine sender role if not provided
+        let finalSenderRole: 'guide' | 'ops' | 'admin' = senderRole || 'guide';
+        
+        // Get user role to determine sender role
+        const { data: userProfile } = await withBranchFilter(
+          client.from('users'),
+          branchContext,
+        )
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        const userRole = (userProfile as { role: string } | null)?.role || 'guide';
+        if (userRole === 'ops' || userRole === 'admin' || userRole === 'super_admin') {
+          finalSenderRole = userRole === 'admin' || userRole === 'super_admin' ? 'admin' : 'ops';
+        }
+
+        // Check if guide is assigned to trip (if not ops/admin)
+        if (finalSenderRole === 'guide') {
+          const { data: assignment } = await withBranchFilter(
+            client.from('trip_guides'),
+            branchContext,
+          )
+            .select('id')
+            .eq('trip_id', tripId)
+            .eq('guide_id', user.id)
+            .maybeSingle();
+
+          if (!assignment) {
+            throw new Error('Guide not assigned to trip');
+          }
+        }
+
+        // Insert message (use server timestamp for conflict resolution)
+        const { error: insertError } = await client
+          .from('trip_chat_messages')
+          .insert({
+            trip_id: tripId,
+            sender_id: user.id,
+            sender_role: finalSenderRole,
+            message_text: messageText,
+            template_type: templateType || 'custom',
+            created_at: new Date().toISOString(), // Server timestamp wins
+          });
+
+        if (insertError) {
+          // Check if it's a duplicate (conflict)
+          if ((insertError as any)?.code === '23505') {
+            logger.info('Chat message conflict detected, server already has message', {
+              tripId,
+              guideId: user.id,
+            });
+            return NextResponse.json({
+              success: true,
+              mutationId: mutation.id,
+              conflict: true,
+              message: 'Message already exists on server',
+            });
+          }
+          throw insertError;
+        }
+
+        break;
+      }
+
       default:
         logger.warn('Unknown mutation type', { type: mutation.type });
     }
 
     logger.info('Sync mutation successful', { type: mutation.type, id: mutation.id });
 
-    return NextResponse.json({ success: true, mutationId: mutation.id });
+    return NextResponse.json({
+      success: true,
+      mutationId: mutation.id,
+      conflict: false,
+    });
   } catch (error) {
     logger.error('Sync mutation failed', error, { type: mutation.type, id: mutation.id });
     return NextResponse.json(

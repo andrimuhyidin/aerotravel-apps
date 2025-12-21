@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
+import { cacheKeys, cacheTTL, getCached } from '@/lib/cache/redis-cache';
 import { calculateLevel, type GuideLevel } from '@/lib/guide/gamification';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -33,41 +34,51 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
 
   const branchContext = await getBranchContext(user.id);
-  const client = supabase as unknown as any;
-
+  
   // Get period from query params (default: monthly)
   const { searchParams } = new URL(request.url);
   const period = (searchParams.get('period') || 'monthly') as 'monthly' | 'yearly';
   const monthParam = searchParams.get('month'); // Format: YYYY-MM
   const yearParam = searchParams.get('year'); // Format: YYYY
 
-  // Get date range based on period and selected date
-  let startDate: Date;
-  let endDate: Date;
+  // Build cache key
+  const branchCacheKey = branchContext.branchId || 'all';
+  const cacheKey = `${cacheKeys.guide.leaderboard(branchCacheKey)}:${period}:${monthParam || ''}:${yearParam || ''}`;
 
-  if (period === 'yearly') {
-    const selectedYear = yearParam ? parseInt(yearParam, 10) : new Date().getFullYear();
-    // Yearly: from start of selected year to end of selected year
-    startDate = new Date(selectedYear, 0, 1);
-    endDate = new Date(selectedYear, 11, 31, 23, 59, 59);
-  } else {
-    // Monthly: from start of selected month to end of selected month
-    if (monthParam) {
-      const parts = monthParam.split('-');
-      const year = parts[0] ? parseInt(parts[0], 10) : new Date().getFullYear();
-      const month = parts[1] ? parseInt(parts[1], 10) : new Date().getMonth() + 1;
-      startDate = new Date(year, month - 1, 1);
-      endDate = new Date(year, month, 0, 23, 59, 59);
-    } else {
-      // Default to current month
-      const now = new Date();
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-    }
-  }
+  // Use cache for expensive leaderboard query
+  const result = await getCached(
+    cacheKey,
+    cacheTTL.leaderboard,
+    async () => {
+      const client = supabase as unknown as any;
 
-  // Get all guides in this branch
-  const { data: guides, error: guidesError } = await client
+      // Get date range based on period and selected date
+      let startDate: Date;
+      let endDate: Date;
+
+      if (period === 'yearly') {
+        const selectedYear = yearParam ? parseInt(yearParam, 10) : new Date().getFullYear();
+        // Yearly: from start of selected year to end of selected year
+        startDate = new Date(selectedYear, 0, 1);
+        endDate = new Date(selectedYear, 11, 31, 23, 59, 59);
+      } else {
+        // Monthly: from start of selected month to end of selected month
+        if (monthParam) {
+          const parts = monthParam.split('-');
+          const year = parts[0] ? parseInt(parts[0], 10) : new Date().getFullYear();
+          const month = parts[1] ? parseInt(parts[1], 10) : new Date().getMonth() + 1;
+          startDate = new Date(year, month - 1, 1);
+          endDate = new Date(year, month, 0, 23, 59, 59);
+        } else {
+          // Default to current month
+          const now = new Date();
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        }
+      }
+
+      // Get all guides in this branch
+      const { data: guides, error: guidesError } = await client
     .from('users')
     .select('id, full_name')
     .eq('role', 'guide')
@@ -78,52 +89,66 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Failed to fetch guides' }, { status: 500 });
   }
 
-  // Calculate stats for each guide
+  // Optimize: Batch query all guide stats instead of N+1 queries
+  const guideIds = guides.map((g: { id: string }) => g.id);
+
+  // Get all trip counts in one query using GROUP BY
+  const { data: tripCountsData } = await withBranchFilter(
+    client.from('trip_guides'),
+    branchContext,
+  )
+    .select('guide_id')
+    .in('guide_id', guideIds)
+    .gte('check_in_at', startDate.toISOString())
+    .lte('check_in_at', endDate.toISOString())
+    .not('check_in_at', 'is', null)
+    .not('check_out_at', 'is', null);
+
+  // Count trips per guide
+  const tripCountsMap = new Map<string, number>();
+  (tripCountsData || []).forEach((tg: { guide_id: string }) => {
+    tripCountsMap.set(tg.guide_id, (tripCountsMap.get(tg.guide_id) || 0) + 1);
+  });
+
+  // Get all ratings in one query (simplified - ideally join through bookings -> trips -> trip_guides)
+  // For now, get ratings for all guides in branch
+  const { data: allReviewsData } = await client
+    .from('reviews')
+    .select('guide_id, guide_rating')
+    .in('guide_id', guideIds)
+    .not('guide_rating', 'is', null);
+
+  // Calculate average ratings per guide
+  const ratingsMap = new Map<string, { sum: number; count: number }>();
+  (allReviewsData || []).forEach((r: { guide_id: string; guide_rating: number | null }) => {
+    if (r.guide_rating && r.guide_rating > 0) {
+      const existing = ratingsMap.get(r.guide_id) || { sum: 0, count: 0 };
+      ratingsMap.set(r.guide_id, {
+        sum: existing.sum + r.guide_rating,
+        count: existing.count + 1,
+      });
+    }
+  });
+
+  // Build leaderboard data
   const leaderboardData: LeaderboardEntry[] = [];
 
   for (const guide of guides) {
-    // Count completed trips in period
-    const { count: tripsCount } = await withBranchFilter(
-      client.from('trip_guides'),
-      branchContext,
-    )
-      .select('*', { count: 'exact', head: true })
-      .eq('guide_id', guide.id)
-      .gte('check_in_at', startDate.toISOString())
-      .lte('check_in_at', endDate.toISOString())
-      .not('check_in_at', 'is', null)
-      .not('check_out_at', 'is', null);
+    const tripsCount = tripCountsMap.get(guide.id) || 0;
+    const ratingData = ratingsMap.get(guide.id);
+    const averageRating = ratingData && ratingData.count > 0
+      ? ratingData.sum / ratingData.count
+      : 0;
+    const totalRatings = ratingData?.count || 0;
 
-    // Get average rating (simplified - ideally should be from reviews)
-    // For now, use a placeholder calculation
-    const { data: reviewsData } = await client
-      .from('reviews')
-      .select('guide_rating')
-      .not('guide_rating', 'is', null);
-
-    let averageRating = 0;
-    let totalRatings = 0;
-
-    if (reviewsData) {
-      // This is simplified - in production, need proper join through bookings -> trips -> trip_guides
-      const ratings = reviewsData
-        .map((r: any) => r.guide_rating)
-        .filter((r: number | null) => r !== null && r > 0) as number[];
-
-      totalRatings = ratings.length;
-      if (ratings.length > 0) {
-        averageRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
-      }
-    }
-
-    if ((tripsCount || 0) > 0) {
+    if (tripsCount > 0) {
       leaderboardData.push({
         guideId: guide.id,
         guideName: guide.full_name || 'Guide',
-        totalTrips: tripsCount || 0,
+        totalTrips: tripsCount,
         averageRating: Math.round(averageRating * 10) / 10,
         totalRatings,
-        level: calculateLevel(tripsCount || 0),
+        level: calculateLevel(tripsCount),
         rank: 0, // Will be set after sorting
       });
     }
@@ -143,10 +168,14 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     rank: index + 1,
   }));
 
-  return NextResponse.json({
-    leaderboard: top5,
-    currentMonth: startDate.toISOString(),
-    period,
-    selectedDate: period === 'monthly' ? monthParam || undefined : yearParam || undefined,
-  });
+      return {
+        leaderboard: top5,
+        currentMonth: startDate.toISOString(),
+        period,
+        selectedDate: period === 'monthly' ? monthParam || undefined : yearParam || undefined,
+      };
+    }
+  );
+
+  return NextResponse.json(result);
 });

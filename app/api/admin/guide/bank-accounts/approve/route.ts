@@ -59,12 +59,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Bank account not found' }, { status: 404 });
   }
 
-  if (account.status !== 'pending') {
+  if (account.status !== 'pending' && account.status !== 'pending_edit') {
     return NextResponse.json(
       { error: 'Bank account is not pending approval' },
       { status: 400 },
     );
   }
+
+  const isEditRequest = account.status === 'pending_edit';
 
   // Update based on action
   if (action === 'approve') {
@@ -79,17 +81,27 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         .neq('id', id);
     }
 
+    // Prepare update payload
+    const updatePayload: Record<string, unknown> = {
+      status: 'approved',
+      approved_by: adminUser.id,
+      approved_at: new Date().toISOString(),
+      verification_notes: verification_notes || null,
+      rejected_by: null,
+      rejected_at: null,
+      rejection_reason: null,
+    };
+
+    // If this is an edit request, clear edit request fields and original_data
+    if (isEditRequest) {
+      updatePayload.original_data = null;
+      updatePayload.edit_requested_at = null;
+      updatePayload.edit_requested_by = null;
+    }
+
     const { data: updated, error: updateError } = await client
       .from('guide_bank_accounts')
-      .update({
-        status: 'approved',
-        approved_by: adminUser.id,
-        approved_at: new Date().toISOString(),
-        verification_notes: verification_notes || null,
-        rejected_by: null,
-        rejected_at: null,
-        rejection_reason: null,
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select('*')
       .single();
@@ -103,23 +115,42 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       id,
       guideId: account.guide_id,
       approvedBy: adminUser.id,
+      isEditRequest,
     });
 
-    return NextResponse.json({ account: updated });
+    return NextResponse.json({ 
+      account: updated,
+      message: isEditRequest 
+        ? 'Perubahan rekening disetujui' 
+        : 'Rekening baru disetujui',
+    });
   } else {
     // Reject
+    const updatePayload: Record<string, unknown> = {
+      rejected_by: adminUser.id,
+      rejected_at: new Date().toISOString(),
+      rejection_reason: rejection_reason,
+      verification_notes: verification_notes || null,
+    };
+
+    if (isEditRequest) {
+      // For edit request rejection: restore original data and set back to approved
+      // The trigger will handle restoring original_data
+      updatePayload.status = 'approved';
+      updatePayload.approved_by = account.approved_by; // Keep original approver
+      updatePayload.approved_at = account.approved_at; // Keep original approval time
+      updatePayload.is_default = account.original_data?.is_default || false;
+    } else {
+      // For new account rejection
+      updatePayload.status = 'rejected';
+      updatePayload.approved_by = null;
+      updatePayload.approved_at = null;
+      updatePayload.is_default = false;
+    }
+
     const { data: updated, error: updateError } = await client
       .from('guide_bank_accounts')
-      .update({
-        status: 'rejected',
-        rejected_by: adminUser.id,
-        rejected_at: new Date().toISOString(),
-        rejection_reason: rejection_reason,
-        verification_notes: verification_notes || null,
-        approved_by: null,
-        approved_at: null,
-        is_default: false, // Unset default if rejected
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select('*')
       .single();
@@ -134,8 +165,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       guideId: account.guide_id,
       rejectedBy: adminUser.id,
       reason: rejection_reason,
+      isEditRequest,
     });
 
-    return NextResponse.json({ account: updated });
+    return NextResponse.json({ 
+      account: updated,
+      message: isEditRequest 
+        ? 'Perubahan rekening ditolak. Data dikembalikan ke versi sebelumnya.' 
+        : 'Pendaftaran rekening ditolak',
+    });
   }
 });

@@ -62,16 +62,24 @@ export function RiskAssessmentDialog({
   const [error, setError] = useState<string | null>(null);
   const [riskScore, setRiskScore] = useState<number | null>(null);
   const [riskLevel, setRiskLevel] = useState<'low' | 'medium' | 'high' | 'critical' | null>(null);
+  const [loadingWeather, setLoadingWeather] = useState(false);
+  const [weatherData, setWeatherData] = useState<{
+    current?: { wind_speed?: number; weather?: { main?: string; description?: string } };
+  } | null>(null);
 
-  // Capture GPS location
+  // Capture GPS location and fetch weather data
   useEffect(() => {
     if (open && 'geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setGpsLocation({
+          const location = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
-          });
+          };
+          setGpsLocation(location);
+          
+          // Auto-fetch weather data
+          fetchWeatherData(location.latitude, location.longitude);
         },
         (error) => {
           logger.warn('GPS capture failed', { error: error.message, code: error.code });
@@ -80,6 +88,45 @@ export function RiskAssessmentDialog({
       );
     }
   }, [open]);
+
+  const fetchWeatherData = async (lat: number, lng: number) => {
+    setLoadingWeather(true);
+    try {
+      const res = await fetch(`/api/guide/weather?lat=${lat}&lng=${lng}`);
+      if (res.ok) {
+        const data = await res.json();
+        setWeatherData(data);
+        
+        // Auto-fill wind speed and weather condition if not set
+        if (!windSpeed && data.current?.wind_speed) {
+          setWindSpeed(data.current.wind_speed.toString());
+        }
+        
+        if (!weatherCondition && data.current?.weather?.main) {
+          const weatherMain = data.current.weather.main.toLowerCase();
+          if (weatherMain.includes('storm') || weatherMain.includes('thunder')) {
+            setWeatherCondition('stormy');
+          } else if (weatherMain.includes('rain') || weatherMain.includes('drizzle')) {
+            setWeatherCondition('rainy');
+          } else if (weatherMain.includes('cloud')) {
+            setWeatherCondition('cloudy');
+          } else {
+            setWeatherCondition('clear');
+          }
+        }
+        
+        // Estimate wave height from wind speed
+        if (!waveHeight && data.current?.wind_speed) {
+          const estimatedWave = Math.min(2.5, data.current.wind_speed / 20);
+          setWaveHeight(estimatedWave.toFixed(1));
+        }
+      }
+    } catch (err) {
+      logger.warn('Failed to fetch weather data', { error: err });
+    } finally {
+      setLoadingWeather(false);
+    }
+  };
 
   // Calculate risk score on change
   useEffect(() => {
@@ -138,6 +185,7 @@ export function RiskAssessmentDialog({
           latitude: gpsLocation?.latitude,
           longitude: gpsLocation?.longitude,
           notes: notes || undefined,
+          use_weather_data: weatherData !== null, // Include weather data if fetched
         }),
       });
 
@@ -148,10 +196,20 @@ export function RiskAssessmentDialog({
         return;
       }
 
-      const data = (await res.json()) as { assessment: { is_safe: boolean }; can_start: boolean; message: string };
+      const data = (await res.json()) as { 
+        assessment: { is_safe: boolean; risk_score: number; risk_level: string }; 
+        can_start: boolean; 
+        is_blocked?: boolean;
+        message: string;
+      };
       
-      toast.success(data.message || 'Assessment berhasil disimpan');
-      onComplete(data.can_start);
+      if (data.is_blocked) {
+        toast.error(data.message || 'Risk score terlalu tinggi. Trip tidak dapat dimulai.');
+      } else {
+        toast.success(data.message || 'Assessment berhasil disimpan');
+      }
+      
+      onComplete(data.can_start && !data.is_blocked);
       onOpenChange(false);
       
       // Reset form
@@ -171,7 +229,8 @@ export function RiskAssessmentDialog({
   };
 
   const canSubmit = weatherCondition && crewReady && equipmentComplete;
-  const isSafe = riskLevel === 'low' || riskLevel === 'medium';
+  const isSafe = riskScore !== null && riskScore <= 70; // Updated threshold: > 70 = BLOCK
+  const isBlocked = riskScore !== null && riskScore > 70;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -189,7 +248,44 @@ export function RiskAssessmentDialog({
         <div className="space-y-4 py-4">
           {/* Weather Conditions */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">Kondisi Cuaca</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">Kondisi Cuaca</Label>
+              {gpsLocation && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchWeatherData(gpsLocation.latitude, gpsLocation.longitude)}
+                  disabled={loadingWeather}
+                >
+                  {loadingWeather ? (
+                    <>
+                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="mr-2 h-3 w-3" />
+                      Ambil Data Cuaca
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+            
+            {weatherData?.current && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
+                <div className="font-medium text-blue-900">Data Cuaca Terbaru:</div>
+                <div className="mt-1 text-blue-700">
+                  {weatherData.current.weather?.description && (
+                    <div>Kondisi: {weatherData.current.weather.description}</div>
+                  )}
+                  {weatherData.current.wind_speed && (
+                    <div>Angin: {Math.round(weatherData.current.wind_speed)} km/h</div>
+                  )}
+                </div>
+              </div>
+            )}
             
             <div className="space-y-2">
               <Label htmlFor="weather-condition">
@@ -297,8 +393,9 @@ export function RiskAssessmentDialog({
             <div className={cn('rounded-lg border p-4', RISK_LEVEL_COLORS[riskLevel])}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold">Risk Score: {riskScore}/100</p>
+                  <p className="text-sm font-semibold">Risk Score: {riskScore}</p>
                   <p className="text-xs mt-1">Risk Level: {riskLevel.toUpperCase()}</p>
+                  <p className="text-xs mt-1 text-slate-600">Threshold: ≤70 (Aman), &gt;70 (Blocked)</p>
                 </div>
                 {isSafe ? (
                   <CheckCircle2 className="h-5 w-5" />
@@ -306,9 +403,14 @@ export function RiskAssessmentDialog({
                   <AlertTriangle className="h-5 w-5" />
                 )}
               </div>
-              {!isSafe && (
+              {isBlocked && (
+                <div className="mt-2 rounded bg-red-100 p-2 text-xs text-red-800">
+                  🚫 <strong>Trip TIDAK DAPAT dimulai!</strong> Risk score ({riskScore}) melebihi threshold (70). Hubungi Admin Ops untuk override.
+                </div>
+              )}
+              {!isSafe && !isBlocked && (
                 <p className="text-xs mt-2">
-                  ⚠️ Risk level tinggi. Admin perlu approve untuk memulai trip.
+                  ⚠️ Risk level sedang. Perhatikan kondisi sebelum memulai trip.
                 </p>
               )}
             </div>

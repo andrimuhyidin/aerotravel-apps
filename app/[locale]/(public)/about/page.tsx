@@ -80,9 +80,9 @@ export default async function AboutPage({ params }: PageProps) {
       {/* Hero */}
       <Section className="bg-gradient-to-br from-primary/5 via-background to-aero-teal/5">
         <Container>
-          <div className="py-16 text-center">
-            <h1 className="mb-4 text-4xl font-bold">Tentang Aero Travel</h1>
-            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+          <div className="py-8 sm:py-12 md:py-16 text-center">
+            <h1 className="mb-4 text-2xl sm:text-3xl md:text-4xl font-bold">Tentang Aero Travel</h1>
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground">
               Mitra perjalanan terpercaya untuk menjelajahi keindahan laut
               Indonesia
             </p>
@@ -93,17 +93,17 @@ export default async function AboutPage({ params }: PageProps) {
       {/* Story */}
       <Section>
         <Container>
-          <div className="grid gap-12 py-12 md:grid-cols-2 md:items-center">
-            <div className="space-y-6">
-              <h2 className="text-3xl font-bold">Cerita Kami</h2>
-              <p className="text-muted-foreground">
+          <div className="grid gap-8 sm:gap-12 py-8 sm:py-12 md:grid-cols-2 md:items-center">
+            <div className="space-y-4 sm:space-y-6">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">Cerita Kami</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Aero Travel didirikan dengan satu visi: memberikan pengalaman
                 wisata bahari terbaik dengan standar keselamatan tinggi. Berawal
                 dari kecintaan terhadap keindahan laut Indonesia, kami
                 berkomitmen untuk membawa setiap traveler menikmati surga bawah
                 laut yang memukau.
               </p>
-              <p className="text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Dengan tim profesional dan guide berpengalaman, kami telah
                 melayani ribuan traveler dari berbagai daerah. Setiap perjalanan
                 adalah kesempatan bagi kami untuk berbagi keajaiban alam
@@ -122,11 +122,11 @@ export default async function AboutPage({ params }: PageProps) {
       {/* Stats */}
       <Section className="bg-primary text-primary-foreground">
         <Container>
-          <div className="grid grid-cols-2 gap-8 py-12 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:gap-8 py-8 sm:py-12 md:grid-cols-4">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
-                <p className="text-4xl font-bold">{stat.value}</p>
-                <p className="mt-2 opacity-90">{stat.label}</p>
+                <p className="text-2xl sm:text-3xl md:text-4xl font-bold">{stat.value}</p>
+                <p className="mt-2 text-xs sm:text-sm opacity-90">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -136,10 +136,10 @@ export default async function AboutPage({ params }: PageProps) {
       {/* Values */}
       <Section>
         <Container>
-          <div className="py-16">
-            <div className="mb-12 text-center">
-              <h2 className="mb-4 text-3xl font-bold">Nilai-nilai Kami</h2>
-              <p className="mx-auto max-w-2xl text-muted-foreground">
+          <div className="py-8 sm:py-12 md:py-16">
+            <div className="mb-8 sm:mb-12 text-center">
+              <h2 className="mb-4 text-xl sm:text-2xl md:text-3xl font-bold">Nilai-nilai Kami</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Prinsip yang menjadi landasan setiap layanan kami
               </p>
             </div>
@@ -165,14 +165,14 @@ export default async function AboutPage({ params }: PageProps) {
       {/* Vision Mission */}
       <Section className="bg-muted/30">
         <Container>
-          <div className="grid gap-8 py-12 md:grid-cols-2">
+          <div className="grid gap-6 sm:gap-8 py-8 sm:py-12 md:grid-cols-2">
             <Card className="border-none shadow-md">
-              <CardContent className="p-8">
+              <CardContent className="p-4 sm:p-6 md:p-8">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                   <Target className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="mb-4 text-xl font-bold">Visi</h3>
-                <p className="text-muted-foreground">
+                <h3 className="mb-4 text-lg sm:text-xl font-bold">Visi</h3>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Menjadi travel agency marine tourism terdepan di Indonesia
                   yang mengutamakan keamanan, kenyamanan, dan pengalaman tak
                   terlupakan bagi setiap traveler.
@@ -180,12 +180,12 @@ export default async function AboutPage({ params }: PageProps) {
               </CardContent>
             </Card>
             <Card className="border-none shadow-md">
-              <CardContent className="p-8">
+              <CardContent className="p-4 sm:p-6 md:p-8">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                   <Award className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="mb-4 text-xl font-bold">Misi</h3>
-                <ul className="space-y-2 text-muted-foreground">
+                <h3 className="mb-4 text-lg sm:text-xl font-bold">Misi</h3>
+                <ul className="space-y-2 text-sm sm:text-base text-muted-foreground">
                   <li>
                     • Menyediakan paket wisata berkualitas dengan harga
                     terjangkau

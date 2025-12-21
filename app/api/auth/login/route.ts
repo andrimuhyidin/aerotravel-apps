@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
 
-    console.log('[AUTH API] Attempting login for:', email);
+    logger.info('[AUTH API] Attempting login', { email });
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -25,19 +26,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.log('[AUTH API] Login error:', error.message);
+      logger.warn('[AUTH API] Login error', { email, error: error.message });
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
 
     if (!data.user) {
-      console.log('[AUTH API] No user returned');
+      logger.warn('[AUTH API] No user returned', { email });
       return NextResponse.json(
         { error: 'Login gagal, coba lagi.' },
         { status: 401 }
       );
     }
 
-    console.log('[AUTH API] Login successful for user:', data.user.id);
+    logger.info('[AUTH API] Login successful', { userId: data.user.id, email });
 
     // Check if user profile exists, create if not
     const { data: profile } = await supabase
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     const redirectPath = roleRedirectMap[finalRole ?? 'customer'] || '/id';
 
-    console.log('[AUTH API] User role:', role, 'Active role:', finalRole, '-> redirect to:', redirectPath);
+    logger.info('[AUTH API] User role determined', { userId: data.user.id, role, activeRole: finalRole, redirectPath });
 
     // Return success with redirect path
     return NextResponse.json({
@@ -94,7 +95,8 @@ export async function POST(request: NextRequest) {
       redirectPath,
     });
   } catch (error) {
-    console.error('[AUTH API] Unexpected error:', error);
+    const emailFromForm = typeof request.formData === 'function' ? 'unknown' : 'unknown';
+    logger.error('[AUTH API] Unexpected error', error, { email: emailFromForm });
     return NextResponse.json(
       { error: 'Terjadi kesalahan, coba lagi.' },
       { status: 500 }

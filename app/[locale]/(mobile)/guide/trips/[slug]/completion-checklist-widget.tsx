@@ -202,7 +202,7 @@ export function CompletionChecklistWidget({
             </DialogTitle>
             <DialogDescription>
               {status
-                ? 'Semua item wajib harus selesai sebelum trip dapat di-mark complete'
+                ? 'Ikuti langkah-langkah di bawah ini untuk menyelesaikan trip dengan lengkap. Pastikan semua item wajib selesai sebelum menekan tombol "Selesaikan Trip".'
                 : 'Checklist akan tersedia saat trip sudah aktif'}
             </DialogDescription>
           </DialogHeader>

@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Package as PackageIcon } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
+import { logger } from '@/lib/utils/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -112,11 +113,10 @@ export function TripInfoSection({ tripId, locale: _locale }: TripInfoSectionProp
   
   // Debug: Log excluded facilities (only in development)
   if (process.env.NODE_ENV === 'development' && excludedFacilities.length === 0 && facilities.length > 0) {
-    console.log('⚠️ No excluded facilities found. Total facilities:', facilities.length);
-    console.log('Facilities status breakdown:', {
+    logger.debug('No excluded facilities found', {
+      totalFacilities: facilities.length,
       included: facilities.filter((f) => f.status === 'included').length,
       excluded: facilities.filter((f) => f.status === 'excluded').length,
-      allFacilities: facilities.map((f) => ({ name: f.name, status: f.status, code: f.code })),
     });
   }
   

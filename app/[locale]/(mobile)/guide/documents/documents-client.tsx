@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
 
@@ -52,7 +53,7 @@ type DocumentsResponse = {
 };
 
 export function DocumentsClient({ locale }: { locale: string }) {
-  const { data, isLoading, error } = useQuery<DocumentsResponse>({
+  const { data, isLoading, error, refetch } = useQuery<DocumentsResponse>({
     queryKey: ['guide-documents'],
     queryFn: async () => {
       const res = await fetch('/api/guide/documents');
@@ -62,11 +63,27 @@ export function DocumentsClient({ locale }: { locale: string }) {
   });
 
   if (isLoading) {
-    return <LoadingState message="Memuat dokumen..." />;
+    return <LoadingState variant="skeleton" message="Memuat dokumen..." />;
   }
 
-  if (error || !data) {
-    return <ErrorState message="Gagal memuat dokumen" onRetry={() => window.location.reload()} />;
+  if (error) {
+    return (
+      <ErrorState
+        message={error instanceof Error ? error.message : 'Gagal memuat dokumen'}
+        onRetry={() => void refetch()}
+        variant="card"
+      />
+    );
+  }
+
+  if (!data) {
+    return (
+      <EmptyState
+        icon={FileText}
+        title="Dokumen tidak tersedia"
+        description="Data dokumen tidak dapat dimuat"
+      />
+    );
   }
 
   const { documents, summary } = data;

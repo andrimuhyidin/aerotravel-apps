@@ -6,6 +6,8 @@
  * - fallback to JSONB itinerary field on packages if needed
  */
 
+import { logger } from '@/lib/utils/logger';
+
 export type ItineraryActivity = {
   time?: string;
   label: string;
@@ -150,7 +152,7 @@ export function buildItineraryDaysFromJsonb(
 
     return [];
   } catch (error) {
-    console.error('Failed to parse JSONB itinerary', error);
+    logger.error('Failed to parse JSONB itinerary', error);
     return [];
   }
 }

@@ -38,6 +38,7 @@ export async function triggerSOSAlert(
         tripId: tripId && tripId !== 'no-trip' ? tripId : undefined,
         guideId,
         alertType: type,
+        incident_type: type, // Also send as incident_type for API
         latitude: location.latitude,
         longitude: location.longitude,
         message,
@@ -67,11 +68,11 @@ export async function triggerSOSAlert(
       };
     }
 
-    const json = (await response.json()) as { alertId?: string };
+    const json = (await response.json()) as { sosRecordId?: string; alertId?: string };
 
     return {
       success: true,
-      alertId: json.alertId,
+      alertId: json.sosRecordId || json.alertId,
       message: 'SOS Alert terkirim! Tim operasional akan segera menghubungi Anda.',
     };
   } catch (error) {

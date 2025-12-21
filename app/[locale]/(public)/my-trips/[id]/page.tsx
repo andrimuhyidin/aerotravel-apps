@@ -44,7 +44,7 @@ export default async function TripDetailPage({ params }: Props) {
     <Section>
       <Container>
         <div className="py-8">
-          <h1 className="text-3xl font-bold mb-6">Trip Detail #{id}</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6">Trip Detail #{id}</h1>
           
           {/* TODO: Trip information card */}
           {/* TODO: Itinerary timeline */}

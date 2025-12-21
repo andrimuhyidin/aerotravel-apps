@@ -91,6 +91,14 @@
     },
     "operations": {
       "title": "Operations"
+    },
+    "contracts": {
+      "title": "Work Contracts",
+      "description": "Manage guide work contracts",
+      "create": {
+        "title": "Create New Contract",
+        "description": "Create a new work contract for guide"
+      }
     }
   },
   "guide": {
@@ -112,6 +120,18 @@
         "title": "Contract Details",
         "description": "View contract details"
       }
+    },
+    "training": {
+      "title": "Training",
+      "description": "Access training modules and certificates",
+      "history": {
+        "title": "Training History",
+        "description": "View completed training history"
+      }
+    },
+    "certifications": {
+      "title": "Certifications",
+      "description": "View and manage your training certificates"
     }
   },
   "corporate": {

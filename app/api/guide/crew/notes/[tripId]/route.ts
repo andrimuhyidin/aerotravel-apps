@@ -68,7 +68,7 @@ export const GET = withErrorHandler(async (
   }
 
   // Get notes (simplified - fetch users separately to avoid join issues)
-  let notesQuery = client
+  const notesQuery = client
     .from('guide_notes')
     .select(`
       id,

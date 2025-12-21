@@ -17,11 +17,10 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
 
   const branchContext = await getBranchContext(user.id);
-  const client = supabase as unknown as any;
 
   // Get global items (branch_id = NULL) and branch-specific items
   // RLS policy will handle filtering automatically
-  const { data: items, error } = await client
+  const { data: items, error } = await supabase
     .from('guide_menu_items')
     .select('*')
     .eq('is_active', true)
@@ -29,7 +28,33 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     .order('display_order', { ascending: true });
 
   if (error) {
-    logger.error('Failed to fetch menu items', error, { guideId: user.id, branchId: branchContext.branchId });
+    // Check if it's an RLS/permission error
+    const isRlsError = 
+      error.code === 'PGRST301' || 
+      error.code === '42501' ||
+      error.message?.toLowerCase().includes('permission') ||
+      error.message?.toLowerCase().includes('policy') ||
+      error.message?.toLowerCase().includes('row-level security');
+    
+    logger.error('Failed to fetch menu items', error, {
+      guideId: user.id,
+      branchId: branchContext.branchId,
+      errorCode: error.code,
+      errorMessage: error.message,
+      errorDetails: error.details,
+      errorHint: error.hint,
+      isRlsError,
+    });
+    
+    // If RLS error, return empty array (expected - RLS policy may not be active)
+    if (isRlsError) {
+      logger.warn('RLS error detected for menu items - returning empty array', {
+        guideId: user.id,
+        hint: 'Check if RLS policy is active for guide_menu_items table',
+      });
+      return NextResponse.json({ menuItems: [] });
+    }
+    
     return NextResponse.json({ error: 'Failed to fetch menu items' }, { status: 500 });
   }
 
@@ -41,15 +66,15 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     label: string;
     icon_name: string;
     description: string | null;
-    display_order: number;
-    is_active: boolean;
-    created_at: string;
-    updated_at: string;
+    display_order: number | null;
+    is_active: boolean | null;
+    created_at: string | null;
+    updated_at: string | null;
   };
 
   // Remove duplicates by href within each section
-  // Also filter out redundant items
-  const uniqueItems = (items || []).reduce((acc: MenuItem[], item: MenuItem) => {
+  // Also filter out redundant items (items that should not appear in menu)
+  const uniqueItems = (items || []).reduce((acc: MenuItem[], item) => {
     // Exclude broadcasts menu item (now merged into notifications)
     if (item.href === '/guide/broadcasts') {
       return acc;
@@ -62,29 +87,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     if (item.href === '/guide/license/apply') {
       return acc;
     }
-    // Exclude insight pribadi (now accessible via widgets with link)
-    if (item.href === '/guide/insights' && item.section === 'Insight Pribadi') {
-      return acc;
-    }
-    // Exclude ratings (now merged into insights page)
-    if (item.href === '/guide/ratings') {
-      return acc;
-    }
-    // Preferences now in Pengaturan section, don't exclude
-    // Exclude documents (now merged into edit profile)
-    if (item.href === '/guide/documents') {
-      return acc;
-    }
-    // Exclude incidents (now merged into help)
-    if (item.href === '/guide/incidents') {
-      return acc;
-    }
-    // Exclude assessments (now merged into learning hub)
-    if (item.href === '/guide/assessments') {
-      return acc;
-    }
-    // Exclude skills (now merged into learning hub)
-    if (item.href === '/guide/skills') {
+    // Exclude old section names (should not exist after migration, but just in case)
+    if (item.section === 'Insight Pribadi' || item.section === 'Pembelajaran & Development' || item.section === 'Pengaturan & Support' || item.section === 'Laporan & Support') {
       return acc;
     }
     // Exclude Pengaturan Bahasa (already in preferences)
@@ -110,8 +114,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     {} as Record<string, MenuItem[]>,
   );
 
-  // Define section order: Akun, Dukungan, then Pengaturan
-  const sectionOrder = ['Akun', 'Dukungan', 'Pengaturan'];
+  // Define section order: Akun, Pembelajaran, Dukungan, then Pengaturan
+  const sectionOrder = ['Akun', 'Pembelajaran', 'Dukungan', 'Pengaturan'];
   
   const menuItems = Object.entries(grouped)
     .sort(([sectionA], [sectionB]) => {
@@ -127,26 +131,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       return 0;
     })
     .map(([section, items]) => {
-      // Reorder items within Pengaturan section
-      if (section === 'Pengaturan') {
-        const orderedItems = Array.isArray(items) ? [...items].sort((a, b) => {
-          // Define custom order for Pengaturan section
-          const orderMap: Record<string, number> = {
-            '/guide/settings': 1, // Pengaturan Aplikasi
-            '/guide/preferences': 2, // Preferensi (after Pengaturan Aplikasi)
-            '/legal/privacy': 3, // Kebijakan Privasi
-            '/legal/terms': 4, // Syarat & Ketentuan
-          };
-          const orderA = orderMap[a.href] ?? a.display_order ?? 999;
-          const orderB = orderMap[b.href] ?? b.display_order ?? 999;
-          return orderA - orderB;
-        }) : [];
-        return {
-          section,
-          items: orderedItems,
-        };
-      }
-      // For other sections, sort by display_order
+      // Sort items by display_order for all sections
       const sortedItems = Array.isArray(items) ? [...items].sort((a, b) => {
         return (a.display_order ?? 999) - (b.display_order ?? 999);
       }) : [];

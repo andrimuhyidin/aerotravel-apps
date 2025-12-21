@@ -34,6 +34,7 @@ const DEFAULT_CONFIG: BonusConfig = {
 
 /**
  * Calculate bonus for a trip
+ * Returns bonus calculation and reward points to award (10% of bonus amount)
  */
 export function calculateTripBonus(
   baseFee: number,
@@ -43,7 +44,7 @@ export function calculateTripBonus(
   guestCount: number = 0,
   guestCountTarget: number = 0,
   config: Partial<BonusConfig> = {}
-): BonusCalculation {
+): BonusCalculation & { rewardPoints: number } {
   const finalConfig = { ...DEFAULT_CONFIG, ...config };
 
   let ratingBonus = 0;
@@ -62,6 +63,9 @@ export function calculateTripBonus(
   }
 
   const totalBonus = ratingBonus + onTimeBonus + documentationBonus + guestCountBonus;
+  
+  // Calculate reward points (10% of bonus amount)
+  const rewardPoints = Math.floor(totalBonus * 0.1);
 
   return {
     baseFee,
@@ -72,6 +76,7 @@ export function calculateTripBonus(
     totalBonus,
     penalties: 0, // Penalties calculated separately
     netEarning: baseFee + totalBonus,
+    rewardPoints,
   };
 }
 

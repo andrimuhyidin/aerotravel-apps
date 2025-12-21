@@ -113,9 +113,9 @@ export default async function PrivacyPolicyPage({ params }: PageProps) {
       {/* Hero */}
       <Section className="bg-gradient-to-br from-primary/5 via-background to-aero-teal/5">
         <Container>
-          <div className="py-12 text-center">
-            <h1 className="mb-4 text-4xl font-bold">Kebijakan Privasi</h1>
-            <p className="mx-auto max-w-2xl text-muted-foreground">
+          <div className="py-6 sm:py-8 md:py-12 text-center">
+            <h1 className="mb-3 sm:mb-4 text-xl sm:text-2xl md:text-3xl font-bold">Kebijakan Privasi</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Terakhir diperbarui: {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
@@ -124,20 +124,18 @@ export default async function PrivacyPolicyPage({ params }: PageProps) {
 
       {/* Content */}
       <Section>
-        <Container>
-          <div className="py-12">
-            <div className="mx-auto max-w-4xl space-y-6">
-              {sections.map((section, index) => (
-                <Card key={index} className="border-0 shadow-sm">
-                  <CardContent className="p-6">
-                    <h2 className="mb-3 text-xl font-bold text-slate-900">{section.title}</h2>
-                    <div className="prose prose-sm max-w-none text-slate-700">
-                      <p className="whitespace-pre-line leading-relaxed">{section.content}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+        <Container className="py-4">
+          <div className="space-y-3 sm:space-y-4">
+            {sections.map((section, index) => (
+              <Card key={index} className="border-0 shadow-sm">
+                <CardContent className="p-4 sm:p-6">
+                  <h2 className="mb-2 sm:mb-3 text-base sm:text-lg font-bold text-slate-900">{section.title}</h2>
+                  <div className="prose prose-sm max-w-none text-slate-700">
+                    <p className="whitespace-pre-line leading-relaxed text-xs sm:text-sm">{section.content}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </Container>
       </Section>

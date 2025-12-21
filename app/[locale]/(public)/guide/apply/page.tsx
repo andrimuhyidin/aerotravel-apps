@@ -45,21 +45,19 @@ export default async function GuideApplyPage({ params }: PageProps) {
   setRequestLocale(locale);
 
   return (
-    <Section className="py-12">
+    <Section className="py-8 sm:py-12">
       <Container>
-        <div className="mx-auto max-w-2xl">
-          <div className="mb-8 text-center">
-            <h1 className="mb-4 text-3xl font-bold text-slate-900">
-              Daftar sebagai Guide
-            </h1>
-            <p className="text-lg text-slate-600">
-              Bergabunglah dengan tim guide profesional Aero Travel dan dapatkan
-              penghasilan fleksibel
-            </p>
-          </div>
-
-          <GuideApplicationForm locale={locale} />
+        <div className="mb-6 sm:mb-8 text-center">
+          <h1 className="mb-4 text-2xl sm:text-3xl font-bold text-slate-900">
+            Daftar sebagai Guide
+          </h1>
+          <p className="text-sm sm:text-base text-slate-600">
+            Bergabunglah dengan tim guide profesional Aero Travel dan dapatkan
+            penghasilan fleksibel
+          </p>
         </div>
+
+        <GuideApplicationForm locale={locale} />
       </Container>
     </Section>
   );

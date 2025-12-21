@@ -94,6 +94,7 @@ const queryKeys = {
             guide: {
               all: ['guide'] as const,
               status: () => [...queryKeys.guide.all, 'status'] as const,
+              safetyChecklistTemplates: () => [...queryKeys.guide.all, 'safety-checklist-templates'] as const,
               tripsDetail: (tripId: string) =>
                 [...queryKeys.guide.trips.all(), tripId] as const,
               tripsBriefing: (tripId: string) =>
@@ -114,7 +115,10 @@ const queryKeys = {
                 bankAccounts: () => [...queryKeys.guide.wallet.all, 'bank-accounts'] as const,
               },
               notifications: () => [...queryKeys.guide.all, 'notifications'] as const,
-              ratings: () => [...queryKeys.guide.all, 'ratings'] as const,
+              ratings: {
+                all: () => [...queryKeys.guide.all, 'ratings'] as const,
+                byTrip: (tripId: string) => [...queryKeys.guide.all, 'ratings', 'trip', tripId] as const,
+              },
               stats: () => [...queryKeys.guide.all, 'stats'] as const,
               leaderboard: () => [...queryKeys.guide.all, 'leaderboard'] as const,
               insights: {
@@ -124,10 +128,15 @@ const queryKeys = {
               broadcasts: () => [...queryKeys.guide.all, 'broadcasts'] as const,
               quickActions: () => [...queryKeys.guide.all, 'quick-actions'] as const,
               menuItems: () => [...queryKeys.guide.all, 'menu-items'] as const,
+              expenseCategories: () => [...queryKeys.guide.all, 'expense-categories'] as const,
               emergencyContacts: () => [...queryKeys.guide.all, 'emergency-contacts'] as const,
               medicalInfo: () => [...queryKeys.guide.all, 'medical-info'] as const,
               weather: (lat?: number, lng?: number, date?: string) => [...queryKeys.guide.all, 'weather', lat, lng, date] as const,
               challenges: () => [...queryKeys.guide.all, 'challenges'] as const,
+              rewardPoints: () => [...queryKeys.guide.all, 'rewards', 'points'] as const,
+              rewardCatalog: () => [...queryKeys.guide.all, 'rewards', 'catalog'] as const,
+              rewardTransactions: () => [...queryKeys.guide.all, 'rewards', 'transactions'] as const,
+              rewardRedemptions: () => [...queryKeys.guide.all, 'rewards', 'redemptions'] as const,
               social: {
                 feed: (page?: number) => [...queryKeys.guide.all, 'social', 'feed', page] as const,
               },
@@ -208,12 +217,14 @@ const queryKeys = {
                 sessions: (filters?: Record<string, unknown>) => [...queryKeys.guide.training.all(), 'sessions', filters] as const,
                 certificates: () => [...queryKeys.guide.training.all(), 'certificates'] as const,
                 certificate: (id: string) => [...queryKeys.guide.training.all(), 'certificate', id] as const,
+                mandatory: () => [...queryKeys.guide.training.all(), 'mandatory'] as const,
               },
               trips: {
                 all: () => [...queryKeys.guide.all, 'trips'] as const,
                 riskAssessment: (tripId: string) => [...queryKeys.guide.trips.all(), tripId, 'risk-assessment'] as const,
                 canStart: (tripId: string) => [...queryKeys.guide.trips.all(), tripId, 'can-start'] as const,
                 paymentSplit: (tripId: string) => [...queryKeys.guide.trips.all(), tripId, 'payment-split'] as const,
+                paymentStatus: (tripId: string) => [...queryKeys.guide.trips.all(), tripId, 'payment-status'] as const,
                 completionStatus: (tripId: string) => [...queryKeys.guide.trips.all(), tripId, 'completion-status'] as const,
                 tipping: (tripId: string) => [...queryKeys.guide.trips.all(), tripId, 'tipping'] as const,
                 tippingStatus: (tripId: string, tippingId: string) => [...queryKeys.guide.trips.all(), tripId, 'tipping', tippingId, 'status'] as const,
@@ -223,7 +234,14 @@ const queryKeys = {
                   music: (tripId: string) => [...queryKeys.guide.trips.all(), tripId, 'engagement', 'music'] as const,
                 },
                 facilityChecklist: (tripId: string) => [...queryKeys.guide.trips.all(), tripId, 'facility-checklist'] as const,
+                wasteLog: (tripId: string) => [...queryKeys.guide.trips.all(), tripId, 'waste-log'] as const,
               },
+              equipment: {
+                all: () => [...queryKeys.guide.all, 'equipment'] as const,
+                checklistTemplates: () => [...queryKeys.guide.equipment.all(), 'checklist-templates'] as const,
+              },
+              wasteTypes: () => [...queryKeys.guide.all, 'waste-types'] as const,
+              disposalMethods: () => [...queryKeys.guide.all, 'disposal-methods'] as const,
               logistics: {
                 all: () => [...queryKeys.guide.all, 'logistics'] as const,
                 handover: (filters?: Record<string, unknown>) => [...queryKeys.guide.logistics.all(), 'handover', filters] as const,

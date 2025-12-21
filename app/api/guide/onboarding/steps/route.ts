@@ -67,6 +67,54 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
       .eq('guide_id', user.id)
       .maybeSingle();
 
+    // Recalculate progress if exists (same logic as progress endpoint)
+    if (progress) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/guide/onboarding/steps/route.ts:68',message:'Recalculating progress in steps endpoint',data:{progressId:progress.id,currentPercentage:progress.completion_percentage,branchId:branchContext.branchId},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+
+      // Get completed steps
+      const { data: completedSteps } = await (supabase as any)
+        .from('guide_onboarding_step_completions')
+        .select('step_id')
+        .eq('progress_id', progress.id)
+        .eq('status', 'completed');
+
+      // Calculate total steps (use allSteps from above which already has branch filtering)
+      const totalSteps = allSteps.length;
+      const completedCount = completedSteps?.length || 0;
+      const recalculatedPercentage = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 0;
+
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/guide/onboarding/steps/route.ts:85',message:'Progress recalculation result in steps endpoint',data:{totalSteps,completedCount,storedPercentage:progress.completion_percentage,recalculatedPercentage,needsUpdate:recalculatedPercentage !== progress.completion_percentage},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+
+      // Update progress if percentage changed
+      if (recalculatedPercentage !== progress.completion_percentage) {
+        const isCompleted = recalculatedPercentage >= 100;
+        await (supabase as any)
+          .from('guide_onboarding_progress')
+          .update({
+            completion_percentage: recalculatedPercentage,
+            status: isCompleted ? 'completed' : 'in_progress',
+            completed_at: isCompleted ? new Date().toISOString() : null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', progress.id);
+
+        // Update progress object for response
+        progress.completion_percentage = recalculatedPercentage;
+        progress.status = isCompleted ? 'completed' : 'in_progress';
+        if (isCompleted && !progress.completed_at) {
+          progress.completed_at = new Date().toISOString();
+        }
+      }
+    }
+
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/guide/onboarding/steps/route.ts:110',message:'Onboarding steps fetched',data:{totalSteps:allSteps.length,hasProgress:!!progress,progressPercentage:progress?.completion_percentage || 0,stepIds:allSteps.map((s: { id: string }) => s.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+
     return NextResponse.json({
       steps: allSteps,
       currentProgress: progress || null,

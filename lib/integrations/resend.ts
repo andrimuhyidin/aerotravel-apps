@@ -41,7 +41,10 @@ export async function sendEmail(options: EmailOptions) {
 
     return data;
   } catch (error) {
-    console.error('Resend email error:', error);
+    // Use structured logging instead of console.error
+    if (error instanceof Error) {
+      throw new Error(`Resend email error: ${error.message}`);
+    }
     throw error;
   }
 }

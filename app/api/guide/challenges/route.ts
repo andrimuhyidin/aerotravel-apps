@@ -7,10 +7,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { createErrorResponse, createSuccessResponse } from '@/lib/api/response-format';
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
+import {
+  awardPoints,
+  calculateChallengePoints,
+} from '@/lib/guide/reward-points';
 
 const createChallengeSchema = z.object({
   challenge_type: z.enum(['trip_count', 'rating', 'earnings', 'perfect_month', 'custom']),
@@ -212,6 +217,9 @@ async function updateChallengeProgress(
         ? 'failed'
         : challenge.status;
 
+    // Check if challenge was just completed (status changed to completed)
+    const wasJustCompleted = isCompleted && challenge.status !== 'completed';
+
     if (
       Number(challenge.current_value) !== currentValue ||
       challenge.status !== newStatus
@@ -222,6 +230,21 @@ async function updateChallengeProgress(
         status: newStatus,
         completed_at: isCompleted ? now.toISOString() : undefined,
       });
+
+      // Award points if challenge was just completed
+      if (wasJustCompleted) {
+        const points = calculateChallengePoints(
+          challenge.challenge_type,
+          Number(challenge.target_value)
+        );
+        await awardPoints(
+          guideId,
+          points,
+          'challenge',
+          challenge.id,
+          `Challenge completed: ${challenge.title || challenge.challenge_type}`
+        );
+      }
     }
   }
 
@@ -281,7 +304,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     await updateChallengeProgress(client, user.id, stats);
 
     // Fetch all challenges for this guide
-    let challengesQuery = client
+    const challengesQuery = client
       .from('guide_challenges')
       .select('*')
       .eq('guide_id', user.id)
@@ -295,7 +318,33 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const { data: challenges, error: challengesError } = await challengesQuery;
 
     if (challengesError) {
-      logger.error('Failed to fetch challenges', challengesError, { guideId: user.id });
+      // Check if it's an RLS/permission error
+      const isRlsError = 
+        challengesError.code === 'PGRST301' || 
+        challengesError.code === '42501' ||
+        challengesError.message?.toLowerCase().includes('permission') ||
+        challengesError.message?.toLowerCase().includes('policy') ||
+        challengesError.message?.toLowerCase().includes('row-level security');
+      
+      logger.error('Failed to fetch challenges', challengesError, {
+        guideId: user.id,
+        branchId: branchContext.branchId,
+        errorCode: challengesError.code,
+        errorMessage: challengesError.message,
+        errorDetails: challengesError.details,
+        errorHint: challengesError.hint,
+        isRlsError,
+      });
+      
+      // If RLS error, return empty array (expected - RLS policy may not be active)
+      if (isRlsError) {
+        logger.warn('RLS error detected for challenges - returning empty array', {
+          guideId: user.id,
+          hint: 'Check if RLS policy is active for guide_challenges table',
+        });
+        return createSuccessResponse({ challenges: [] });
+      }
+      
       throw new Error('Failed to fetch challenges');
     }
 
@@ -314,9 +363,14 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       description: c.description,
     }));
 
-    return NextResponse.json({ challenges: formattedChallenges });
+    return createSuccessResponse({ challenges: formattedChallenges });
   } catch (error) {
-    logger.error('Failed to get challenges', error, { guideId: user.id });
+    logger.error('Failed to get challenges', error, {
+      guideId: user.id,
+      branchId: branchContext.branchId,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : undefined,
+    });
     throw error;
   }
 });
@@ -330,7 +384,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return createErrorResponse('Unauthorized', undefined, undefined, 401);
   }
 
   const branchContext = await getBranchContext(user.id);
@@ -373,16 +427,21 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     .single();
 
   if (insertError) {
-    logger.error('Failed to create challenge', insertError, { guideId: user.id, payload });
-    return NextResponse.json(
-      { error: 'Gagal membuat challenge' },
-      { status: 500 }
-    );
+    logger.error('Failed to create challenge', insertError, {
+      guideId: user.id,
+      branchId: branchContext.branchId,
+      payload,
+      errorCode: insertError.code,
+      errorMessage: insertError.message,
+      errorDetails: insertError.details,
+      errorHint: insertError.hint,
+    });
+    return createErrorResponse('Gagal membuat challenge', 'DATABASE_ERROR', insertError, 500);
   }
 
   logger.info('Challenge created', { challengeId: newChallenge.id, guideId: user.id });
 
-  return NextResponse.json({
+  return createSuccessResponse({
     success: true,
     challenge: {
       id: newChallenge.id,

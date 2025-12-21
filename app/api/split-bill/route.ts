@@ -5,7 +5,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+
 import { isFeatureEnabled } from '@/lib/feature-flags/posthog-flags';
+import { logger } from '@/lib/utils/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,7 +33,7 @@ export async function POST(request: NextRequest) {
       message: 'Split bill feature akan di-implement',
     });
   } catch (error) {
-    console.error('Split bill error:', error);
+    logger.error('Split bill error', error);
     return NextResponse.json(
       { error: 'Split bill processing failed' },
       { status: 500 }

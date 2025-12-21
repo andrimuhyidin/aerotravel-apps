@@ -65,6 +65,12 @@ export default async function EditProfilePage({ params }: PageProps) {
                 nik: (user.profile?.nik as string | undefined) ?? '',
                 address: (user.profile?.address as string | undefined) ?? '',
                 avatar_url: (user.profile?.avatar_url as string | undefined) ?? '',
+                // home_address removed - redundant with address for guides
+                employee_number: (user.profile?.employee_number as string | undefined) ?? '',
+                hire_date: user.profile?.hire_date
+                  ? new Date(user.profile.hire_date).toISOString().split('T')[0]
+                  : undefined,
+                supervisor_id: (user.profile?.supervisor_id as string | undefined) ?? null,
               }}
             />
           </CardContent>

@@ -6,11 +6,11 @@
  */
 
 import { AlertTriangle, Package, ShieldCheck } from 'lucide-react';
-import Link from 'next/link';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { EquipmentChecklistDialog } from './equipment-checklist-dialog';
 import { RiskAssessmentDialog } from './risk-assessment-dialog';
 
 type PreTripSectionsProps = {
@@ -21,37 +21,46 @@ type PreTripSectionsProps = {
 
 /**
  * Equipment Checklist Section Card
- * Link ke equipment checklist page
+ * Trigger dialog untuk equipment checklist
  */
 export function EquipmentChecklistSection({ tripId, locale }: { tripId: string; locale: string }) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   return (
-    <Card className="border-0 shadow-sm border-blue-200 bg-gradient-to-br from-blue-50/50 to-white">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100">
-              <Package className="h-5 w-5 text-blue-600" />
+    <>
+      <Card className="border-0 shadow-sm border-blue-200 bg-gradient-to-br from-blue-50/50 to-white">
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3 flex-1">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100">
+                <Package className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-slate-900">Equipment Checklist</h3>
+                <p className="mt-1 text-xs text-slate-600 leading-relaxed">
+                  Pastikan semua peralatan lengkap dan dalam kondisi baik sebelum trip
+                </p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-slate-900">Equipment Checklist</h3>
-              <p className="mt-1 text-xs text-slate-600 leading-relaxed">
-                Pastikan semua peralatan lengkap dan dalam kondisi baik sebelum trip
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-shrink-0 h-9 text-xs border-blue-200 text-blue-700 hover:bg-blue-100"
-            asChild
-          >
-            <Link href={`/${locale}/guide/trips/${tripId}/equipment`}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-shrink-0 h-9 text-xs border-blue-200 text-blue-700 hover:bg-blue-100"
+              onClick={() => setDialogOpen(true)}
+            >
               Buka
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <EquipmentChecklistDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        tripId={tripId}
+        locale={locale}
+      />
+    </>
   );
 }
 

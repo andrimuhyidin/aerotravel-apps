@@ -135,7 +135,8 @@ export function DocumentsSectionClient({ locale }: { locale: string }) {
         {documents.map((doc) => (
           <div
             key={doc.document_type}
-            className="rounded-lg border border-slate-200 bg-slate-50/50 overflow-hidden"
+            id={`upload-${doc.document_type}`}
+            className="rounded-lg border border-slate-200 bg-slate-50/50 overflow-hidden scroll-mt-4"
           >
             <div className="p-4">
               <div className="flex items-start justify-between gap-3">

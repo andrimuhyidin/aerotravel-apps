@@ -61,7 +61,7 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
 
     const { data: allSkills } = await (supabase as any)
       .from('guide_skills_catalog')
-      .select('*')
+      .select('id, name, description, category, icon_name, levels, validation_method, display_order')
       .eq('is_active', true)
       .order('display_order', { ascending: true });
 

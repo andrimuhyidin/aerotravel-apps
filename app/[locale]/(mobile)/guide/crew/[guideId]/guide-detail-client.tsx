@@ -30,6 +30,7 @@ import { Progress } from '@/components/ui/progress';
 import { getLevelInfo } from '@/lib/guide/gamification';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/utils/logger';
 
 type GuideProfile = {
   user_id: string;
@@ -160,7 +161,7 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
         window.location.href = contactData.actions.call;
       }
     } catch (error) {
-      console.error('Contact error', error);
+      logger.error('Contact error', error, { guideId });
       alert('Gagal menghubungi guide');
     }
   };

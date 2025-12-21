@@ -20,12 +20,21 @@ const handoverItemSchema = z.object({
   condition: z.string().optional(),
   photo_url: z.string().url().optional(),
   expected_quantity: z.number().optional(), // For inbound, compare with outbound
+}).refine((data) => {
+  // Validate: piece unit must be integer
+  if (data.unit === 'piece' && !Number.isInteger(data.quantity)) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Quantity untuk piece harus bilangan bulat',
+  path: ['quantity'],
 });
 
 const handoverSchema = z.object({
   trip_id: z.string().uuid(),
   handover_type: z.enum(['outbound', 'inbound']),
-  to_user_id: z.string().uuid(), // Guide (outbound) or Warehouse (inbound)
+  to_user_id: z.string().uuid().optional(), // Guide (outbound - set by API) or Warehouse (inbound - required)
   items: z.array(handoverItemSchema),
   from_signature: z.object({
     method: z.enum(['draw', 'upload', 'typed']),
@@ -105,10 +114,30 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const client = supabase as unknown as any;
 
-  // For outbound: from_user_id = warehouse (can be null), to_user_id = guide
-  // For inbound: from_user_id = guide, to_user_id = warehouse
+  // For outbound: from_user_id = warehouse (can be null), to_user_id = guide (current user)
+  // For inbound: from_user_id = guide (current user), to_user_id = warehouse (from payload)
   const fromUserId = payload.handover_type === 'outbound' ? null : user.id;
-  const toUserId = payload.handover_type === 'outbound' ? user.id : payload.to_user_id;
+  const toUserId = payload.handover_type === 'outbound' 
+    ? user.id // Outbound: guide receives items
+    : (payload.to_user_id || null); // Inbound: warehouse receives items (must be provided)
+  
+  // Validate: inbound handovers must have to_user_id
+  if (payload.handover_type === 'inbound' && !toUserId) {
+    logger.error('Inbound handover missing to_user_id', { tripId: payload.trip_id, guideId: user.id });
+    return NextResponse.json({ error: 'Warehouse user ID required for inbound handover' }, { status: 400 });
+  }
+
+  // Validate items: check quantity rules per unit type
+  for (const item of payload.items) {
+    if (item.quantity < 0) {
+      logger.error('Invalid item quantity', { tripId: payload.trip_id, itemName: item.name, quantity: item.quantity });
+      return NextResponse.json({ error: `Quantity untuk "${item.name}" tidak boleh negatif` }, { status: 400 });
+    }
+    if (item.unit === 'piece' && !Number.isInteger(item.quantity)) {
+      logger.error('Invalid item quantity for piece unit', { tripId: payload.trip_id, itemName: item.name, quantity: item.quantity });
+      return NextResponse.json({ error: `Quantity untuk "${item.name}" (piece) harus bilangan bulat` }, { status: 400 });
+    }
+  }
 
   // Insert handover
   const { data: handover, error } = await withBranchFilter(

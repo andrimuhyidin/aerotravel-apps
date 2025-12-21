@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { cacheKeys, cacheTTL, getCached } from '@/lib/cache/redis-cache';
 import { generateContent } from '@/lib/gemini';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -21,7 +22,14 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  try {
+  // Use cache for expensive AI insights generation
+  const cacheKey = cacheKeys.guide.performanceInsights(user.id, 'monthly');
+  
+  const insights = await getCached(
+    cacheKey,
+    cacheTTL.performance, // 5 minutes
+    async () => {
+      try {
     // Get current metrics
     const { data: metrics } = await (supabase as any)
       .from('guide_performance_metrics')
@@ -32,15 +40,15 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
       .limit(1)
       .maybeSingle();
 
-    if (!metrics) {
-      return NextResponse.json({
-        insights: {
-          summary: 'Belum ada data performa yang cukup untuk analisis',
-          trends: [],
-          recommendations: [],
-        },
-      });
-    }
+        if (!metrics) {
+          return {
+            insights: {
+              summary: 'Belum ada data performa yang cukup untuk analisis',
+              trends: [],
+              recommendations: [],
+            },
+          };
+        }
 
     // Get recent trips for context
     const { data: recentTrips } = await (supabase as any)
@@ -126,11 +134,15 @@ Return ONLY the JSON object, no additional text.`;
       };
     }
 
-    return NextResponse.json({
-      insights,
-    });
-  } catch (error) {
-    logger.error('Failed to generate performance insights', error, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to generate insights' }, { status: 500 });
-  }
+        return {
+          insights,
+        };
+      } catch (error) {
+        logger.error('Failed to generate performance insights', error, { guideId: user.id });
+        throw error;
+      }
+    }
+  );
+
+  return NextResponse.json(insights);
 });

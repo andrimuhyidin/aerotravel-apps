@@ -10,6 +10,7 @@ import { AlertTriangle, Lightbulb, RefreshCw, Sparkles, Users } from 'lucide-rea
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { logger } from '@/lib/utils/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type ManifestAiSuggestionsProps = {
@@ -145,7 +146,7 @@ export function ManifestAiSuggestions({
 
           setAutoLoaded(true);
         } catch (error) {
-          console.error('Failed to load suggestions:', error);
+          logger.error('Failed to load suggestions', error, { tripId });
         } finally {
           setIsLoading(false);
         }

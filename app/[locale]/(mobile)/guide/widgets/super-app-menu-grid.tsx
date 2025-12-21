@@ -11,8 +11,10 @@ import {
     BookOpen,
     Calendar,
     ClipboardList,
+    Coins,
     CreditCard,
     FileText,
+    Gift,
     GraduationCap,
     HelpCircle,
     MapPin,
@@ -62,6 +64,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   BookOpen: BookOpen,
   Users: Users,
   CreditCard: CreditCard,
+  Gift: Gift,
+  Coins: Coins,
 };
 
 // Filter: Menu yang TIDAK seharusnya ada di Super App Menu
@@ -91,7 +95,7 @@ const getCategoryForHref = (href: string): string => {
   if (href.includes('/attendance') || href.includes('/trips') || href.includes('/status') || href.includes('/insights') || href.includes('/crew')) {
     return 'operasional';
   }
-  if (href.includes('/wallet') || href.includes('/earnings')) {
+  if (href.includes('/wallet') || href.includes('/earnings') || href.includes('/rewards')) {
     return 'finansial';
   }
   if (href.includes('/training') || href.includes('/certifications') || href.includes('/learning')) {
@@ -184,6 +188,7 @@ export function SuperAppMenuGrid({ locale }: SuperAppMenuGridProps) {
       { href: '/guide/crew/directory', label: 'Crew Directory', icon_name: 'Users', description: 'Direktori guide' },
       // Finansial
       { href: '/guide/wallet', label: 'Dompet', icon_name: 'Wallet', description: 'Pendapatan & transaksi' },
+      { href: '/guide/rewards', label: 'Reward Points', icon_name: 'Gift', description: 'Poin reward & katalog' },
       // Pengembangan
       { href: '/guide/training', label: 'Pelatihan', icon_name: 'GraduationCap', description: 'Modul pelatihan' },
       { href: '/guide/certifications', label: 'Sertifikasi', icon_name: 'Award', description: 'Kelola sertifikasi' },
@@ -207,7 +212,8 @@ export function SuperAppMenuGrid({ locale }: SuperAppMenuGridProps) {
     return { allItems: items, categorizedItems: categories };
   }, [menuItemsData]);
 
-  // Get first 8 items untuk ditampilkan di home (prioritaskan operasional dan finansial)
+  // Get first 7 items untuk ditampilkan di home (prioritaskan operasional dan finansial)
+  // Button "Lainnya" akan menjadi item ke-8 jika ada lebih dari 7 menu items
   const displayedItems = useMemo(() => {
     const priority = [
       ...(categorizedItems.operasional || []).slice(0, 4),
@@ -215,10 +221,10 @@ export function SuperAppMenuGrid({ locale }: SuperAppMenuGridProps) {
       ...(categorizedItems.pengembangan || []).slice(0, 1),
       ...(categorizedItems.dukungan || []).slice(0, 1),
     ];
-    return priority.slice(0, 8);
+    return priority.slice(0, 7);
   }, [categorizedItems]);
 
-  const hasMoreItems = allItems.length > 8;
+  const hasMoreItems = allItems.length > 7;
 
   if (isLoading) {
     return (

@@ -27,6 +27,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/utils/logger';
 
 type CrewMember = {
   user_id: string;
@@ -115,7 +116,7 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
           });
         },
         (error) => {
-          console.warn('GPS capture failed', error);
+          logger.warn('GPS capture failed', { error });
         },
         { enableHighAccuracy: true, timeout: 5000 },
       );
@@ -164,7 +165,7 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
         window.location.href = data.actions.call;
       }
     } catch (error) {
-      console.error('Contact error', error);
+      logger.error('Contact error', error, { guideId });
       alert('Gagal menghubungi guide');
     }
   };
@@ -191,7 +192,11 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
         alert(`SOS dikirim. ${nearbyData.nearby.length} crew terdekat telah diberitahu.`);
       }
     } catch (error) {
-      console.error('SOS error', error);
+      logger.error('SOS error', error, { 
+        latitude: userLocation?.latitude, 
+        longitude: userLocation?.longitude,
+        nearbyCount: nearbyData?.nearby.length 
+      });
       alert('Gagal mengirim SOS');
     }
   };

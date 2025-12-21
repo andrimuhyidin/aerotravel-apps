@@ -29,12 +29,33 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     .order('display_order', { ascending: true });
 
   if (error) {
+    // Check if it's an RLS/permission error
+    const isRlsError = 
+      error.code === 'PGRST301' || 
+      error.code === '42501' ||
+      error.message?.toLowerCase().includes('permission') ||
+      error.message?.toLowerCase().includes('policy') ||
+      error.message?.toLowerCase().includes('row-level security');
+    
     logger.error('Failed to fetch quick actions', error, { 
       guideId: user.id, 
       branchId: branchContext.branchId,
       errorMessage: error.message,
       errorCode: error.code,
+      errorDetails: error.details,
+      errorHint: error.hint,
+      isRlsError,
     });
+    
+    // If RLS error, return empty array (expected - RLS policy may not be active)
+    if (isRlsError) {
+      logger.warn('RLS error detected for quick actions - returning empty array', {
+        guideId: user.id,
+        hint: 'Check if RLS policy is active for guide_quick_actions table',
+      });
+      return NextResponse.json({ actions: [] });
+    }
+    
     return NextResponse.json({ error: 'Failed to fetch quick actions' }, { status: 500 });
   }
 

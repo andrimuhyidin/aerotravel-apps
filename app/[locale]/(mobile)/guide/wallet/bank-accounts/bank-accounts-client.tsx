@@ -48,8 +48,17 @@ type BankAccount = {
   account_holder_name: string;
   branch_name?: string;
   branch_code?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'pending_edit';
   rejection_reason?: string;
+  original_data?: {
+    bank_name: string;
+    account_number: string;
+    account_holder_name: string;
+    branch_name?: string;
+    branch_code?: string;
+    is_default: boolean;
+  };
+  edit_requested_at?: string;
   is_default: boolean;
   created_at: string;
 };
@@ -168,10 +177,20 @@ export function BankAccountsClient({ locale: _locale }: BankAccountsClientProps)
   };
 
   const handleEdit = (account: BankAccount) => {
-    if (account.status !== 'pending') {
-      alert('Hanya akun bank dengan status pending yang bisa diubah');
+    // Allow edit for pending, pending_edit, and approved accounts
+    if (account.status === 'rejected') {
+      alert('Akun bank yang ditolak tidak bisa diubah. Silakan hapus dan buat ulang.');
       return;
     }
+    
+    // If editing approved account, show confirmation
+    if (account.status === 'approved') {
+      const confirmed = confirm(
+        'Mengubah rekening yang sudah disetujui memerlukan persetujuan admin. Lanjutkan?'
+      );
+      if (!confirmed) return;
+    }
+    
     setEditingAccount(account);
     setFormData({
       bank_name: account.bank_name,
@@ -200,6 +219,7 @@ export function BankAccountsClient({ locale: _locale }: BankAccountsClientProps)
   const accounts = data?.accounts || [];
   const approvedAccounts = accounts.filter((a) => a.status === 'approved');
   const pendingAccounts = accounts.filter((a) => a.status === 'pending');
+  const pendingEditAccounts = accounts.filter((a) => a.status === 'pending_edit');
   const rejectedAccounts = accounts.filter((a) => a.status === 'rejected');
 
   const getStatusBadge = (status: string) => {
@@ -216,6 +236,13 @@ export function BankAccountsClient({ locale: _locale }: BankAccountsClientProps)
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
             <AlertCircle className="h-3 w-3" />
             Menunggu Persetujuan
+          </span>
+        );
+      case 'pending_edit':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+            <Edit className="h-3 w-3" />
+            Menunggu Persetujuan Perubahan
           </span>
         );
       case 'rejected':
@@ -256,8 +283,9 @@ export function BankAccountsClient({ locale: _locale }: BankAccountsClientProps)
                     {editingAccount ? 'Edit Rekening Bank' : 'Tambah Rekening Bank'}
                   </DialogTitle>
                   <DialogDescription>
-                    Rekening baru akan menunggu persetujuan admin sebelum dapat digunakan untuk
-                    penarikan dana.
+                    {editingAccount?.status === 'approved'
+                      ? 'Perubahan rekening yang sudah disetujui akan memerlukan persetujuan admin.'
+                      : 'Rekening baru akan menunggu persetujuan admin sebelum dapat digunakan untuk penarikan dana.'}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -378,6 +406,108 @@ export function BankAccountsClient({ locale: _locale }: BankAccountsClientProps)
             </div>
           ) : (
             <div className="space-y-3">
+              {/* Pending Edit Accounts - Show first */}
+              {pendingEditAccounts.length > 0 && (
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Menunggu Persetujuan Perubahan
+                  </h3>
+                  {pendingEditAccounts.map((account) => (
+                    <Card key={account.id} className="mb-3 border-blue-200 bg-blue-50">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-5 w-5 text-blue-600" />
+                              <div>
+                                <p className="font-semibold text-slate-900">{account.bank_name}</p>
+                                <p className="text-sm text-slate-600">
+                                  {account.account_number} • {account.account_holder_name}
+                                </p>
+                                {account.branch_name && (
+                                  <p className="text-xs text-slate-500">
+                                    Cabang: {account.branch_name}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="mt-2 flex items-center gap-2">
+                              {getStatusBadge(account.status)}
+                              {account.is_default && (
+                                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                  Rekening Utama
+                                </span>
+                              )}
+                            </div>
+                            {account.original_data && (
+                              <div className="mt-3 rounded-lg border border-blue-200 bg-white p-3">
+                                <p className="mb-2 text-xs font-semibold text-blue-700">
+                                  Perubahan yang diminta:
+                                </p>
+                                <div className="space-y-1 text-xs">
+                                  {account.original_data.bank_name !== account.bank_name && (
+                                    <p className="text-slate-600">
+                                      <span className="font-medium">Bank:</span>{' '}
+                                      <span className="line-through">
+                                        {account.original_data.bank_name}
+                                      </span>{' '}
+                                      → {account.bank_name}
+                                    </p>
+                                  )}
+                                  {account.original_data.account_number !== account.account_number && (
+                                    <p className="text-slate-600">
+                                      <span className="font-medium">No. Rekening:</span>{' '}
+                                      <span className="line-through">
+                                        {account.original_data.account_number}
+                                      </span>{' '}
+                                      → {account.account_number}
+                                    </p>
+                                  )}
+                                  {account.original_data.account_holder_name !== account.account_holder_name && (
+                                    <p className="text-slate-600">
+                                      <span className="font-medium">Nama:</span>{' '}
+                                      <span className="line-through">
+                                        {account.original_data.account_holder_name}
+                                      </span>{' '}
+                                      → {account.account_holder_name}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            <p className="mt-2 text-xs text-blue-700">
+                              Perubahan rekening sedang menunggu persetujuan admin. Anda dapat
+                              mengubah atau membatalkan permintaan ini.
+                            </p>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEdit(account)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                if (confirm('Hapus rekening bank ini?')) {
+                                  deleteMutation.mutate(account.id);
+                                }
+                              }}
+                              disabled={deleteMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
               {/* Approved Accounts */}
               {approvedAccounts.length > 0 && (
                 <div>
@@ -411,6 +541,19 @@ export function BankAccountsClient({ locale: _locale }: BankAccountsClientProps)
                                 </span>
                               )}
                             </div>
+                            <p className="mt-2 text-xs text-emerald-700">
+                              Rekening aktif. Anda dapat mengubah data rekening dengan mengklik
+                              tombol edit. Perubahan akan memerlukan persetujuan admin.
+                            </p>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEdit(account)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                       </CardContent>

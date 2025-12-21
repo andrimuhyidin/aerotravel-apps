@@ -4,9 +4,10 @@
  * PUT  /api/guide/medical-info - Update medical info
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 
+import { createErrorResponse, createSuccessResponse } from '@/lib/api/response-format';
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -29,7 +30,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return createErrorResponse('Unauthorized', undefined, undefined, 401);
   }
 
   const client = supabase as unknown as any;
@@ -42,10 +43,10 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   if (error) {
     logger.error('Failed to fetch medical info', error, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to fetch medical info' }, { status: 500 });
+    return createErrorResponse('Failed to fetch medical info', 'DATABASE_ERROR', error, 500);
   }
 
-  return NextResponse.json({ medicalInfo: medicalInfo || null });
+  return createSuccessResponse({ medicalInfo: medicalInfo || null });
 });
 
 export const PUT = withErrorHandler(async (request: NextRequest) => {
@@ -57,7 +58,7 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return createErrorResponse('Unauthorized', undefined, undefined, 401);
   }
 
   const client = supabase as unknown as any;
@@ -85,7 +86,7 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
 
     if (error) {
       logger.error('Failed to update medical info', error, { guideId: user.id });
-      return NextResponse.json({ error: 'Failed to update medical info' }, { status: 500 });
+      return createErrorResponse('Failed to update medical info', 'DATABASE_ERROR', error, 500);
     }
     medicalInfo = data;
   } else {
@@ -101,11 +102,11 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
 
     if (error) {
       logger.error('Failed to create medical info', error, { guideId: user.id });
-      return NextResponse.json({ error: 'Failed to create medical info' }, { status: 500 });
+      return createErrorResponse('Failed to create medical info', 'DATABASE_ERROR', error, 500);
     }
     medicalInfo = data;
   }
 
-  return NextResponse.json({ medicalInfo });
+  return createSuccessResponse({ medicalInfo });
 });
 

@@ -10,7 +10,7 @@ import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
-export const GET = withErrorHandler(async (_request: NextRequest) => {
+export const GET = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
 
   const {
@@ -20,6 +20,9 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const { searchParams } = new URL(request.url);
+  const tripIdFilter = searchParams.get('trip_id'); // Optional: filter by specific trip
 
   const branchContext = await getBranchContext(user.id);
   const client = supabase as unknown as any;
@@ -32,6 +35,11 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
     
     if (!branchContext.isSuperAdmin && branchContext.branchId) {
       guideTripsQuery = guideTripsQuery.eq('branch_id', branchContext.branchId);
+    }
+    
+    // Filter by specific trip_id if provided
+    if (tripIdFilter) {
+      guideTripsQuery = guideTripsQuery.eq('trip_id', tripIdFilter);
     }
     
     const { data: guideTrips, error: guideTripsError } = await guideTripsQuery;

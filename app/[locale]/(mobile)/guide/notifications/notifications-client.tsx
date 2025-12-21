@@ -59,6 +59,11 @@ type UnifiedNotification = SystemNotification | BroadcastNotification;
 type NotificationsResponse = {
   notifications: UnifiedNotification[];
   unreadCount: number;
+  unreadCountByType?: {
+    system: number;
+    broadcast: number;
+    total: number;
+  };
   total: number;
   hasMore: boolean;
 };
@@ -170,7 +175,6 @@ export function NotificationsClient({ locale: _locale }: NotificationsClientProp
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.guide.notifications() });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.guide.broadcasts() });
     },
   });
 
@@ -222,6 +226,13 @@ export function NotificationsClient({ locale: _locale }: NotificationsClientProp
   // Count by type
   const systemCount = notifications.filter((n) => n.type === 'system').length;
   const broadcastCount = notifications.filter((n) => n.type === 'broadcast').length;
+  
+  // Get unread counts by type from API response
+  const unreadCounts = data?.unreadCountByType || {
+    system: 0,
+    broadcast: 0,
+    total: data?.unreadCount || 0,
+  };
 
   if (filteredNotifications.length === 0) {
     return (
@@ -294,7 +305,9 @@ export function NotificationsClient({ locale: _locale }: NotificationsClientProp
                   ? 'Semua pembaruan dan pesan penting akan muncul di sini'
                   : filter === 'system'
                     ? 'Tidak ada notifikasi sistem'
-                    : 'Tidak ada pengumuman dari Ops'
+                    : filter === 'broadcast'
+                      ? 'Tidak ada pengumuman dari Ops'
+                      : 'Tidak ada notifikasi'
               }
               variant="default"
             />
@@ -347,24 +360,24 @@ export function NotificationsClient({ locale: _locale }: NotificationsClientProp
             </Badge>
           )}
         </Button>
-        <Button
-          variant={filter === 'broadcast' ? 'default' : 'ghost'}
-          size="sm"
-          className={cn(
-            'flex-1 font-medium transition-all',
-            filter === 'broadcast' 
-              ? 'bg-slate-900 text-white shadow-sm hover:bg-slate-800' 
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50',
-          )}
-          onClick={() => setFilter('broadcast')}
-        >
-          Pengumuman
-          {broadcastCount > 0 && (
-            <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 px-1.5 text-xs">
-              {broadcastCount}
-            </Badge>
-          )}
-        </Button>
+          <Button
+            variant={filter === 'broadcast' ? 'default' : 'ghost'}
+            size="sm"
+            className={cn(
+              'flex-1 font-medium transition-all',
+              filter === 'broadcast' 
+                ? 'bg-slate-900 text-white shadow-sm hover:bg-slate-800' 
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50',
+            )}
+            onClick={() => setFilter('broadcast')}
+          >
+            Pengumuman
+            {broadcastCount > 0 && (
+              <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 px-1.5 text-xs">
+                {broadcastCount}
+              </Badge>
+            )}
+          </Button>
       </div>
 
       {/* Unread count badge - Enhanced */}
@@ -467,7 +480,7 @@ export function NotificationsClient({ locale: _locale }: NotificationsClientProp
                 </CardContent>
               </Card>
             );
-          } else {
+          } else if (notification.type === 'broadcast') {
             const b = notification as BroadcastNotification;
             const Icon = BROADCAST_ICONS[b.broadcastType];
             const bgColor = BROADCAST_COLORS[b.broadcastType];
@@ -554,6 +567,8 @@ export function NotificationsClient({ locale: _locale }: NotificationsClientProp
               </Card>
             );
           }
+          
+          return null;
         })}
       </div>
     </div>

@@ -951,216 +951,6 @@ export type Database = {
           },
         ]
       }
-      crew_audit_logs: {
-        Row: {
-          action_details: Json | null
-          action_type: string
-          branch_id: string | null
-          created_at: string | null
-          guide_id: string | null
-          id: string
-          ip_address: unknown
-          performed_at: string | null
-          performed_by: string | null
-          trip_id: string | null
-          user_agent: string | null
-        }
-        Insert: {
-          action_details?: Json | null
-          action_type: string
-          branch_id?: string | null
-          created_at?: string | null
-          guide_id?: string | null
-          id?: string
-          ip_address?: unknown
-          performed_at?: string | null
-          performed_by?: string | null
-          trip_id?: string | null
-          user_agent?: string | null
-        }
-        Update: {
-          action_details?: Json | null
-          action_type?: string
-          branch_id?: string | null
-          created_at?: string | null
-          guide_id?: string | null
-          id?: string
-          ip_address?: unknown
-          performed_at?: string | null
-          performed_by?: string | null
-          trip_id?: string | null
-          user_agent?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crew_audit_logs_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crew_audit_logs_guide_id_fkey"
-            columns: ["guide_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crew_audit_logs_performed_by_fkey"
-            columns: ["performed_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crew_audit_logs_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "trip_profit_loss"
-            referencedColumns: ["trip_id"]
-          },
-          {
-            foreignKeyName: "crew_audit_logs_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "trips"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      crew_notes: {
-        Row: {
-          branch_id: string | null
-          created_at: string | null
-          created_by: string
-          id: string
-          is_internal: boolean | null
-          message: string
-          note_type: string | null
-          parent_note_id: string | null
-          trip_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          branch_id?: string | null
-          created_at?: string | null
-          created_by: string
-          id?: string
-          is_internal?: boolean | null
-          message: string
-          note_type?: string | null
-          parent_note_id?: string | null
-          trip_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          branch_id?: string | null
-          created_at?: string | null
-          created_by?: string
-          id?: string
-          is_internal?: boolean | null
-          message?: string
-          note_type?: string | null
-          parent_note_id?: string | null
-          trip_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crew_notes_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crew_notes_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crew_notes_parent_note_id_fkey"
-            columns: ["parent_note_id"]
-            isOneToOne: false
-            referencedRelation: "crew_notes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crew_notes_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "trip_profit_loss"
-            referencedColumns: ["trip_id"]
-          },
-          {
-            foreignKeyName: "crew_notes_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "trips"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      crew_profiles_public_internal: {
-        Row: {
-          badges: Json | null
-          branch_id: string | null
-          contact_enabled: boolean | null
-          current_availability: string | null
-          display_name: string
-          is_active: boolean | null
-          last_status_update: string | null
-          photo_url: string | null
-          skills: Json | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          badges?: Json | null
-          branch_id?: string | null
-          contact_enabled?: boolean | null
-          current_availability?: string | null
-          display_name: string
-          is_active?: boolean | null
-          last_status_update?: string | null
-          photo_url?: string | null
-          skills?: Json | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          badges?: Json | null
-          branch_id?: string | null
-          contact_enabled?: boolean | null
-          current_availability?: string | null
-          display_name?: string
-          is_active?: boolean | null
-          last_status_update?: string | null
-          photo_url?: string | null
-          skills?: Json | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crew_profiles_public_internal_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crew_profiles_public_internal_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       cron_job_logs: {
         Row: {
           completed_at: string | null
@@ -1675,6 +1465,84 @@ export type Database = {
           },
         ]
       }
+      guide_assignment_audit_logs: {
+        Row: {
+          action_details: Json | null
+          action_type: string
+          branch_id: string | null
+          created_at: string | null
+          guide_id: string | null
+          id: string
+          ip_address: unknown
+          performed_at: string | null
+          performed_by: string | null
+          trip_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action_details?: Json | null
+          action_type: string
+          branch_id?: string | null
+          created_at?: string | null
+          guide_id?: string | null
+          id?: string
+          ip_address?: unknown
+          performed_at?: string | null
+          performed_by?: string | null
+          trip_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action_details?: Json | null
+          action_type?: string
+          branch_id?: string | null
+          created_at?: string | null
+          guide_id?: string | null
+          id?: string
+          ip_address?: unknown
+          performed_at?: string | null
+          performed_by?: string | null
+          trip_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_audit_logs_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_audit_logs_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_audit_logs_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_audit_logs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip_profit_loss"
+            referencedColumns: ["trip_id"]
+          },
+          {
+            foreignKeyName: "crew_audit_logs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guide_availability: {
         Row: {
           available_from: string
@@ -1895,6 +1763,48 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "guide_challenges_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guide_compliance_education_logs: {
+        Row: {
+          branch_id: string | null
+          created_at: string | null
+          guide_id: string
+          id: string
+          read_at: string | null
+          section_read: string
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string | null
+          guide_id: string
+          id?: string
+          read_at?: string | null
+          section_read: string
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string | null
+          guide_id?: string
+          id?: string
+          read_at?: string | null
+          section_read?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_compliance_education_logs_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_compliance_education_logs_guide_id_fkey"
             columns: ["guide_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -3088,6 +2998,57 @@ export type Database = {
           },
         ]
       }
+      guide_mandatory_training_assignments: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          due_date: string
+          guide_id: string
+          id: string
+          last_reminder_sent_at: string | null
+          mandatory_training_id: string
+          status: Database["public"]["Enums"]["assignment_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          due_date: string
+          guide_id: string
+          id?: string
+          last_reminder_sent_at?: string | null
+          mandatory_training_id: string
+          status?: Database["public"]["Enums"]["assignment_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          due_date?: string
+          guide_id?: string
+          id?: string
+          last_reminder_sent_at?: string | null
+          mandatory_training_id?: string
+          status?: Database["public"]["Enums"]["assignment_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_mandatory_training_assignments_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_mandatory_training_assignments_mandatory_training_id_fkey"
+            columns: ["mandatory_training_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guide_medical_info: {
         Row: {
           allergies: string[] | null
@@ -3187,6 +3148,81 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guide_notes: {
+        Row: {
+          branch_id: string | null
+          created_at: string | null
+          created_by: string
+          id: string
+          is_internal: boolean | null
+          message: string
+          note_type: string | null
+          parent_note_id: string | null
+          trip_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_internal?: boolean | null
+          message: string
+          note_type?: string | null
+          parent_note_id?: string | null
+          trip_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_internal?: boolean | null
+          message?: string
+          note_type?: string | null
+          parent_note_id?: string | null
+          trip_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_notes_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_notes_parent_note_id_fkey"
+            columns: ["parent_note_id"]
+            isOneToOne: false
+            referencedRelation: "guide_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_notes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip_profit_loss"
+            referencedColumns: ["trip_id"]
+          },
+          {
+            foreignKeyName: "guide_notes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
@@ -3590,6 +3626,141 @@ export type Database = {
             foreignKeyName: "guide_preferences_guide_id_fkey"
             columns: ["guide_id"]
             isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guide_profiles_public_internal: {
+        Row: {
+          badges: Json | null
+          branch_id: string | null
+          contact_enabled: boolean | null
+          current_availability: string | null
+          display_name: string
+          is_active: boolean | null
+          last_status_update: string | null
+          photo_url: string | null
+          skills: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          badges?: Json | null
+          branch_id?: string | null
+          contact_enabled?: boolean | null
+          current_availability?: string | null
+          display_name: string
+          is_active?: boolean | null
+          last_status_update?: string | null
+          photo_url?: string | null
+          skills?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          badges?: Json | null
+          branch_id?: string | null
+          contact_enabled?: boolean | null
+          current_availability?: string | null
+          display_name?: string
+          is_active?: boolean | null
+          last_status_update?: string | null
+          photo_url?: string | null
+          skills?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_profiles_public_internal_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_profiles_public_internal_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guide_promos: {
+        Row: {
+          badge: string | null
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          gradient: string | null
+          id: string
+          is_active: boolean
+          link: string | null
+          priority: Database["public"]["Enums"]["promo_priority"]
+          start_date: string
+          subtitle: string | null
+          target_guide_ids: string[] | null
+          target_roles: string[] | null
+          title: string
+          type: Database["public"]["Enums"]["promo_item_type"]
+          updated_at: string
+        }
+        Insert: {
+          badge?: string | null
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          gradient?: string | null
+          id?: string
+          is_active?: boolean
+          link?: string | null
+          priority?: Database["public"]["Enums"]["promo_priority"]
+          start_date?: string
+          subtitle?: string | null
+          target_guide_ids?: string[] | null
+          target_roles?: string[] | null
+          title: string
+          type: Database["public"]["Enums"]["promo_item_type"]
+          updated_at?: string
+        }
+        Update: {
+          badge?: string | null
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          gradient?: string | null
+          id?: string
+          is_active?: boolean
+          link?: string | null
+          priority?: Database["public"]["Enums"]["promo_priority"]
+          start_date?: string
+          subtitle?: string | null
+          target_guide_ids?: string[] | null
+          target_roles?: string[] | null
+          title?: string
+          type?: Database["public"]["Enums"]["promo_item_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_promos_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_promos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -4595,48 +4766,116 @@ export type Database = {
           },
         ]
       }
+      insurance_companies: {
+        Row: {
+          branch_id: string
+          code: string
+          created_at: string | null
+          deleted_at: string | null
+          email: string
+          format_type: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          phone: string | null
+          template_config: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          branch_id: string
+          code: string
+          created_at?: string | null
+          deleted_at?: string | null
+          email: string
+          format_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          phone?: string | null
+          template_config?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          branch_id?: string
+          code?: string
+          created_at?: string | null
+          deleted_at?: string | null
+          email?: string
+          format_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          phone?: string | null
+          template_config?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_companies_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insurance_manifests: {
         Row: {
           branch_id: string
           created_at: string | null
-          csv_url: string | null
           error_message: string | null
+          file_format: string | null
+          file_size_bytes: number | null
+          file_url: string | null
           id: string
+          insurance_company_id: string | null
+          insurance_company_name: string | null
           manifest_data: Json
-          manifest_date: string
           passenger_count: number
-          pdf_url: string | null
           sent_at: string | null
-          sent_to: string | null
-          status: Database["public"]["Enums"]["manifest_status"]
+          sent_to_email: string | null
+          status: string
+          trip_date: string
+          trip_id: string
+          updated_at: string | null
         }
         Insert: {
           branch_id: string
           created_at?: string | null
-          csv_url?: string | null
           error_message?: string | null
+          file_format?: string | null
+          file_size_bytes?: number | null
+          file_url?: string | null
           id?: string
+          insurance_company_id?: string | null
+          insurance_company_name?: string | null
           manifest_data: Json
-          manifest_date: string
           passenger_count: number
-          pdf_url?: string | null
           sent_at?: string | null
-          sent_to?: string | null
-          status?: Database["public"]["Enums"]["manifest_status"]
+          sent_to_email?: string | null
+          status?: string
+          trip_date: string
+          trip_id: string
+          updated_at?: string | null
         }
         Update: {
           branch_id?: string
           created_at?: string | null
-          csv_url?: string | null
           error_message?: string | null
+          file_format?: string | null
+          file_size_bytes?: number | null
+          file_url?: string | null
           id?: string
+          insurance_company_id?: string | null
+          insurance_company_name?: string | null
           manifest_data?: Json
-          manifest_date?: string
           passenger_count?: number
-          pdf_url?: string | null
           sent_at?: string | null
-          sent_to?: string | null
-          status?: Database["public"]["Enums"]["manifest_status"]
+          sent_to_email?: string | null
+          status?: string
+          trip_date?: string
+          trip_id?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -4644,6 +4883,27 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_manifests_insurance_company_id_fkey"
+            columns: ["insurance_company_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_manifests_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip_profit_loss"
+            referencedColumns: ["trip_id"]
+          },
+          {
+            foreignKeyName: "insurance_manifests_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
@@ -4928,6 +5188,60 @@ export type Database = {
             columns: ["loyalty_id"]
             isOneToOne: false
             referencedRelation: "loyalty_points"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mandatory_trainings: {
+        Row: {
+          branch_id: string
+          created_at: string | null
+          created_by: string
+          description: string | null
+          frequency: Database["public"]["Enums"]["training_frequency"]
+          id: string
+          is_active: boolean | null
+          title: string
+          training_type: Database["public"]["Enums"]["training_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          frequency: Database["public"]["Enums"]["training_frequency"]
+          id?: string
+          is_active?: boolean | null
+          title: string
+          training_type: Database["public"]["Enums"]["training_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          frequency?: Database["public"]["Enums"]["training_frequency"]
+          id?: string
+          is_active?: boolean | null
+          title?: string
+          training_type?: Database["public"]["Enums"]["training_type"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mandatory_trainings_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mandatory_trainings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -6069,52 +6383,73 @@ export type Database = {
       }
       sos_alerts: {
         Row: {
+          accuracy_meters: number | null
           acknowledged_at: string | null
           acknowledged_by: string | null
           branch_id: string
           created_at: string | null
+          emergency_contacts_notified: boolean | null
           guide_id: string
           id: string
           latitude: number
           location_name: string | null
           longitude: number
+          message: string | null
+          nearby_crew_notified: boolean | null
+          push_sent: boolean | null
           resolution_notes: string | null
           resolved_at: string | null
           resolved_by: string | null
           status: Database["public"]["Enums"]["sos_status"]
           trip_id: string | null
+          updated_at: string | null
+          whatsapp_sent: boolean | null
         }
         Insert: {
+          accuracy_meters?: number | null
           acknowledged_at?: string | null
           acknowledged_by?: string | null
           branch_id: string
           created_at?: string | null
+          emergency_contacts_notified?: boolean | null
           guide_id: string
           id?: string
           latitude: number
           location_name?: string | null
           longitude: number
+          message?: string | null
+          nearby_crew_notified?: boolean | null
+          push_sent?: boolean | null
           resolution_notes?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           status?: Database["public"]["Enums"]["sos_status"]
           trip_id?: string | null
+          updated_at?: string | null
+          whatsapp_sent?: boolean | null
         }
         Update: {
+          accuracy_meters?: number | null
           acknowledged_at?: string | null
           acknowledged_by?: string | null
           branch_id?: string
           created_at?: string | null
+          emergency_contacts_notified?: boolean | null
           guide_id?: string
           id?: string
           latitude?: number
           location_name?: string | null
           longitude?: number
+          message?: string | null
+          nearby_crew_notified?: boolean | null
+          push_sent?: boolean | null
           resolution_notes?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           status?: Database["public"]["Enums"]["sos_status"]
           trip_id?: string | null
+          updated_at?: string | null
+          whatsapp_sent?: boolean | null
         }
         Relationships: [
           {
@@ -6275,6 +6610,60 @@ export type Database = {
           {
             foreignKeyName: "split_bills_creator_id_fkey"
             columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sustainability_goals: {
+        Row: {
+          branch_id: string
+          created_at: string | null
+          created_by: string
+          id: string
+          period_end: string
+          period_start: string
+          period_type: Database["public"]["Enums"]["period_type"]
+          target_co2_kg: number | null
+          target_waste_kg: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          period_end: string
+          period_start: string
+          period_type: Database["public"]["Enums"]["period_type"]
+          target_co2_kg?: number | null
+          target_waste_kg?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          period_type?: Database["public"]["Enums"]["period_type"]
+          target_co2_kg?: number | null
+          target_waste_kg?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sustainability_goals_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sustainability_goals_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -6475,6 +6864,419 @@ export type Database = {
             columns: ["trip_id"]
             isOneToOne: false
             referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_assessment_answers: {
+        Row: {
+          answer: string
+          assessment_id: string
+          created_at: string | null
+          id: string
+          is_correct: boolean | null
+          question_id: string
+        }
+        Insert: {
+          answer: string
+          assessment_id: string
+          created_at?: string | null
+          id?: string
+          is_correct?: boolean | null
+          question_id: string
+        }
+        Update: {
+          answer?: string
+          assessment_id?: string
+          created_at?: string | null
+          id?: string
+          is_correct?: boolean | null
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_assessment_answers_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "training_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assessment_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "training_assessment_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_assessment_questions: {
+        Row: {
+          correct_answer: string | null
+          created_at: string | null
+          id: string
+          options: Json | null
+          points: number | null
+          question_order: number
+          question_text: string
+          question_type: Database["public"]["Enums"]["question_type"]
+          session_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          correct_answer?: string | null
+          created_at?: string | null
+          id?: string
+          options?: Json | null
+          points?: number | null
+          question_order: number
+          question_text: string
+          question_type?: Database["public"]["Enums"]["question_type"]
+          session_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          correct_answer?: string | null
+          created_at?: string | null
+          id?: string
+          options?: Json | null
+          points?: number | null
+          question_order?: number
+          question_text?: string
+          question_type?: Database["public"]["Enums"]["question_type"]
+          session_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_assessment_questions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "training_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_assessments: {
+        Row: {
+          created_at: string | null
+          guide_id: string
+          id: string
+          quiz_passed: boolean | null
+          quiz_score: number | null
+          self_rating: number | null
+          session_id: string
+          submitted_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          guide_id: string
+          id?: string
+          quiz_passed?: boolean | null
+          quiz_score?: number | null
+          self_rating?: number | null
+          session_id: string
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          guide_id?: string
+          id?: string
+          quiz_passed?: boolean | null
+          quiz_score?: number | null
+          self_rating?: number | null
+          session_id?: string
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_assessments_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assessments_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "training_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_attendance: {
+        Row: {
+          branch_id: string
+          checked_in_at: string | null
+          checked_in_by: string | null
+          created_at: string | null
+          guide_id: string
+          id: string
+          notes: string | null
+          session_id: string
+          status: Database["public"]["Enums"]["attendance_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          branch_id: string
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          created_at?: string | null
+          guide_id: string
+          id?: string
+          notes?: string | null
+          session_id: string
+          status: Database["public"]["Enums"]["attendance_status"]
+          updated_at?: string | null
+        }
+        Update: {
+          branch_id?: string
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          created_at?: string | null
+          guide_id?: string
+          id?: string
+          notes?: string | null
+          session_id?: string
+          status?: Database["public"]["Enums"]["attendance_status"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_attendance_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_attendance_checked_in_by_fkey"
+            columns: ["checked_in_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_attendance_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_attendance_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "training_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_certificates: {
+        Row: {
+          branch_id: string
+          certificate_number: string | null
+          certificate_pdf_url: string | null
+          created_at: string | null
+          guide_id: string
+          id: string
+          is_issued: boolean | null
+          issued_at: string | null
+          issued_by: string | null
+          quiz_attempt_id: string | null
+          quiz_passed: boolean | null
+          quiz_score: number | null
+          session_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          branch_id: string
+          certificate_number?: string | null
+          certificate_pdf_url?: string | null
+          created_at?: string | null
+          guide_id: string
+          id?: string
+          is_issued?: boolean | null
+          issued_at?: string | null
+          issued_by?: string | null
+          quiz_attempt_id?: string | null
+          quiz_passed?: boolean | null
+          quiz_score?: number | null
+          session_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          branch_id?: string
+          certificate_number?: string | null
+          certificate_pdf_url?: string | null
+          created_at?: string | null
+          guide_id?: string
+          id?: string
+          is_issued?: boolean | null
+          issued_at?: string | null
+          issued_by?: string | null
+          quiz_attempt_id?: string | null
+          quiz_passed?: boolean | null
+          quiz_score?: number | null
+          session_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_certificates_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_certificates_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_certificates_issued_by_fkey"
+            columns: ["issued_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_certificates_quiz_attempt_id_fkey"
+            columns: ["quiz_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "guide_training_quiz_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_certificates_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "training_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          guide_id: string
+          id: string
+          rating: Database["public"]["Enums"]["feedback_rating"]
+          session_id: string
+          trainer_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          guide_id: string
+          id?: string
+          rating: Database["public"]["Enums"]["feedback_rating"]
+          session_id: string
+          trainer_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          guide_id?: string
+          id?: string
+          rating?: Database["public"]["Enums"]["feedback_rating"]
+          session_id?: string
+          trainer_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_feedback_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_feedback_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "training_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_feedback_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_sessions: {
+        Row: {
+          branch_id: string
+          created_at: string | null
+          created_by: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          location: string | null
+          session_date: string
+          session_name: string
+          session_time: string | null
+          session_type: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          location?: string | null
+          session_date: string
+          session_name: string
+          session_time?: string | null
+          session_type: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          location?: string | null
+          session_date?: string
+          session_name?: string
+          session_time?: string | null
+          session_type?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_sessions_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_sessions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -6853,6 +7655,80 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_fuel_logs: {
+        Row: {
+          branch_id: string
+          co2_emissions_kg: number | null
+          created_at: string | null
+          distance_nm: number | null
+          fuel_liters: number
+          fuel_type: Database["public"]["Enums"]["fuel_type"]
+          id: string
+          logged_at: string | null
+          logged_by: string
+          notes: string | null
+          trip_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          branch_id: string
+          co2_emissions_kg?: number | null
+          created_at?: string | null
+          distance_nm?: number | null
+          fuel_liters: number
+          fuel_type?: Database["public"]["Enums"]["fuel_type"]
+          id?: string
+          logged_at?: string | null
+          logged_by: string
+          notes?: string | null
+          trip_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          branch_id?: string
+          co2_emissions_kg?: number | null
+          created_at?: string | null
+          distance_nm?: number | null
+          fuel_liters?: number
+          fuel_type?: Database["public"]["Enums"]["fuel_type"]
+          id?: string
+          logged_at?: string | null
+          logged_by?: string
+          notes?: string | null
+          trip_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_fuel_logs_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_fuel_logs_logged_by_fkey"
+            columns: ["logged_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_fuel_logs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip_profit_loss"
+            referencedColumns: ["trip_id"]
+          },
+          {
+            foreignKeyName: "trip_fuel_logs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
@@ -7249,7 +8125,10 @@ export type Database = {
           contract_signed_at: string | null
           created_at: string | null
           deleted_at: string | null
+          employee_number: string | null
           full_name: string
+          hire_date: string | null
+          home_address: string | null
           id: string
           is_active: boolean | null
           is_contract_signed: boolean | null
@@ -7258,6 +8137,7 @@ export type Database = {
           npwp: string | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
+          supervisor_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -7272,7 +8152,10 @@ export type Database = {
           contract_signed_at?: string | null
           created_at?: string | null
           deleted_at?: string | null
+          employee_number?: string | null
           full_name: string
+          hire_date?: string | null
+          home_address?: string | null
           id: string
           is_active?: boolean | null
           is_contract_signed?: boolean | null
@@ -7281,6 +8164,7 @@ export type Database = {
           npwp?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          supervisor_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -7295,7 +8179,10 @@ export type Database = {
           contract_signed_at?: string | null
           created_at?: string | null
           deleted_at?: string | null
+          employee_number?: string | null
           full_name?: string
+          hire_date?: string | null
+          home_address?: string | null
           id?: string
           is_active?: boolean | null
           is_contract_signed?: boolean | null
@@ -7304,6 +8191,7 @@ export type Database = {
           npwp?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          supervisor_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -7312,6 +8200,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -7387,6 +8282,115 @@ export type Database = {
           },
         ]
       }
+      waste_log_photos: {
+        Row: {
+          captured_at: string | null
+          created_at: string | null
+          id: string
+          photo_gps: Json | null
+          photo_url: string
+          waste_log_id: string
+        }
+        Insert: {
+          captured_at?: string | null
+          created_at?: string | null
+          id?: string
+          photo_gps?: Json | null
+          photo_url: string
+          waste_log_id: string
+        }
+        Update: {
+          captured_at?: string | null
+          created_at?: string | null
+          id?: string
+          photo_gps?: Json | null
+          photo_url?: string
+          waste_log_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waste_log_photos_waste_log_id_fkey"
+            columns: ["waste_log_id"]
+            isOneToOne: false
+            referencedRelation: "waste_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waste_logs: {
+        Row: {
+          branch_id: string
+          created_at: string | null
+          disposal_method: Database["public"]["Enums"]["disposal_method"]
+          id: string
+          logged_at: string | null
+          logged_by: string
+          notes: string | null
+          quantity: number
+          trip_id: string
+          unit: Database["public"]["Enums"]["waste_unit"]
+          updated_at: string | null
+          waste_type: Database["public"]["Enums"]["waste_type"]
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string | null
+          disposal_method: Database["public"]["Enums"]["disposal_method"]
+          id?: string
+          logged_at?: string | null
+          logged_by: string
+          notes?: string | null
+          quantity: number
+          trip_id: string
+          unit: Database["public"]["Enums"]["waste_unit"]
+          updated_at?: string | null
+          waste_type: Database["public"]["Enums"]["waste_type"]
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string | null
+          disposal_method?: Database["public"]["Enums"]["disposal_method"]
+          id?: string
+          logged_at?: string | null
+          logged_by?: string
+          notes?: string | null
+          quantity?: number
+          trip_id?: string
+          unit?: Database["public"]["Enums"]["waste_unit"]
+          updated_at?: string | null
+          waste_type?: Database["public"]["Enums"]["waste_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waste_logs_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_logs_logged_by_fkey"
+            columns: ["logged_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_logs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip_profit_loss"
+            referencedColumns: ["trip_id"]
+          },
+          {
+            foreignKeyName: "waste_logs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       corporate_usage_by_department: {
@@ -7444,6 +8448,13 @@ export type Database = {
           trip_ids: string[]
         }[]
       }
+      calculate_co2_emissions: {
+        Args: {
+          p_fuel_liters: number
+          p_fuel_type: Database["public"]["Enums"]["fuel_type"]
+        }
+        Returns: number
+      }
       calculate_confirmation_deadline: {
         Args: { p_trip_date: string }
         Returns: string
@@ -7473,6 +8484,28 @@ export type Database = {
           renewal_date: string
         }[]
       }
+      check_mandatory_training_reminders: {
+        Args: never
+        Returns: {
+          assignment_id: string
+          days_until_due: number
+          due_date: string
+          guide_id: string
+          guide_phone: string
+          reminder_type: string
+          training_title: string
+        }[]
+      }
+      check_training_compliance: {
+        Args: { p_guide_id: string }
+        Returns: {
+          completed_count: number
+          compliance_percentage: number
+          overdue_count: number
+          pending_count: number
+          total_assignments: number
+        }[]
+      }
       check_wallet_milestones: {
         Args: { p_balance: number; p_guide_id: string }
         Returns: {
@@ -7482,6 +8515,31 @@ export type Database = {
       }
       exec_sql: { Args: { statement: string }; Returns: undefined }
       generate_booking_code: { Args: never; Returns: string }
+      generate_daily_insurance_manifests: {
+        Args: never
+        Returns: {
+          manifest_id: string
+          status: string
+          trip_id: string
+        }[]
+      }
+      generate_insurance_manifest: {
+        Args: { p_insurance_company_id?: string; p_trip_id: string }
+        Returns: string
+      }
+      get_overdue_trainings: {
+        Args: never
+        Returns: {
+          assignment_id: string
+          days_overdue: number
+          due_date: string
+          guide_id: string
+          guide_name: string
+          training_id: string
+          training_title: string
+          training_type: Database["public"]["Enums"]["training_type"]
+        }[]
+      }
       get_setting: {
         Args: { p_branch_id?: string; p_key: string }
         Returns: string
@@ -7509,7 +8567,7 @@ export type Database = {
         }
         Returns: string
       }
-      log_crew_audit: {
+      log_guide_assignment_audit: {
         Args: {
           p_action_details?: Json
           p_action_type: string
@@ -7544,11 +8602,17 @@ export type Database = {
           wallet_id: string
         }[]
       }
+      update_last_reminder_sent: {
+        Args: { p_assignment_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       ai_document_type: "sop" | "faq" | "policy" | "product_info" | "training"
       asset_status: "available" | "in_use" | "maintenance" | "retired"
       asset_type: "boat" | "speedboat" | "villa" | "vehicle" | "equipment"
+      assignment_status: "pending" | "completed" | "overdue"
+      attendance_status: "present" | "absent" | "late"
       audit_action:
         | "create"
         | "read"
@@ -7598,6 +8662,7 @@ export type Database = {
         | "damage"
         | "other"
       deduction_type: "late_penalty" | "no_documentation" | "damage" | "other"
+      disposal_method: "landfill" | "recycling" | "incineration" | "ocean"
       expense_category:
         | "fuel"
         | "food"
@@ -7614,6 +8679,8 @@ export type Database = {
         | "rejected"
         | "paid"
         | "cancelled"
+      feedback_rating: "excellent" | "good" | "needs_improvement"
+      fuel_type: "diesel" | "gasoline" | "other"
       guide_availability_status: "available" | "not_available"
       guide_contract_status:
         | "draft"
@@ -7698,6 +8765,7 @@ export type Database = {
         | "failed"
         | "expired"
         | "refunded"
+      period_type: "monthly" | "quarterly" | "yearly"
       points_transaction_type:
         | "earn_booking"
         | "earn_referral"
@@ -7705,6 +8773,9 @@ export type Database = {
         | "redeem"
         | "expire"
         | "adjustment"
+      promo_item_type: "promo" | "update" | "announcement"
+      promo_priority: "low" | "medium" | "high"
+      question_type: "multiple_choice" | "rating"
       refund_status:
         | "pending"
         | "approved"
@@ -7760,7 +8831,9 @@ export type Database = {
         | "first_aid"
         | "equipment"
         | "other"
+      training_frequency: "monthly" | "quarterly" | "yearly"
       training_status: "not_started" | "in_progress" | "completed" | "failed"
+      training_type: "sop" | "safety" | "drill" | "chse" | "first_aid" | "other"
       travel_circle_status:
         | "active"
         | "target_reached"
@@ -7802,6 +8875,8 @@ export type Database = {
         | "booking_debit"
         | "refund_credit"
         | "adjustment"
+      waste_type: "plastic" | "organic" | "glass" | "hazmat"
+      waste_unit: "kg" | "pieces"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -7932,6 +9007,8 @@ export const Constants = {
       ai_document_type: ["sop", "faq", "policy", "product_info", "training"],
       asset_status: ["available", "in_use", "maintenance", "retired"],
       asset_type: ["boat", "speedboat", "villa", "vehicle", "equipment"],
+      assignment_status: ["pending", "completed", "overdue"],
+      attendance_status: ["present", "absent", "late"],
       audit_action: [
         "create",
         "read",
@@ -7987,6 +9064,7 @@ export const Constants = {
         "other",
       ],
       deduction_type: ["late_penalty", "no_documentation", "damage", "other"],
+      disposal_method: ["landfill", "recycling", "incineration", "ocean"],
       expense_category: [
         "fuel",
         "food",
@@ -8005,6 +9083,8 @@ export const Constants = {
         "paid",
         "cancelled",
       ],
+      feedback_rating: ["excellent", "good", "needs_improvement"],
+      fuel_type: ["diesel", "gasoline", "other"],
       guide_availability_status: ["available", "not_available"],
       guide_contract_status: [
         "draft",
@@ -8098,6 +9178,7 @@ export const Constants = {
         "expired",
         "refunded",
       ],
+      period_type: ["monthly", "quarterly", "yearly"],
       points_transaction_type: [
         "earn_booking",
         "earn_referral",
@@ -8106,6 +9187,9 @@ export const Constants = {
         "expire",
         "adjustment",
       ],
+      promo_item_type: ["promo", "update", "announcement"],
+      promo_priority: ["low", "medium", "high"],
+      question_type: ["multiple_choice", "rating"],
       refund_status: [
         "pending",
         "approved",
@@ -8163,7 +9247,9 @@ export const Constants = {
         "equipment",
         "other",
       ],
+      training_frequency: ["monthly", "quarterly", "yearly"],
       training_status: ["not_started", "in_progress", "completed", "failed"],
+      training_type: ["sop", "safety", "drill", "chse", "first_aid", "other"],
       travel_circle_status: [
         "active",
         "target_reached",
@@ -8211,6 +9297,8 @@ export const Constants = {
         "refund_credit",
         "adjustment",
       ],
+      waste_type: ["plastic", "organic", "glass", "hazmat"],
+      waste_unit: ["kg", "pieces"],
     },
   },
 } as const

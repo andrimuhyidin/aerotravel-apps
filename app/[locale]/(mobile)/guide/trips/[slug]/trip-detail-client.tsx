@@ -33,14 +33,15 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { TripManifest, getTripManifest } from '@/lib/guide';
+import { startTracking, stopTracking } from '@/lib/guide/background-tracking';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/utils/logger';
 import type { LocationPoint } from '@/lib/utils/maps';
 import { cacheLocationPoint } from '@/lib/utils/maps';
 
 import { useTripCrew } from '@/hooks/use-trip-crew';
 import { toast } from 'sonner';
-import { CompletionChecklistWidget } from './completion-checklist-widget';
 import { RiskAssessmentDialog } from './risk-assessment-dialog';
 import { TripReadinessDialog } from './trip-readiness-dialog';
 import { TripTimelineView } from './trip-timeline-view';
@@ -206,6 +207,23 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
     }
   }, [canStartData]);
 
+  // Auto-start tracking when trip status becomes 'on_trip'
+  useEffect(() => {
+    const tripStatus = tripStatusData?.trip_status;
+    
+    if (tripStatus === 'on_trip' && tripId) {
+      // Auto-start tracking
+      startTracking(tripId).catch((error) => {
+        logger.error('[Trip Detail] Failed to auto-start tracking on status change', error, { tripId });
+      });
+    } else if (tripStatus !== 'on_trip' && tripStatus !== 'preparing') {
+      // Stop tracking if trip is not active
+      stopTracking().catch((error) => {
+        logger.error('[Trip Detail] Failed to stop tracking', error, { tripId });
+      });
+    }
+  }, [tripStatusData?.trip_status, tripId]);
+
   const confirmMutation = useMutation({
     mutationFn: async ({ action, reason }: { action: 'accept' | 'reject'; reason?: string }) => {
       const res = await fetch(`/api/guide/trips/${tripId}/confirm`, {
@@ -309,7 +327,11 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
         if (!res.ok) return;
         const json = (await res.json()) as {
           current?: { temp: number; weather?: { description?: string } };
-          alerts?: unknown[];
+          alerts?: Array<{
+            title: string;
+            description: string;
+            severity: string;
+          }>;
         };
         if (!active || !json.current) return;
         setWeatherSummary({
@@ -690,28 +712,6 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
         </Card>
       </div>
 
-      {/* Completion Checklist Widget - Always shown below header for Lead Guide */}
-      {isLeadGuide && (
-        <CompletionChecklistWidget
-          tripId={tripId}
-          locale={locale}
-          isLeadGuide={isLeadGuide}
-          onEndTrip={async () => {
-            if (confirm('Yakin ingin menyelesaikan trip ini?')) {
-              const res = await fetch(`/api/guide/trips/${tripId}/end`, {
-                method: 'POST',
-              });
-              if (res.ok) {
-                toast.success('Trip berhasil diselesaikan');
-                queryClient.invalidateQueries({ queryKey: queryKeys.guide.tripsDetail(tripId) });
-              } else {
-                const body = (await res.json()) as { error?: string };
-                toast.error(body.error || 'Gagal end trip');
-              }
-            }
-          }}
-        />
-      )}
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
@@ -837,6 +837,15 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
               toast.success('Trip berhasil dimulai');
               queryClient.invalidateQueries({ queryKey: queryKeys.guide.tripsDetail(tripId) });
               queryClient.invalidateQueries({ queryKey: ['guide', 'trip-can-start', tripId] });
+              
+              // Auto-start tracking when trip starts
+              try {
+                await startTracking(tripId);
+                logger.info('[Trip Detail] Auto-started tracking after trip start', { tripId });
+              } catch (error) {
+                logger.error('[Trip Detail] Failed to auto-start tracking', error, { tripId });
+                // Don't show error to user, tracking failure shouldn't block trip start
+              }
             } else {
               const body = (await res.json()) as { error?: string; reasons?: string[] };
               if (body.reasons && body.reasons.length > 0) {
@@ -874,6 +883,9 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
           // Always show readiness dialog first
           setReadinessDialogOpen(true);
         }}
+        onOpenReadinessDialog={() => {
+          setReadinessDialogOpen(true);
+        }}
         onEndTrip={async () => {
           if (confirm('Yakin ingin menyelesaikan trip ini?')) {
             const res = await fetch(`/api/guide/trips/${tripId}/end`, {
@@ -882,9 +894,17 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
             if (res.ok) {
               toast.success('Trip berhasil diselesaikan');
               queryClient.invalidateQueries({ queryKey: queryKeys.guide.tripsDetail(tripId) });
+              queryClient.invalidateQueries({ queryKey: queryKeys.guide.trips.completionStatus(tripId) });
             } else {
-              const body = (await res.json()) as { error?: string };
-              toast.error(body.error || 'Gagal end trip');
+              const body = (await res.json()) as { error?: string; message?: string; missingItems?: string[] };
+              if (body.missingItems && body.missingItems.length > 0) {
+                toast.error(
+                  `${body.message || body.error || 'Gagal end trip'}: ${body.missingItems.join(', ')}`,
+                  { duration: 6000 }
+                );
+              } else {
+                toast.error(body.message || body.error || 'Gagal end trip');
+              }
             }
           }
         }}

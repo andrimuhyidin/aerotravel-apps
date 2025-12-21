@@ -6,6 +6,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import {
+  awardPoints,
+  calculateMilestonePoints,
+} from '@/lib/guide/reward-points';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -38,6 +42,42 @@ export const GET = withErrorHandler(async () => {
       }
       logger.error('Failed to fetch milestones', error, { guideId: user.id });
       return NextResponse.json({ error: 'Failed to fetch milestones' }, { status: 500 });
+    }
+
+    // Check which milestones already have reward points awarded
+    const { data: milestoneTransactions } = await client
+      .from('guide_reward_transactions')
+      .select('source_id, metadata')
+      .eq('guide_id', user.id)
+      .eq('source_type', 'milestone');
+
+    const awardedMilestoneIds = new Set(
+      (milestoneTransactions || [])
+        .map((t: { source_id: string | null; metadata: any }) => {
+          return t.metadata?.milestone_id || t.source_id;
+        })
+        .filter(Boolean)
+    );
+
+    // Award points for milestones that don't have points yet
+    for (const milestone of milestones || []) {
+      if (!awardedMilestoneIds.has(milestone.id)) {
+        const points = calculateMilestonePoints(milestone.milestone_type);
+        if (points > 0) {
+          await awardPoints(
+            user.id,
+            points,
+            'milestone',
+            milestone.id,
+            `Milestone achieved: ${milestone.milestone_name}`,
+            {
+              milestone_id: milestone.id,
+              milestone_type: milestone.milestone_type,
+              milestone_name: milestone.milestone_name,
+            }
+          );
+        }
+      }
     }
 
     const formattedMilestones = (milestones || []).map((m: {

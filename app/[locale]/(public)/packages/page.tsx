@@ -8,6 +8,8 @@ import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 
+import { Container } from '@/components/layout/container';
+import { Section } from '@/components/layout/section';
 import { Button } from '@/components/ui/button';
 // Filter removed - search is in header
 import { locales } from '@/i18n';
@@ -125,9 +127,11 @@ export default async function PackagesPage({ params }: PageProps) {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
-      {/* Category Chips - Sticky */}
-      <div className="no-scrollbar sticky top-14 z-40 flex gap-2 overflow-x-auto bg-slate-50 px-4 py-3 dark:bg-slate-950">
+    <Section className="bg-slate-50 dark:bg-slate-950">
+      <Container className="p-0">
+        <div className="flex min-h-screen flex-col">
+          {/* Category Chips - Sticky */}
+          <div className="no-scrollbar sticky top-14 z-40 flex gap-2 overflow-x-auto bg-slate-50 px-4 py-3 dark:bg-slate-950">
         {categories.map((cat) => (
           <button
             key={cat.label}
@@ -209,7 +213,8 @@ export default async function PackagesPage({ params }: PageProps) {
           </Link>
         ))}
       </div>
-
-    </div>
+        </div>
+      </Container>
+    </Section>
   );
 }

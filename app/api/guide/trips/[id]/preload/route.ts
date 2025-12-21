@@ -30,15 +30,54 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Get trip details
-  const { data: trip, error: tripError } = await supabase
+  // Get trip details with package info for trip type detection
+  const { data: trip, error: tripError } = await (supabase as unknown as any)
     .from('trips')
-    .select('*')
+    .select('*, package:packages(id, name, package_type, destination)')
     .eq('id', tripId)
     .single();
 
   if (tripError || !trip) {
     return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
+  }
+
+  // Detect trip type from package data (same logic as package-info route)
+  const packageData = trip.package as {
+    id?: string;
+    name?: string | null;
+    package_type?: string | null;
+    destination?: string | null;
+  } | null;
+
+  let tripType: 'boat_trip' | 'land_trip' | null = null;
+  const destination = packageData?.destination || '';
+  const packageName = packageData?.name || '';
+  const searchText = `${destination} ${packageName}`.toLowerCase();
+
+  if (
+    searchText.includes('boat') ||
+    searchText.includes('kapal') ||
+    searchText.includes('island') ||
+    searchText.includes('pulau') ||
+    searchText.includes('snorkel') ||
+    searchText.includes('diving') ||
+    searchText.includes('karimun') ||
+    searchText.includes('derawan') ||
+    searchText.includes('raja ampat') ||
+    searchText.includes('komodo') ||
+    searchText.includes('pahawang') ||
+    searchText.includes('kiluan')
+  ) {
+    tripType = 'boat_trip';
+  } else if (
+    searchText.includes('land') ||
+    searchText.includes('darat') ||
+    searchText.includes('gunung') ||
+    searchText.includes('mountain') ||
+    searchText.includes('hiking') ||
+    searchText.includes('tracking')
+  ) {
+    tripType = 'land_trip';
   }
 
   const branchContext = await getBranchContext(user.id);
@@ -206,12 +245,14 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
 
   logger.info('Trip preload successful', { tripId, manifestCount: manifest.length, expensesCount: expenses.length });
 
-  return NextResponse.json({
+  const response = {
     trip,
     manifest,
     attendance,
     evidence,
     expenses,
+    tripType,
     preloadedAt: new Date().toISOString(),
-  });
+  };
+  return NextResponse.json(response);
 });

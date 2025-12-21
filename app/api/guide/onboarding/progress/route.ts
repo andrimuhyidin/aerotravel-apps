@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -22,6 +23,8 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
   }
 
   try {
+    const branchContext = await getBranchContext(user.id);
+
     // Get progress
     const { data: progress, error: progressError } = await (supabase as any)
       .from('guide_onboarding_progress')
@@ -37,12 +40,88 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
       return NextResponse.json({ error: 'Failed to fetch progress' }, { status: 500 });
     }
 
-    // Get completed steps
+    // Get completed steps and recalculate progress
     if (progress) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/guide/onboarding/progress/route.ts:42',message:'Getting progress and recalculating',data:{progressId:progress.id,currentPercentage:progress.completion_percentage,branchId:branchContext.branchId},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+
       const { data: completions } = await (supabase as any)
         .from('guide_onboarding_step_completions')
         .select('step_id, status, completed_at')
         .eq('progress_id', progress.id);
+
+      // Recalculate completion percentage to ensure accuracy
+      // IMPORTANT: Use same branch filtering logic as steps endpoint
+      // Get branch-specific steps first
+      const branchQuery = (supabase as any)
+        .from('guide_onboarding_steps')
+        .select('id')
+        .eq('is_active', true)
+        .order('step_order', { ascending: true });
+
+      if (branchContext.branchId) {
+        branchQuery.eq('branch_id', branchContext.branchId);
+      } else {
+        branchQuery.is('branch_id', null);
+      }
+
+      const { data: branchSteps } = await branchQuery;
+
+      // Get global steps
+      const { data: globalSteps } = await (supabase as any)
+        .from('guide_onboarding_steps')
+        .select('id')
+        .is('branch_id', null)
+        .eq('is_active', true)
+        .order('step_order', { ascending: true });
+
+      // Merge: branch-specific first, then global (avoid duplicates by step_order)
+      const branchStepsList = branchSteps || [];
+      const globalStepsList = globalSteps || [];
+      const allSteps = [
+        ...branchStepsList,
+        ...globalStepsList.filter((g: { step_order: number; id: string }) => !branchStepsList.find((b: { step_order: number; id: string }) => b.step_order === g.step_order)),
+      ];
+
+      const { data: completedSteps } = await (supabase as any)
+        .from('guide_onboarding_step_completions')
+        .select('step_id')
+        .eq('progress_id', progress.id)
+        .eq('status', 'completed');
+
+      const totalSteps = allSteps.length;
+      const completedCount = completedSteps?.length || 0;
+      const recalculatedPercentage = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 0;
+
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/guide/onboarding/progress/route.ts:75',message:'Progress recalculation result',data:{totalSteps,completedCount,storedPercentage:progress.completion_percentage,recalculatedPercentage,needsUpdate:recalculatedPercentage !== progress.completion_percentage,branchStepsCount:branchStepsList.length,globalStepsCount:globalStepsList.length,allStepsIds:allSteps.map((s: { id: string }) => s.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+
+      // Update progress if percentage changed
+      if (recalculatedPercentage !== progress.completion_percentage) {
+        const isCompleted = recalculatedPercentage >= 100;
+        await (supabase as any)
+          .from('guide_onboarding_progress')
+          .update({
+            completion_percentage: recalculatedPercentage,
+            status: isCompleted ? 'completed' : 'in_progress',
+            completed_at: isCompleted ? new Date().toISOString() : null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', progress.id);
+
+        // Update progress object for response
+        progress.completion_percentage = recalculatedPercentage;
+        progress.status = isCompleted ? 'completed' : 'in_progress';
+        if (isCompleted && !progress.completed_at) {
+          progress.completed_at = new Date().toISOString();
+        }
+
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/guide/onboarding/progress/route.ts:97',message:'Progress updated in database',data:{newPercentage:recalculatedPercentage,newStatus:progress.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+      }
 
       return NextResponse.json({
         progress,

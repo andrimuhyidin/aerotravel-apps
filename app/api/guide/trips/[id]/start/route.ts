@@ -187,7 +187,7 @@ export const POST = withErrorHandler(async (
       .maybeSingle();
 
     if (equipmentChecklist?.equipment_items) {
-      const items = equipmentChecklist.equipment_items as Array<{ checked: boolean }>;
+      const items = equipmentChecklist.equipment_items as Array<{ id: string; checked: boolean; quantity?: number }>;
       const total = items.length;
       const checked = items.filter((item) => item.checked).length;
       const isComplete = equipmentChecklist.is_completed || checked === total;
@@ -195,12 +195,40 @@ export const POST = withErrorHandler(async (
       if (!isComplete) {
         reasons.push(`Equipment checklist belum lengkap (${checked}/${total} sudah di-check)`);
       }
+
+      // Validate lifejacket quantity vs passenger count
+      const lifejacketItem = items.find((item) => item.id === 'life_jacket' && item.checked);
+      if (lifejacketItem) {
+        // Get total passenger count
+        const { data: tripBookings } = await client
+          .from('trip_bookings')
+          .select('booking_id')
+          .eq('trip_id', tripId);
+
+        const bookingIds = (tripBookings || []).map((tb: { booking_id: string }) => tb.booking_id);
+        
+        let totalPassengers = 0;
+        if (bookingIds.length > 0) {
+          const { count } = await client
+            .from('booking_passengers')
+            .select('id', { count: 'exact', head: true })
+            .in('booking_id', bookingIds);
+          
+          totalPassengers = count || 0;
+        }
+
+        const lifejacketQty = lifejacketItem.quantity || 0;
+        
+        if (lifejacketQty < totalPassengers) {
+          reasons.push(`Lifejacket tidak mencukupi. Diperlukan: ${totalPassengers}, Tersedia: ${lifejacketQty}`);
+        }
+      }
     }
 
     // 4. Check risk assessment (only check if exists)
     const { data: assessment } = await client
       .from('pre_trip_assessments')
-      .select('id, is_safe, risk_level')
+      .select('id, is_safe, risk_level, risk_score, approved_by, approved_at')
       .eq('trip_id', tripId)
       .eq('guide_id', user.id)
       .order('created_at', { ascending: false })
@@ -209,14 +237,77 @@ export const POST = withErrorHandler(async (
 
     if (!assessment?.id) {
       reasons.push('Risk assessment belum dilakukan');
+    } else {
+      // Check if risk score > 70 (block threshold)
+      const riskScore = assessment.risk_score as number | null;
+      if (riskScore !== null && riskScore > 70) {
+        // Check if admin has approved override
+        if (!assessment.approved_by || !assessment.approved_at) {
+          reasons.push(`Risk score terlalu tinggi (${riskScore} > 70). Trip tidak dapat dimulai. Hubungi Admin Ops untuk override.`);
+        }
+      } else if (!assessment.is_safe) {
+        reasons.push('Risk assessment menunjukkan kondisi tidak aman');
+      }
     }
 
-    // 5. Check certifications
+    // 5. Check certifications (hard block - no override except admin)
     const { data: certValid } = await client.rpc('check_guide_certifications_valid', {
       guide_uuid: user.id,
     });
     if (!certValid) {
-      reasons.push('Certifications tidak valid atau expired');
+      // Get detailed certification status for better error message
+      const requiredTypes = ['sim_kapal', 'first_aid', 'alin'];
+      const { data: certs } = await client
+        .from('guide_certifications_tracker')
+        .select('certification_type, status, expiry_date, certification_name')
+        .eq('guide_id', user.id)
+        .in('certification_type', requiredTypes)
+        .eq('is_active', true)
+        .order('certification_type', { ascending: true });
+
+      const certMap = new Map<string, { status: string; expiry_date: string }>(
+        (certs || []).map((c: { certification_type: string; status: string; expiry_date: string }) => [
+          c.certification_type,
+          { status: c.status, expiry_date: c.expiry_date },
+        ])
+      );
+
+      const missingCerts: string[] = [];
+      const expiredCerts: string[] = [];
+      const pendingCerts: string[] = [];
+
+      const certLabels: Record<string, string> = {
+        sim_kapal: 'SIM Kapal',
+        first_aid: 'First Aid',
+        alin: 'ALIN',
+      };
+
+      for (const type of requiredTypes) {
+        const cert = certMap.get(type);
+        if (!cert) {
+          missingCerts.push(certLabels[type] || type);
+        } else if (cert.status === 'expired' || new Date(cert.expiry_date) < new Date()) {
+          expiredCerts.push(certLabels[type] || type);
+        } else if (cert.status === 'pending') {
+          pendingCerts.push(certLabels[type] || type);
+        } else if (cert.status !== 'verified') {
+          missingCerts.push(certLabels[type] || type);
+        }
+      }
+
+      let certMessage = 'Certifications tidak valid: ';
+      if (missingCerts.length > 0) {
+        certMessage += `Missing: ${missingCerts.join(', ')}. `;
+      }
+      if (expiredCerts.length > 0) {
+        certMessage += `Expired: ${expiredCerts.join(', ')}. `;
+      }
+      if (pendingCerts.length > 0) {
+        certMessage += `Pending verification: ${pendingCerts.join(', ')}. `;
+      }
+      certMessage = certMessage.trim();
+
+      reasons.push(certMessage || 'Certifications tidak valid atau expired');
     }
 
     if (reasons.length > 0) {
@@ -247,8 +338,13 @@ export const POST = withErrorHandler(async (
 
   logger.info('Trip started', { tripId, guideId: user.id, role: isLeadGuide ? 'lead' : 'admin' });
 
+  // Note: Tracking will be auto-started client-side when trip status changes to 'on_trip'
+  // The client-side hook will detect the status change and call startTracking()
+  logger.info('Trip status updated to on_trip, tracking should auto-start client-side', { tripId, guideId: user.id });
+
   return NextResponse.json({
     success: true,
     message: 'Trip berhasil dimulai',
+    shouldStartTracking: true, // Flag for client to auto-start tracking
   });
 });

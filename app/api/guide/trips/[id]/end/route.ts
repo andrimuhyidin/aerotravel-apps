@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
+import { invalidateCache, invalidateUserCache } from '@/lib/cache/redis-cache';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -255,6 +256,10 @@ export const POST = withErrorHandler(async (
     role: isLeadGuide ? 'lead' : 'admin',
     forceComplete: forceComplete || false,
   });
+
+  // Invalidate cache for this guide's stats, trips, and leaderboard
+  await invalidateUserCache(user.id);
+  await invalidateCache(`guide:leaderboard:*`); // Invalidate all leaderboards
 
   return NextResponse.json({
     success: true,

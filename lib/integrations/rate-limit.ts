@@ -30,3 +30,11 @@ export const paymentRateLimit = new Ratelimit({
   prefix: '@upstash/ratelimit/payment',
 });
 
+// Rate limiter untuk chat messages (10 messages per minute per user)
+export const chatRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, '1 m'),
+  analytics: true,
+  prefix: '@upstash/ratelimit/chat',
+});
+

@@ -50,7 +50,7 @@ export const GET = withErrorHandler(async (
 
   // Get crew members for this trip from trip_guides (existing system)
   // Map guide_role: 'lead' -> 'lead', 'assistant'/'driver'/'photographer' -> 'support'
-  let crewQuery = client
+  const crewQuery = client
     .from('trip_guides')
     .select(`
       id,

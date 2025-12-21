@@ -4,9 +4,10 @@
  * POST /api/guide/status   - update current_status & note
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 
+import { createErrorResponse, createSuccessResponse } from '@/lib/api/response-format';
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
@@ -25,7 +26,7 @@ export const GET = withErrorHandler(async () => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return createErrorResponse('Unauthorized', undefined, undefined, 401);
   }
 
   const branchContext = await getBranchContext(user.id);
@@ -48,7 +49,7 @@ export const GET = withErrorHandler(async () => {
   }
   const { data: upcoming } = await availabilityQuery;
 
-  return NextResponse.json({
+  return createSuccessResponse({
     status: statusRow ?? {
       guide_id: user.id,
       current_status: 'standby',
@@ -67,7 +68,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return createErrorResponse('Unauthorized', undefined, undefined, 401);
   }
 
   const payload = guideStatusUpdateSchema.parse(await request.json());
@@ -89,10 +90,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (error) {
     logger.error('Failed to update guide_status', error, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to update status' }, { status: 500 });
+    return createErrorResponse('Failed to update status', 'DATABASE_ERROR', error, 500);
   }
 
   logger.info('Guide status updated', { guideId: user.id, status: payload.status });
 
-  return NextResponse.json({ success: true });
+  return createSuccessResponse({ success: true });
 });

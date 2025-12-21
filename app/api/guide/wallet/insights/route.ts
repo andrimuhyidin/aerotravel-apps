@@ -91,14 +91,28 @@ export const GET = withErrorHandler(async () => {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-    // User's monthly average
-    const { data: userEarnings } = await client
-      .from('guide_wallet_transactions')
-      .select('amount')
-      .eq('wallet_id', walletId)
-      .eq('transaction_type', 'earning')
-      .gte('created_at', monthStart.toISOString())
-      .lte('created_at', monthEnd.toISOString());
+    // User's monthly average - filter by check_out_at for date consistency
+    // First get trip IDs with check_out_at in this month
+    const { data: userMonthTrips } = await client
+      .from('trip_guides')
+      .select('trip_id')
+      .eq('guide_id', user.id)
+      .not('check_out_at', 'is', null)
+      .gte('check_out_at', monthStart.toISOString())
+      .lte('check_out_at', monthEnd.toISOString());
+
+    const userMonthTripIds = userMonthTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
+
+    const { data: userEarnings } =
+      userMonthTripIds.length > 0
+        ? await client
+            .from('guide_wallet_transactions')
+            .select('amount')
+            .eq('wallet_id', walletId)
+            .eq('transaction_type', 'earning')
+            .eq('reference_type', 'trip')
+            .in('reference_id', userMonthTripIds)
+        : { data: [] };
 
     userMonthlyAverage = (userEarnings || []).reduce(
       (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),
@@ -120,14 +134,30 @@ export const GET = withErrorHandler(async () => {
 
       if (branchWallets && branchWallets.length > 0) {
         const walletIds = branchWallets.map((w: { id: string }) => w.id);
+        const branchGuideIds = branchWallets.map((w: { guide_id: string }) => w.guide_id);
 
-        const { data: branchEarnings } = await client
-          .from('guide_wallet_transactions')
-          .select('amount')
-          .in('wallet_id', walletIds)
-          .eq('transaction_type', 'earning')
-          .gte('created_at', monthStart.toISOString())
-          .lte('created_at', monthEnd.toISOString());
+        // Get branch earnings - filter by check_out_at
+        // First get all trip IDs with check_out_at in this month for branch guides
+        const { data: branchMonthTrips } = await client
+          .from('trip_guides')
+          .select('trip_id')
+          .in('guide_id', branchGuideIds)
+          .not('check_out_at', 'is', null)
+          .gte('check_out_at', monthStart.toISOString())
+          .lte('check_out_at', monthEnd.toISOString());
+
+        const branchMonthTripIds = branchMonthTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
+
+        const { data: branchEarnings } =
+          branchMonthTripIds.length > 0
+            ? await client
+                .from('guide_wallet_transactions')
+                .select('amount')
+                .in('wallet_id', walletIds)
+                .eq('transaction_type', 'earning')
+                .eq('reference_type', 'trip')
+                .in('reference_id', branchMonthTripIds)
+            : { data: [] };
 
         const branchTotal = (branchEarnings || []).reduce(
           (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),

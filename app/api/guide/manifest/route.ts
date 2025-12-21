@@ -206,6 +206,27 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     documentationUrl: (trip.documentation_url as string | null) ?? undefined,
   };
 
+  // Log manifest access
+  try {
+    const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+    
+    await client.from('manifest_access_logs').insert({
+      trip_id: tripId,
+      guide_id: user.id,
+      branch_id: branchContext.branchId,
+      access_type: 'view',
+      accessed_at: new Date().toISOString(),
+      ip_address: clientIp !== 'unknown' ? clientIp : null,
+      user_agent: userAgent,
+      device_info: null, // Can be enhanced with device detection
+      created_at: new Date().toISOString(),
+    });
+  } catch (auditError) {
+    // Don't fail the request if audit logging fails
+    logger.warn('Failed to log manifest access', { error: auditError, tripId, guideId: user.id });
+  }
+
   logger.info('Guide manifest fetched', { tripId, guideId: user.id, totalPax });
 
   return NextResponse.json(manifest);

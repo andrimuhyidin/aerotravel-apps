@@ -5,7 +5,7 @@
 
 import { logger } from '@/lib/utils/logger';
 
-type EventType = 'notification' | 'broadcast' | 'trip_update' | 'sos_alert' | 'wallet_update';
+type EventType = 'notification' | 'broadcast' | 'trip_update' | 'sos_alert' | 'wallet_update' | 'chat_message';
 
 type RealtimeEvent = {
   type: EventType;
@@ -101,6 +101,15 @@ class RealtimeSync {
           this.handleEvent({ ...data, type: 'wallet_update' });
         } catch (error) {
           logger.error('[Realtime] Failed to parse wallet_update', error);
+        }
+      });
+
+      this.eventSource.addEventListener('chat_message', (event) => {
+        try {
+          const data = JSON.parse(event.data) as RealtimeEvent;
+          this.handleEvent({ ...data, type: 'chat_message' });
+        } catch (error) {
+          logger.error('[Realtime] Failed to parse chat_message', error);
         }
       });
     } catch (error) {

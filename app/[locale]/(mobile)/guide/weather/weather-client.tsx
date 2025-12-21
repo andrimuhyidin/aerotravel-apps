@@ -23,6 +23,7 @@ import {
     Sunrise,
     Sunset,
     Thermometer,
+    TrendingUp,
     Waves,
     Wind,
 } from 'lucide-react';
@@ -37,6 +38,14 @@ import { LoadingState } from '@/components/ui/loading-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
+
+import { AirQualityCard } from './components/air-quality-card';
+import { ForecastChart } from './components/forecast-chart';
+import { HistoricalComparison } from './components/historical-comparison';
+import { HourlyForecast } from './components/hourly-forecast';
+import { MoonPhases } from './components/moon-phases';
+import { TideInformation } from './components/tide-information';
+import { TripInsights } from './components/trip-insights';
 
 type WeatherData = {
   current: {
@@ -74,6 +83,35 @@ type WeatherData = {
     wind_speed: number;
     humidity?: number;
   }>;
+  hourly?: Array<{
+    time: number;
+    temp: number;
+    weather: {
+      id: number;
+      main: string;
+      description: string;
+      icon: string;
+    };
+    wind_speed: number;
+    humidity?: number;
+  }>;
+  airQuality?: {
+    aqi: number;
+    level: string;
+    description: string;
+  };
+  historicalComparison?: {
+    yesterday: {
+      temp: number;
+      condition: string;
+      diff: number;
+    };
+    lastWeek: {
+      avgTemp: number;
+      avgCondition: string;
+      diff: number;
+    };
+  };
   alerts: Array<{
     type?: string;
     severity: string;
@@ -237,7 +275,48 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
         reasoning: string;
         warnings: string[];
       };
-      trip_recommendations: Array<{
+      trip_specific_insights?: Array<{
+        tripId: string;
+        tripCode: string;
+        tripDate: string;
+        riskLevel: 'low' | 'medium' | 'high';
+        recommendations: Array<{
+          type: 'go_ahead' | 'postpone' | 'modify' | 'cancel';
+          title: string;
+          description: string;
+          priority: 'high' | 'medium' | 'low';
+        }>;
+        alternativePlans?: Array<{
+          title: string;
+          description: string;
+          conditions: string;
+        }>;
+        bestDepartureTime?: string;
+        bestReturnTime?: string;
+        equipmentNeeds?: Array<{
+          item: string;
+          reason: string;
+          priority: 'essential' | 'recommended' | 'optional';
+        }>;
+        weatherComparison?: {
+          currentLocation: string;
+          destination: string;
+        };
+        tideConsiderations?: string;
+      }>;
+      performance_impact?: {
+        predictedRatingImpact: number;
+        onTimeRisk: 'low' | 'medium' | 'high';
+        cancellationRisk: number;
+        revenueRisk: number;
+        reasoning: string;
+      };
+      communication_strategy?: {
+        notifyPassengers: boolean;
+        notifyTime: string;
+        messageTemplate: string;
+      };
+      trip_recommendations?: Array<{
         type: 'go_ahead' | 'postpone' | 'modify' | 'cancel';
         title: string;
         description: string;
@@ -390,6 +469,121 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
           )}
         </div>
       </Card>
+
+      {/* Hourly Forecast */}
+      {weatherData.hourly && weatherData.hourly.length > 0 && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">Prakiraan Per Jam (24 Jam)</CardTitle>
+            <p className="mt-1 text-sm text-slate-600">
+              Perkiraan suhu dan kondisi cuaca untuk 24 jam ke depan
+            </p>
+          </CardHeader>
+          <CardContent>
+            <HourlyForecast hourly={weatherData.hourly} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Trip-Specific Insights */}
+      {aiInsightsData?.insights?.trip_specific_insights && 
+       aiInsightsData.insights.trip_specific_insights.length > 0 && (
+        <TripInsights insights={aiInsightsData.insights.trip_specific_insights} />
+      )}
+
+      {/* Performance Impact */}
+      {aiInsightsData?.insights?.performance_impact && (
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-purple-50 to-pink-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <TrendingUp className="h-5 w-5 text-purple-600" />
+              Prediksi Dampak Performa
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-xl bg-white p-4 border border-purple-200">
+                <div className="text-xs text-purple-700 mb-1">Dampak Rating</div>
+                <div className="text-2xl font-bold text-purple-900">
+                  {typeof aiInsightsData.insights.performance_impact.predictedRatingImpact === 'number' 
+                    ? `${aiInsightsData.insights.performance_impact.predictedRatingImpact > 0 ? '+' : ''}${aiInsightsData.insights.performance_impact.predictedRatingImpact.toFixed(1)}`
+                    : 'N/A'}
+                </div>
+                <div className="text-xs text-purple-600 mt-1">dari skala 0-5</div>
+              </div>
+              <div className="rounded-xl bg-white p-4 border border-purple-200">
+                <div className="text-xs text-purple-700 mb-1">Risiko Keterlambatan</div>
+                <div className="text-2xl font-bold text-purple-900 capitalize">
+                  {aiInsightsData.insights.performance_impact.onTimeRisk === 'low' ? 'Rendah' :
+                   aiInsightsData.insights.performance_impact.onTimeRisk === 'medium' ? 'Sedang' :
+                   aiInsightsData.insights.performance_impact.onTimeRisk === 'high' ? 'Tinggi' :
+                   'N/A'}
+                </div>
+                <div className="text-xs text-purple-600 mt-1">Berdasarkan cuaca</div>
+              </div>
+              <div className="rounded-xl bg-white p-4 border border-purple-200">
+                <div className="text-xs text-purple-700 mb-1">Risiko Pembatalan</div>
+                <div className="text-2xl font-bold text-purple-900">
+                  {typeof aiInsightsData.insights.performance_impact.cancellationRisk === 'number'
+                    ? `${aiInsightsData.insights.performance_impact.cancellationRisk.toFixed(0)}%`
+                    : 'N/A'}
+                </div>
+                <div className="text-xs text-purple-600 mt-1">Probabilitas</div>
+              </div>
+              <div className="rounded-xl bg-white p-4 border border-purple-200">
+                <div className="text-xs text-purple-700 mb-1">Risiko Pendapatan</div>
+                <div className="text-2xl font-bold text-purple-900">
+                  {typeof aiInsightsData.insights.performance_impact.revenueRisk === 'number'
+                    ? `${aiInsightsData.insights.performance_impact.revenueRisk.toFixed(0)}%`
+                    : 'N/A'}
+                </div>
+                <div className="text-xs text-purple-600 mt-1">Dampak finansial</div>
+              </div>
+            </div>
+            {aiInsightsData.insights.performance_impact.reasoning && (
+              <div className="mt-4 rounded-lg bg-purple-50 p-3">
+                <p className="text-xs text-purple-700 leading-relaxed">
+                  {aiInsightsData.insights.performance_impact.reasoning}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Communication Strategy */}
+      {aiInsightsData?.insights?.communication_strategy && (
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-cyan-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Clock className="h-5 w-5 text-blue-600" />
+              Strategi Komunikasi
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Badge variant={aiInsightsData.insights.communication_strategy.notifyPassengers ? 'default' : 'secondary'}>
+                  {aiInsightsData.insights.communication_strategy.notifyPassengers ? 'Perlu Notifikasi' : 'Tidak Perlu Notifikasi'}
+                </Badge>
+                {aiInsightsData.insights.communication_strategy.notifyTime && (
+                  <span className="text-sm text-slate-600">
+                    Waktu: {aiInsightsData.insights.communication_strategy.notifyTime}
+                  </span>
+                )}
+              </div>
+              {aiInsightsData.insights.communication_strategy.messageTemplate && (
+                <div className="rounded-lg bg-white p-3 border border-blue-200">
+                  <div className="text-xs font-medium text-blue-900 mb-2">Template Pesan</div>
+                  <p className="text-sm text-slate-700 leading-relaxed">
+                    {aiInsightsData.insights.communication_strategy.messageTemplate}
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* AI Weather Insights */}
       {aiInsightsData?.insights && (
@@ -632,6 +826,21 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
         </Card>
       )}
 
+      {/* Air Quality */}
+      {weatherData.airQuality && (
+        <AirQualityCard airQuality={weatherData.airQuality} />
+      )}
+
+      {/* Moon Phases */}
+      {location && (
+        <MoonPhases lat={location.lat} lng={location.lng} />
+      )}
+
+      {/* Tide Information */}
+      {location && location.lat && location.lng && (
+        <TideInformation lat={location.lat} lng={location.lng} />
+      )}
+
       {/* Detailed Metrics */}
       <Card className="border-0 shadow-sm">
         <CardHeader>
@@ -694,50 +903,28 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
         </CardContent>
       </Card>
 
-      {/* Forecast - Enhanced */}
+      {/* Forecast - Historical Chart */}
       {weatherData.forecast && weatherData.forecast.length > 0 && (
         <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg">Prakiraan Cuaca</CardTitle>
+            <CardTitle className="text-lg">Prakiraan Cuaca 7 Hari</CardTitle>
+            <p className="mt-1 text-sm text-slate-600">
+              Trend suhu dan kondisi cuaca untuk 7 hari ke depan
+            </p>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {weatherData.forecast.slice(0, 7).map((item, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-slate-300 hover:shadow-sm"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="flex-shrink-0">
-                      {getWeatherIcon(item.weather.main, 'md')}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-slate-900">{formatDate(item.date)}</div>
-                      <div className="mt-0.5 text-sm capitalize text-slate-600">
-                        {item.weather.description}
-                      </div>
-                      {item.time && (
-                        <div className="mt-0.5 text-xs text-slate-500">{item.time}</div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-slate-900">
-                      {Math.round(item.temp_max)}°
-                    </div>
-                    <div className="text-sm text-slate-500">
-                      {Math.round(item.temp_min)}°
-                    </div>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                      <Wind className="h-3 w-3" />
-                      <span>{Math.round(item.wind_speed)} km/h</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ForecastChart forecast={weatherData.forecast.slice(0, 7)} />
           </CardContent>
         </Card>
+      )}
+
+      {/* Historical Comparison */}
+      {weatherData.historicalComparison && (
+        <HistoricalComparison
+          currentTemp={weatherData.current.temp}
+          currentCondition={weatherData.current.weather.main}
+          historicalComparison={weatherData.historicalComparison}
+        />
       )}
 
       {/* Empty State for Forecast */}

@@ -11,4 +11,5 @@ export * from './photo-upload';
 export * from './realtime-sync';
 export * from './smart-preload';
 export * from './sos';
+export * from './sos-streaming';
 

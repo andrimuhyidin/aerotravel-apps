@@ -10,8 +10,10 @@ import { BookOpen, CheckCircle2, Clock, Play } from 'lucide-react';
 import Link from 'next/link';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { LoadingState } from '@/components/ui/loading-state';
 import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
 import queryKeys from '@/lib/queries/query-keys';
 
 type TrainingModule = {
@@ -34,7 +36,7 @@ type TrainingClientProps = {
 };
 
 export function TrainingClient({ locale }: TrainingClientProps) {
-  const { data, isLoading } = useQuery<TrainingResponse>({
+  const { data, isLoading, error, refetch } = useQuery<TrainingResponse>({
     queryKey: [...queryKeys.guide.all, 'training', 'modules'],
     queryFn: async () => {
       const res = await fetch('/api/guide/training/modules');
@@ -45,12 +47,16 @@ export function TrainingClient({ locale }: TrainingClientProps) {
   });
 
   if (isLoading) {
+    return <LoadingState variant="skeleton-card" lines={3} message="Memuat modul training..." />;
+  }
+
+  if (error) {
     return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-32 w-full" />
-        ))}
-      </div>
+      <ErrorState
+        message={error instanceof Error ? error.message : 'Gagal memuat modul training'}
+        onRetry={() => void refetch()}
+        variant="card"
+      />
     );
   }
 
@@ -81,11 +87,11 @@ export function TrainingClient({ locale }: TrainingClientProps) {
   return (
     <div className="space-y-4">
       {modules.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-slate-500">
-            Belum ada modul training yang tersedia
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={BookOpen}
+          title="Belum ada modul training"
+          description="Modul training akan muncul di sini setelah tersedia"
+        />
       ) : (
         modules.map((module) => (
           <Card key={module.id} className="hover:shadow-md transition-shadow">

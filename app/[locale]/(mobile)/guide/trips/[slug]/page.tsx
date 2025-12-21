@@ -42,9 +42,10 @@ export default async function GuideTripDetailPage({ params }: PageProps) {
   const { createClient } = await import('@/lib/supabase/server');
   const supabase = await createClient();
   const { getBranchContext } = await import('@/lib/branch/branch-injection');
+  const { withBranchFilter } = await import('@/lib/branch/branch-injection');
   
   const branchContext = await getBranchContext(user.id);
-  const client = supabase as unknown as any;
+  const client = supabase;
 
   // Check if slug is UUID (has dashes) or trip code
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
@@ -53,19 +54,23 @@ export default async function GuideTripDetailPage({ params }: PageProps) {
   if (isUUID) {
     // Slug is UUID, query by ID
     tripQuery = client.from('trips')
-      .select('id, trip_code')
-      .eq('id', slug)
-      .maybeSingle();
+      .select('id, trip_code');
+    
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      tripQuery = tripQuery.eq('branch_id', branchContext.branchId);
+    }
+    
+    tripQuery = tripQuery.eq('id', slug).maybeSingle();
   } else {
     // Slug is trip code
     tripQuery = client.from('trips')
-      .select('id, trip_code')
-      .eq('trip_code', slug)
-      .maybeSingle();
-  }
-
-  if (!branchContext.isSuperAdmin && branchContext.branchId) {
-    tripQuery = tripQuery.eq('branch_id', branchContext.branchId);
+      .select('id, trip_code');
+    
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      tripQuery = tripQuery.eq('branch_id', branchContext.branchId);
+    }
+    
+    tripQuery = tripQuery.eq('trip_code', slug).maybeSingle();
   }
 
   const { data: trip, error: tripError } = await tripQuery;

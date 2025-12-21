@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { parsePaginationParams, createPaginationMeta } from '@/lib/api/pagination';
 import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -81,9 +82,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Pagination
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '20');
-  const offset = (page - 1) * limit;
+  const { page, limit, offset } = parsePaginationParams(searchParams, 20);
 
   query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
 
@@ -112,11 +111,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   const { count } = await countQuery;
 
+  const total = count || 0;
+
   return NextResponse.json({
     feedbacks: feedbacks || [],
-    total: count || 0,
-    page,
-    limit,
+    pagination: createPaginationMeta(total, page, limit),
   });
 });
 

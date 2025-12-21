@@ -46,7 +46,7 @@ export default async function GalleryPage({ params }: Props) {
     <Section>
       <Container>
         <div className="py-8">
-          <h1 className="text-3xl font-bold mb-6">Trip Photo Gallery #{tripId}</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6">Trip Photo Gallery #{tripId}</h1>
           
           {/* TODO: Review form (if not submitted) */}
           {/* TODO: Photo grid (blurred if no review) */}

@@ -33,6 +33,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     startDate.setDate(startDate.getDate() - days);
 
     // Get all completed trips in period
+
+    // Get all completed trips in period
     const { data: tripGuides } = await withBranchFilter(
       client.from('trip_guides'),
       branchContext,

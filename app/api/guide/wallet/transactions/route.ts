@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { parsePaginationParams, createPaginationMeta } from '@/lib/api/pagination';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -26,8 +27,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const from = searchParams.get('from'); // YYYY-MM-DD
   const to = searchParams.get('to'); // YYYY-MM-DD
   const search = searchParams.get('search'); // Search by description/reference
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = parseInt(searchParams.get('limit') || '20', 10);
+  const { page, limit, offset } = parsePaginationParams(searchParams, 20);
   const exportFormat = searchParams.get('export'); // csv
 
   const client = supabase as unknown as any;
@@ -116,7 +116,6 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     }
 
     // Paginated response
-    const offset = (page - 1) * limit;
     const { data: transactions, error, count } = await query.range(offset, offset + limit - 1);
 
     if (error) {
@@ -160,13 +159,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       }
     });
 
+    const total = count || 0;
+
     return NextResponse.json({
       transactions: transactions || [],
       grouped,
-      total: count || 0,
-      page,
-      limit,
-      totalPages: Math.ceil((count || 0) / limit),
+      pagination: createPaginationMeta(total, page, limit),
     });
   } catch (error) {
     logger.error('Failed to fetch transactions', error, { guideId: user.id });

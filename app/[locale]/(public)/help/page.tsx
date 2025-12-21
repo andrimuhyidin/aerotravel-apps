@@ -171,7 +171,7 @@ export default async function HelpPage({ params }: PageProps) {
         <Container>
           <div className="py-12 text-center">
             <h1 className="mb-4 text-4xl font-bold">Bantuan</h1>
-            <p className="mx-auto max-w-2xl text-muted-foreground">
+            <p className="text-muted-foreground">
               Pusat bantuan untuk Guide App. Temukan jawaban dan dapatkan dukungan.
             </p>
           </div>
@@ -204,22 +204,90 @@ export default async function HelpPage({ params }: PageProps) {
         </Container>
       </Section>
 
+      {/* Getting Started Section */}
+      <Section id="getting-started" className="bg-muted/30">
+        <Container>
+          <div className="py-12">
+            <div className="mb-8 text-center">
+              <h2 className="mb-2 text-xl sm:text-2xl md:text-3xl font-bold">Memulai dengan Guide App</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                Panduan lengkap untuk memulai menggunakan Guide App
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="mb-3 text-lg sm:text-xl font-semibold text-slate-900">1. Login dan Setup Profil</h3>
+                  <p className="text-slate-700">
+                    Setelah login, lengkapi profil Anda di halaman Profile. Pastikan semua informasi
+                    dan dokumen sudah diunggah untuk memudahkan proses verifikasi.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="mb-3 text-lg sm:text-xl font-semibold text-slate-900">2. Atur Status Ketersediaan</h3>
+                  <p className="text-slate-700">
+                    Atur status ketersediaan Anda di Dashboard atau halaman Status. Status yang
+                    tersedia: Standby (tersedia), On Trip (sedang memandu), atau Not Available
+                    (tidak tersedia).
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="mb-3 text-lg sm:text-xl font-semibold text-slate-900">3. Konfirmasi Trip Assignment</h3>
+                  <p className="text-slate-700">
+                    Saat menerima assignment trip, pastikan untuk mengkonfirmasi sebelum deadline.
+                    Anda dapat melihat detail trip dan mengkonfirmasi dari halaman Trips.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="mb-3 text-lg sm:text-xl font-semibold text-slate-900">4. Check-in Attendance</h3>
+                  <p className="text-slate-700">
+                    Sebelum trip dimulai, lakukan check-in attendance di halaman Attendance. Pastikan
+                    GPS aktif dan Anda berada dalam radius meeting point untuk check-in berhasil.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="mb-3 text-lg sm:text-xl font-semibold text-slate-900">5. Kelola Manifest dan Trip</h3>
+                  <p className="text-slate-700">
+                    Selama trip, gunakan fitur Manifest untuk mengelola penumpang, dan fitur Chat
+                    untuk berkomunikasi dengan tim operasional. Semua data akan tersinkronisasi
+                    otomatis saat online.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </Container>
+      </Section>
+
       {/* FAQ Section */}
       <Section id="faq" className="bg-muted/30">
         <Container>
           <div className="py-12">
             <div className="mb-8 text-center">
-              <h2 className="mb-2 text-3xl font-bold">Pertanyaan yang Sering Diajukan</h2>
-              <p className="text-muted-foreground">
+              <h2 className="mb-2 text-xl sm:text-2xl md:text-3xl font-bold">Pertanyaan yang Sering Diajukan</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Temukan jawaban untuk pertanyaan umum tentang Guide App
               </p>
             </div>
 
-            <div className="mx-auto max-w-3xl space-y-4">
+            <div className="space-y-4">
               {faqItems.map((item, index) => (
                 <Card key={index} className="border-0 shadow-sm">
-                  <CardContent className="p-6">
-                    <h3 className="mb-3 flex items-start gap-2 font-semibold text-slate-900">
+                  <CardContent className="p-4 sm:p-6">
+                    <h3 className="mb-3 flex items-start gap-2 text-lg sm:text-xl font-semibold text-slate-900">
                       <HelpCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
                       {item.question}
                     </h3>
@@ -237,13 +305,13 @@ export default async function HelpPage({ params }: PageProps) {
         <Container>
           <div className="py-12">
             <div className="mb-8 text-center">
-              <h2 className="mb-2 text-3xl font-bold">Hubungi Tim Support</h2>
-              <p className="text-muted-foreground">
+              <h2 className="mb-2 text-xl sm:text-2xl md:text-3xl font-bold">Hubungi Tim Support</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Butuh bantuan lebih lanjut? Hubungi kami melalui channel berikut
               </p>
             </div>
 
-            <div className="mx-auto grid max-w-3xl gap-4 md:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
               {contactOptions.map((option, index) => {
                 const Icon = option.icon;
                 return (
@@ -287,12 +355,12 @@ export default async function HelpPage({ params }: PageProps) {
           <Container>
             <div className="py-12">
               <div className="mb-8 text-center">
-                <h2 className="mb-2 text-3xl font-bold">Laporan Insiden</h2>
-                <p className="text-muted-foreground">
+                <h2 className="mb-2 text-xl sm:text-2xl md:text-3xl font-bold">Laporan Insiden</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Laporkan kejadian insiden yang terjadi selama trip untuk keperluan dokumentasi
                 </p>
               </div>
-              <div className="mx-auto max-w-3xl">
+              <div>
                 <IncidentFormWrapper guideId={user.id} tripId={tripId} />
               </div>
             </div>
@@ -306,12 +374,12 @@ export default async function HelpPage({ params }: PageProps) {
           <Container>
             <div className="py-12">
               <div className="mb-8 text-center">
-                <h2 className="mb-2 text-3xl font-bold">Feedback & Saran</h2>
-                <p className="text-muted-foreground">
+                <h2 className="mb-2 text-xl sm:text-2xl md:text-3xl font-bold">Feedback & Saran</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Berikan feedback dan saran untuk perbaikan perusahaan dan layanan
                 </p>
               </div>
-              <div className="mx-auto max-w-3xl">
+              <div>
                 <FeedbackSectionWrapper locale={locale} />
               </div>
             </div>
@@ -323,8 +391,8 @@ export default async function HelpPage({ params }: PageProps) {
       <Section className="bg-muted/30">
         <Container>
           <div className="py-8">
-            <Card className="mx-auto max-w-2xl border-0 shadow-sm">
-              <CardContent className="p-6">
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center justify-center gap-3">
                   <Clock className="h-5 w-5 text-primary" />
                   <div className="text-center">

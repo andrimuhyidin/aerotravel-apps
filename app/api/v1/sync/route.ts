@@ -4,8 +4,10 @@
  * PRD 2.4.A - Re-Sync saat online kembali
  */
 
-import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+
+import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
             break;
 
           default:
-            console.warn('Unknown mutation type:', mutation.type);
+            logger.warn('Unknown mutation type', { mutationType: mutation.type });
             result = { error: { message: 'Unknown mutation type' } };
         }
 
@@ -63,7 +65,7 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error) {
-    console.error('Sync error:', error);
+    logger.error('Sync error', error);
     return NextResponse.json(
       { error: 'Sync failed' },
       { status: 500 }

@@ -6,12 +6,14 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Loader2, Users } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Loader2, Sparkles, Users } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
     Dialog,
     DialogContent,
@@ -21,7 +23,16 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { SignaturePad, type SignatureData } from '@/components/ui/signature-pad';
+import { cacheBriefingTemplate, getCachedBriefingTemplate } from '@/lib/guide/offline-sync';
+import { getTripManifest, type TripManifest } from '@/lib/guide/manifest';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
 
@@ -46,41 +57,39 @@ type Consent = {
   briefing_acknowledged: boolean;
 };
 
-export function PassengerConsentSection({ tripId, locale: _locale }: PassengerConsentSectionProps) {
+type BriefingPoints = {
+  sections: Array<{
+    title: string;
+    points: string[];
+    priority: 'high' | 'medium' | 'low';
+  }>;
+  estimatedDuration: number;
+  targetAudience: string;
+  summary: string;
+};
+
+export function PassengerConsentSection({ tripId, locale }: PassengerConsentSectionProps) {
   const [selectedPassenger, setSelectedPassenger] = useState<Passenger | null>(null);
   const [consentDialogOpen, setConsentDialogOpen] = useState(false);
   const [signature, setSignature] = useState<SignatureData | null>(null);
   const [acknowledgedPoints, setAcknowledgedPoints] = useState<Set<string>>(new Set());
+  const [briefingLanguage, setBriefingLanguage] = useState<'id' | 'en' | 'zh' | 'ja'>('id');
+  const [showBriefing, setShowBriefing] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch passengers from manifest
-  const { data: manifestData } = useQuery<{ passengers: Array<{ id: string; name: string; age?: number | null; type?: string | null }> }>({
-    queryKey: ['trip-manifest', tripId],
-    queryFn: async () => {
-      const res = await fetch(`/api/guide/manifest?tripId=${tripId}`);
-      if (!res.ok) {
-        throw new Error('Failed to fetch manifest');
-      }
-      const data = (await res.json()) as { 
-        passengers?: Array<{ 
-          id?: string; 
-          name: string; 
-          age?: number | null; 
-          type?: string | null;
-          phone?: string;
-        }> 
-      };
-      // Map to Passenger format (use booking_passengers.id)
-      return {
-        passengers: (data.passengers || []).map((p, idx) => ({
-          id: p.id || `passenger-${idx}`, // booking_passengers.id
-          name: p.name,
-          age: p.age || null,
-          passenger_type: p.type || null,
-        })),
-      };
-    },
+  // Fetch passengers from manifest (using consistent query key)
+  const { data: manifestData } = useQuery<TripManifest>({
+    queryKey: ['guide', 'manifest', tripId],
+    queryFn: () => getTripManifest(tripId),
   });
+
+  // Map TripManifest passengers to Passenger format (must be before queries that use it)
+  const passengers: Passenger[] = (manifestData?.passengers || []).map((p) => ({
+    id: p.id,
+    name: p.name,
+    age: undefined, // TripManifest.Passenger doesn't have age
+    passenger_type: p.type || null,
+  }));
 
   // Fetch consents
   const { data: consentData } = useQuery<{
@@ -97,7 +106,82 @@ export function PassengerConsentSection({ tripId, locale: _locale }: PassengerCo
     },
   });
 
-  const passengers = manifestData?.passengers || [];
+  // Fetch or generate briefing
+  const { data: briefingData, isLoading: briefingLoading, refetch: refetchBriefing } = useQuery<{
+    briefing: BriefingPoints | null;
+    generatedAt?: string;
+    updatedAt?: string;
+    cached?: boolean;
+  }>({
+    queryKey: ['trip-briefing', tripId, briefingLanguage],
+    queryFn: async () => {
+      // Check cached template first (for offline access)
+      if (!navigator.onLine) {
+        const cached = await getCachedBriefingTemplate(tripId);
+        if (cached && cached.briefingPoints) {
+          logger.info('Using cached briefing template', { tripId });
+          return {
+            briefing: cached.briefingPoints as BriefingPoints,
+            generatedAt: cached.generatedAt,
+            cached: true,
+          };
+        }
+        throw new Error('No cached briefing available and offline');
+      }
+
+      // Try to get existing briefing first
+      const getRes = await fetch(`/api/guide/trips/${tripId}/briefing`);
+      if (getRes.ok) {
+        const data = await getRes.json();
+        if (data.briefing) {
+          // Cache the briefing template
+          await cacheBriefingTemplate(tripId, {
+            briefingPoints: data.briefing,
+            generatedAt: data.generatedAt || new Date().toISOString(),
+            generatedBy: data.generatedBy,
+          });
+          return data;
+        }
+      }
+      
+      // Generate new briefing if not exists
+      const generateRes = await fetch(`/api/guide/trips/${tripId}/briefing/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: briefingLanguage }),
+      });
+      
+      if (!generateRes.ok) {
+        // If generation fails, try cached template
+        const cached = await getCachedBriefingTemplate(tripId);
+        if (cached && cached.briefingPoints) {
+          logger.warn('Briefing generation failed, using cached template', { tripId });
+          return {
+            briefing: cached.briefingPoints as BriefingPoints,
+            generatedAt: cached.generatedAt,
+            cached: true,
+          };
+        }
+        throw new Error('Failed to generate briefing');
+      }
+      
+      const generated = await generateRes.json();
+      
+      // Cache the generated briefing template
+      if (generated.briefing) {
+        await cacheBriefingTemplate(tripId, {
+          briefingPoints: generated.briefing,
+          generatedAt: new Date().toISOString(),
+          generatedBy: undefined,
+        });
+      }
+      
+      return { briefing: generated.briefing };
+    },
+    enabled: passengers.length > 0, // Only fetch if passengers exist
+  });
+  
+  // Extract consents and allConsented from consentData
   const consents = consentData?.consents || [];
   const allConsented = consentData?.all_consented || false;
 
@@ -182,11 +266,120 @@ export function PassengerConsentSection({ tripId, locale: _locale }: PassengerCo
   };
 
   if (passengers.length === 0) {
-    return null;
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">Konsensus Penumpang</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={Users}
+            title="Belum ada penumpang"
+            description="Penumpang akan muncul di sini setelah ditambahkan ke manifest"
+            variant="subtle"
+          />
+        </CardContent>
+      </Card>
+    );
   }
+
+  const briefing = briefingData?.briefing || null;
 
   return (
     <>
+      {/* Safety Briefing Section */}
+      {briefing && (
+        <Card className="border-0 shadow-sm mb-4">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <Sparkles className="h-5 w-5 text-blue-600" />
+                Safety Briefing
+              </CardTitle>
+              <Select value={briefingLanguage} onValueChange={(value) => setBriefingLanguage(value as typeof briefingLanguage)}>
+                <SelectTrigger className="w-32 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="id">🇮🇩 ID</SelectItem>
+                  <SelectItem value="en">🇬🇧 EN</SelectItem>
+                  <SelectItem value="zh">🇨🇳 中文</SelectItem>
+                  <SelectItem value="ja">🇯🇵 日本語</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {briefing.summary && (
+              <p className="text-xs text-slate-600 mt-2">{briefing.summary}</p>
+            )}
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBriefing(!showBriefing)}
+                className="w-full"
+              >
+                {showBriefing ? (
+                  <>
+                    <ChevronUp className="mr-2 h-4 w-4" />
+                    Sembunyikan Briefing
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="mr-2 h-4 w-4" />
+                    Tampilkan Briefing ({briefing.estimatedDuration} menit)
+                  </>
+                )}
+              </Button>
+              
+              {showBriefing && (
+                <Accordion type="single" className="w-full">
+                  {briefing.sections.map((section, idx) => (
+                    <AccordionItem key={idx} value={`section-${idx}`}>
+                      <AccordionTrigger value={`section-${idx}`} className="text-sm font-medium">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              'h-2 w-2 rounded-full',
+                              section.priority === 'high' && 'bg-red-500',
+                              section.priority === 'medium' && 'bg-amber-500',
+                              section.priority === 'low' && 'bg-emerald-500'
+                            )}
+                          />
+                          {section.title}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent value={`section-${idx}`}>
+                        <ul className="space-y-2 text-sm text-slate-700">
+                          {section.points.map((point, pointIdx) => (
+                            <li key={pointIdx} className="flex items-start gap-2">
+                              <span className="text-emerald-600 mt-1">•</span>
+                              <span>{point}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {briefingLoading && (
+        <Card className="border-0 shadow-sm mb-4">
+          <CardContent className="py-6">
+            <div className="flex items-center justify-center gap-2 text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Generating briefing...</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base font-semibold">
@@ -265,6 +458,45 @@ export function PassengerConsentSection({ tripId, locale: _locale }: PassengerCo
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Briefing Checklist */}
+            {briefing && (
+              <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                <Label className="text-sm font-semibold text-blue-900">Briefing Checklist</Label>
+                <p className="text-xs text-blue-700">
+                  Guide telah membaca poin-poin berikut kepada penumpang:
+                </p>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {briefing.sections.map((section, idx) => (
+                    <div key={idx} className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs font-medium text-blue-900">
+                        <span
+                          className={cn(
+                            'h-1.5 w-1.5 rounded-full',
+                            section.priority === 'high' && 'bg-red-500',
+                            section.priority === 'medium' && 'bg-amber-500',
+                            section.priority === 'low' && 'bg-emerald-500'
+                          )}
+                        />
+                        {section.title}
+                      </div>
+                      <ul className="ml-4 space-y-1">
+                        {section.points.slice(0, 2).map((point, pointIdx) => (
+                          <li key={pointIdx} className="text-xs text-blue-700">
+                            • {point}
+                          </li>
+                        ))}
+                        {section.points.length > 2 && (
+                          <li className="text-xs text-blue-600 italic">
+                            + {section.points.length - 2} poin lainnya
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Briefing Acknowledgment */}
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Acknowledgment</Label>

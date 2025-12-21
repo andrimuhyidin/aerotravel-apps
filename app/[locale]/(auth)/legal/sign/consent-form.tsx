@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
+import { logger } from '@/lib/utils/logger';
 
 type ConsentFormProps = {
   locale: string;
@@ -77,7 +78,7 @@ export function ConsentForm({ locale, userId }: ConsentFormProps) {
         .eq('id', userId);
 
       if (updateError) {
-        console.error('Consent update error:', updateError);
+        logger.error('Consent update error', updateError, { userId });
         throw updateError;
       }
 
@@ -110,7 +111,7 @@ export function ConsentForm({ locale, userId }: ConsentFormProps) {
       router.push(redirectPath);
       router.refresh();
     } catch (err) {
-      console.error('Consent submission error:', err);
+      logger.error('Consent submission error', err, { userId });
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(`Gagal menyimpan persetujuan: ${errorMessage}`);
     } finally {

@@ -5,6 +5,7 @@
  * Checklist yang harus diselesaikan sebelum guide bisa mengubah status ke "On Trip"
  */
 
+import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, CheckCircle2, Loader2, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -18,6 +19,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 
 type SafetyChecklistDialogProps = {
@@ -31,18 +34,8 @@ type ChecklistItem = {
   id: string;
   label: string;
   required: boolean;
+  description?: string;
 };
-
-const checklistItems: ChecklistItem[] = [
-  { id: 'life_jacket', label: 'Life jacket cukup untuk semua peserta', required: true },
-  { id: 'snorkeling_equipment', label: 'Alat snorkeling lengkap dan dalam kondisi baik', required: true },
-  { id: 'weather_check', label: 'Kondisi cuaca aman untuk aktivitas', required: true },
-  { id: 'safety_briefing', label: 'Briefing safety sudah dilakukan kepada peserta', required: true },
-  { id: 'first_aid_kit', label: 'First aid kit tersedia dan lengkap', required: true },
-  { id: 'communication_device', label: 'Alat komunikasi (HP/Radio) berfungsi dengan baik', required: true },
-  { id: 'boat_condition', label: 'Kondisi perahu/kendaraan aman untuk digunakan', required: false },
-  { id: 'emergency_contact', label: 'Kontak darurat sudah diinformasikan ke peserta', required: false },
-];
 
 export function SafetyChecklistDialog({
   open,
@@ -53,6 +46,20 @@ export function SafetyChecklistDialog({
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch checklist templates from API
+  const { data: templatesData, isLoading: templatesLoading } = useQuery<{ data: { templates: ChecklistItem[] } }>({
+    queryKey: queryKeys.guide.safetyChecklistTemplates(),
+    queryFn: async () => {
+      const res = await fetch('/api/guide/safety-checklist/templates');
+      if (!res.ok) throw new Error('Failed to fetch safety checklist templates');
+      return res.json();
+    },
+    staleTime: 300000, // Cache for 5 minutes
+    enabled: open, // Only fetch when dialog is open
+  });
+
+  const checklistItems = templatesData?.data?.templates || [];
 
   const requiredItems = checklistItems.filter((item) => item.required);
   const allRequiredChecked = requiredItems.every((item) => checkedItems.has(item.id));
@@ -129,7 +136,19 @@ export function SafetyChecklistDialog({
         </DialogHeader>
 
         <div className="space-y-3 py-4">
-          {checklistItems.map((item) => {
+          {templatesLoading ? (
+            // Loading skeleton
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="rounded-lg border border-slate-200 bg-white p-3">
+                <Skeleton className="h-5 w-full" />
+              </div>
+            ))
+          ) : checklistItems.length === 0 ? (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-600">
+              Tidak ada template checklist yang tersedia
+            </div>
+          ) : (
+            checklistItems.map((item) => {
             const isChecked = checkedItems.has(item.id);
             return (
               <div
@@ -167,7 +186,8 @@ export function SafetyChecklistDialog({
                 </Label>
               </div>
             );
-          })}
+            })
+          )}
         </div>
 
         {error && (

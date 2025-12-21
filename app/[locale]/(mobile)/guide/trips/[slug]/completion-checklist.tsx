@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/utils/logger';
 
 type CompletionChecklistProps = {
   tripId: string;
@@ -231,7 +232,7 @@ export function CompletionChecklist({
         router.refresh();
       }
     } catch (error) {
-      console.error('Failed to end trip:', error);
+      logger.error('Failed to end trip', error, { tripId });
     }
   };
 
