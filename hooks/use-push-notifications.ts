@@ -91,7 +91,11 @@ export function usePushNotifications() {
 
       // Get VAPID public key from server
       const response = await fetch('/api/guide/push/vapid-key');
-      const { publicKey } = (await response.json()) as { publicKey: string };
+      if (!response.ok) {
+        throw new Error('Failed to get VAPID key');
+      }
+      const data = await response.json();
+      const { publicKey } = (data.data ?? data) as { publicKey: string };
 
       if (!publicKey) {
         logger.error('VAPID public key not available');
@@ -158,11 +162,14 @@ export function usePushNotifications() {
       }
 
       // Remove from server
-      await fetch('/api/guide/push/unsubscribe', {
+      const unsubscribeResponse = await fetch('/api/guide/push/unsubscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ endpoint: subscription.endpoint }),
       });
+      if (!unsubscribeResponse.ok) {
+        logger.warn('Failed to remove subscription from server', { status: unsubscribeResponse.status });
+      }
 
       setSubscription(null);
       setIsSubscribed(false);

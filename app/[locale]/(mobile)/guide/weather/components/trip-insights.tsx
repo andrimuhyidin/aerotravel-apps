@@ -103,7 +103,7 @@ const getRecommendationTypeColor = (type: string) => {
 };
 
 export function TripInsights({ insights }: TripInsightsProps) {
-  if (!insights || insights.length === 0) {
+  if (!insights || !Array.isArray(insights) || insights.length === 0) {
     return null;
   }
 
@@ -119,7 +119,9 @@ export function TripInsights({ insights }: TripInsightsProps) {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {insights.map((insight, index) => (
+        {insights.map((insight, index) => {
+          if (!insight) return null;
+          return (
           <div
             key={insight.tripId || `trip-${index}`}
             className="rounded-xl border border-slate-200 bg-white p-4 space-y-3"
@@ -140,8 +142,8 @@ export function TripInsights({ insights }: TripInsightsProps) {
                       {insight.tripCode || 'Trip'}
                     </span>
                   )}
-                  <Badge className={cn('text-xs', getRiskColor(insight.riskLevel))}>
-                    Risiko: {getRiskLabel(insight.riskLevel)}
+                  <Badge className={cn('text-xs', getRiskColor(insight.riskLevel ?? 'medium'))}>
+                    Risiko: {getRiskLabel(insight.riskLevel ?? 'medium')}
                   </Badge>
                 </div>
                 {insight.tripDate && (
@@ -149,11 +151,17 @@ export function TripInsights({ insights }: TripInsightsProps) {
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       <span>
-                        {new Date(insight.tripDate).toLocaleDateString('id-ID', {
-                          weekday: 'short',
-                          day: 'numeric',
-                          month: 'short',
-                        })}
+                        {(() => {
+                          try {
+                            return new Date(insight.tripDate).toLocaleDateString('id-ID', {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                            });
+                          } catch {
+                            return insight.tripDate;
+                          }
+                        })()}
                       </span>
                     </div>
                   </div>
@@ -166,14 +174,18 @@ export function TripInsights({ insights }: TripInsightsProps) {
               <div className="rounded-lg bg-slate-50 p-3">
                 <div className="text-xs font-medium text-slate-700 mb-1">Perbandingan Cuaca</div>
                 <div className="text-xs text-slate-600 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-3 w-3 text-blue-600" />
-                    <span>Lokasi Saat Ini: {insight.weatherComparison.currentLocation}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-3 w-3 text-emerald-600" />
-                    <span>Destinasi: {insight.weatherComparison.destination}</span>
-                  </div>
+                  {insight.weatherComparison.currentLocation && (
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-3 w-3 text-blue-600" />
+                      <span>Lokasi Saat Ini: {insight.weatherComparison.currentLocation}</span>
+                    </div>
+                  )}
+                  {insight.weatherComparison.destination && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-3 w-3 text-emerald-600" />
+                      <span>Destinasi: {insight.weatherComparison.destination}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -211,22 +223,25 @@ export function TripInsights({ insights }: TripInsightsProps) {
             {insight.recommendations && Array.isArray(insight.recommendations) && insight.recommendations.length > 0 && (
               <div className="space-y-2">
                 <div className="text-xs font-medium text-slate-700">Rekomendasi</div>
-                {insight.recommendations.map((rec, i) => (
-                  <div key={i} className="rounded-lg border border-slate-200 bg-white p-3">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <div className="flex items-center gap-2">
-                        <Badge className={cn('text-xs', getRecommendationTypeColor(rec.type))}>
-                          {getRecommendationTypeLabel(rec.type)}
+                {insight.recommendations.map((rec, i) => {
+                  if (!rec) return null;
+                  return (
+                    <div key={i} className="rounded-lg border border-slate-200 bg-white p-3">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-2">
+                          <Badge className={cn('text-xs', getRecommendationTypeColor(rec.type ?? 'go_ahead'))}>
+                            {getRecommendationTypeLabel(rec.type ?? 'go_ahead')}
+                          </Badge>
+                          <span className="font-medium text-sm text-slate-900">{rec.title ?? 'Rekomendasi'}</span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {rec.priority === 'high' ? 'Tinggi' : rec.priority === 'medium' ? 'Sedang' : 'Rendah'}
                         </Badge>
-                        <span className="font-medium text-sm text-slate-900">{rec.title}</span>
                       </div>
-                      <Badge variant="outline" className="text-xs">
-                        {rec.priority === 'high' ? 'Tinggi' : rec.priority === 'medium' ? 'Sedang' : 'Rendah'}
-                      </Badge>
+                      <p className="text-xs text-slate-600 leading-relaxed mt-1">{rec.description ?? 'Tidak ada deskripsi'}</p>
                     </div>
-                    <p className="text-xs text-slate-600 leading-relaxed mt-1">{rec.description}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -234,13 +249,18 @@ export function TripInsights({ insights }: TripInsightsProps) {
             {insight.alternativePlans && Array.isArray(insight.alternativePlans) && insight.alternativePlans.length > 0 && (
               <div className="space-y-2">
                 <div className="text-xs font-medium text-slate-700">Rencana Alternatif</div>
-                {insight.alternativePlans.map((plan, i) => (
-                  <div key={i} className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                    <div className="font-medium text-sm text-amber-900 mb-1">{plan.title}</div>
-                    <p className="text-xs text-amber-700 leading-relaxed mb-1">{plan.description}</p>
-                    <p className="text-xs text-amber-600 italic">Kondisi: {plan.conditions}</p>
-                  </div>
-                ))}
+                {insight.alternativePlans.map((plan, i) => {
+                  if (!plan) return null;
+                  return (
+                    <div key={i} className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                      <div className="font-medium text-sm text-amber-900 mb-1">{plan.title ?? 'Rencana Alternatif'}</div>
+                      <p className="text-xs text-amber-700 leading-relaxed mb-1">{plan.description ?? 'Tidak ada deskripsi'}</p>
+                      {plan.conditions && (
+                        <p className="text-xs text-amber-600 italic">Kondisi: {plan.conditions}</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -249,20 +269,23 @@ export function TripInsights({ insights }: TripInsightsProps) {
               <div className="space-y-2">
                 <div className="text-xs font-medium text-slate-700">Kebutuhan Peralatan</div>
                 <div className="space-y-1">
-                  {insight.equipmentNeeds.map((eq, i) => (
-                    <div key={i} className="flex items-start justify-between gap-2 rounded-lg bg-slate-50 p-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium text-xs text-slate-900">{eq.item}</div>
-                        <p className="text-xs text-slate-600">{eq.reason}</p>
+                  {insight.equipmentNeeds.map((eq, i) => {
+                    if (!eq) return null;
+                    return (
+                      <div key={i} className="flex items-start justify-between gap-2 rounded-lg bg-slate-50 p-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-xs text-slate-900">{eq.item ?? 'Peralatan'}</div>
+                          <p className="text-xs text-slate-600">{eq.reason ?? 'Tidak ada alasan'}</p>
+                        </div>
+                        <Badge
+                          variant={eq.priority === 'essential' ? 'destructive' : 'outline'}
+                          className="text-xs"
+                        >
+                          {eq.priority === 'essential' ? 'Wajib' : eq.priority === 'recommended' ? 'Disarankan' : 'Opsional'}
+                        </Badge>
                       </div>
-                      <Badge
-                        variant={eq.priority === 'essential' ? 'destructive' : 'outline'}
-                        className="text-xs"
-                      >
-                        {eq.priority === 'essential' ? 'Wajib' : eq.priority === 'recommended' ? 'Disarankan' : 'Opsional'}
-                      </Badge>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -278,7 +301,8 @@ export function TripInsights({ insights }: TripInsightsProps) {
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </CardContent>
     </Card>
   );

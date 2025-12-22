@@ -217,10 +217,10 @@ export function BankAccountsClient({ locale: _locale }: BankAccountsClientProps)
   };
 
   const accounts = data?.accounts || [];
-  const approvedAccounts = accounts.filter((a) => a.status === 'approved');
-  const pendingAccounts = accounts.filter((a) => a.status === 'pending');
-  const pendingEditAccounts = accounts.filter((a) => a.status === 'pending_edit');
-  const rejectedAccounts = accounts.filter((a) => a.status === 'rejected');
+  const approvedAccounts = accounts.filter((a) => a && a.status === 'approved');
+  const pendingAccounts = accounts.filter((a) => a && a.status === 'pending');
+  const pendingEditAccounts = accounts.filter((a) => a && a.status === 'pending_edit');
+  const rejectedAccounts = accounts.filter((a) => a && a.status === 'rejected');
 
   const getStatusBadge = (status: string) => {
     switch (status) {

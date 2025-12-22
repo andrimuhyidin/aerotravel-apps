@@ -39,7 +39,9 @@ export function TrainingWidget({ locale }: TrainingWidgetProps) {
     queryFn: async () => {
       const res = await fetch('/api/guide/training/modules');
       if (!res.ok) throw new Error('Failed to fetch training modules');
-      return res.json();
+      const responseData = await res.json();
+      // Handle both { data: { modules } } and { modules } formats
+      return (responseData.data ?? responseData) as TrainingResponse;
     },
     staleTime: 60000,
   });
@@ -56,10 +58,10 @@ export function TrainingWidget({ locale }: TrainingWidgetProps) {
 
   const modules = data?.modules || [];
   const inProgressModules = modules.filter(
-    (m) => m.progress?.status === 'in_progress'
+    (m) => m?.progress?.status === 'in_progress'
   ).slice(0, 2);
   const notStartedModules = modules.filter(
-    (m) => !m.progress || m.progress.status === 'not_started'
+    (m) => !m?.progress || m.progress.status === 'not_started'
   ).slice(0, 1);
 
   const displayModules = [...inProgressModules, ...notStartedModules].slice(0, 2);
@@ -93,33 +95,36 @@ export function TrainingWidget({ locale }: TrainingWidgetProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {displayModules.map((module) => (
-          <Link
-            key={module.id}
-            href={`/${locale}/guide/training/${module.id}`}
-            className="block rounded-lg border border-slate-200 bg-slate-50 p-3 transition-colors hover:bg-slate-100"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(module.progress?.status)}
-                  <h3 className="text-sm font-semibold text-slate-900 truncate">
-                    {module.title}
-                  </h3>
-                </div>
-                {module.progress && module.progress.status === 'in_progress' && (
-                  <div className="mt-2">
-                    <Progress value={module.progress.progress_percent} className="h-1.5" />
-                    <div className="mt-1 text-xs text-slate-500">
-                      {Math.round(module.progress.progress_percent)}% selesai
-                    </div>
+        {displayModules.map((module) => {
+          if (!module?.id || !module?.title) return null;
+          return (
+            <Link
+              key={module.id}
+              href={`/${locale}/guide/training/${module.id}`}
+              className="block rounded-lg border border-slate-200 bg-slate-50 p-3 transition-colors hover:bg-slate-100"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(module.progress?.status)}
+                    <h3 className="text-sm font-semibold text-slate-900 truncate">
+                      {module.title}
+                    </h3>
                   </div>
-                )}
+                  {module.progress && module.progress.status === 'in_progress' && (
+                    <div className="mt-2">
+                      <Progress value={module.progress.progress_percent ?? 0} className="h-1.5" />
+                      <div className="mt-1 text-xs text-slate-500">
+                        {Math.round(module.progress.progress_percent ?? 0)}% selesai
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-400" />
               </div>
-              <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-400" />
-            </div>
-          </Link>
-        ))}
+            </Link>
+          );
+        })}
       </CardContent>
     </Card>
   );

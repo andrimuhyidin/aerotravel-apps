@@ -121,31 +121,41 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
         <div>
           <h2 className="mb-3 text-base font-semibold text-slate-900">Pendapatan Trip</h2>
           <div className="space-y-3">
-            {pending.map((earning) => (
-              <Card key={earning.tripId} className="border-0 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-slate-400" />
-                        <Link
-                          href={`/${locale}/guide/trips/${earning.tripCode || earning.tripId}`}
-                          className="font-semibold text-slate-900 hover:text-emerald-600 transition-colors"
-                        >
-                          {earning.tripCode}
-                        </Link>
+            {pending.map((earning) => {
+              if (!earning || !earning.tripId) return null;
+              return (
+                <Card key={earning.tripId} className="border-0 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-slate-400" />
+                          <Link
+                            href={`/${locale}/guide/trips/${earning.tripCode || earning.tripId}`}
+                            className="font-semibold text-slate-900 hover:text-emerald-600 transition-colors"
+                          >
+                            {earning.tripCode || earning.tripId}
+                          </Link>
+                        </div>
+                        {earning.tripDate && (
+                          <p className="mt-1 text-sm text-slate-600">
+                            {(() => {
+                              try {
+                                return new Date(earning.tripDate).toLocaleDateString('id-ID', {
+                                  day: 'numeric',
+                                  month: 'long',
+                                  year: 'numeric',
+                                });
+                              } catch {
+                                return earning.tripDate;
+                              }
+                            })()}
+                          </p>
+                        )}
+                        <p className="mt-2 text-lg font-bold text-emerald-600">
+                          {formatCurrency(earning.amount ?? 0)}
+                        </p>
                       </div>
-                      <p className="mt-1 text-sm text-slate-600">
-                        {new Date(earning.tripDate).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                        })}
-                      </p>
-                      <p className="mt-2 text-lg font-bold text-emerald-600">
-                        {formatCurrency(earning.amount)}
-                      </p>
-                    </div>
                     <div className="flex flex-col items-end gap-2">
                       <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
                         Menunggu
@@ -154,7 +164,8 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -164,35 +175,38 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
         <div>
           <h2 className="mb-3 text-base font-semibold text-slate-900">Gaji Tertunda</h2>
           <div className="space-y-3">
-            {salary.map((s) => (
-              <Card key={s.id} className="border-0 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-slate-400" />
-                        <span className="font-semibold text-slate-900">Gaji</span>
+            {salary.map((s) => {
+              if (!s || !s.id) return null;
+              return (
+                <Card key={s.id} className="border-0 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-slate-400" />
+                          <span className="font-semibold text-slate-900">Gaji</span>
+                        </div>
+                        <p className="mt-1 text-sm text-slate-600">{s.period ?? '-'}</p>
+                        <p className="mt-2 text-lg font-bold text-emerald-600">
+                          {formatCurrency(s.amount ?? 0)}
+                        </p>
                       </div>
-                      <p className="mt-1 text-sm text-slate-600">{s.period}</p>
-                      <p className="mt-2 text-lg font-bold text-emerald-600">
-                        {formatCurrency(s.amount)}
-                      </p>
+                      <div className="flex flex-col items-end gap-2">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                            s.status === 'ready'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-amber-100 text-amber-700'
+                          }`}
+                        >
+                          {s.status === 'ready' ? 'Siap Dibayar' : 'Perlu Dokumen'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                          s.status === 'ready'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-amber-100 text-amber-700'
-                        }`}
-                      >
-                        {s.status === 'ready' ? 'Siap Dibayar' : 'Perlu Dokumen'}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}

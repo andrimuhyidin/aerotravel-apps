@@ -24,10 +24,10 @@ type WasteLogModalProps = {
 export function WasteLogModal({ open, onOpenChange, tripId, locale }: WasteLogModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-lg md:max-w-xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>Log Waste - ISO 14001 Compliance</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-lg sm:text-xl">Log Waste - ISO 14001 Compliance</DialogTitle>
+          <DialogDescription className="text-sm">
             Catat jenis sampah, jumlah, dan metode pembuangan untuk compliance ISO 14001
           </DialogDescription>
         </DialogHeader>

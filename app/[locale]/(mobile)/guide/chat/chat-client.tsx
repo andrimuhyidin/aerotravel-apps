@@ -5,6 +5,7 @@
  * Lists all trips with active chat conversations
  */
 
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MessageSquare } from 'lucide-react';
 import Link from 'next/link';
@@ -30,7 +31,13 @@ type TripChatItem = {
 };
 
 export function ChatClient({ locale }: ChatClientProps) {
-  const { data: trips, isLoading, error, refetch } = useQuery<TripChatItem[]>({
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const queryResult = useQuery<TripChatItem[]>({
     queryKey: queryKeys.guide.trips.all(),
     queryFn: async () => {
       const res = await fetch('/api/guide/trips');
@@ -39,21 +46,31 @@ export function ChatClient({ locale }: ChatClientProps) {
       }
       const data = (await res.json()) as { trips: Array<{
         id: string;
-        code: string;
-        name: string;
-        date: string;
+        code?: string;
+        name?: string;
+        date?: string;
       }> };
       
       // Transform to chat items
-      return data.trips.slice(0, 20).map((trip) => ({
-        id: trip.id,
-        tripCode: trip.code,
-        tripName: trip.name,
-        date: trip.date,
-        unreadCount: 0, // Can be enhanced later with real unread count
-      }));
+      return (data.trips ?? [])
+        .filter((trip) => trip && trip.id)
+        .slice(0, 20)
+        .map((trip) => ({
+          id: trip.id,
+          tripCode: trip.code ?? '',
+          tripName: trip.name ?? '',
+          date: trip.date ?? '',
+          unreadCount: 0, // Can be enhanced later with real unread count
+        }));
     },
+    enabled: mounted,
   });
+
+  const { data: trips, isLoading, error, refetch } = queryResult;
+
+  if (!mounted) {
+    return <LoadingState variant="skeleton-card" lines={3} message="Memuat chat..." />;
+  }
 
   if (isLoading) {
     return <LoadingState variant="skeleton-card" lines={3} message="Memuat chat..." />;
@@ -91,17 +108,29 @@ export function ChatClient({ locale }: ChatClientProps) {
 
       <div className="space-y-2">
         {trips.map((trip) => {
-          const dateLabel = new Date(trip.date).toLocaleDateString('id-ID', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          });
+          if (!trip || !trip.id || !trip.date) {
+            return null; // Skip invalid trips
+          }
+
+          let dateLabel = 'Tanggal tidak tersedia';
+          try {
+            const date = new Date(trip.date);
+            if (!isNaN(date.getTime())) {
+              dateLabel = date.toLocaleDateString('id-ID', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              });
+            }
+          } catch {
+            // Keep default dateLabel
+          }
 
           return (
             <Link
               key={trip.id}
-              href={`/${locale}/guide/trips/${trip.tripCode}/chat`}
+              href={`/${locale}/guide/trips/${trip.tripCode || trip.id}/chat`}
               className="block"
             >
               <Card className="border-0 shadow-sm transition-all hover:shadow-md active:scale-[0.98]">
@@ -110,7 +139,7 @@ export function ChatClient({ locale }: ChatClientProps) {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-slate-900 truncate">
-                          {trip.tripName}
+                          {trip.tripName || 'Trip tanpa nama'}
                         </h3>
                         {trip.unreadCount && trip.unreadCount > 0 && (
                           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">
@@ -119,7 +148,7 @@ export function ChatClient({ locale }: ChatClientProps) {
                         )}
                       </div>
                       <p className="text-xs text-slate-600 mb-1">
-                        {trip.tripCode} • {dateLabel}
+                        {trip.tripCode || trip.id} • {dateLabel}
                       </p>
                       {trip.lastMessage && (
                         <p className="text-sm text-slate-700 line-clamp-1">

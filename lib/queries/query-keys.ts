@@ -113,6 +113,7 @@ const queryKeys = {
                 milestones: () => [...queryKeys.guide.wallet.all, 'milestones'] as const,
                 insights: () => [...queryKeys.guide.wallet.all, 'insights'] as const,
                 bankAccounts: () => [...queryKeys.guide.wallet.all, 'bank-accounts'] as const,
+                qris: () => [...queryKeys.guide.wallet.all, 'qris'] as const,
               },
               notifications: () => [...queryKeys.guide.all, 'notifications'] as const,
               ratings: {
@@ -210,6 +211,7 @@ const queryKeys = {
                 list: (filters?: Record<string, unknown>) => [...queryKeys.guide.certifications.all(), 'list', filters] as const,
                 detail: (id: string) => [...queryKeys.guide.certifications.all(), 'detail', id] as const,
                 validity: () => [...queryKeys.guide.certifications.all(), 'validity'] as const,
+                expiring: () => [...queryKeys.guide.certifications.all(), 'expiring'] as const,
               },
               training: {
                 all: () => [...queryKeys.guide.all, 'training'] as const,
@@ -218,10 +220,14 @@ const queryKeys = {
                 certificates: () => [...queryKeys.guide.training.all(), 'certificates'] as const,
                 certificate: (id: string) => [...queryKeys.guide.training.all(), 'certificate', id] as const,
                 mandatory: () => [...queryKeys.guide.training.all(), 'mandatory'] as const,
+                quiz: (moduleId: string) => [...queryKeys.guide.training.all(), 'quiz', moduleId] as const,
+                feedback: (trainingId: string) => [...queryKeys.guide.training.all(), 'feedback', trainingId] as const,
               },
               trips: {
                 all: () => [...queryKeys.guide.all, 'trips'] as const,
                 riskAssessment: (tripId: string) => [...queryKeys.guide.trips.all(), tripId, 'risk-assessment'] as const,
+                riskTrend: (params?: { tripId?: string; days?: number; groupBy?: string }) =>
+                  [...queryKeys.guide.all, 'risk', 'trend', params] as const,
                 canStart: (tripId: string) => [...queryKeys.guide.trips.all(), tripId, 'can-start'] as const,
                 paymentSplit: (tripId: string) => [...queryKeys.guide.trips.all(), tripId, 'payment-split'] as const,
                 paymentStatus: (tripId: string) => [...queryKeys.guide.trips.all(), tripId, 'payment-status'] as const,

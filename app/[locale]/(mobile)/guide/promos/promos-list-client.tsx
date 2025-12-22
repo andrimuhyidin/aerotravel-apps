@@ -49,22 +49,28 @@ export function PromosListClient({ locale }: PromosListClientProps) {
     staleTime: 300000, // 5 minutes
   });
 
-  const allPromos = promosData?.items || [];
+  const allPromos = promosData?.items ?? [];
 
   // Filter by type
   const filteredPromos =
     filterType === 'all'
       ? allPromos
-      : allPromos.filter((promo) => promo.type === filterType);
+      : allPromos.filter((promo) => promo && promo.type === filterType);
 
   // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Tanggal tidak tersedia';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Tanggal tidak valid';
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return 'Tanggal tidak valid';
+    }
   };
 
   // Get priority badge color
@@ -158,10 +164,12 @@ export function PromosListClient({ locale }: PromosListClientProps) {
         />
       ) : (
         <div className="space-y-3">
-          {filteredPromos.map((promo) => {
-            const TypeIcon = getTypeIcon(promo.type);
-            const cardHref = promo.link || `/${locale}/guide/promos/${promo.id}`;
-            const gradientClass = promo.gradient || 'from-slate-500 to-slate-600';
+          {filteredPromos
+            .filter((promo) => promo && promo.id && promo.title)
+            .map((promo) => {
+              const TypeIcon = getTypeIcon(promo.type);
+              const cardHref = promo.link || `/${locale}/guide/promos/${promo.id}`;
+              const gradientClass = promo.gradient || 'from-slate-500 to-slate-600';
 
             return (
               <Link

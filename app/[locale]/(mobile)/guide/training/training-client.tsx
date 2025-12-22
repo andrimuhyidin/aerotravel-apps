@@ -93,48 +93,59 @@ export function TrainingClient({ locale }: TrainingClientProps) {
           description="Modul training akan muncul di sini setelah tersedia"
         />
       ) : (
-        modules.map((module) => (
-          <Card key={module.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg">{module.title}</CardTitle>
-                  <p className="mt-1 text-sm text-slate-600">{module.description}</p>
-                </div>
-                {getStatusIcon(module.progress?.status)}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <Clock className="h-4 w-4" />
-                    <span>{module.duration_minutes} menit</span>
+        modules.map((module) => {
+          if (!module || !module.id) return null;
+          const moduleTitle = module.title || 'Training Module';
+          const moduleDescription = module.description || '';
+          const durationMinutes = module.duration_minutes ?? 0;
+          const progressStatus = module.progress?.status;
+          const progressPercent = module.progress?.progress_percent ?? 0;
+          
+          return (
+            <Card key={module.id} className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">{moduleTitle}</CardTitle>
+                    {moduleDescription && (
+                      <p className="mt-1 text-sm text-slate-600">{moduleDescription}</p>
+                    )}
                   </div>
-                  <span className="text-slate-500">
-                    {getStatusLabel(module.progress?.status)}
-                  </span>
+                  {getStatusIcon(progressStatus)}
                 </div>
-                {module.progress && module.progress.status === 'in_progress' && (
-                  <div>
-                    <Progress value={module.progress.progress_percent} className="h-2" />
-                    <div className="mt-1 text-xs text-slate-500">
-                      {Math.round(module.progress.progress_percent)}% selesai
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <Clock className="h-4 w-4" />
+                      <span>{durationMinutes} menit</span>
                     </div>
+                    <span className="text-slate-500">
+                      {getStatusLabel(progressStatus)}
+                    </span>
                   </div>
-                )}
-                <Link
-                  href={`/${locale}/guide/training/${module.id}`}
-                  className="block"
-                >
-                  <button className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
-                    {module.progress?.status === 'completed' ? 'Lihat Ulang' : 'Mulai Training'}
-                  </button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ))
+                  {progressStatus === 'in_progress' && (
+                    <div>
+                      <Progress value={progressPercent} className="h-2" />
+                      <div className="mt-1 text-xs text-slate-500">
+                        {Math.round(progressPercent)}% selesai
+                      </div>
+                    </div>
+                  )}
+                  <Link
+                    href={`/${locale}/guide/training/${module.id}`}
+                    className="block"
+                  >
+                    <button className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
+                      {progressStatus === 'completed' ? 'Lihat Ulang' : 'Mulai Training'}
+                    </button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })
       )}
     </div>
   );

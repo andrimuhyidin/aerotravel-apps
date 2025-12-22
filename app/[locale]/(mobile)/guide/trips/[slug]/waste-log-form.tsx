@@ -131,7 +131,11 @@ export function WasteLogForm({ tripId, locale: _locale, onSuccess }: WasteLogFor
       unit: string;
       disposal_method: string;
       notes?: string;
-      photos?: string[];
+      photos?: Array<{
+        photo_url: string;
+        photo_gps: { latitude: number; longitude: number; accuracy?: number } | null;
+        captured_at: string;
+      }>;
     }) => {
       const res = await fetch(`/api/guide/trips/${tripId}/waste-log`, {
         method: 'POST',
@@ -141,7 +145,12 @@ export function WasteLogForm({ tripId, locale: _locale, onSuccess }: WasteLogFor
 
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || 'Failed to create waste log');
+        // Display detailed validation errors if available
+        if (error.details && Array.isArray(error.details)) {
+          const errorMessages = error.details.map((e: { message: string }) => e.message).join(', ');
+          throw new Error(errorMessages || error.error || 'Gagal membuat waste log');
+        }
+        throw new Error(error.error || 'Gagal membuat waste log');
       }
 
       return res.json();
@@ -196,26 +205,45 @@ export function WasteLogForm({ tripId, locale: _locale, onSuccess }: WasteLogFor
     setUploading(true);
 
     try {
-      // Upload photos first
-      const photoUrls: string[] = [];
+      // Upload photos first and collect GPS data
+      const photosWithGPS: Array<{
+        photo_url: string;
+        photo_gps: { latitude: number; longitude: number; accuracy?: number } | null;
+        captured_at: string;
+      }> = [];
+      
       for (const photo of form.photos) {
         try {
-          const url = await uploadPhotoMutation.mutateAsync(photo);
-          photoUrls.push(url);
+          // Extract EXIF data from file
+          const exifData = await extractEXIFFromFile(photo);
+          
+          // Upload photo
+          const photoUrl = await uploadPhotoMutation.mutateAsync(photo);
+          
+          // Store photo with GPS data if available
+          photosWithGPS.push({
+            photo_url: photoUrl,
+            photo_gps: exifData?.latitude && exifData?.longitude ? {
+              latitude: exifData.latitude,
+              longitude: exifData.longitude,
+              accuracy: exifData.accuracy || undefined,
+            } : null,
+            captured_at: exifData?.timestamp || new Date().toISOString(),
+          });
         } catch (error) {
           logger.warn('Failed to upload photo', { error });
           toast.warning(`Gagal upload salah satu foto, melanjutkan...`);
         }
       }
 
-      // Create waste log
+      // Create waste log with photos and GPS data
       await createWasteLogMutation.mutateAsync({
         waste_type: form.waste_type,
         quantity,
         unit: form.unit,
         disposal_method: form.disposal_method,
         notes: form.notes || undefined,
-        photos: photoUrls.length > 0 ? photoUrls : undefined,
+        photos: photosWithGPS.length > 0 ? photosWithGPS : undefined,
       });
     } catch (error) {
       logger.error('Failed to submit waste log', error);
@@ -233,9 +261,9 @@ export function WasteLogForm({ tripId, locale: _locale, onSuccess }: WasteLogFor
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 pb-20 sm:pb-6">
       <div className="space-y-2">
-        <Label htmlFor="waste_type">
+        <Label htmlFor="waste_type" className="text-sm font-medium">
           Jenis Sampah <span className="text-red-500">*</span>
         </Label>
         <Select
@@ -244,43 +272,50 @@ export function WasteLogForm({ tripId, locale: _locale, onSuccess }: WasteLogFor
             setForm((prev) => ({ ...prev, waste_type: value as WasteLogFormData['waste_type'] }))
           }
         >
-          <SelectTrigger>
+          <SelectTrigger className="min-h-[44px] sm:min-h-[40px]">
             <SelectValue placeholder="Pilih jenis sampah" />
           </SelectTrigger>
           <SelectContent>
             {WASTE_TYPES.map((type) => (
               <SelectItem key={type.value} value={type.value}>
-                {type.label}
+                <div className="flex flex-col">
+                  <span>{type.label}</span>
+                  {type.description && (
+                    <span className="text-xs text-slate-500">{type.description}</span>
+                  )}
+                </div>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="quantity">
+          <Label htmlFor="quantity" className="text-sm font-medium">
             Jumlah <span className="text-red-500">*</span>
           </Label>
           <Input
             id="quantity"
             type="number"
+            inputMode="decimal"
             step="0.01"
             min="0"
             value={form.quantity}
             onChange={(e) => setForm((prev) => ({ ...prev, quantity: e.target.value }))}
             placeholder="0.00"
+            className="min-h-[44px] sm:min-h-[40px] text-base sm:text-sm"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="unit">Satuan</Label>
+          <Label htmlFor="unit" className="text-sm font-medium">Satuan</Label>
           <Select
             value={form.unit}
             onValueChange={(value) =>
               setForm((prev) => ({ ...prev, unit: value as 'kg' | 'pieces' }))
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className="min-h-[44px] sm:min-h-[40px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -292,7 +327,7 @@ export function WasteLogForm({ tripId, locale: _locale, onSuccess }: WasteLogFor
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="disposal_method">
+        <Label htmlFor="disposal_method" className="text-sm font-medium">
           Metode Pembuangan <span className="text-red-500">*</span>
         </Label>
         <Select
@@ -304,13 +339,18 @@ export function WasteLogForm({ tripId, locale: _locale, onSuccess }: WasteLogFor
             }))
           }
         >
-          <SelectTrigger>
+          <SelectTrigger className="min-h-[44px] sm:min-h-[40px]">
             <SelectValue placeholder="Pilih metode pembuangan" />
           </SelectTrigger>
           <SelectContent>
             {DISPOSAL_METHODS.map((method) => (
               <SelectItem key={method.value} value={method.value}>
-                {method.label}
+                <div className="flex flex-col">
+                  <span>{method.label}</span>
+                  {method.description && (
+                    <span className="text-xs text-slate-500">{method.description}</span>
+                  )}
+                </div>
               </SelectItem>
             ))}
           </SelectContent>
@@ -318,44 +358,54 @@ export function WasteLogForm({ tripId, locale: _locale, onSuccess }: WasteLogFor
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="notes">Catatan (Opsional)</Label>
+        <Label htmlFor="notes" className="text-sm font-medium">Catatan (Opsional)</Label>
         <Textarea
           id="notes"
           value={form.notes}
           onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
           placeholder="Tambahkan catatan jika diperlukan..."
           rows={3}
+          className="min-h-[88px] text-base sm:text-sm"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="photos">Foto Dokumentasi (Opsional)</Label>
-        <div className="space-y-2">
+        <Label htmlFor="photos" className="text-sm font-medium">Foto Dokumentasi (Opsional)</Label>
+        <div className="space-y-3">
+          <label
+            htmlFor="photos"
+            className="flex min-h-[44px] sm:min-h-[40px] cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-100 active:bg-slate-200"
+          >
+            <Camera className="mr-2 h-4 w-4" />
+            {form.photos.length > 0 ? `Ubah Foto (${form.photos.length})` : 'Pilih Foto'}
+          </label>
           <Input
             id="photos"
             type="file"
             accept="image/*"
+            capture="environment"
             multiple
             onChange={handlePhotoSelect}
-            className="cursor-pointer"
+            className="hidden"
           />
           {form.photos.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {form.photos.map((photo, index) => (
-                <div key={index} className="relative">
+                <div key={index} className="relative aspect-square">
                   <img
                     src={URL.createObjectURL(photo)}
                     alt={`Photo ${index + 1}`}
-                    className="h-20 w-20 rounded object-cover"
+                    className="h-full w-full rounded-lg object-cover"
                   />
                   <Button
                     type="button"
                     variant="destructive"
                     size="icon"
-                    className="absolute -right-2 -top-2 h-6 w-6"
+                    className="absolute -right-1 -top-1 h-7 w-7 rounded-full shadow-md"
                     onClick={() => handleRemovePhoto(index)}
+                    aria-label={`Hapus foto ${index + 1}`}
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               ))}
@@ -367,7 +417,7 @@ export function WasteLogForm({ tripId, locale: _locale, onSuccess }: WasteLogFor
       <Button
         type="submit"
         disabled={uploading || createWasteLogMutation.isPending}
-        className="w-full"
+        className="w-full min-h-[44px] sm:min-h-[40px] text-base sm:text-sm font-medium"
       >
         {uploading || createWasteLogMutation.isPending ? (
           <>

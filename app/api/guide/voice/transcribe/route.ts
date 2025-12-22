@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
 import { transcribeAudio, validateAudioFile } from '@/lib/ai/voice-transcription';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -27,6 +28,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const formData = await request.formData();
     const audioFile = formData.get('audio') as File | null;
     const languageCode = (formData.get('languageCode') as string) || 'id-ID';
+    const incidentId = formData.get('incidentId') as string | null;
 
     if (!audioFile) {
       return NextResponse.json({ error: 'Audio file is required' }, { status: 400 });
@@ -48,10 +50,66 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       fileSize: audioFile.size,
       mimeType: audioFile.type,
       languageCode,
+      incidentId,
     });
+
+    // Upload audio file to storage (optional, for audit)
+    let audioFileUrl: string | null = null;
+    try {
+      const branchContext = await getBranchContext(user.id);
+      const client = supabase as unknown as any;
+      
+      // Upload to Supabase Storage
+      const fileExt = audioFile.name.split('.').pop() || 'webm';
+      const fileName = `voice-logs/${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await client.storage
+        .from('guide-uploads')
+        .upload(fileName, audioBuffer, {
+          contentType: audioFile.type,
+          upsert: false,
+        });
+
+      if (!uploadError && uploadData) {
+        const { data: urlData } = client.storage
+          .from('guide-uploads')
+          .getPublicUrl(fileName);
+        audioFileUrl = urlData?.publicUrl || null;
+      }
+    } catch (uploadErr) {
+      logger.warn('Failed to upload audio file for audit', { 
+        error: uploadErr instanceof Error ? uploadErr.message : String(uploadErr),
+        guideId: user.id 
+      });
+      // Continue without file URL
+    }
 
     // Transcribe audio
     const result = await transcribeAudio(audioBuffer, audioFile.type, languageCode);
+
+    // Log transcription to audit table
+    try {
+      const branchContext = await getBranchContext(user.id);
+      const client = supabase as unknown as any;
+
+      await withBranchFilter(
+        client.from('incident_voice_logs'),
+        branchContext,
+      ).insert({
+        incident_id: incidentId || null,
+        guide_id: user.id,
+        branch_id: branchContext.branchId,
+        audio_file_url: audioFileUrl,
+        transcript: result.text,
+        confidence_score: result.confidence,
+        language: result.language,
+        duration_seconds: Math.round(result.duration),
+        transcription_method: 'google_speech',
+      } as never);
+    } catch (logError) {
+      logger.error('Failed to log voice transcription', logError, { guideId: user.id });
+      // Don't fail the request if logging fails
+    }
 
     logger.info('Audio transcription completed', {
       guideId: user.id,

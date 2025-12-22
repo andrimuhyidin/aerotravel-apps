@@ -154,7 +154,7 @@ export function TripChatClient({ locale: _locale, tripId }: TripChatClientProps)
   });
 
   // Flatten messages from all pages (oldest to newest for display)
-  const messages = data?.pages.flatMap((page) => page.messages) || [];
+  const messages = data?.pages?.flatMap((page) => Array.isArray(page?.messages) ? page.messages : []) || [];
 
   // Set up Supabase Realtime subscription for new messages
   useEffect(() => {
@@ -536,18 +536,53 @@ export function TripChatClient({ locale: _locale, tripId }: TripChatClientProps)
               />
             ) : (
               messages.map((msg, index) => {
-                const isGuide = msg.senderRole === 'guide';
-                const isOps = msg.senderRole === 'ops' || msg.senderRole === 'admin';
+                // Skip invalid messages
+                if (!msg || !msg.id || !msg.senderId || !msg.messageText || !msg.createdAt) {
+                  return null;
+                }
+                
+                // Ensure all required properties exist with defaults
+                const messageId = msg.id;
+                const senderId = msg.senderId;
+                const messageText = msg.messageText ?? '';
+                const createdAt = msg.createdAt;
+                const senderRole = msg.senderRole ?? 'guide';
+                const senderName = msg.senderName ?? 'Unknown';
+                const senderAvatar = msg.senderAvatar;
+                const attachmentUrl = msg.attachmentUrl;
+                const attachmentType = msg.attachmentType;
+                const attachmentFilename = msg.attachmentFilename;
+                const isPending = msg.isPending ?? false;
+                
+                const isGuide = senderRole === 'guide';
+                const isOps = senderRole === 'ops' || senderRole === 'admin';
                 
                 // Group consecutive messages from same sender
-                const prevMsg = index > 0 ? messages[index - 1] : null;
-                const isSameSender = prevMsg?.senderId === msg.senderId;
+                const prevMsg = index > 0 && messages[index - 1] ? messages[index - 1] : null;
+                const isSameSender = prevMsg?.senderId === senderId;
                 const showAvatar = !isSameSender;
                 const showName = !isSameSender;
                 
-                // Format timestamp
-                const msgDate = new Date(msg.createdAt);
-                const prevDate = prevMsg ? new Date(prevMsg.createdAt) : null;
+                // Format timestamp with error handling
+                let msgDate: Date;
+                try {
+                  msgDate = new Date(createdAt);
+                  if (isNaN(msgDate.getTime())) {
+                    msgDate = new Date(); // Fallback to current date if invalid
+                  }
+                } catch {
+                  msgDate = new Date(); // Fallback to current date if error
+                }
+                
+                const prevDate = prevMsg && prevMsg.createdAt ? (() => {
+                  try {
+                    const d = new Date(prevMsg.createdAt);
+                    return isNaN(d.getTime()) ? null : d;
+                  } catch {
+                    return null;
+                  }
+                })() : null;
+                
                 const showDateSeparator = !prevDate || 
                   msgDate.toDateString() !== prevDate.toDateString();
                 
@@ -562,7 +597,7 @@ export function TripChatClient({ locale: _locale, tripId }: TripChatClientProps)
                 });
 
                 return (
-                  <div key={msg.id} className="space-y-2">
+                  <div key={messageId} className="space-y-2">
                     {/* Date Separator */}
                     {showDateSeparator && (
                       <div className="flex items-center justify-center py-2">
@@ -582,14 +617,22 @@ export function TripChatClient({ locale: _locale, tripId }: TripChatClientProps)
                       {/* Avatar - only show if different sender */}
                       {showAvatar && (
                         <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold text-white shadow-sm">
-                          {msg.senderAvatar ? (
+                          {senderAvatar ? (
                             <img
-                              src={msg.senderAvatar}
-                              alt={msg.senderName}
+                              src={senderAvatar}
+                              alt={senderName}
                               className="h-full w-full rounded-full object-cover"
+                              onError={(e) => {
+                                // Fallback to initial if image fails to load
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                if (target.parentElement) {
+                                  target.parentElement.textContent = senderName.charAt(0).toUpperCase();
+                                }
+                              }}
                             />
                           ) : (
-                            msg.senderName.charAt(0).toUpperCase()
+                            senderName.charAt(0).toUpperCase()
                           )}
                         </div>
                       )}
@@ -603,7 +646,7 @@ export function TripChatClient({ locale: _locale, tripId }: TripChatClientProps)
                         {showName && (
                           <div className="mb-1 flex items-center gap-2 px-1">
                             <span className="text-xs font-semibold text-slate-700">
-                              {isGuide ? 'Anda' : msg.senderName}
+                              {isGuide ? 'Anda' : senderName}
                             </span>
                             {isOps && (
                               <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
@@ -620,11 +663,11 @@ export function TripChatClient({ locale: _locale, tripId }: TripChatClientProps)
                             isGuide
                               ? 'bg-emerald-500 text-white rounded-br-sm'
                               : 'bg-white text-slate-900 border border-slate-200 rounded-bl-sm',
-                            msg.isPending && 'opacity-60',
+                            isPending && 'opacity-60',
                           )}
                         >
-                          <p className="whitespace-pre-wrap break-words">{msg.messageText}</p>
-                          {msg.isPending && (
+                          <p className="whitespace-pre-wrap break-words">{messageText}</p>
+                          {isPending && (
                             <span className="mt-1 block text-xs opacity-75">
                               Menunggu koneksi...
                             </span>
@@ -648,6 +691,11 @@ export function TripChatClient({ locale: _locale, tripId }: TripChatClientProps)
                                   src={msg.attachmentUrl}
                                   alt={msg.attachmentFilename || 'Attachment'}
                                   className="max-h-64 w-full object-cover"
+                                  onError={(e) => {
+                                    // Hide image if it fails to load
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
                                 />
                               </a>
                             ) : (

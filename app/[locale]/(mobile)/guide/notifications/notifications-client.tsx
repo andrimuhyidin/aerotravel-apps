@@ -215,8 +215,12 @@ export function NotificationsClient({ locale: _locale }: NotificationsClientProp
   const notifications = data?.notifications ?? [];
   const unreadCount = data?.unreadCount ?? 0;
 
+  // Filter out invalid notifications
+  const validNotifications = notifications.filter((n) => n && n.id && n.type);
+
   // Filter notifications by type
-  const filteredNotifications = notifications.filter((n) => {
+  const filteredNotifications = validNotifications.filter((n) => {
+    if (!n || !n.type) return false;
     if (filter === 'all') return true;
     if (filter === 'system') return n.type === 'system';
     if (filter === 'broadcast') return n.type === 'broadcast';
@@ -224,8 +228,8 @@ export function NotificationsClient({ locale: _locale }: NotificationsClientProp
   });
 
   // Count by type
-  const systemCount = notifications.filter((n) => n.type === 'system').length;
-  const broadcastCount = notifications.filter((n) => n.type === 'broadcast').length;
+  const systemCount = validNotifications.filter((n) => n.type === 'system').length;
+  const broadcastCount = validNotifications.filter((n) => n.type === 'broadcast').length;
   
   // Get unread counts by type from API response
   const unreadCounts = data?.unreadCountByType || {
@@ -336,9 +340,9 @@ export function NotificationsClient({ locale: _locale }: NotificationsClientProp
           onClick={() => setFilter('all')}
         >
           Semua
-          {notifications.length > 0 && (
+          {validNotifications.length > 0 && (
             <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 px-1.5 text-xs">
-              {notifications.length}
+              {validNotifications.length}
             </Badge>
           )}
         </Button>
@@ -402,11 +406,14 @@ export function NotificationsClient({ locale: _locale }: NotificationsClientProp
       {/* Notifications list - Enhanced Design */}
       <div className="space-y-3">
         {filteredNotifications.map((notification) => {
+          if (!notification || !notification.id) return null;
           if (notification.type === 'system') {
             const n = notification as SystemNotification;
+            if (!n.channel) return null;
             const Icon = getChannelIcon(n.channel);
             const iconColor = getChannelColor(n.channel);
             const isRead = n.status === 'read' || n.readAt;
+            const createdAt = n.createdAt || new Date().toISOString();
 
             return (
               <Card
@@ -458,7 +465,7 @@ export function NotificationsClient({ locale: _locale }: NotificationsClientProp
                       {/* Meta info - Enhanced */}
                       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">
-                          {formatDate(n.createdAt)}
+                          {formatDate(createdAt)}
                         </span>
                         <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium capitalize text-slate-700">
                           {n.channel}
@@ -482,9 +489,11 @@ export function NotificationsClient({ locale: _locale }: NotificationsClientProp
             );
           } else if (notification.type === 'broadcast') {
             const b = notification as BroadcastNotification;
-            const Icon = BROADCAST_ICONS[b.broadcastType];
-            const bgColor = BROADCAST_COLORS[b.broadcastType];
-            const broadcastLabel = BROADCAST_LABELS[b.broadcastType];
+            if (!b.broadcastType || !b.title) return null;
+            const Icon = BROADCAST_ICONS[b.broadcastType] || BROADCAST_ICONS.general_announcement;
+            const bgColor = BROADCAST_COLORS[b.broadcastType] || BROADCAST_COLORS.general_announcement;
+            const broadcastLabel = BROADCAST_LABELS[b.broadcastType] || BROADCAST_LABELS.general_announcement;
+            const createdAt = b.createdAt || new Date().toISOString();
 
             return (
               <Card
@@ -540,23 +549,32 @@ export function NotificationsClient({ locale: _locale }: NotificationsClientProp
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
-                    {b.message}
-                  </p>
-                  {b.expiresAt && (
-                    <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-2">
-                      <Clock className="h-3.5 w-3.5 text-amber-600" />
-                      <p className="text-xs font-medium text-amber-700">
-                        Berlaku hingga:{' '}
-                        {new Date(b.expiresAt).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
+                  {b.message && (
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                      {b.message}
+                    </p>
                   )}
+                  {b.expiresAt && (() => {
+                    let expiresDateStr = '';
+                    try {
+                      expiresDateStr = new Date(b.expiresAt).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      });
+                    } catch {
+                      expiresDateStr = 'Tanggal tidak valid';
+                    }
+                    return (
+                      <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-2">
+                        <Clock className="h-3.5 w-3.5 text-amber-600" />
+                        <p className="text-xs font-medium text-amber-700">
+                          Berlaku hingga: {expiresDateStr}
+                        </p>
+                      </div>
+                    );
+                  })()}
                   {b.isRead && (
                     <div className="mt-3 flex items-center justify-end gap-1 text-xs text-emerald-600">
                       <CheckCircle className="h-3 w-3" />

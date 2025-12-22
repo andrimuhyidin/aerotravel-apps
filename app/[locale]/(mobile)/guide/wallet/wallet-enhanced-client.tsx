@@ -19,6 +19,7 @@ import {
     Edit,
     Lightbulb,
     Plus,
+    QrCode,
     Receipt,
     Search,
     Target,
@@ -26,12 +27,15 @@ import {
     TrendingDown,
     TrendingUp,
     Wallet,
+    X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { QRCode } from '@/components/qr-code/qr-code';
+import { Loader2 } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
@@ -156,6 +160,11 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [selectedBankAccount, setSelectedBankAccount] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+  const [qrisDialogOpen, setQrisDialogOpen] = useState(false);
+  const [qrisCode, setQrisCode] = useState<string | null>(null);
+  const [qrisUrl, setQrisUrl] = useState<string | null>(null);
+  const [qrisLoading, setQrisLoading] = useState(false);
+  const [qrisAmount, setQrisAmount] = useState<string>('');
   const [message, setMessage] = useState<string | null>(null);
   const [transactionFilter, setTransactionFilter] = useState<string>('all');
   const [transactionSearch, setTransactionSearch] = useState('');
@@ -527,7 +536,7 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
       {/* Balance Card */}
       <Card className="border-0 bg-emerald-600 text-white shadow-sm">
         <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-xs opacity-80">Saldo Dompet</p>
               <p className="text-2xl font-bold">
@@ -537,6 +546,17 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-700/60">
               <Wallet className="h-6 w-6" />
             </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setQrisDialogOpen(true)}
+              className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              <QrCode className="h-4 w-4 mr-2" />
+              QRIS Tips
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -589,7 +609,7 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
       {activeTab === 'overview' && (
         <div className="space-y-4">
           {/* Earnings Summary */}
-          {analyticsData && (
+          {analyticsData && analyticsData.today && analyticsData.thisWeek && analyticsData.thisMonth && (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -602,10 +622,10 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                   <div>
                     <p className="text-xs text-slate-500">Hari Ini</p>
                     <p className="font-semibold">
-                      Rp {analyticsData.today.amount.toLocaleString('id-ID')}
+                      Rp {(analyticsData.today.amount ?? 0).toLocaleString('id-ID')}
                     </p>
                   </div>
-                  {analyticsData.today.growth !== 0 && (
+                  {analyticsData.today.growth !== undefined && analyticsData.today.growth !== 0 && (
                     <div className={`flex items-center gap-1 ${analyticsData.today.growth > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       {analyticsData.today.growth > 0 ? (
                         <TrendingUp className="h-4 w-4" />
@@ -623,10 +643,10 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                   <div>
                     <p className="text-xs text-slate-500">Minggu Ini</p>
                     <p className="font-semibold">
-                      Rp {analyticsData.thisWeek.amount.toLocaleString('id-ID')}
+                      Rp {(analyticsData.thisWeek.amount ?? 0).toLocaleString('id-ID')}
                     </p>
                   </div>
-                  {analyticsData.thisWeek.growth !== 0 && (
+                  {analyticsData.thisWeek.growth !== undefined && analyticsData.thisWeek.growth !== 0 && (
                     <div className={`flex items-center gap-1 ${analyticsData.thisWeek.growth > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       {analyticsData.thisWeek.growth > 0 ? (
                         <TrendingUp className="h-4 w-4" />
@@ -644,10 +664,10 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                   <div>
                     <p className="text-xs text-slate-500">Bulan Ini</p>
                     <p className="font-semibold">
-                      Rp {analyticsData.thisMonth.amount.toLocaleString('id-ID')}
+                      Rp {(analyticsData.thisMonth.amount ?? 0).toLocaleString('id-ID')}
                     </p>
                   </div>
-                  {analyticsData.thisMonth.growth !== 0 && (
+                  {analyticsData.thisMonth.growth !== undefined && analyticsData.thisMonth.growth !== 0 && (
                     <div className={`flex items-center gap-1 ${analyticsData.thisMonth.growth > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       {analyticsData.thisMonth.growth > 0 ? (
                         <TrendingUp className="h-4 w-4" />
@@ -666,7 +686,7 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
           )}
 
           {/* Pending Earnings */}
-          {pendingData && pendingData.total > 0 && (
+          {pendingData && pendingData.total !== undefined && pendingData.total > 0 && (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -676,22 +696,25 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
               </CardHeader>
               <CardContent className="space-y-2 text-xs">
                 <p className="text-slate-600 font-medium">
-                  Total: Rp {pendingData.total.toLocaleString('id-ID')}
+                  Total: Rp {(pendingData.total ?? 0).toLocaleString('id-ID')}
                 </p>
-                {pendingData.pending.slice(0, 3).map((p) => (
-                  <div
-                    key={p.tripId}
-                    className="flex items-center justify-between rounded-lg bg-slate-50 p-2"
-                  >
-                    <div>
-                      <p className="font-medium">{p.tripCode}</p>
-                      <p className="text-[11px] text-slate-500">{p.tripDate}</p>
+                {pendingData.pending && Array.isArray(pendingData.pending) && pendingData.pending.slice(0, 3).map((p) => {
+                  if (!p || !p.tripId) return null;
+                  return (
+                    <div
+                      key={p.tripId}
+                      className="flex items-center justify-between rounded-lg bg-slate-50 p-2"
+                    >
+                      <div>
+                        <p className="font-medium">{p.tripCode ?? p.tripId}</p>
+                        <p className="text-[11px] text-slate-500">{p.tripDate ?? '-'}</p>
+                      </div>
+                      <p className="font-semibold text-emerald-600">
+                        +Rp {(p.amount ?? 0).toLocaleString('id-ID')}
+                      </p>
                     </div>
-                    <p className="font-semibold text-emerald-600">
-                      +Rp {p.amount.toLocaleString('id-ID')}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
           )}
@@ -1272,6 +1295,117 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
           )}
         </div>
       )}
+
+      {/* QRIS Dialog */}
+      <Dialog open={qrisDialogOpen} onOpenChange={setQrisDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              Generate QRIS untuk Tips
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {!qrisCode ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Jumlah Tips (Opsional)</Label>
+                  <Input
+                    type="text"
+                    placeholder="Contoh: 50000"
+                    value={qrisAmount}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      setQrisAmount(value);
+                    }}
+                  />
+                  <p className="text-xs text-slate-500">
+                    Kosongkan untuk menggunakan preset (Rp 50.000). Tamu bisa ubah saat scan.
+                  </p>
+                </div>
+                <Button
+                  onClick={async () => {
+                    setQrisLoading(true);
+                    try {
+                      const amount = qrisAmount ? Number(qrisAmount) : undefined;
+                      const res = await fetch('/api/guide/wallet/qris', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ amount }),
+                      });
+                      if (!res.ok) {
+                        const error = (await res.json()) as { error?: string };
+                        throw new Error(error.error || 'Gagal membuat QRIS');
+                      }
+                      const data = (await res.json()) as {
+                        qris_code: string;
+                        qris_url: string;
+                        expires_at: string;
+                      };
+                      setQrisCode(data.qris_code || data.qris_url);
+                      setQrisUrl(data.qris_url);
+                      setMessage('QRIS berhasil dibuat. Scan dengan aplikasi pembayaran Anda.');
+                    } catch (error) {
+                      setMessage(error instanceof Error ? error.message : 'Gagal membuat QRIS');
+                    } finally {
+                      setQrisLoading(false);
+                    }
+                  }}
+                  disabled={qrisLoading}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {qrisLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Membuat QRIS...
+                    </>
+                  ) : (
+                    <>
+                      <QrCode className="mr-2 h-4 w-4" />
+                      Generate QRIS
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-center">
+                  <QRCode
+                    value={qrisCode}
+                    size={250}
+                    title="Scan untuk Memberikan Tips"
+                    description="Gunakan aplikasi pembayaran (GoPay, OVO, DANA, dll) untuk scan QR code ini"
+                  />
+                </div>
+                {qrisUrl && (
+                  <div className="text-center">
+                    <p className="text-xs text-slate-600 mb-2">Atau buka link berikut:</p>
+                    <a
+                      href={qrisUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-emerald-600 hover:underline break-all"
+                    >
+                      {qrisUrl}
+                    </a>
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setQrisCode(null);
+                    setQrisUrl(null);
+                    setQrisAmount('');
+                  }}
+                  className="w-full"
+                >
+                  Buat QRIS Baru
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

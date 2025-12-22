@@ -15,11 +15,21 @@ import { logger } from '@/lib/utils/logger';
 
 const wasteLogSchema = z.object({
   waste_type: z.enum(['plastic', 'organic', 'glass', 'hazmat']),
-  quantity: z.number().positive(),
+  quantity: z.number()
+    .positive({ message: 'Jumlah harus lebih dari 0' })
+    .max(100000, { message: 'Jumlah terlalu besar (max 100,000)' }),
   unit: z.enum(['kg', 'pieces']),
   disposal_method: z.enum(['landfill', 'recycling', 'incineration', 'ocean']),
-  notes: z.string().optional(),
-  photos: z.array(z.string().url()).optional(), // Photo URLs (uploaded separately)
+  notes: z.string().max(1000, { message: 'Catatan terlalu panjang (max 1000 karakter)' }).optional(),
+  photos: z.array(z.object({
+    photo_url: z.string().url({ message: 'URL foto tidak valid' }),
+    photo_gps: z.object({
+      latitude: z.number().min(-90).max(90),
+      longitude: z.number().min(-180).max(180),
+      accuracy: z.number().positive().optional(),
+    }).nullable().optional(),
+    captured_at: z.string().datetime().optional(),
+  })).max(10, { message: 'Maksimal 10 foto' }).optional(),
 });
 
 export const GET = withErrorHandler(async (
@@ -58,6 +68,7 @@ export const GET = withErrorHandler(async (
   )
     .select(`
       *,
+      logged_by_user:users!logged_by(id, full_name, email),
       photos:waste_log_photos(*)
     `)
     .eq('trip_id', tripId)
@@ -68,7 +79,82 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Failed to fetch waste logs' }, { status: 500 });
   }
 
-  return NextResponse.json({ waste_logs: wasteLogs || [] });
+  // Fetch lookup data separately (since they're not foreign keys)
+  const wasteTypeValues = [...new Set((wasteLogs || []).map((log: any) => log.waste_type))];
+  const disposalMethodValues = [...new Set((wasteLogs || []).map((log: any) => log.disposal_method))];
+
+  // Fetch waste types lookup
+  const { data: wasteTypesLookup } = wasteTypeValues.length > 0
+    ? await client
+        .from('waste_types_lookup')
+        .select('value, label_id, label_en, description')
+        .in('value', wasteTypeValues)
+        .eq('is_active', true)
+    : { data: [] };
+
+  // Fetch disposal methods lookup
+  const { data: disposalMethodsLookup } = disposalMethodValues.length > 0
+    ? await client
+        .from('disposal_methods_lookup')
+        .select('value, label_id, label_en, description')
+        .in('value', disposalMethodValues)
+        .eq('is_active', true)
+    : { data: [] };
+
+  // Create lookup maps
+  const wasteTypeMap = (wasteTypesLookup || []).reduce(
+    (acc: Record<string, any>, item: any) => {
+      acc[item.value] = item;
+      return acc;
+    },
+    {} as Record<string, any>,
+  );
+
+  const disposalMethodMap = (disposalMethodsLookup || []).reduce(
+    (acc: Record<string, any>, item: any) => {
+      acc[item.value] = item;
+      return acc;
+    },
+    {} as Record<string, any>,
+  );
+
+  // Transform response to include computed fields and labels
+  const enrichedLogs = (wasteLogs || []).map((log: any) => {
+    // Calculate quantity_kg (convert pieces to kg if needed, using average weight estimates)
+    let quantity_kg = log.quantity;
+    if (log.unit === 'pieces') {
+      // Average weight estimates per piece (can be configured later)
+      const pieceWeights: Record<string, number> = {
+        plastic: 0.02, // ~20g per plastic piece
+        organic: 0.1,  // ~100g per organic piece
+        glass: 0.3,    // ~300g per glass piece
+        hazmat: 0.05,  // ~50g per hazmat piece
+      };
+      const weightPerPiece = pieceWeights[log.waste_type] || 0.02;
+      quantity_kg = Number((log.quantity * weightPerPiece).toFixed(2));
+    }
+
+    const wasteTypeLookup = wasteTypeMap[log.waste_type];
+    const disposalMethodLookup = disposalMethodMap[log.disposal_method];
+
+    return {
+      ...log,
+      quantity_kg,
+      waste_type_label: wasteTypeLookup?.label_id || log.waste_type,
+      waste_type_description: wasteTypeLookup?.description || null,
+      disposal_method_label: disposalMethodLookup?.label_id || log.disposal_method,
+      disposal_method_description: disposalMethodLookup?.description || null,
+      logged_by: log.logged_by_user ? {
+        id: log.logged_by_user.id,
+        name: log.logged_by_user.full_name || 'Unknown',
+        email: log.logged_by_user.email || null,
+      } : null,
+      // Clean up nested objects
+      logged_by_user: undefined,
+    };
+  });
+
+  return NextResponse.json({ waste_logs: enrichedLogs });
 });
 
 export const POST = withErrorHandler(async (
@@ -77,7 +163,21 @@ export const POST = withErrorHandler(async (
 ) => {
   const supabase = await createClient();
   const { id: tripId } = await params;
-  const payload = wasteLogSchema.parse(await request.json());
+  
+  let payload;
+  try {
+    payload = wasteLogSchema.parse(await request.json());
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const firstError = error.issues[0];
+      logger.warn('Waste log validation failed', { issues: error.issues, tripId });
+      return NextResponse.json(
+        { error: firstError?.message || 'Data tidak valid', details: error.issues },
+        { status: 400 }
+      );
+    }
+    throw error;
+  }
 
   const {
     data: { user },
@@ -130,13 +230,17 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Failed to create waste log' }, { status: 500 });
   }
 
-  // If photos provided, create photo records
+  // If photos provided, create photo records with GPS data
   if (payload.photos && payload.photos.length > 0) {
-    const photoInserts = payload.photos.map((photoUrl) => ({
+    const photoInserts = payload.photos.map((photo) => ({
       waste_log_id: wasteLog.id,
-      photo_url: photoUrl,
-      photo_gps: null, // Will be extracted from photo upload API
-      captured_at: new Date().toISOString(),
+      photo_url: photo.photo_url,
+      photo_gps: photo.photo_gps ? {
+        latitude: photo.photo_gps.latitude,
+        longitude: photo.photo_gps.longitude,
+        accuracy: photo.photo_gps.accuracy || null,
+      } : null,
+      captured_at: photo.captured_at || new Date().toISOString(),
     }));
 
     const { error: photosError } = await client

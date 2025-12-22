@@ -147,10 +147,13 @@ export function TripsClient({ locale }: TripsClientProps) {
   });
 
   const trips = data?.trips ?? [];
+  
+  // Filter out invalid trips
+  const validTrips = trips.filter((t: TripItem) => t && t.id && t.code && t.date);
 
   // Filter by date
   const dateFilteredTrips = useMemo(() => {
-    if (dateFilter === 'all') return trips;
+    if (dateFilter === 'all') return validTrips;
 
     const now = new Date();
     let startDate: Date;
@@ -176,15 +179,20 @@ export function TripsClient({ locale }: TripsClientProps) {
       endDate = new Date(year, month, 0, 23, 59, 59);
     }
 
-    return trips.filter((trip) => {
-      const tripDate = new Date(trip.date);
-      return tripDate >= startDate && tripDate <= endDate;
+    return validTrips.filter((trip: TripItem) => {
+      if (!trip || !trip.date) return false;
+      try {
+        const tripDate = new Date(trip.date);
+        return tripDate >= startDate && tripDate <= endDate;
+      } catch {
+        return false;
+      }
     });
-  }, [trips, dateFilter]);
-
+  }, [validTrips, dateFilter]);
+  
   // Separate pending confirmation trips
-  const pendingTrips = dateFilteredTrips.filter((t) => t.assignment_status === 'pending_confirmation');
-  const otherTrips = dateFilteredTrips.filter((t) => t.assignment_status !== 'pending_confirmation');
+  const pendingTrips = dateFilteredTrips.filter((t: TripItem) => t.assignment_status === 'pending_confirmation');
+  const otherTrips = dateFilteredTrips.filter((t: TripItem) => t.assignment_status !== 'pending_confirmation');
 
   // Filter by status
   const filteredTrips =
@@ -237,7 +245,7 @@ export function TripsClient({ locale }: TripsClientProps) {
     );
   }
 
-  if (trips.length === 0) {
+  if (validTrips.length === 0) {
     return (
       <Card className="border-0 shadow-sm">
         <CardContent>
@@ -329,8 +337,18 @@ export function TripsClient({ locale }: TripsClientProps) {
       ) : (
         <div className="space-y-3">
           {filteredTrips.map((trip) => {
-            const status = getStatusLabel(trip.status);
-            const tripDate = new Date(trip.date);
+            if (!trip || !trip.id || !trip.date) return null;
+            const tripStatus = trip.status || 'upcoming';
+            const status = getStatusLabel(tripStatus);
+            let tripDate: Date;
+            try {
+              tripDate = new Date(trip.date);
+              if (isNaN(tripDate.getTime())) {
+                tripDate = new Date();
+              }
+            } catch {
+              tripDate = new Date();
+            }
             const day = tripDate.getDate().toString().padStart(2, '0');
             const month = tripDate.toLocaleDateString('id-ID', { month: 'short' });
             const formattedDate = tripDate.toLocaleDateString('id-ID', {
@@ -338,6 +356,9 @@ export function TripsClient({ locale }: TripsClientProps) {
               month: 'long',
               year: 'numeric',
             });
+            const tripName = trip.name || trip.code || 'Trip';
+            const tripCode = trip.code || trip.id;
+            const tripGuests = trip.guests ?? 0;
 
             return (
               <Card
@@ -360,9 +381,9 @@ export function TripsClient({ locale }: TripsClientProps) {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <h3 className="truncate text-base font-bold leading-tight text-slate-900 group-hover:text-emerald-700 transition-colors">
-                            {trip.name}
+                            {tripName}
                           </h3>
-                          <p className="mt-1 text-xs font-medium text-slate-500">Kode: {trip.code}</p>
+                          <p className="mt-1 text-xs font-medium text-slate-500">Kode: {tripCode}</p>
                         </div>
                         <div className="flex flex-col items-end gap-1.5">
                           {trip.assignment_status === 'pending_confirmation' && (

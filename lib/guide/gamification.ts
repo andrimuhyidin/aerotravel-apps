@@ -39,7 +39,7 @@ export function calculateLevel(totalTrips: number): GuideLevel {
 /**
  * Get level display info
  */
-export function getLevelInfo(level: GuideLevel) {
+export function getLevelInfo(level: GuideLevel | undefined | null) {
   const levels = {
     bronze: {
       name: 'Bronze',
@@ -77,6 +77,11 @@ export function getLevelInfo(level: GuideLevel) {
       maxTrips: Infinity,
     },
   };
+
+  // Default to bronze if level is invalid or undefined
+  if (!level || !(level in levels)) {
+    return levels.bronze;
+  }
 
   return levels[level];
 }

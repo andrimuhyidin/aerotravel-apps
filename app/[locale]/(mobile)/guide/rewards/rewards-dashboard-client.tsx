@@ -80,11 +80,11 @@ export function RewardsDashboardClient({ locale }: RewardsDashboardClientProps) 
     );
   }
 
-  const balance = pointsData?.balance || 0;
-  const lifetimeEarned = pointsData?.lifetimeEarned || 0;
-  const lifetimeRedeemed = pointsData?.lifetimeRedeemed || 0;
-  const expiringSoon = pointsData?.expiringSoon?.total || 0;
-  const transactions = transactionsData?.transactions || [];
+  const balance = pointsData?.balance ?? 0;
+  const lifetimeEarned = pointsData?.lifetimeEarned ?? 0;
+  const lifetimeRedeemed = pointsData?.lifetimeRedeemed ?? 0;
+  const expiringSoon = pointsData?.expiringSoon?.total ?? 0;
+  const transactions = transactionsData?.transactions ?? [];
 
   return (
     <Container className="py-4">
@@ -234,7 +234,7 @@ export function RewardsDashboardClient({ locale }: RewardsDashboardClientProps) 
                             : transaction.transaction_type === 'expire'
                               ? '-'
                               : '-'}
-                          {Math.abs(transaction.points).toLocaleString('id-ID')}
+                          {Math.abs(transaction.points ?? 0).toLocaleString('id-ID')}
                         </p>
                         <p className="mt-1 text-xs text-slate-500">poin</p>
                       </div>

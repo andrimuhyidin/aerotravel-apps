@@ -32,9 +32,9 @@ import {
     Users,
     Wallet
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
@@ -186,10 +186,10 @@ type GuideProfileClientProps = {
   locale: string;
   user: {
     id: string;
-    name: string;
-    email: string;
-    phone: string;
-    avatar: string;
+    name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    avatar?: string | null;
   };
 };
 
@@ -258,9 +258,10 @@ export function GuideProfileClient({ locale, user }: GuideProfileClientProps) {
     queryFn: async () => {
       const res = await fetch('/api/guide/training/modules');
       if (!res.ok) return null;
-      const data = (await res.json()) as { modules: Array<{ progress?: { status: string } }> };
-      return data.modules.filter(
-        (m) => m.progress?.status === 'in_progress' || !m.progress || m.progress.status === 'not_started'
+      const responseData = (await res.json()) as { data?: { modules?: Array<{ progress?: { status?: string } }> }; modules?: Array<{ progress?: { status?: string } }> };
+      const modules = responseData.data?.modules ?? responseData.modules ?? [];
+      return modules.filter(
+        (m) => m?.progress?.status === 'in_progress' || !m?.progress || m.progress.status === 'not_started'
       );
     },
     staleTime: 60000,
@@ -274,18 +275,23 @@ export function GuideProfileClient({ locale, user }: GuideProfileClientProps) {
     router.refresh();
   };
 
-  const formatJoinDate = (dateString?: string) => {
+  const formatJoinDate = (dateString?: string | null) => {
     if (!dateString) return null;
-    const date = new Date(dateString);
-    const now = new Date();
-    const years = now.getFullYear() - date.getFullYear();
-    const months = now.getMonth() - date.getMonth();
-    const totalMonths = years * 12 + months;
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return null;
+      const now = new Date();
+      const years = now.getFullYear() - date.getFullYear();
+      const months = now.getMonth() - date.getMonth();
+      const totalMonths = years * 12 + months;
 
-    if (totalMonths >= 12) {
-      return `${Math.floor(totalMonths / 12)} ${Math.floor(totalMonths / 12) === 1 ? 'Tahun' : 'Tahun'}`;
+      if (totalMonths >= 12) {
+        return `${Math.floor(totalMonths / 12)} ${Math.floor(totalMonths / 12) === 1 ? 'Tahun' : 'Tahun'}`;
+      }
+      return `${totalMonths} ${totalMonths === 1 ? 'Bulan' : 'Bulan'}`;
+    } catch {
+      return null;
     }
-    return `${totalMonths} ${totalMonths === 1 ? 'Bulan' : 'Bulan'}`;
   };
 
   const displayRating = stats?.averageRating ? stats.averageRating.toFixed(1) : '0.0';
@@ -302,10 +308,10 @@ export function GuideProfileClient({ locale, user }: GuideProfileClientProps) {
             {/* Avatar - Larger, more prominent */}
             <div className="relative flex-shrink-0">
               <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-emerald-100 via-emerald-200 to-emerald-300 ring-4 ring-emerald-500/10 shadow-sm">
-                {user.avatar ? (
+                {user?.avatar ? (
                   <img
                     src={user.avatar}
-                    alt={user.name}
+                    alt={user?.name ?? 'User'}
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -318,16 +324,16 @@ export function GuideProfileClient({ locale, user }: GuideProfileClientProps) {
 
             {/* User Details - Better spacing */}
             <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-bold leading-tight text-slate-900">{user.name}</h1>
+              <h1 className="text-2xl font-bold leading-tight text-slate-900">{user?.name ?? 'User'}</h1>
               <div className="mt-1.5 space-y-1">
                 <div className="flex items-center gap-1.5 text-sm text-slate-600">
                   <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                   <span className="font-medium">Tour Guide</span>
                 </div>
-                {user.email && (
+                {user?.email && (
                   <p className="text-sm text-slate-500 truncate">{user.email}</p>
                 )}
-                {user.phone && (
+                {user?.phone && (
                   <div className="flex items-center gap-1.5 text-sm text-slate-500">
                     <Phone className="h-3.5 w-3.5" />
                     <span>{user.phone}</span>

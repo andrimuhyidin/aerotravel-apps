@@ -5,12 +5,14 @@
  * Form untuk melaporkan kejadian insiden
  */
 
-import { AlertCircle, Bot, Camera, FileText, Loader2, Save, Sparkles, X } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { AlertCircle, Bot, Camera, FileText, Loader2, Plus, Save, Sparkles, Users, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -47,10 +49,30 @@ const incidentTypes: Array<{ value: IncidentType; label: string }> = [
   { value: 'other', label: 'Lainnya' },
 ];
 
+type Passenger = {
+  id: string;
+  full_name: string;
+  phone?: string | null;
+  passenger_type: string;
+};
+
+type Injury = {
+  person_id: string;
+  person_type: 'passenger' | 'guide' | 'crew' | 'other';
+  body_part: 'head' | 'torso' | 'arm' | 'leg' | 'other';
+  severity: 'minor' | 'moderate' | 'severe' | 'critical';
+  first_aid_given: boolean;
+  first_aid_description?: string;
+  hospital_required: boolean;
+  hospital_name?: string;
+};
+
 export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
   const [incidentType, setIncidentType] = useState<IncidentType | ''>('');
   const [chronology, setChronology] = useState('');
   const [witnesses, setWitnesses] = useState('');
+  const [involvedPassengerIds, setInvolvedPassengerIds] = useState<string[]>([]);
+  const [injuries, setInjuries] = useState<Injury[]>([]);
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -58,6 +80,23 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
   const [signature, setSignature] = useState<SignatureData | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch manifest if tripId is provided
+  const { data: manifestData } = useQuery<{
+    passengers: Array<Passenger & { status: 'pending' | 'boarded' | 'returned' }>;
+  }>({
+    queryKey: ['manifest', tripId],
+    queryFn: async () => {
+      if (!tripId) return { passengers: [] };
+      const res = await fetch(`/api/guide/manifest?tripId=${tripId}`);
+      if (!res.ok) return { passengers: [] };
+      return res.json();
+    },
+    enabled: !!tripId,
+    staleTime: 300000, // 5 minutes
+  });
+
+  const passengers = manifestData?.passengers || [];
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -175,6 +214,23 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
         }
       }
 
+      // Prepare involved people data
+      const involvedPeople = involvedPassengerIds.length > 0
+        ? involvedPassengerIds.map((passengerId) => ({
+            person_id: passengerId,
+            person_type: 'passenger' as const,
+            role_in_incident: undefined,
+            notes: undefined,
+          }))
+        : undefined;
+
+      // Validate injuries if incident type is injury
+      if (incidentType === 'injury' && injuries.length === 0) {
+        setMessage({ type: 'error', text: 'Mohon tambahkan detail cedera untuk insiden cedera' });
+        setSubmitting(false);
+        return;
+      }
+
       // Submit incident report
       const res = await fetch('/api/guide/incidents', {
         method: 'POST',
@@ -183,6 +239,8 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
           incidentType,
           chronology: chronology.trim(),
           witnesses: witnesses.trim() || undefined,
+          involved_people: involvedPeople,
+          injuries: injuries.length > 0 ? injuries : undefined,
           photoUrls,
           tripId: tripId || undefined,
           signature: signature ? {
@@ -205,6 +263,8 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
         setIncidentType('');
         setChronology('');
         setWitnesses('');
+        setInvolvedPassengerIds([]);
+        setInjuries([]);
         setPhotos([]);
         setPhotoPreviews([]);
         setSignature(null);
@@ -270,6 +330,263 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
               required
             />
           </div>
+
+          {/* People Involved - Only show if tripId is provided and passengers exist */}
+          {tripId && passengers.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Orang yang Terlibat (Opsional)
+              </Label>
+              <Card className="border-slate-200 bg-slate-50">
+                <CardContent className="p-3">
+                  <p className="text-xs text-slate-600 mb-3">
+                    Pilih penumpang yang terlibat dalam insiden ini
+                  </p>
+                  <div className="max-h-48 space-y-2 overflow-y-auto">
+                    {passengers.map((passenger) => (
+                      <div
+                        key={passenger.id}
+                        className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-2 hover:bg-slate-50"
+                      >
+                        <Checkbox
+                          id={`passenger-${passenger.id}`}
+                          checked={involvedPassengerIds.includes(passenger.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setInvolvedPassengerIds((prev) => [...prev, passenger.id]);
+                            } else {
+                              setInvolvedPassengerIds((prev) => prev.filter((id) => id !== passenger.id));
+                            }
+                          }}
+                        />
+                        <Label
+                          htmlFor={`passenger-${passenger.id}`}
+                          className="flex-1 cursor-pointer text-sm font-medium text-slate-700"
+                        >
+                          {passenger.full_name}
+                          {passenger.passenger_type && (
+                            <span className="ml-2 text-xs text-slate-500">({passenger.passenger_type})</span>
+                          )}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                  {involvedPassengerIds.length > 0 && (
+                    <p className="mt-2 text-xs text-slate-600">
+                      {involvedPassengerIds.length} penumpang dipilih
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Injury Details - Only show if incidentType is 'injury' */}
+          {incidentType === 'injury' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Detail Cedera (ISO 21101)
+                </Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (involvedPassengerIds.length === 0 && passengers.length === 0) {
+                      setMessage({ type: 'error', text: 'Pilih orang yang terlibat terlebih dahulu' });
+                      return;
+                    }
+                    // Add new injury - default to first selected passenger or first passenger
+                    const defaultPersonId = involvedPassengerIds[0] || passengers[0]?.id || '';
+                    if (!defaultPersonId) {
+                      setMessage({ type: 'error', text: 'Tidak ada penumpang tersedia' });
+                      return;
+                    }
+                    setInjuries((prev) => [
+                      ...prev,
+                      {
+                        person_id: defaultPersonId,
+                        person_type: 'passenger',
+                        body_part: 'other',
+                        severity: 'minor',
+                        first_aid_given: false,
+                        hospital_required: false,
+                      },
+                    ]);
+                  }}
+                  className="text-xs"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Tambah Cedera
+                </Button>
+              </div>
+              {injuries.length === 0 ? (
+                <Card className="border-amber-200 bg-amber-50">
+                  <CardContent className="p-3">
+                    <p className="text-xs text-amber-700">
+                      Klik "Tambah Cedera" untuk menambahkan detail cedera
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {injuries.map((injury, index) => (
+                    <Card key={index} className="border-slate-200">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold text-slate-900">Cedera #{index + 1}</h4>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setInjuries((prev) => prev.filter((_, i) => i !== index))}
+                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {/* Person */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium text-slate-700">Orang yang Cedera</Label>
+                          <Select
+                            value={injury.person_id}
+                            onValueChange={(value) => {
+                              setInjuries((prev) =>
+                                prev.map((inj, i) => (i === index ? { ...inj, person_id: value } : inj))
+                              );
+                            }}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Pilih orang" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {passengers.map((p) => (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.full_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Body Part */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium text-slate-700">Bagian Tubuh</Label>
+                          <Select
+                            value={injury.body_part}
+                            onValueChange={(value) => {
+                              setInjuries((prev) =>
+                                prev.map((inj, i) => (i === index ? { ...inj, body_part: value as Injury['body_part'] } : inj))
+                              );
+                            }}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="head">Kepala</SelectItem>
+                              <SelectItem value="torso">Badan</SelectItem>
+                              <SelectItem value="arm">Lengan</SelectItem>
+                              <SelectItem value="leg">Kaki</SelectItem>
+                              <SelectItem value="other">Lainnya</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Severity */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium text-slate-700">Tingkat Keparahan</Label>
+                          <Select
+                            value={injury.severity}
+                            onValueChange={(value) => {
+                              setInjuries((prev) =>
+                                prev.map((inj, i) => (i === index ? { ...inj, severity: value as Injury['severity'] } : inj))
+                              );
+                            }}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="minor">Ringan</SelectItem>
+                              <SelectItem value="moderate">Sedang</SelectItem>
+                              <SelectItem value="severe">Berat</SelectItem>
+                              <SelectItem value="critical">Kritis</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* First Aid */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id={`first-aid-${index}`}
+                              checked={injury.first_aid_given}
+                              onCheckedChange={(checked) => {
+                                setInjuries((prev) =>
+                                  prev.map((inj, i) => (i === index ? { ...inj, first_aid_given: !!checked } : inj))
+                                );
+                              }}
+                            />
+                            <Label htmlFor={`first-aid-${index}`} className="text-xs font-medium text-slate-700">
+                              First Aid Diberikan
+                            </Label>
+                          </div>
+                          {injury.first_aid_given && (
+                            <Textarea
+                              placeholder="Jelaskan tindakan first aid yang diberikan..."
+                              value={injury.first_aid_description || ''}
+                              onChange={(e) => {
+                                setInjuries((prev) =>
+                                  prev.map((inj, i) => (i === index ? { ...inj, first_aid_description: e.target.value } : inj))
+                                );
+                              }}
+                              rows={2}
+                              className="text-xs"
+                            />
+                          )}
+                        </div>
+
+                        {/* Hospital */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id={`hospital-${index}`}
+                              checked={injury.hospital_required}
+                              onCheckedChange={(checked) => {
+                                setInjuries((prev) =>
+                                  prev.map((inj, i) => (i === index ? { ...inj, hospital_required: !!checked } : inj))
+                                );
+                              }}
+                            />
+                            <Label htmlFor={`hospital-${index}`} className="text-xs font-medium text-slate-700">
+                              Perlu Perawatan Rumah Sakit
+                            </Label>
+                          </div>
+                          {injury.hospital_required && (
+                            <Input
+                              placeholder="Nama rumah sakit..."
+                              value={injury.hospital_name || ''}
+                              onChange={(e) => {
+                                setInjuries((prev) =>
+                                  prev.map((inj, i) => (i === index ? { ...inj, hospital_name: e.target.value } : inj))
+                                );
+                              }}
+                              className="text-xs"
+                            />
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* AI Report Generator */}
           {chronology.trim() && (

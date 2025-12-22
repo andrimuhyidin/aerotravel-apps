@@ -96,6 +96,9 @@ export function AssessmentClient({ sessionId, locale }: AssessmentClientProps) {
     );
   }
 
+  // Filter out invalid questions
+  const validQuestions = questions.filter((q) => q && q.id && q.question_text);
+
   if (submitted) {
     return (
       <Card className="border-green-200 bg-green-50/50">
@@ -113,10 +116,10 @@ export function AssessmentClient({ sessionId, locale }: AssessmentClientProps) {
   const handleSubmit = () => {
     const answersArray = Object.entries(answers).map(([question_id, answer]) => ({
       question_id,
-      answer,
+      answer: answer || '',
     }));
 
-    if (answersArray.length !== questions.length) {
+    if (answersArray.length !== validQuestions.length) {
       toast.error('Please answer all questions');
       return;
     }
@@ -183,37 +186,45 @@ export function AssessmentClient({ sessionId, locale }: AssessmentClientProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {questions.map((question, index) => (
-            <div key={question.id} className="space-y-3">
-              <Label className="text-base font-medium">
-                {index + 1}. {question.question_text}
-              </Label>
-              {question.question_type === 'multiple_choice' && question.options ? (
-                <RadioGroup
-                  value={answers[question.id] || ''}
-                  onValueChange={(value) => setAnswers((prev) => ({ ...prev, [question.id]: value }))}
-                >
-                  {question.options.map((option, optIndex) => (
-                    <div key={optIndex} className="flex items-center space-x-2">
-                      <RadioGroupItem value={option} id={`${question.id}-${optIndex}`} />
-                      <Label htmlFor={`${question.id}-${optIndex}`} className="font-normal cursor-pointer">
-                        {option}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              ) : (
-                <div className="text-sm text-slate-500">Rating question (handled separately)</div>
-              )}
-            </div>
-          ))}
+          {validQuestions.map((question, index) => {
+            if (!question || !question.id) return null;
+            const questionText = question.question_text || '';
+            const questionOptions = question.options || [];
+            return (
+              <div key={question.id} className="space-y-3">
+                <Label className="text-base font-medium">
+                  {index + 1}. {questionText}
+                </Label>
+                {question.question_type === 'multiple_choice' && questionOptions.length > 0 ? (
+                  <RadioGroup
+                    value={answers[question.id] || ''}
+                    onValueChange={(value) => setAnswers((prev) => ({ ...prev, [question.id]: value }))}
+                  >
+                    {questionOptions.map((option, optIndex) => {
+                      if (!option) return null;
+                      return (
+                        <div key={optIndex} className="flex items-center space-x-2">
+                          <RadioGroupItem value={option} id={`${question.id}-${optIndex}`} />
+                          <Label htmlFor={`${question.id}-${optIndex}`} className="font-normal cursor-pointer">
+                            {option}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </RadioGroup>
+                ) : (
+                  <div className="text-sm text-slate-500">Rating question (handled separately)</div>
+                )}
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
 
       {/* Submit Button */}
       <Button
         onClick={handleSubmit}
-        disabled={submitMutation.isPending || Object.keys(answers).length !== questions.length}
+        disabled={submitMutation.isPending || Object.keys(answers).length !== validQuestions.length}
         className="w-full"
         size="lg"
       >

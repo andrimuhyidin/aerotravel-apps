@@ -81,7 +81,20 @@ export default async function GuideLandingPage({ params }: PageProps) {
     const { GuideDashboardClient } = await import('@/app/[locale]/(mobile)/guide/guide-dashboard-client');
     const { GuideShell } = await import('@/components/layout/guide-shell');
     const { Container } = await import('@/components/layout/container');
+    const { fetchGuideDashboardData } = await import('@/lib/guide/server-data');
     const userName = user?.profile?.full_name || user?.email?.split('@')[0] || 'Guide';
+    
+    // Prefetch critical dashboard data di server untuk faster initial render
+    let initialData;
+    try {
+      if (user?.id) {
+        initialData = await fetchGuideDashboardData(user.id);
+        logger.info('GuideLandingPage - Prefetched dashboard data', { userId: user.id });
+      }
+    } catch (error) {
+      logger.error('GuideLandingPage - Failed to prefetch dashboard data', error, { userId: user?.id });
+      // Continue without initialData - client will fetch
+    }
     
     // Use GuideShell which has its own layout with guide navigation
     // This will replace the PublicLayout wrapper
@@ -94,7 +107,11 @@ export default async function GuideLandingPage({ params }: PageProps) {
         }}
       >
         <Container className="py-4">
-          <GuideDashboardClient userName={userName} locale={locale} />
+          <GuideDashboardClient 
+            userName={userName} 
+            locale={locale} 
+            initialData={initialData}
+          />
         </Container>
       </GuideShell>
     );

@@ -299,7 +299,7 @@ export function SettingsClient({ locale: _locale }: SettingsClientProps) {
                   <Label className="mb-3 block text-sm font-medium">Hari yang Disukai</Label>
                   <div className="flex flex-wrap gap-2">
                     {DAYS_OF_WEEK.map((day) => {
-                      const isSelected = preferences.preferred_days_of_week?.includes(day.value);
+                      const isSelected = preferences.preferred_days_of_week && Array.isArray(preferences.preferred_days_of_week) && preferences.preferred_days_of_week.includes(day.value);
                       return (
                         <button
                           key={day.value}

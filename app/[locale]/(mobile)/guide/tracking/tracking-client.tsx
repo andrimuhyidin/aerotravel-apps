@@ -5,12 +5,15 @@
  * Real-time GPS tracking with map visualization
  */
 
-import { AlertTriangle, MapPin, Navigation } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { AlertTriangle, MapPin, Navigation, Route } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
     Coordinates,
     DEFAULT_MEETING_POINTS,
@@ -35,6 +38,8 @@ export function TrackingClient({ locale, tripId, tripCode }: TrackingClientProps
   const [isTracking, setIsTracking] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [validation, setValidation] = useState<ReturnType<typeof validateCheckIn> | null>(null);
+  const [showBreadcrumb, setShowBreadcrumb] = useState(true);
+  const [breadcrumbHours, setBreadcrumbHours] = useState(24);
 
   useEffect(() => {
     // Check online status
@@ -98,6 +103,28 @@ export function TrackingClient({ locale, tripId, tripCode }: TrackingClientProps
     return () => stopWatch();
   }, [isTracking]);
 
+  // Fetch position history for breadcrumb trail
+  const { data: positionHistory } = useQuery<{
+    positions: Array<{
+      latitude: number;
+      longitude: number;
+      timestamp: string;
+      accuracy?: number;
+      speed?: number;
+      heading?: number;
+    }>;
+    count: number;
+  }>({
+    queryKey: ['tracking-history', tripId, breadcrumbHours],
+    queryFn: async () => {
+      const res = await fetch(`/api/guide/tracking/history?tripId=${tripId}&hours=${breadcrumbHours}`);
+      if (!res.ok) return { positions: [], count: 0 };
+      return res.json();
+    },
+    enabled: showBreadcrumb && !!tripId,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
   const toggleTracking = () => {
     if (!isTracking) {
       setIsTracking(true);
@@ -151,7 +178,20 @@ export function TrackingClient({ locale, tripId, tripCode }: TrackingClientProps
       {/* Map */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Posisi Anda (Trip {tripCode})</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Posisi Anda (Trip {tripCode})</CardTitle>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="breadcrumb-toggle" className="text-xs text-slate-600 flex items-center gap-1">
+                <Route className="h-3 w-3" />
+                Breadcrumb
+              </Label>
+              <Switch
+                id="breadcrumb-toggle"
+                checked={showBreadcrumb}
+                onCheckedChange={setShowBreadcrumb}
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="h-64 overflow-hidden rounded-lg bg-slate-100">
@@ -160,6 +200,8 @@ export function TrackingClient({ locale, tripId, tripCode }: TrackingClientProps
                 center={location}
                 guideLocation={location}
                 meetingPoints={DEFAULT_MEETING_POINTS}
+                breadcrumbTrail={positionHistory?.positions || []}
+                showBreadcrumb={showBreadcrumb}
               />
             ) : (
               <div className="flex h-full items-center justify-center text-slate-400">
@@ -172,6 +214,11 @@ export function TrackingClient({ locale, tripId, tripCode }: TrackingClientProps
               </div>
             )}
           </div>
+          {showBreadcrumb && positionHistory && positionHistory.count > 0 && (
+            <div className="mt-2 text-xs text-slate-500">
+              Breadcrumb trail: {positionHistory.count} titik (last {breadcrumbHours}h)
+            </div>
+          )}
         </CardContent>
       </Card>
 

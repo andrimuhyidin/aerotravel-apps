@@ -270,21 +270,23 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
       setManifest(manifestData);
 
       // Cache locations and set meeting point
-      if (locationsData.locations && Array.isArray(locationsData.locations)) {
+      if (locationsData?.locations && Array.isArray(locationsData.locations)) {
         const locations = locationsData.locations as LocationPoint[];
         
         // Cache all locations
         for (const location of locations) {
-          await cacheLocationPoint(location);
+          if (location?.latitude && location?.longitude) {
+            await cacheLocationPoint(location);
+          }
         }
 
         // Find meeting point
-        const meetingPointLocation = locations.find((loc) => loc.type === 'meeting_point');
-        if (meetingPointLocation) {
+        const meetingPointLocation = locations.find((loc) => loc?.type === 'meeting_point');
+        if (meetingPointLocation?.latitude && meetingPointLocation?.longitude) {
           setMeetingPoint({
             lat: meetingPointLocation.latitude,
             lng: meetingPointLocation.longitude,
-            name: meetingPointLocation.name,
+            name: meetingPointLocation.name || 'Meeting Point',
           });
         }
       }
@@ -669,11 +671,11 @@ export function TripDetailClient({ tripId, locale, tripCode }: TripDetailClientP
                     <p className="mt-0.5 text-xs font-bold text-slate-900 line-clamp-1">
                       {meetingPoint?.name || meetingPointName}
                     </p>
-                    {meetingPoint && (
+                    {meetingPoint?.lat && meetingPoint?.lng && (
                       <MapNavigationButtons
                         latitude={meetingPoint.lat}
                         longitude={meetingPoint.lng}
-                        label={meetingPoint.name}
+                        label={meetingPoint.name || 'Meeting Point'}
                         className="mt-1.5 h-6 text-[10px]"
                       />
                     )}

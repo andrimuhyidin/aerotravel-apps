@@ -79,6 +79,18 @@ export function DocumentsSectionClient({ locale }: { locale: string }) {
 
   const { documents, summary } = data;
 
+  // Ensure summary has default values
+  const safeSummary = summary || {
+    total: 0,
+    verified: 0,
+    required: 0,
+    required_verified: 0,
+    all_required_verified: false,
+  };
+
+  // Filter out invalid documents
+  const validDocuments = (documents || []).filter((d) => d && d.document_type && d.document_name);
+
   const getStatusIcon = (status: Document['verification_status']) => {
     switch (status) {
       case 'verified':
@@ -116,9 +128,9 @@ export function DocumentsSectionClient({ locale }: { locale: string }) {
           <div>
             <p className="text-sm font-medium text-slate-600">Dokumen Terverifikasi</p>
             <p className="mt-1 text-2xl font-bold text-emerald-700">
-              {summary.required_verified} / {summary.required}
+              {safeSummary.required_verified} / {safeSummary.required}
             </p>
-            {summary.all_required_verified && (
+            {safeSummary.all_required_verified && (
               <p className="mt-1 text-xs font-medium text-emerald-600">
                 ✅ Semua dokumen wajib sudah terverifikasi
               </p>
@@ -132,59 +144,74 @@ export function DocumentsSectionClient({ locale }: { locale: string }) {
 
       {/* Documents List */}
       <div className="space-y-3">
-        {documents.map((doc) => (
-          <div
-            key={doc.document_type}
-            id={`upload-${doc.document_type}`}
-            className="rounded-lg border border-slate-200 bg-slate-50/50 overflow-hidden scroll-mt-4"
-          >
-            <div className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100">
-                    <FileText className="h-5 w-5 text-slate-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-slate-900">{doc.document_name}</p>
-                      {doc.is_required && (
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">
-                          Wajib
-                        </span>
+        {validDocuments.map((doc) => {
+          if (!doc || !doc.document_type) return null;
+          const docName = doc.document_name || 'Document';
+          const docDescription = doc.description || '';
+          const docStatus = doc.verification_status || 'missing';
+          let expiryDateStr = '';
+          try {
+            if (doc.expiry_date) {
+              expiryDateStr = new Date(doc.expiry_date).toLocaleDateString('id-ID');
+            }
+          } catch {
+            // Invalid date
+          }
+          return (
+            <div
+              key={doc.document_type}
+              id={`upload-${doc.document_type}`}
+              className="rounded-lg border border-slate-200 bg-slate-50/50 overflow-hidden scroll-mt-4"
+            >
+              <div className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100">
+                      <FileText className="h-5 w-5 text-slate-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-slate-900">{docName}</p>
+                        {doc.is_required && (
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">
+                            Wajib
+                          </span>
+                        )}
+                      </div>
+                      {docDescription && (
+                        <p className="mt-0.5 text-xs text-slate-500">{docDescription}</p>
+                      )}
+                      {expiryDateStr && (
+                        <p className="mt-1 text-xs text-amber-600">
+                          Kedaluwarsa: {expiryDateStr}
+                        </p>
+                      )}
+                      {doc.verification_notes && docStatus === 'rejected' && (
+                        <p className="mt-1 text-xs text-red-600">{doc.verification_notes}</p>
                       )}
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-500">{doc.description}</p>
-                    {doc.expiry_date && (
-                      <p className="mt-1 text-xs text-amber-600">
-                        Kedaluwarsa: {new Date(doc.expiry_date).toLocaleDateString('id-ID')}
-                      </p>
+                  </div>
+                  <div className="flex flex-shrink-0 flex-col items-end gap-2">
+                    {getStatusIcon(docStatus)}
+                    {getStatusLabel(docStatus)}
+                    {docStatus === 'missing' && (
+                      <Button size="sm" className="mt-1 h-8 bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95" asChild>
+                        <Link href={`/${locale}/guide/profile/edit#upload-${doc.document_type}`}>
+                          <Upload className="mr-1.5 h-3.5 w-3.5" />
+                          Upload
+                        </Link>
+                      </Button>
                     )}
-                    {doc.verification_notes && doc.verification_status === 'rejected' && (
-                      <p className="mt-1 text-xs text-red-600">{doc.verification_notes}</p>
+                    {doc.file_url && docStatus !== 'missing' && (
+                      <Button size="sm" variant="outline" className="mt-1 h-8" asChild>
+                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
+                          Lihat
+                        </a>
+                      </Button>
                     )}
                   </div>
                 </div>
-                <div className="flex flex-shrink-0 flex-col items-end gap-2">
-                  {getStatusIcon(doc.verification_status)}
-                  {getStatusLabel(doc.verification_status)}
-                  {doc.verification_status === 'missing' && (
-                    <Button size="sm" className="mt-1 h-8 bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95" asChild>
-                      <Link href={`/${locale}/guide/profile/edit#upload-${doc.document_type}`}>
-                        <Upload className="mr-1.5 h-3.5 w-3.5" />
-                        Upload
-                      </Link>
-                    </Button>
-                  )}
-                  {doc.file_url && doc.verification_status !== 'missing' && (
-                    <Button size="sm" variant="outline" className="mt-1 h-8" asChild>
-                      <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
-                        Lihat
-                      </a>
-                    </Button>
-                  )}
-                </div>
               </div>
-            </div>
 
               {/* Educational Information Accordion */}
               {(doc.why_needed || doc.usage || doc.privacy || doc.additional_info) && (
@@ -244,8 +271,9 @@ export function DocumentsSectionClient({ locale }: { locale: string }) {
                 </Accordion>
               </div>
             )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
 
       {/* Info */}

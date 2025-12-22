@@ -96,7 +96,7 @@ export function ManifestClient({ tripId, crewRole: propCrewRole }: ManifestClien
       setError(null);
       const data = await getTripManifest(tripId);
       setManifest(data);
-      setDriveUrl(data.documentationUrl ?? '');
+      setDriveUrl(data?.documentationUrl ?? '');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal memuat manifest');
     } finally {
@@ -149,14 +149,15 @@ export function ManifestClient({ tripId, crewRole: propCrewRole }: ManifestClien
   };
 
   const filteredPassengers =
-    manifest?.passengers.filter((p: Passenger) => {
-      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    (manifest?.passengers ?? []).filter((p: Passenger) => {
+      if (!p || !p.id) return false;
+      const matchesSearch = !searchQuery || (p.name && p.name.toLowerCase().includes(searchQuery.toLowerCase()));
       if (!matchesSearch) return false;
       if (filter === 'pending') return p.status === 'pending';
       if (filter === 'boarded') return p.status === 'boarded';
       if (filter === 'returned') return p.status === 'returned';
       return true;
-    }) ?? [];
+    });
 
   if (loading) {
     return (
@@ -208,19 +209,19 @@ export function ManifestClient({ tripId, crewRole: propCrewRole }: ManifestClien
       {/* Trip Info */}
       <Card className="border-0 bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-sm">
         <CardContent className="p-4">
-          <h2 className="text-lg font-bold leading-tight">{manifest.tripName}</h2>
-          <p className="mt-1 text-sm opacity-90">{manifest.date}</p>
+          <h2 className="text-lg font-bold leading-tight">{manifest?.tripName ?? 'Trip'}</h2>
+          <p className="mt-1 text-sm opacity-90">{manifest?.date ?? 'Tanggal tidak tersedia'}</p>
           <div className="mt-4 grid grid-cols-3 gap-3 rounded-lg bg-white/10 p-3 backdrop-blur-sm">
             <div className="text-center">
-              <p className="text-lg font-bold">{manifest.totalPax}</p>
+              <p className="text-lg font-bold">{manifest?.totalPax ?? 0}</p>
               <p className="text-xs opacity-80">Total</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold">{manifest.boardedCount}</p>
+              <p className="text-lg font-bold">{manifest?.boardedCount ?? 0}</p>
               <p className="text-xs opacity-80">Naik</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold">{manifest.returnedCount}</p>
+              <p className="text-lg font-bold">{manifest?.returnedCount ?? 0}</p>
               <p className="text-xs opacity-80">Kembali</p>
             </div>
           </div>
@@ -270,7 +271,7 @@ export function ManifestClient({ tripId, crewRole: propCrewRole }: ManifestClien
               Daftar Penumpang
             </CardTitle>
             <span className="text-xs font-medium text-slate-500">
-              {filteredPassengers.length} dari {manifest.passengers.length}
+              {filteredPassengers.length} dari {manifest?.passengers?.length ?? 0}
             </span>
           </div>
         </CardHeader>
@@ -283,22 +284,24 @@ export function ManifestClient({ tripId, crewRole: propCrewRole }: ManifestClien
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {filteredPassengers.map((passenger: Passenger, index: number) => (
-                <div
-                  key={passenger.id}
-                  className="flex min-h-[64px] items-center justify-between px-4 py-3 transition-colors hover:bg-slate-50"
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div
-                      className={cn(
-                        'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold',
-                        passenger.status === 'returned'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : passenger.status === 'boarded'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-slate-100 text-slate-600',
-                      )}
-                    >
+              {filteredPassengers
+                .filter((p) => p && p.id)
+                .map((passenger: Passenger, index: number) => (
+                  <div
+                    key={passenger.id}
+                    className="flex min-h-[64px] items-center justify-between px-4 py-3 transition-colors hover:bg-slate-50"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div
+                        className={cn(
+                          'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold',
+                          passenger.status === 'returned'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : passenger.status === 'boarded'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-slate-100 text-slate-600',
+                        )}
+                      >
                       {index + 1}
                     </div>
                     <div className="min-w-0 flex-1">

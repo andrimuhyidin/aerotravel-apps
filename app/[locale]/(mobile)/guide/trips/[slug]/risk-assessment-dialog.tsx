@@ -8,6 +8,7 @@
 import { AlertTriangle, CheckCircle2, Loader2, MapPin, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { RiskTrendChart } from '@/components/guide/risk-trend-chart';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -436,6 +437,12 @@ export function RiskAssessmentDialog({
               placeholder="Catatan tambahan tentang kondisi..."
               rows={3}
             />
+          </div>
+
+          {/* Risk Trend Chart */}
+          <div className="border-t pt-4">
+            <Label className="text-sm font-semibold mb-2 block">Historical Risk Trend</Label>
+            <RiskTrendChart tripId={tripId} days={30} />
           </div>
 
           {error && (

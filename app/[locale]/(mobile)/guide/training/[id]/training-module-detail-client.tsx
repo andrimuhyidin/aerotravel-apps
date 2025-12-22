@@ -6,9 +6,11 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, BookOpen, CheckCircle2, Clock, Play } from 'lucide-react';
+import { ArrowLeft, BookOpen, CheckCircle2, Clock, GraduationCap, Play } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +18,11 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 import queryKeys from '@/lib/queries/query-keys';
+import { CompetencyQuiz } from '@/components/guide/competency-quiz';
+import { TrainerFeedbackForm } from '@/components/guide/trainer-feedback-form';
 
 type TrainingModule = {
   id: string;
@@ -40,6 +46,7 @@ export function TrainingModuleDetailClient({
   moduleId,
 }: TrainingModuleDetailClientProps) {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'content' | 'quiz' | 'feedback'>('content');
 
   // Fetch all modules to find the one we need
   const { data, isLoading, error } = useQuery<{ modules: TrainingModule[] }>({
@@ -50,6 +57,17 @@ export function TrainingModuleDetailClient({
       return res.json();
     },
     staleTime: 60000,
+  });
+
+  // Fetch quiz for this training module
+  const { data: quizData } = useQuery<{ quizId: string }>({
+    queryKey: [...queryKeys.guide.all, 'training', 'quiz', moduleId],
+    queryFn: async () => {
+      const res = await fetch(`/api/guide/training/modules/${moduleId}/quiz`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!moduleId,
   });
 
   if (isLoading) {
@@ -66,9 +84,9 @@ export function TrainingModuleDetailClient({
     );
   }
 
-  const module = data?.modules.find((m) => m.id === moduleId);
+  const module = data?.modules?.find((m) => m?.id === moduleId);
 
-  if (!module) {
+  if (!module || !module.id) {
     return (
       <div className="space-y-4">
         <Link href={`/${locale}/guide/training`}>
@@ -87,7 +105,12 @@ export function TrainingModuleDetailClient({
     );
   }
 
+  const moduleTitle = module.title || 'Training Module';
+  const moduleDescription = module.description || '';
+  const durationMinutes = module.duration_minutes ?? 0;
+  const moduleContent = module.content || '';
   const progress = module.progress;
+  const progressPercent = progress?.progress_percent ?? 0;
   const isCompleted = progress?.status === 'completed';
   const isInProgress = progress?.status === 'in_progress';
 
@@ -106,8 +129,10 @@ export function TrainingModuleDetailClient({
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <CardTitle className="text-xl">{module.title}</CardTitle>
-              <p className="mt-2 text-sm text-slate-600">{module.description}</p>
+              <CardTitle className="text-xl">{moduleTitle}</CardTitle>
+              {moduleDescription && (
+                <p className="mt-2 text-sm text-slate-600">{moduleDescription}</p>
+              )}
             </div>
             {isCompleted && (
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
@@ -120,7 +145,7 @@ export function TrainingModuleDetailClient({
           {/* Duration */}
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Clock className="h-4 w-4" />
-            <span>Durasi: {module.duration_minutes} menit</span>
+            <span>Durasi: {durationMinutes} menit</span>
           </div>
 
           {/* Progress */}
@@ -129,10 +154,10 @@ export function TrainingModuleDetailClient({
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-600">Progress</span>
                 <span className="font-medium text-slate-900">
-                  {Math.round(progress.progress_percent)}%
+                  {Math.round(progressPercent)}%
                 </span>
               </div>
-              <Progress value={progress.progress_percent} className="h-2" />
+              <Progress value={progressPercent} className="h-2" />
               <div className="flex items-center gap-2">
                 {isCompleted ? (
                   <>
@@ -154,37 +179,85 @@ export function TrainingModuleDetailClient({
             </div>
           )}
 
-          {/* Content */}
-          {module.content ? (
-            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <h3 className="mb-2 font-semibold text-slate-900">Konten Training</h3>
-              <div
-                className="prose prose-sm max-w-none text-slate-700"
-                dangerouslySetInnerHTML={{ __html: module.content }}
-              />
-            </div>
-          ) : (
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <p className="text-sm text-amber-800">
-                Konten training sedang dalam pengembangan. Silakan kembali lagi nanti.
-              </p>
-            </div>
-          )}
+          {/* Tabs for Content, Quiz, and Feedback */}
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="mt-4">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="content">Konten</TabsTrigger>
+              <TabsTrigger 
+                value="quiz" 
+                className={cn("flex items-center gap-2", !quizData?.quizId && "opacity-50 pointer-events-none")}
+              >
+                <GraduationCap className="h-4 w-4" />
+                <span>Quiz</span>
+              </TabsTrigger>
+              <TabsTrigger value="feedback">Feedback</TabsTrigger>
+            </TabsList>
 
-          {/* Action Button */}
-          <div className="pt-4">
-            {isCompleted ? (
-              <Button variant="outline" className="w-full" disabled>
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Training Selesai
-              </Button>
-            ) : (
-              <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                <Play className="mr-2 h-4 w-4" />
-                {isInProgress ? 'Lanjutkan Training' : 'Mulai Training'}
-              </Button>
-            )}
-          </div>
+            <TabsContent value="content" className="mt-4">
+              {/* Content */}
+              {moduleContent ? (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <h3 className="mb-2 font-semibold text-slate-900">Konten Training</h3>
+                  <div
+                    className="prose prose-sm max-w-none text-slate-700"
+                    dangerouslySetInnerHTML={{ __html: moduleContent }}
+                  />
+                </div>
+              ) : (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-sm text-amber-800">
+                    Konten training sedang dalam pengembangan. Silakan kembali lagi nanti.
+                  </p>
+                </div>
+              )}
+
+              {/* Action Button */}
+              <div className="pt-4">
+                {isCompleted ? (
+                  <Button variant="outline" className="w-full" disabled>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Training Selesai
+                  </Button>
+                ) : (
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
+                    <Play className="mr-2 h-4 w-4" />
+                    {isInProgress ? 'Lanjutkan Training' : 'Mulai Training'}
+                  </Button>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="quiz" className="mt-4">
+              {quizData?.quizId ? (
+                <CompetencyQuiz 
+                  quizId={quizData.quizId} 
+                  onComplete={(passed, score) => {
+                    if (passed) {
+                      toast.success(`Quiz passed! Score: ${score}%`);
+                    } else {
+                      toast.error(`Quiz failed. Score: ${score}%`);
+                    }
+                  }}
+                />
+              ) : (
+                <EmptyState
+                  icon={GraduationCap}
+                  title="Quiz tidak tersedia"
+                  description="Quiz untuk training ini belum tersedia"
+                  variant="default"
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="feedback" className="mt-4">
+              <TrainerFeedbackForm 
+                trainingId={moduleId}
+                onComplete={() => {
+                  toast.success('Feedback berhasil dikirim');
+                }}
+              />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

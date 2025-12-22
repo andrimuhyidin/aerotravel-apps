@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { createErrorResponse, createSuccessResponse } from '@/lib/api/response-format';
+import { createErrorResponse } from '@/lib/api/response-format';
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
@@ -342,7 +342,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
           guideId: user.id,
           hint: 'Check if RLS policy is active for guide_challenges table',
         });
-        return createSuccessResponse({ challenges: [] });
+        return NextResponse.json({ challenges: [] });
       }
       
       throw new Error('Failed to fetch challenges');
@@ -363,7 +363,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       description: c.description,
     }));
 
-    return createSuccessResponse({ challenges: formattedChallenges });
+    return NextResponse.json({ challenges: formattedChallenges });
   } catch (error) {
     logger.error('Failed to get challenges', error, {
       guideId: user.id,
@@ -441,7 +441,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   logger.info('Challenge created', { challengeId: newChallenge.id, guideId: user.id });
 
-  return createSuccessResponse({
+  return NextResponse.json({
     success: true,
     challenge: {
       id: newChallenge.id,

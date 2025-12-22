@@ -375,6 +375,9 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
   }
 
   if (error || !weatherData) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'weather-client.tsx:377',message:'Weather data error or null',data:{hasError:!!error,hasWeatherData:!!weatherData,errorMessage:error instanceof Error ? error.message : String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     return (
       <Card className="border-0 shadow-sm">
         <CardContent>
@@ -388,7 +391,21 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
     );
   }
 
-  const weatherMain = weatherData.current.weather.main;
+  if (!weatherData?.current || !weatherData.current?.weather) {
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardContent>
+          <ErrorState
+            message="Data cuaca tidak lengkap"
+            onRetry={() => void refetch()}
+            variant="card"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const weatherMain = weatherData.current.weather.main ?? 'clear';
   const gradientClass = getWeatherGradient(weatherMain);
 
   return (
@@ -418,12 +435,12 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
             <div className="flex items-center gap-4">
               <div className="flex-shrink-0">{getWeatherIcon(weatherMain, 'lg')}</div>
               <div>
-                <div className="text-5xl font-bold">{Math.round(weatherData.current.temp)}°</div>
+                <div className="text-5xl font-bold">{Math.round(weatherData.current?.temp || 0)}°</div>
                 <div className="mt-1 text-lg capitalize text-white/90">
-                  {weatherData.current.weather.description}
+                  {weatherData.current?.weather?.description || 'N/A'}
                 </div>
                 <div className="mt-1 text-sm text-white/80">
-                  Terasa seperti {Math.round(weatherData.current.feels_like)}°
+                  Terasa seperti {Math.round(weatherData.current?.feels_like || 0)}°
                 </div>
               </div>
             </div>
@@ -434,14 +451,14 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
             <div className="text-center">
               <Wind className="mx-auto h-5 w-5 mb-1" />
               <div className="text-xs text-white/80">Angin</div>
-              <div className="mt-0.5 text-sm font-semibold">{weatherData.current.wind_speed} km/h</div>
+              <div className="mt-0.5 text-sm font-semibold">{weatherData.current?.wind_speed || 0} km/h</div>
             </div>
             <div className="text-center">
               <Droplets className="mx-auto h-5 w-5 mb-1" />
               <div className="text-xs text-white/80">Kelembaban</div>
-              <div className="mt-0.5 text-sm font-semibold">{weatherData.current.humidity}%</div>
+              <div className="mt-0.5 text-sm font-semibold">{weatherData.current?.humidity || 0}%</div>
             </div>
-            {weatherData.current.pressure && (
+            {weatherData.current?.pressure && (
               <div className="text-center">
                 <Gauge className="mx-auto h-5 w-5 mb-1" />
                 <div className="text-xs text-white/80">Tekanan</div>
@@ -451,15 +468,15 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
           </div>
 
           {/* Sunrise/Sunset */}
-          {(weatherData.current.sunrise || weatherData.current.sunset) && (
+          {(weatherData.current?.sunrise || weatherData.current?.sunset) && (
             <div className="mt-4 flex items-center justify-center gap-6 text-sm">
-              {weatherData.current.sunrise && (
+              {weatherData.current?.sunrise && (
                 <div className="flex items-center gap-2">
                   <Sunrise className="h-4 w-4" />
                   <span>{formatTime(weatherData.current.sunrise)}</span>
                 </div>
               )}
-              {weatherData.current.sunset && (
+              {weatherData.current?.sunset && (
                 <div className="flex items-center gap-2">
                   <Sunset className="h-4 w-4" />
                   <span>{formatTime(weatherData.current.sunset)}</span>
@@ -471,7 +488,7 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
       </Card>
 
       {/* Hourly Forecast */}
-      {weatherData.hourly && weatherData.hourly.length > 0 && (
+      {weatherData?.hourly && Array.isArray(weatherData.hourly) && weatherData.hourly.length > 0 && (
         <Card className="border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg">Prakiraan Per Jam (24 Jam)</CardTitle>
@@ -588,15 +605,15 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
       {/* AI Weather Insights */}
       {aiInsightsData?.insights && (
         <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50 to-blue-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Brain className="h-5 w-5 text-emerald-600" />
-              Insight AI Cuaca
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Brain className="h-5 w-5 text-emerald-600" />
+                Insight AI Cuaca
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
             {/* Safety Assessment */}
-            {aiInsightsData.insights.safety_assessment && (
+            {aiInsightsData.insights?.safety_assessment && (
               <div className="rounded-xl border border-emerald-200 bg-white p-4">
                 <div className="flex items-start gap-3">
                   <Shield className={cn(
@@ -624,9 +641,9 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
                       </Badge>
                     </div>
                     <p className="text-sm text-slate-700 leading-relaxed">
-                      {aiInsightsData.insights.safety_assessment.reasoning}
+                      {aiInsightsData.insights.safety_assessment.reasoning || 'Tidak ada penjelasan'}
                     </p>
-                    {aiInsightsData.insights.safety_assessment.warnings.length > 0 && (
+                    {Array.isArray(aiInsightsData.insights.safety_assessment.warnings) && aiInsightsData.insights.safety_assessment.warnings.length > 0 && (
                       <div className="mt-3 space-y-1">
                         {aiInsightsData.insights.safety_assessment.warnings.map((warning, i) => (
                           <div key={i} className="flex items-start gap-2 text-xs text-amber-700">
@@ -642,7 +659,7 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
             )}
 
             {/* Trip Recommendations */}
-            {aiInsightsData.insights.trip_recommendations && aiInsightsData.insights.trip_recommendations.length > 0 && (
+            {Array.isArray(aiInsightsData.insights.trip_recommendations) && aiInsightsData.insights.trip_recommendations.length > 0 && (
               <div className="rounded-xl border border-blue-200 bg-white p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Lightbulb className="h-5 w-5 text-blue-600" />
@@ -697,7 +714,7 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
             )}
 
             {/* Equipment Suggestions */}
-            {aiInsightsData.insights.equipment_suggestions && aiInsightsData.insights.equipment_suggestions.length > 0 && (
+            {Array.isArray(aiInsightsData.insights.equipment_suggestions) && aiInsightsData.insights.equipment_suggestions.length > 0 && (
               <div className="rounded-xl border border-purple-200 bg-white p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Cloud className="h-5 w-5 text-purple-600" />
@@ -750,7 +767,7 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
             )}
 
             {/* Clothing Recommendations */}
-            {aiInsightsData.insights.clothing_recommendations && aiInsightsData.insights.clothing_recommendations.length > 0 && (
+            {Array.isArray(aiInsightsData.insights.clothing_recommendations) && aiInsightsData.insights.clothing_recommendations.length > 0 && (
               <div className="rounded-xl border border-slate-200 bg-white p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Sun className="h-5 w-5 text-amber-600" />
@@ -786,7 +803,7 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
       )}
 
       {/* Weather Alerts - Enhanced */}
-      {weatherData.alerts && weatherData.alerts.length > 0 && (
+      {weatherData?.alerts && Array.isArray(weatherData.alerts) && weatherData.alerts.length > 0 && (
         <Card className="border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -796,6 +813,7 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
           </CardHeader>
           <CardContent className="space-y-3">
             {weatherData.alerts.map((alert, i) => {
+              if (!alert) return null;
               const severityColor = getSeverityColor(alert.severity || 'medium');
               return (
                 <div
@@ -812,7 +830,7 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
                         <div className="font-semibold mb-1">{alert.title}</div>
                       )}
                       <div className="text-sm leading-relaxed">
-                        {alert.message || alert.description}
+                        {alert.message || alert.description || 'Tidak ada pesan'}
                       </div>
                       <Badge variant="outline" className="mt-2 text-xs">
                         {alert.severity || 'Info'}
@@ -827,7 +845,7 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
       )}
 
       {/* Air Quality */}
-      {weatherData.airQuality && (
+      {weatherData?.airQuality && weatherData.airQuality.aqi && (
         <AirQualityCard airQuality={weatherData.airQuality} />
       )}
 
@@ -854,21 +872,21 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
                 <span className="text-xs font-medium">Suhu Terasa</span>
               </div>
               <div className="text-2xl font-bold text-slate-900">
-                {Math.round(weatherData.current.feels_like)}°
+                {Math.round(weatherData.current?.feels_like || 0)}°
               </div>
             </div>
-            {weatherData.current.visibility && (
+            {weatherData.current?.visibility && (
               <div className="rounded-xl bg-slate-50 p-4">
                 <div className="flex items-center gap-2 text-slate-600 mb-2">
                   <Eye className="h-4 w-4" />
                   <span className="text-xs font-medium">Jarak Pandang</span>
                 </div>
                 <div className="text-2xl font-bold text-slate-900">
-                  {(weatherData.current.visibility / 1000).toFixed(1)} km
+                  {((weatherData.current.visibility || 0) / 1000).toFixed(1)} km
                 </div>
               </div>
             )}
-            {weatherData.current.uv_index !== undefined && (
+            {weatherData.current?.uv_index !== undefined && weatherData.current.uv_index !== null && (
               <>
                 <div className="rounded-xl bg-slate-50 p-4">
                   <div className="flex items-center gap-2 text-slate-600 mb-2">
@@ -896,7 +914,7 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
                 <span className="text-xs font-medium">Kelembaban</span>
               </div>
               <div className="text-2xl font-bold text-slate-900">
-                {weatherData.current.humidity}%
+                {weatherData.current?.humidity || 0}%
               </div>
             </div>
           </div>
@@ -905,24 +923,32 @@ export function WeatherClient({ locale: _locale }: WeatherClientProps) {
 
       {/* Forecast - Historical Chart */}
       {weatherData.forecast && weatherData.forecast.length > 0 && (
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg">Prakiraan Cuaca 7 Hari</CardTitle>
-            <p className="mt-1 text-sm text-slate-600">
-              Trend suhu dan kondisi cuaca untuk 7 hari ke depan
-            </p>
-          </CardHeader>
-          <CardContent>
-            <ForecastChart forecast={weatherData.forecast.slice(0, 7)} />
-          </CardContent>
-        </Card>
+        <>
+          {/* #region agent log */}
+          {(() => {
+            fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'weather-client.tsx:907',message:'Before rendering ForecastChart',data:{forecastLength:weatherData.forecast.length,firstItem:JSON.stringify(weatherData.forecast[0]).substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            return null;
+          })()}
+          {/* #endregion */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg">Prakiraan Cuaca 7 Hari</CardTitle>
+              <p className="mt-1 text-sm text-slate-600">
+                Trend suhu dan kondisi cuaca untuk 7 hari ke depan
+              </p>
+            </CardHeader>
+            <CardContent>
+              <ForecastChart forecast={weatherData.forecast.slice(0, 7)} />
+            </CardContent>
+          </Card>
+        </>
       )}
 
       {/* Historical Comparison */}
-      {weatherData.historicalComparison && (
+      {weatherData.historicalComparison && weatherData.current && (
         <HistoricalComparison
-          currentTemp={weatherData.current.temp}
-          currentCondition={weatherData.current.weather.main}
+          currentTemp={weatherData.current?.temp || 0}
+          currentCondition={weatherData.current?.weather?.main || 'Unknown'}
           historicalComparison={weatherData.historicalComparison}
         />
       )}

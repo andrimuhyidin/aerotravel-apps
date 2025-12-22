@@ -87,7 +87,14 @@ export function WeatherWidget({ locale, compact = false }: WeatherWidgetProps) {
     }
   };
 
-  const hasAlerts = weatherData?.alerts && weatherData.alerts.length > 0;
+  const hasAlerts = weatherData?.alerts && Array.isArray(weatherData.alerts) && weatherData.alerts.length > 0;
+  const currentWeather = weatherData?.current;
+  const currentTemp = currentWeather?.temp ?? 0;
+  const currentFeelsLike = currentWeather?.feels_like ?? currentTemp;
+  const currentHumidity = currentWeather?.humidity ?? 0;
+  const currentWindSpeed = currentWeather?.wind_speed ?? 0;
+  const weatherMain = currentWeather?.weather?.main ?? 'clear';
+  const weatherDescription = currentWeather?.weather?.description ?? '';
 
   // Show fallback UI if weather data is not available
   if (!weatherData && !isLoading && location) {
@@ -142,14 +149,14 @@ export function WeatherWidget({ locale, compact = false }: WeatherWidgetProps) {
   if (compact) {
     return (
       <Link href={`/${locale}/guide/weather`} className="flex items-center gap-2 min-w-0 flex-1 group">
-        {getWeatherIcon(weatherData.current.weather.main)}
+        {getWeatherIcon(weatherMain)}
         <div className="flex min-w-0 flex-col flex-1">
           <span className="text-xs font-medium text-slate-500">Cuaca</span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-sm font-semibold text-slate-900">
-              {Math.round(weatherData.current.temp)}°C
+              {Math.round(currentTemp)}°C
             </span>
-            {hasAlerts && (
+            {hasAlerts && weatherData?.alerts && (
               <span className="text-[10px] font-medium text-amber-700 flex items-center gap-0.5">
                 <span className="text-amber-600">⚠️</span>
                 <span>{weatherData.alerts.length} peringatan</span>
@@ -186,13 +193,13 @@ export function WeatherWidget({ locale, compact = false }: WeatherWidgetProps) {
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {getWeatherIcon(weatherData.current.weather.main)}
+              {getWeatherIcon(weatherMain)}
               <div>
                 <div className="text-2xl font-bold text-slate-900">
-                  {Math.round(weatherData.current.temp)}°C
+                  {Math.round(currentTemp)}°C
                 </div>
                 <div className="text-xs text-slate-600 capitalize">
-                  {weatherData.current.weather.description}
+                  {weatherDescription}
                 </div>
               </div>
             </div>
@@ -200,14 +207,14 @@ export function WeatherWidget({ locale, compact = false }: WeatherWidgetProps) {
               <div className="flex items-center gap-4 text-xs text-slate-600">
                 <div className="flex items-center gap-1">
                   <Droplets className="h-3.5 w-3.5" />
-                  <span>{weatherData.current.humidity}%</span>
+                  <span>{currentHumidity}%</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Wind className="h-3.5 w-3.5" />
-                  <span>{weatherData.current.wind_speed} m/s</span>
+                  <span>{currentWindSpeed} m/s</span>
                 </div>
               </div>
-              {hasAlerts && (
+              {hasAlerts && weatherData?.alerts && (
                 <div className="mt-1 text-xs font-medium text-amber-700">
                   ⚠️ {weatherData.alerts.length} Peringatan
                 </div>

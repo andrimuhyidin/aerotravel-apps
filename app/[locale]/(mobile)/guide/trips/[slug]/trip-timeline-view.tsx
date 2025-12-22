@@ -50,6 +50,7 @@ import { TripSpecialNotesSection } from './trip-special-notes-section';
 import { TripSummarySection } from './trip-summary-section';
 import { TripTasks } from './trip-tasks';
 import { WasteLogButton } from './waste-log-button';
+import { VideoBriefingPlayer } from '@/components/guide/video-briefing-player';
 
 type TripPhase = 
   | 'pre_trip'           // Konfirmasi, persiapan
@@ -396,6 +397,14 @@ function PhaseContent({
             {/* Equipment Checklist AFTER risk assessment */}
             <EquipmentChecklistSection tripId={tripId} locale={locale} />
           </div>
+
+          {/* Section D: Safety Briefing Video */}
+          <PhaseSectionHeader
+            title="Safety Briefing Video"
+            description="Tonton video briefing keselamatan sebelum memulai trip"
+            icon={Play}
+          />
+          <VideoBriefingPlayer tripId={tripId} language={locale === 'en' ? 'en' : 'id'} />
 
           {/* Section D: Readiness Status (summary - LAST) */}
           {isLeadGuide && (

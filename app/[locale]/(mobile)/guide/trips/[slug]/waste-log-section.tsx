@@ -21,15 +21,27 @@ type WasteLogSectionProps = {
 type WasteLog = {
   id: string;
   waste_type: 'plastic' | 'organic' | 'glass' | 'hazmat';
+  waste_type_label?: string;
+  waste_type_description?: string | null;
   quantity: number;
+  quantity_kg?: number;
   unit: 'kg' | 'pieces';
   disposal_method: 'landfill' | 'recycling' | 'incineration' | 'ocean';
+  disposal_method_label?: string;
+  disposal_method_description?: string | null;
   notes: string | null;
+  logged_by?: {
+    id: string;
+    name: string;
+    email?: string | null;
+  } | null;
   logged_at: string;
+  created_at?: string;
+  updated_at?: string;
   photos?: Array<{
     id: string;
     photo_url: string;
-    photo_gps: { latitude?: number; longitude?: number } | null;
+    photo_gps: { latitude?: number; longitude?: number; accuracy?: number } | null;
     captured_at: string | null;
   }>;
 };
@@ -103,37 +115,73 @@ export function WasteLogSection({ tripId, locale }: WasteLogSectionProps) {
             {wasteLogs.map((log) => (
               <div
                 key={log.id}
-                className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm"
+                className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4 text-sm"
               >
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <div className="font-medium">
-                      {WASTE_TYPES.find((t) => t.value === log.waste_type)?.label || log.waste_type}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 space-y-2 min-w-0">
+                    <div>
+                      <div className="font-semibold text-slate-900">
+                        {log.waste_type_label || WASTE_TYPES.find((t) => t.value === log.waste_type)?.label || log.waste_type}
+                      </div>
+                      {log.waste_type_description && (
+                        <div className="text-xs text-slate-500 mt-0.5">{log.waste_type_description}</div>
+                      )}
                     </div>
-                    <div className="text-slate-600">
-                      {log.quantity} {log.unit}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-slate-700 font-medium">
+                        {log.quantity} {log.unit}
+                      </span>
+                      {log.quantity_kg && log.unit !== 'kg' && (
+                        <span className="text-xs text-slate-500">
+                          (~{log.quantity_kg.toFixed(2)} kg)
+                        </span>
+                      )}
                     </div>
-                    <div className="text-slate-500">
-                      {DISPOSAL_METHODS.find((m) => m.value === log.disposal_method)?.label ||
-                        log.disposal_method}
+                    <div>
+                      <div className="text-slate-600">
+                        {log.disposal_method_label || DISPOSAL_METHODS.find((m) => m.value === log.disposal_method)?.label ||
+                          log.disposal_method}
+                      </div>
+                      {log.disposal_method_description && (
+                        <div className="text-xs text-slate-500 mt-0.5">{log.disposal_method_description}</div>
+                      )}
                     </div>
                     {log.notes && (
-                      <div className="text-slate-500 italic">{log.notes}</div>
+                      <div className="text-slate-600 italic text-xs bg-white/50 rounded px-2 py-1">
+                        {log.notes}
+                      </div>
+                    )}
+                    {log.logged_by && (
+                      <div className="text-xs text-slate-500">
+                        Dicatat oleh: <span className="font-medium">{log.logged_by.name}</span>
+                      </div>
                     )}
                   </div>
-                  <div className="text-xs text-slate-400">
-                    {new Date(log.logged_at).toLocaleDateString('id-ID')}
+                  <div className="text-xs text-slate-400 whitespace-nowrap">
+                    {new Date(log.logged_at).toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </div>
                 </div>
                 {log.photos && log.photos.length > 0 && (
-                  <div className="mt-2 flex gap-2">
+                  <div className="mt-3 grid grid-cols-4 sm:grid-cols-6 gap-2">
                     {log.photos.map((photo) => (
-                      <img
-                        key={photo.id}
-                        src={photo.photo_url}
-                        alt="Waste photo"
-                        className="h-16 w-16 rounded object-cover"
-                      />
+                      <div key={photo.id} className="relative aspect-square">
+                        <img
+                          src={photo.photo_url}
+                          alt="Waste photo"
+                          className="h-full w-full rounded-lg object-cover"
+                        />
+                        {photo.photo_gps && (
+                          <div className="absolute bottom-1 right-1 bg-black/50 rounded px-1.5 py-0.5 text-[10px] text-white">
+                            📍
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}

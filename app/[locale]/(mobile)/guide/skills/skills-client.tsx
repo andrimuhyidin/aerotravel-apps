@@ -167,9 +167,9 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
     },
   });
 
-  const mySkills = skillsData?.skills || [];
-  const catalog = catalogData?.skills || [];
-  const goals = goalsData?.goals || [];
+  const mySkills = skillsData?.skills ?? [];
+  const catalog = catalogData?.skills ?? [];
+  const goals = goalsData?.goals ?? [];
 
   // Filter catalog by category
   const filteredCatalog = selectedCategory
@@ -219,10 +219,13 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
             </Card>
           ) : (
             <div className="space-y-3">
-              {mySkills.map((guideSkill) => {
-                const skill = guideSkill.skill;
-                const maxLevel = skill.levels.length;
-                const levelProgress = (guideSkill.current_level / maxLevel) * 100;
+              {mySkills
+                .filter((gs) => gs && gs.id && gs.skill)
+                .map((guideSkill) => {
+                  const skill = guideSkill.skill;
+                  if (!skill || !skill.levels || !Array.isArray(skill.levels)) return null;
+                  const maxLevel = skill.levels.length || 1;
+                  const levelProgress = maxLevel > 0 ? (guideSkill.current_level / maxLevel) * 100 : 0;
 
                 return (
                   <Card key={guideSkill.id} className="border-0 shadow-sm">
@@ -266,7 +269,7 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
                                 style={{ width: `${levelProgress}%` }}
                               />
                             </div>
-                            {skill.levels[guideSkill.current_level - 1] && (
+                            {skill.levels && skill.levels[guideSkill.current_level - 1] && (
                               <p className="text-xs text-slate-500">
                                 {skill.levels[guideSkill.current_level - 1]?.description}
                               </p>
@@ -326,9 +329,11 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
             </Card>
           ) : (
             <div className="space-y-3">
-              {filteredCatalog.map((skill) => {
-                const isClaimed = mySkills.some((gs) => gs.skill_id === skill.id);
-                const maxLevel = skill.levels.length;
+              {filteredCatalog
+                .filter((s) => s && s.id && s.name)
+                .map((skill) => {
+                  const isClaimed = mySkills.some((gs) => gs && gs.skill_id === skill.id);
+                  const maxLevel = skill.levels && Array.isArray(skill.levels) ? skill.levels.length : 0;
 
                 return (
                   <Card key={skill.id} className="border-0 shadow-sm">
@@ -396,8 +401,11 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
             </Card>
           ) : (
             <div className="space-y-3">
-              {goals.map((goal) => {
-                const skill = goal.skill;
+              {goals
+                .filter((g) => g && g.id && g.skill)
+                .map((goal) => {
+                  const skill = goal.skill;
+                  if (!skill || !skill.id) return null;
                 return (
                   <Card key={goal.id} className="border-0 shadow-sm">
                     <CardContent className="p-4">
@@ -436,7 +444,14 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
                             </div>
                             {goal.target_date && (
                               <p className="text-xs text-slate-500">
-                                Target: {new Date(goal.target_date).toLocaleDateString('id-ID')}
+                                Target:{' '}
+                                {(() => {
+                                  try {
+                                    return new Date(goal.target_date).toLocaleDateString('id-ID');
+                                  } catch {
+                                    return 'Tanggal tidak valid';
+                                  }
+                                })()}
                               </p>
                             )}
                           </div>

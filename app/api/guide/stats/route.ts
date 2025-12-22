@@ -244,5 +244,6 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     }
   );
 
+  // Return stats directly (not wrapped in data property for consistency with component expectations)
   return NextResponse.json(stats);
 });

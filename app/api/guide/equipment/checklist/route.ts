@@ -79,8 +79,93 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Failed to fetch checklist' }, { status: 500 });
   }
 
+  const checklist = data?.[0] ?? null;
+
+  // If checklist exists, enrich equipment items with maintenance info
+  if (checklist && checklist.equipment_items) {
+    const client = supabase as unknown as any;
+    const equipmentItems = checklist.equipment_items as unknown as Array<{ id: string; name: string }>;
+    
+    // Get maintenance info for each equipment item
+    const maintenanceInfoPromises = equipmentItems.map(async (item) => {
+      try {
+        // Try to find asset by name or ID
+        const { data: asset } = await client
+          .from('assets')
+          .select('id, last_maintenance_date, next_maintenance_date')
+          .eq('branch_id', branchContext.branchId)
+          .or(`name.ilike.%${item.name}%,code.ilike.%${item.id}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (asset) {
+          // Get latest maintenance log
+          const { data: latestMaintenance } = await client
+            .from('asset_maintenance_logs')
+            .select('maintenance_date, maintenance_type, description')
+            .eq('asset_id', asset.id)
+            .order('maintenance_date', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          const nextMaintenanceDate = asset.next_maintenance_date
+            ? new Date(asset.next_maintenance_date)
+            : null;
+          const today = new Date();
+          const daysUntilMaintenance = nextMaintenanceDate
+            ? Math.ceil((nextMaintenanceDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+            : null;
+
+          return {
+            itemId: item.id,
+            lastMaintenanceDate: asset.last_maintenance_date,
+            nextMaintenanceDate: asset.next_maintenance_date,
+            daysUntilMaintenance,
+            needsMaintenance: daysUntilMaintenance !== null && daysUntilMaintenance <= 30,
+            latestMaintenance: latestMaintenance
+              ? {
+                  date: latestMaintenance.maintenance_date,
+                  type: latestMaintenance.maintenance_type,
+                  description: latestMaintenance.description,
+                }
+              : null,
+          };
+        }
+      } catch (err) {
+        logger.warn('Failed to fetch maintenance info for equipment item', { error: err, itemId: item.id });
+      }
+      return null;
+    });
+
+    const maintenanceInfo = await Promise.all(maintenanceInfoPromises);
+    
+    // Merge maintenance info into equipment items
+    const enrichedItems = equipmentItems.map((item) => {
+      const maintenance = maintenanceInfo.find((m) => m && m.itemId === item.id);
+      return {
+        ...item,
+        maintenance: maintenance
+          ? {
+              lastMaintenanceDate: maintenance.lastMaintenanceDate,
+              nextMaintenanceDate: maintenance.nextMaintenanceDate,
+              daysUntilMaintenance: maintenance.daysUntilMaintenance,
+              needsMaintenance: maintenance.needsMaintenance,
+              latestMaintenance: maintenance.latestMaintenance,
+            }
+          : null,
+      };
+    });
+
+    return NextResponse.json({
+      checklist: {
+        ...checklist,
+        equipment_items: enrichedItems,
+      },
+    });
+  }
+
   return NextResponse.json({
-    checklist: data?.[0] ?? null,
+    checklist,
   });
 });
 

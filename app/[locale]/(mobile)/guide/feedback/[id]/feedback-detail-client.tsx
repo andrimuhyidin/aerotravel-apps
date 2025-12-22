@@ -79,6 +79,9 @@ export function FeedbackDetailClient({ feedbackId, locale }: FeedbackDetailClien
   }
 
   const { feedback, attachments } = data;
+  if (!feedback || !feedback.id) {
+    return <ErrorState message="Feedback tidak ditemukan" />;
+  }
   const statusInfo = getStatusInfo(feedback.status);
   const typeLabel = typeLabels[feedback.feedback_type] || feedback.feedback_type;
 
@@ -130,17 +133,19 @@ export function FeedbackDetailClient({ feedbackId, locale }: FeedbackDetailClien
             <div>
               <p className="mb-2 text-sm font-medium text-slate-700">Lampiran:</p>
               <div className="space-y-2">
-                {(attachments as Array<{ id: string; file_url: string; file_type: string }>).map((att) => (
-                  <a
-                    key={att.id}
-                    href={att.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block rounded-md border p-2 text-sm text-emerald-600 hover:bg-emerald-50"
-                  >
-                    📎 {att.file_type} - Lihat file
-                  </a>
-                ))}
+                {(attachments as Array<{ id: string; file_url: string; file_type: string }>)
+                  .filter((att) => att && att.id && att.file_url)
+                  .map((att) => (
+                    <a
+                      key={att.id}
+                      href={att.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block rounded-md border p-2 text-sm text-emerald-600 hover:bg-emerald-50"
+                    >
+                      📎 {att.file_type || 'File'} - Lihat file
+                    </a>
+                  ))}
               </div>
             </div>
           )}
@@ -158,13 +163,19 @@ export function FeedbackDetailClient({ feedbackId, locale }: FeedbackDetailClien
               {feedback.responded_at && (
                 <p className="mt-2 text-xs text-emerald-600">
                   Direspons pada{' '}
-                  {new Date(feedback.responded_at).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {(() => {
+                    try {
+                      return new Date(feedback.responded_at).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      });
+                    } catch {
+                      return 'Tanggal tidak valid';
+                    }
+                  })()}
                 </p>
               )}
             </div>
@@ -174,13 +185,21 @@ export function FeedbackDetailClient({ feedbackId, locale }: FeedbackDetailClien
           <div className="border-t pt-4">
             <p className="text-xs text-slate-400">
               Dikirim pada{' '}
-              {new Date(feedback.created_at).toLocaleDateString('id-ID', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {feedback.created_at
+                ? (() => {
+                    try {
+                      return new Date(feedback.created_at).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      });
+                    } catch {
+                      return 'Tanggal tidak valid';
+                    }
+                  })()
+                : 'Tanggal tidak tersedia'}
             </p>
           </div>
         </CardContent>

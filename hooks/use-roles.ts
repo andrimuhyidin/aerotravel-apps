@@ -44,11 +44,20 @@ export function useRoles() {
   return useQuery<RolesResponse>({
     queryKey: queryKeys.user.roles(),
     queryFn: async () => {
-      const res = await fetch('/api/user/roles');
-      if (!res.ok) {
+      try {
+        const res = await fetch('/api/user/roles');
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ error: 'Failed to fetch roles' }));
+          throw new Error(errorData.error || errorData.message || `Failed to fetch roles: ${res.status}`);
+        }
+        const data = await res.json();
+        return (data.data ?? data) as RolesResponse;
+      } catch (error) {
+        if (error instanceof Error) {
+          throw error;
+        }
         throw new Error('Failed to fetch roles');
       }
-      return res.json();
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -61,11 +70,20 @@ export function useActiveRole() {
   return useQuery<ActiveRoleResponse>({
     queryKey: queryKeys.user.activeRole(),
     queryFn: async () => {
-      const res = await fetch('/api/user/roles/active');
-      if (!res.ok) {
+      try {
+        const res = await fetch('/api/user/roles/active');
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ error: 'Failed to fetch active role' }));
+          throw new Error(errorData.error || errorData.message || `Failed to fetch active role: ${res.status}`);
+        }
+        const data = await res.json();
+        return (data.data ?? data) as ActiveRoleResponse;
+      } catch (error) {
+        if (error instanceof Error) {
+          throw error;
+        }
         throw new Error('Failed to fetch active role');
       }
-      return res.json();
     },
     staleTime: 1 * 60 * 1000, // 1 minute
     refetchOnWindowFocus: true,
@@ -90,11 +108,12 @@ export function useSwitchRole() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to switch role');
+        const errorData = await res.json().catch(() => ({ error: 'Failed to switch role' }));
+        throw new Error(errorData.error || errorData.message || `Failed to switch role: ${res.status}`);
       }
 
-      return res.json();
+      const data = await res.json();
+      return (data.data ?? data) as SwitchRoleResponse;
     },
     onSuccess: (data) => {
       // Invalidate queries to refetch
@@ -157,11 +176,12 @@ export function useApplyRole() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to apply for role');
+        const errorData = await res.json().catch(() => ({ error: 'Failed to apply for role' }));
+        throw new Error(errorData.error || errorData.message || `Failed to apply for role: ${res.status}`);
       }
 
-      return res.json();
+      const data = await res.json();
+      return (data.data ?? data) as { success: boolean; application: unknown; autoApproved: boolean };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.roles() });
@@ -185,11 +205,20 @@ export function useRoleApplications() {
   return useQuery<{ applications: unknown[] }>({
     queryKey: queryKeys.user.roleApplications(),
     queryFn: async () => {
-      const res = await fetch('/api/user/roles/apply');
-      if (!res.ok) {
+      try {
+        const res = await fetch('/api/user/roles/apply');
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ error: 'Failed to fetch applications' }));
+          throw new Error(errorData.error || errorData.message || `Failed to fetch applications: ${res.status}`);
+        }
+        const data = await res.json();
+        return (data.data ?? data) as { applications: unknown[] };
+      } catch (error) {
+        if (error instanceof Error) {
+          throw error;
+        }
         throw new Error('Failed to fetch applications');
       }
-      return res.json();
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
   });

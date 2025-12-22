@@ -11,7 +11,8 @@ import Link from 'next/link';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getLevelInfo, type GuideStats } from '@/lib/guide/gamification';
+import { getLevelInfo } from '@/lib/guide/gamification';
+import { useGuideStats } from '@/hooks/use-guide-common';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 
@@ -21,16 +22,8 @@ type CareerOverviewWidgetProps = {
 };
 
 export function CareerOverviewWidget({ locale, variant = 'compact' }: CareerOverviewWidgetProps) {
-  // Fetch stats
-  const { data: stats, isLoading: statsLoading } = useQuery<GuideStats & { joinDate?: string }>({
-    queryKey: queryKeys.guide.stats(),
-    queryFn: async () => {
-      const res = await fetch('/api/guide/stats');
-      if (!res.ok) throw new Error('Failed to fetch stats');
-      return res.json() as Promise<GuideStats & { joinDate?: string }>;
-    },
-    staleTime: 60000, // 1 minute
-  });
+  // Fetch stats using shared hook (with proper defaults)
+  const { data: stats, isLoading: statsLoading } = useGuideStats();
 
   // Fetch certifications status
   const { data: certData, isLoading: certLoading } = useQuery<{
@@ -62,10 +55,24 @@ export function CareerOverviewWidget({ locale, variant = 'compact' }: CareerOver
 
   if (!stats) return null;
 
-  const levelInfo = getLevelInfo(stats.currentLevel);
+  // Ensure currentLevel exists, default to bronze if undefined
+  const currentLevel = stats.currentLevel || 'bronze';
+  const levelInfo = getLevelInfo(currentLevel);
+  
+  // Ensure levelInfo is not undefined (fallback to bronze)
+  if (!levelInfo) {
+    return null; // Should not happen, but safety check
+  }
+
   const validCerts = certData?.certifications.filter((c) => c.status === 'verified' && new Date(c.expiry_date) > new Date()).length || 0;
   const totalCerts = certData?.certifications.length || 0;
   const isValidCert = certData?.is_valid ?? false;
+  
+  // Ensure stats properties exist with defaults
+  const currentLevelProgress = stats.currentLevelProgress ?? 0;
+  const nextLevelTripsRequired = stats.nextLevelTripsRequired ?? 0;
+  const badges = stats.badges ?? [];
+  const totalTrips = stats.totalTrips ?? 0;
 
   if (variant === 'compact') {
     return (
@@ -82,10 +89,10 @@ export function CareerOverviewWidget({ locale, variant = 'compact' }: CareerOver
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-slate-900">Level {levelInfo.name}</span>
-                      {stats.badges.length > 0 && (
+                      {badges.length > 0 && (
                         <span className="flex items-center gap-1 text-xs text-slate-600">
                           <Award className="h-3 w-3" />
-                          {stats.badges.length}
+                          {badges.length}
                         </span>
                       )}
                     </div>
@@ -93,16 +100,16 @@ export function CareerOverviewWidget({ locale, variant = 'compact' }: CareerOver
                       <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
                         <div
                           className={cn('h-full transition-all duration-300', levelInfo.color)}
-                          style={{ width: `${stats.currentLevelProgress}%` }}
+                          style={{ width: `${currentLevelProgress}%` }}
                           role="progressbar"
-                          aria-valuenow={stats.currentLevelProgress}
+                          aria-valuenow={currentLevelProgress}
                           aria-valuemin={0}
                           aria-valuemax={100}
                         />
                       </div>
                       <p className="mt-1 text-xs text-slate-500">
-                        {stats.nextLevelTripsRequired > 0
-                          ? `${stats.nextLevelTripsRequired} trip lagi untuk level berikutnya`
+                        {nextLevelTripsRequired > 0
+                          ? `${nextLevelTripsRequired} trip lagi untuk level berikutnya`
                           : 'Level maksimal tercapai'}
                       </p>
                     </div>
@@ -142,29 +149,29 @@ export function CareerOverviewWidget({ locale, variant = 'compact' }: CareerOver
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-slate-900">Level {levelInfo.name}</h3>
                 <p className="text-sm text-slate-600">
-                  {stats.totalTrips} trip selesai
+                  {totalTrips} trip selesai
                 </p>
               </div>
             </div>
             <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-200">
               <div
                 className={cn('h-full transition-all duration-300', levelInfo.color)}
-                style={{ width: `${stats.currentLevelProgress}%` }}
+                style={{ width: `${currentLevelProgress}%` }}
                 role="progressbar"
-                aria-valuenow={stats.currentLevelProgress}
+                aria-valuenow={currentLevelProgress}
                 aria-valuemin={0}
                 aria-valuemax={100}
               />
             </div>
             <p className="mt-2 text-xs text-slate-600">
-              {stats.nextLevelTripsRequired > 0
-                ? `${stats.nextLevelTripsRequired} trip lagi untuk level berikutnya`
+              {nextLevelTripsRequired > 0
+                ? `${nextLevelTripsRequired} trip lagi untuk level berikutnya`
                 : 'Level maksimal tercapai'}
             </p>
           </div>
 
           {/* Badges Preview */}
-          {stats.badges.length > 0 && (
+          {badges.length > 0 && (
             <div className="pt-3 border-t border-slate-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-semibold text-slate-900">Badges</span>
@@ -176,7 +183,7 @@ export function CareerOverviewWidget({ locale, variant = 'compact' }: CareerOver
                 </Link>
               </div>
               <div className="flex flex-wrap gap-2">
-                {stats.badges.slice(0, 6).map((badge) => (
+                {badges.slice(0, 6).map((badge) => (
                   <div
                     key={badge.id}
                     className="flex items-center gap-1.5 rounded-lg bg-white/80 px-2.5 py-1.5 border border-slate-200"

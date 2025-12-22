@@ -12,10 +12,31 @@ import { sendTextMessage } from '@/lib/integrations/whatsapp';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
+const involvedPersonSchema = z.object({
+  person_id: z.string().uuid(),
+  person_type: z.enum(['passenger', 'guide', 'crew', 'other']),
+  role_in_incident: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const injurySchema = z.object({
+  person_id: z.string().uuid(),
+  person_type: z.enum(['passenger', 'guide', 'crew', 'other']),
+  body_part: z.enum(['head', 'torso', 'arm', 'leg', 'other']),
+  severity: z.enum(['minor', 'moderate', 'severe', 'critical']),
+  first_aid_given: z.boolean().default(false),
+  first_aid_description: z.string().optional(),
+  hospital_required: z.boolean().default(false),
+  hospital_name: z.string().optional(),
+});
+
 const incidentSchema = z.object({
   incidentType: z.enum(['accident', 'injury', 'equipment_damage', 'weather_issue', 'complaint', 'other']),
   chronology: z.string().min(10, 'Kronologi minimal 10 karakter'),
   witnesses: z.string().optional(),
+  involved_passenger_ids: z.array(z.string().uuid()).optional(),
+  involved_people: z.array(involvedPersonSchema).optional(),
+  injuries: z.array(injurySchema).optional(),
   photoUrls: z.array(z.string().url()).optional(),
   tripId: z.string().uuid().optional(),
   signature: z.object({
@@ -36,7 +57,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { incidentType, chronology, witnesses, photoUrls, tripId, signature } = payload;
+  const { incidentType, chronology, witnesses, involved_passenger_ids, involved_people, injuries, photoUrls, tripId, signature } = payload;
 
   const branchContext = await getBranchContext(user.id);
   const client = supabase as unknown as any;
@@ -81,6 +102,78 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     tripId,
     incidentType,
   });
+
+  // Insert involved people if provided
+  if (involved_people && involved_people.length > 0) {
+    const involvedPeopleData = involved_people.map((person) => ({
+      incident_id: report.id,
+      person_id: person.person_id,
+      person_type: person.person_type,
+      role_in_incident: person.role_in_incident || null,
+      notes: person.notes || null,
+      branch_id: branchContext.branchId,
+    }));
+
+    const { error: involvedError } = await withBranchFilter(
+      client.from('incident_involved_people'),
+      branchContext,
+    ).insert(involvedPeopleData as never);
+
+    if (involvedError) {
+      logger.error('Failed to insert involved people', involvedError, { reportId: report.id });
+      // Don't fail the request, but log the error
+    }
+  } else if (involved_passenger_ids && involved_passenger_ids.length > 0 && tripId) {
+    // Legacy support: if only passenger IDs provided, create involved_people records
+    const involvedPeopleData = involved_passenger_ids.map((passengerId) => ({
+      incident_id: report.id,
+      person_id: passengerId,
+      person_type: 'passenger' as const,
+      role_in_incident: null,
+      notes: null,
+      branch_id: branchContext.branchId,
+    }));
+
+    const { error: involvedError } = await withBranchFilter(
+      client.from('incident_involved_people'),
+      branchContext,
+    ).insert(involvedPeopleData as never);
+
+    if (involvedError) {
+      logger.error('Failed to insert involved passengers', involvedError, { reportId: report.id });
+    }
+  }
+
+  // Insert injury details if provided (for injury-type incidents)
+  if (injuries && injuries.length > 0) {
+    const injuriesData = injuries.map((injury) => ({
+      incident_id: report.id,
+      person_id: injury.person_id,
+      person_type: injury.person_type,
+      body_part: injury.body_part,
+      severity: injury.severity,
+      first_aid_given: injury.first_aid_given,
+      first_aid_description: injury.first_aid_description || null,
+      hospital_required: injury.hospital_required,
+      hospital_name: injury.hospital_name || null,
+      branch_id: branchContext.branchId,
+    }));
+
+    const { error: injuriesError } = await withBranchFilter(
+      client.from('incident_injuries'),
+      branchContext,
+    ).insert(injuriesData as never);
+
+    if (injuriesError) {
+      logger.error('Failed to insert injury details', injuriesError, { reportId: report.id });
+      // Don't fail the request, but log the error
+    } else {
+      logger.info('Injury details inserted', {
+        reportId: report.id,
+        injuriesCount: injuries.length,
+      });
+    }
+  }
 
   // Auto-notify insurance & admin (async, don't wait)
   try {

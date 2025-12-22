@@ -174,10 +174,19 @@ export function PerformanceClient({ locale: _locale }: PerformanceClientProps) {
             </div>
           )}
           <p className="text-sm text-slate-600">
-            Periode: {new Date(metrics.period_start).toLocaleDateString('id-ID', {
-              month: 'long',
-              year: 'numeric',
-            })}
+            Periode:{' '}
+            {metrics.period_start
+              ? (() => {
+                  try {
+                    return new Date(metrics.period_start).toLocaleDateString('id-ID', {
+                      month: 'long',
+                      year: 'numeric',
+                    });
+                  } catch {
+                    return 'Tanggal tidak valid';
+                  }
+                })()
+              : 'Periode tidak tersedia'}
           </p>
         </CardContent>
       </Card>
@@ -294,7 +303,7 @@ export function PerformanceClient({ locale: _locale }: PerformanceClientProps) {
                 <p className="text-sm text-slate-700 leading-relaxed">{insights.summary}</p>
               </div>
             )}
-            {insights.recommendations && insights.recommendations.length > 0 && (
+            {insights.recommendations && Array.isArray(insights.recommendations) && insights.recommendations.length > 0 && (
               <div className="rounded-xl bg-white p-4">
                 <h3 className="font-semibold text-slate-900 mb-3">Rekomendasi</h3>
                 <ul className="space-y-2">

@@ -6,7 +6,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, CheckCircle2, Edit2, Loader2, Megaphone, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Edit2, Globe, Loader2, Megaphone, RefreshCw, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,13 @@ import {
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import queryKeys from '@/lib/queries/query-keys';
 
@@ -43,11 +50,21 @@ type TripBriefingProps = {
   locale: string;
 };
 
+type BriefingLanguage = 'id' | 'en' | 'zh' | 'ja';
+
+const LANGUAGE_OPTIONS: Array<{ value: BriefingLanguage; label: string }> = [
+  { value: 'id', label: 'Bahasa Indonesia' },
+  { value: 'en', label: 'English' },
+  { value: 'zh', label: '中文 (Chinese)' },
+  { value: 'ja', label: '日本語 (Japanese)' },
+];
+
 export function TripBriefing({ tripId, locale }: TripBriefingProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<number | null>(null);
   const [editedPoints, setEditedPoints] = useState<string>('');
   const [printMode, setPrintMode] = useState(false);
+  const [briefingLanguage, setBriefingLanguage] = useState<BriefingLanguage>('id');
   const queryClient = useQueryClient();
 
   // Fetch briefing
@@ -73,8 +90,10 @@ export function TripBriefing({ tripId, locale }: TripBriefingProps) {
   // Generate briefing mutation
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/guide/trips/${tripId}/briefing`, {
+      const res = await fetch(`/api/guide/trips/${tripId}/briefing/generate`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: briefingLanguage }),
       });
       if (!res.ok) {
         const error = await res.json();
@@ -225,7 +244,25 @@ export function TripBriefing({ tripId, locale }: TripBriefingProps) {
               <Megaphone className="h-5 w-5 text-emerald-600" />
               Briefing Points
             </CardTitle>
-            <div className="flex gap-2 no-print">
+            <div className="flex gap-2 no-print items-center">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-slate-500" />
+                <Select
+                  value={briefingLanguage}
+                  onValueChange={(value) => setBriefingLanguage(value as BriefingLanguage)}
+                >
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LANGUAGE_OPTIONS.map((lang) => (
+                      <SelectItem key={lang.value} value={lang.value}>
+                        {lang.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               {briefing ? (
                 <Button
                   variant="outline"

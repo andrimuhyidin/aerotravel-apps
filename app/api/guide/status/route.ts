@@ -4,10 +4,10 @@
  * POST /api/guide/status   - update current_status & note
  */
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { createErrorResponse, createSuccessResponse } from '@/lib/api/response-format';
+import { createErrorResponse } from '@/lib/api/response-format';
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
@@ -49,7 +49,7 @@ export const GET = withErrorHandler(async () => {
   }
   const { data: upcoming } = await availabilityQuery;
 
-  return createSuccessResponse({
+  return NextResponse.json({
     status: statusRow ?? {
       guide_id: user.id,
       current_status: 'standby',
@@ -95,5 +95,5 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   logger.info('Guide status updated', { guideId: user.id, status: payload.status });
 
-  return createSuccessResponse({ success: true });
+  return NextResponse.json({ success: true });
 });

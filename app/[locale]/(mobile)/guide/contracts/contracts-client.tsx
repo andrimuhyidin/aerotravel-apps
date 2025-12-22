@@ -81,7 +81,7 @@ const statusConfig: Record<
   rejected: { label: 'Ditolak', color: 'bg-red-100 text-red-700', icon: XCircle },
 };
 
-export function ContractsClient({ locale, guideId }: ContractsClientProps) {
+export function ContractsClient({ locale, guideId: _guideId }: ContractsClientProps) {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -201,7 +201,7 @@ export function ContractsClient({ locale, guideId }: ContractsClientProps) {
       </Card>
 
       {/* Contracts List */}
-      {contracts.length === 0 ? (
+      {(!contracts || contracts.length === 0) ? (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
             <EmptyState
@@ -241,7 +241,9 @@ export function ContractsClient({ locale, guideId }: ContractsClientProps) {
         </Card>
       ) : (
         <div className="space-y-3">
-          {contracts.map((contract) => {
+          {contracts
+            .filter((c) => c && c.id && c.contract_number)
+            .map((contract) => {
             const contractStatus = contract.status || 'draft';
             const status = statusConfig[contractStatus] || statusConfig.draft;
             

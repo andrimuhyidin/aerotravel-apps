@@ -6,7 +6,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowDown, ArrowUp, Camera, CheckCircle2, ChevronDown, ChevronUp, Clock, Package, User, X, XCircle } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, Camera, CheckCircle2, ChevronDown, ChevronUp, Clock, Package, QrCode, User, X, XCircle } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -25,10 +25,12 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingState } from '@/components/ui/loading-state';
+import { QRScanner } from '@/components/qr-code/qr-scanner';
 import { SignaturePad, type SignatureData } from '@/components/ui/signature-pad';
 import { mapFacilitiesToItems } from '@/lib/guide/facility-item-mapper';
 import type { FacilityDisplayItem } from '@/lib/guide/facilities';
 import queryKeys from '@/lib/queries/query-keys';
+import { logger } from '@/lib/utils/logger';
 import { cn } from '@/lib/utils';
 
 type LogisticsHandoverSectionProps = {
@@ -100,6 +102,7 @@ type Handover = {
 
 export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsHandoverSectionProps) {
   const [showDialog, setShowDialog] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
   const [handoverType, setHandoverType] = useState<'outbound' | 'inbound'>('outbound');
   const [items, setItems] = useState<HandoverItem[]>([{ ...DEFAULT_HANDOVER_ITEM }]);
   const [signature, setSignature] = useState<SignatureData | null>(null);
@@ -382,6 +385,47 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
 
   const handleAddItem = () => {
     setItems([...items, { name: '', quantity: 0, unit: 'piece' }]);
+  };
+
+  const handleQRScan = (qrData: string) => {
+    try {
+      // Parse QR code data - expected format: JSON string with items array
+      const parsed = JSON.parse(qrData) as { items?: HandoverItem[]; handover_id?: string };
+      
+      if (parsed.items && Array.isArray(parsed.items)) {
+        setItems(parsed.items);
+        toast.success(`${parsed.items.length} item berhasil dimuat dari QR code`);
+      } else if (parsed.handover_id) {
+        // If QR contains handover ID, fetch that handover's items
+        const handover = handovers.find((h) => h.id === parsed.handover_id);
+        if (handover && handover.items) {
+          setItems(handover.items);
+          toast.success('Item dari handover berhasil dimuat');
+        } else {
+          toast.error('Handover tidak ditemukan');
+        }
+      } else {
+        // Try to parse as simple format: "item1:qty1,item2:qty2"
+        const simpleItems = qrData.split(',').map((part) => {
+          const [name, qty] = part.split(':');
+          return {
+            name: name?.trim() || '',
+            quantity: Number(qty?.trim()) || 0,
+            unit: 'piece',
+          };
+        });
+        
+        if (simpleItems.length > 0 && simpleItems[0]?.name) {
+          setItems(simpleItems);
+          toast.success(`${simpleItems.length} item berhasil dimuat dari QR code`);
+        } else {
+          throw new Error('Format QR code tidak valid');
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to parse QR code', error, { qrData });
+      toast.error('Gagal memparse QR code. Format tidak valid.');
+    }
   };
 
   const handleAddSuggestedItems = () => {
@@ -847,18 +891,30 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
             <div>
               <div className="flex items-center justify-between">
                 <Label>Items</Label>
-                {handoverType === 'outbound' && tripInfo?.tripType && (
+                <div className="flex gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={handleAddSuggestedItems}
+                    onClick={() => setShowQRScanner(true)}
                     className="text-xs"
                   >
-                    <Package className="mr-1.5 h-3.5 w-3.5" />
-                    Tambah dari Template
+                    <QrCode className="mr-1.5 h-3.5 w-3.5" />
+                    Scan QR
                   </Button>
-                )}
+                  {handoverType === 'outbound' && tripInfo?.tripType && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddSuggestedItems}
+                      className="text-xs"
+                    >
+                      <Package className="mr-1.5 h-3.5 w-3.5" />
+                      Tambah dari Template
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="mt-2 space-y-3">
                 {items.map((item, index) => {
@@ -869,8 +925,8 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                   const hasHighVariance = itemVariance && itemVariance.variancePercent > VARIANCE_THRESHOLD;
                   
                   return (
-                    <div key={index} className={cn('flex gap-2 rounded-lg border p-3', hasHighVariance && 'border-red-300 bg-red-50')}>
-                      <div className="flex-1 space-y-2">
+                    <div key={index} className={cn('rounded-lg border p-3', hasHighVariance && 'border-red-300 bg-red-50')}>
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <Input
                             placeholder="Nama item"
@@ -884,7 +940,7 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                             </div>
                           )}
                         </div>
-                      <div className="flex gap-2">
+                        <div className="flex gap-2">
                         <div className="flex-1">
                           <Input
                             type="number"
@@ -915,8 +971,8 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                           <option value="liter">Liter</option>
                           <option value="kilogram">Kg</option>
                         </select>
-                      </div>
-                      {handoverType === 'inbound' && (
+                        </div>
+                        {handoverType === 'inbound' && (
                         <Input
                           type="number"
                           placeholder="Expected quantity"
@@ -925,10 +981,10 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                             handleItemChange(index, 'expected_quantity', parseInt(e.target.value) || 0)
                           }
                         />
-                      )}
-                      
-                      {/* Photo Upload */}
-                      <div className="space-y-2">
+                        )}
+                        
+                        {/* Photo Upload */}
+                        <div className="space-y-2">
                         <Label className="text-xs text-slate-600">Foto Item (opsional)</Label>
                         <input
                           type="file"
@@ -979,19 +1035,22 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                             {uploadingPhotos[index] ? 'Uploading...' : 'Upload Foto'}
                           </Button>
                         )}
+                        </div>
+                        {items.length > 1 && (
+                          <div className="mt-2 flex justify-end">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveItem(index)}
+                              className="text-red-600"
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Hapus
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    {items.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveItem(index)}
-                        className="text-red-600"
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
                   );
                 })}
                 <Button
@@ -1028,6 +1087,17 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* QR Scanner Dialog */}
+      <QRScanner
+        open={showQRScanner}
+        onOpenChange={setShowQRScanner}
+        onScan={handleQRScan}
+        onError={(error) => {
+          logger.error('QR scanner error', error);
+          toast.error('Gagal memindai QR code');
+        }}
+      />
     </div>
   );
 }

@@ -164,10 +164,10 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
     enabled: activeTab === 'skills' && skillsTab === 'catalog',
   });
 
-  const availableTemplates = availableData?.templates || [];
-  const historyAssessments = historyData?.assessments || [];
-  const mySkills = skillsData?.skills || [];
-  const catalog = catalogData?.skills || [];
+  const availableTemplates = availableData?.templates ?? [];
+  const historyAssessments = historyData?.assessments ?? [];
+  const mySkills = skillsData?.skills ?? [];
+  const catalog = catalogData?.skills ?? [];
 
   const modules = [
     {
@@ -350,15 +350,17 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
                   </CardContent>
                 </Card>
               ) : (
-                historyAssessments.map((assessment) => (
-                  <Card key={assessment.id} className="border-0 shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-slate-900">
-                              {assessment.template?.name || 'Assessment'}
-                            </h3>
+                historyAssessments
+                  .filter((a) => a && a.id)
+                  .map((assessment) => (
+                    <Card key={assessment.id} className="border-0 shadow-sm">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-slate-900">
+                                {assessment.template?.name || 'Assessment'}
+                              </h3>
                             {assessment.status === 'completed' && (
                               <Badge variant="outline" className="text-xs">Selesai</Badge>
                             )}
@@ -370,11 +372,19 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
                           )}
                           <div className="flex items-center gap-4 text-xs text-slate-500">
                             <span>
-                              {new Date(assessment.started_at).toLocaleDateString('id-ID', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                              })}
+                              {assessment.started_at
+                                ? (() => {
+                                    try {
+                                      return new Date(assessment.started_at).toLocaleDateString('id-ID', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric',
+                                      });
+                                    } catch {
+                                      return 'Tanggal tidak valid';
+                                    }
+                                  })()
+                                : 'Tanggal tidak tersedia'}
                             </span>
                             {assessment.score !== null && (
                               <span
@@ -446,10 +456,13 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
                 </Card>
               ) : (
                 <div className="space-y-3">
-                  {mySkills.map((guideSkill) => {
-                    const skill = guideSkill.skill;
-                    const maxLevel = skill.levels.length;
-                    const levelProgress = (guideSkill.current_level / maxLevel) * 100;
+                  {mySkills
+                    .filter((gs) => gs && gs.id && gs.skill)
+                    .map((guideSkill) => {
+                      const skill = guideSkill.skill;
+                      if (!skill || !skill.levels || !Array.isArray(skill.levels)) return null;
+                      const maxLevel = skill.levels.length || 1;
+                      const levelProgress = maxLevel > 0 ? (guideSkill.current_level / maxLevel) * 100 : 0;
 
                     return (
                       <Card key={guideSkill.id} className="border-0 shadow-sm">
@@ -497,7 +510,7 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
                                     style={{ width: `${levelProgress}%` }}
                                   />
                                 </div>
-                                {skill.levels[guideSkill.current_level - 1] && (
+                                {skill.levels && skill.levels[guideSkill.current_level - 1] && (
                                   <p className="text-xs text-slate-500">
                                     {skill.levels[guideSkill.current_level - 1]?.description}
                                   </p>
@@ -543,9 +556,11 @@ export function LearningClient({ locale: _locale }: LearningClientProps) {
                 </Card>
               ) : (
                 <div className="space-y-3">
-                  {catalog.map((skill) => {
-                    const isClaimed = mySkills.some((gs) => gs.skill_id === skill.id);
-                    const maxLevel = skill.levels.length;
+                  {catalog
+                    .filter((s) => s && s.id && s.name)
+                    .map((skill) => {
+                      const isClaimed = mySkills.some((gs) => gs && gs.skill_id === skill.id);
+                      const maxLevel = skill.levels && Array.isArray(skill.levels) ? skill.levels.length : 0;
 
                     return (
                       <Card key={skill.id} className="border-0 shadow-sm">

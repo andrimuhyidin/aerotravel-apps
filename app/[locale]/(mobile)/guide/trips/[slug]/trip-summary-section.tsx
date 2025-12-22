@@ -455,12 +455,20 @@ function TripStatisticsCard({
                 <span>Tanggal Trip</span>
               </div>
               <p className="text-sm font-medium text-slate-900">
-                {new Date(tripInfo.trip.trip_date).toLocaleDateString('id-ID', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                {tripInfo?.trip?.trip_date ? (() => {
+                  try {
+                    const date = new Date(tripInfo.trip.trip_date);
+                    if (isNaN(date.getTime())) return 'N/A';
+                    return date.toLocaleDateString('id-ID', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    });
+                  } catch {
+                    return 'N/A';
+                  }
+                })() : 'N/A'}
               </p>
             </div>
           )}

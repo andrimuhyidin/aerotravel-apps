@@ -243,10 +243,13 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
     );
   }
 
-  const currentStatusData = data?.status?.current_status || 'standby';
+  const currentStatusData = (data?.status?.current_status || 'standby') as CurrentStatus;
   const currentStatusOption = statusOptions.find((opt) => opt.value === currentStatusData);
   const upcomingSchedules = data?.upcoming || [];
   const lastUpdated = formatRelativeTime(data?.status?.updated_at || null);
+  
+  // Filter out invalid schedules
+  const validSchedules = upcomingSchedules.filter((s) => s && s.id && s.available_from && s.available_until);
 
   return (
     <div className="space-y-6 pb-6">
@@ -387,55 +390,68 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold text-slate-900">Jadwal Ketersediaan</CardTitle>
-          {upcomingSchedules.length > 0 && (
+          {validSchedules.length > 0 && (
             <p className="mt-1 text-xs text-slate-500">
-              {upcomingSchedules.length} jadwal aktif
+              {validSchedules.length} jadwal aktif
             </p>
           )}
         </CardHeader>
         <CardContent>
-          {upcomingSchedules.length > 0 ? (
+          {validSchedules.length > 0 ? (
             <div className="space-y-3">
-              {upcomingSchedules.map((schedule) => (
-                <div
-                  key={schedule.id}
-                  className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4"
-                >
+              {validSchedules.map((schedule) => {
+                if (!schedule || !schedule.id) return null;
+                const scheduleStatus = schedule.status || 'available';
+                let fromDate: string;
+                let untilDate: string;
+                try {
+                  fromDate = formatDateTime(schedule.available_from);
+                  untilDate = formatDateTime(schedule.available_until);
+                } catch {
+                  fromDate = 'Tanggal tidak valid';
+                  untilDate = 'Tanggal tidak valid';
+                }
+                return (
                   <div
-                    className={cn(
-                      'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl',
-                      schedule.status === 'available' ? 'bg-emerald-500' : 'bg-slate-500',
-                    )}
+                    key={schedule.id}
+                    className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4"
                   >
-                    <Calendar className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          'text-xs font-semibold uppercase',
-                          schedule.status === 'available' ? 'text-emerald-700' : 'text-slate-700',
-                        )}
-                      >
-                        {schedule.status === 'available' ? 'Tersedia' : 'Tidak Tersedia'}
-                      </span>
+                    <div
+                      className={cn(
+                        'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl',
+                        scheduleStatus === 'available' ? 'bg-emerald-500' : 'bg-slate-500',
+                      )}
+                    >
+                      <Calendar className="h-5 w-5 text-white" />
                     </div>
-                    <p className="mt-1 text-sm font-medium text-slate-900">
-                      {formatDateTime(schedule.available_from)}
-                    </p>
-                    <p className="text-xs text-slate-600">
-                      sampai {formatDateTime(schedule.available_until)}
-                    </p>
-                    {schedule.reason && (
-                      <div className="mt-2 flex items-start gap-1.5 rounded bg-white p-2">
-                        <Info className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
-                        <p className="text-xs text-slate-600">{schedule.reason}</p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            'text-xs font-semibold uppercase',
+                            scheduleStatus === 'available' ? 'text-emerald-700' : 'text-slate-700',
+                          )}
+                        >
+                          {scheduleStatus === 'available' ? 'Tersedia' : 'Tidak Tersedia'}
+                        </span>
                       </div>
-                    )}
+                      <p className="mt-1 text-sm font-medium text-slate-900">
+                        {fromDate}
+                      </p>
+                      <p className="text-xs text-slate-600">
+                        sampai {untilDate}
+                      </p>
+                      {schedule.reason && (
+                        <div className="mt-2 flex items-start gap-1.5 rounded bg-white p-2">
+                          <Info className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
+                          <p className="text-xs text-slate-600">{schedule.reason}</p>
+                        </div>
+                      )}
+                    </div>
+                    <CheckCircle className="h-5 w-5 flex-shrink-0 text-emerald-500" />
                   </div>
-                  <CheckCircle className="h-5 w-5 flex-shrink-0 text-emerald-500" />
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 p-6 text-center">

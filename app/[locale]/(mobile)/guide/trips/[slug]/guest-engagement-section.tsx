@@ -6,7 +6,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bot, Loader2, Music, RefreshCw, Trophy } from 'lucide-react';
+import { Bot, Camera, Loader2, Music, RefreshCw, Trophy } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -44,7 +44,7 @@ type MusicReference = {
 };
 
 export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagementSectionProps) {
-  const [activeTab, setActiveTab] = useState<'quiz' | 'music'>('quiz');
+  const [activeTab, setActiveTab] = useState<'quiz' | 'music' | 'photo' | 'leaderboard'>('quiz');
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
 
@@ -93,6 +93,44 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
     queryFn: async () => {
       const res = await fetch(`/api/guide/trips/${tripId}/engagement/music`);
       if (!res.ok) throw new Error('Failed to fetch music references');
+      return res.json();
+    },
+  });
+
+  // Fetch photo challenges
+  const { data: photoData, isLoading: photoLoading } = useQuery<{
+    challenges: Array<{ type: string; title: string; description: string; points: number }>;
+    submissions: Array<{
+      id: string;
+      passengerName: string;
+      photoUrl: string;
+      challengeType: string;
+      points: number;
+      submittedAt: string;
+    }>;
+  }>({
+    queryKey: ['photo-challenges', tripId],
+    queryFn: async () => {
+      const res = await fetch(`/api/guide/trips/${tripId}/engagement/photo-challenge`);
+      if (!res.ok) throw new Error('Failed to fetch photo challenges');
+      return res.json();
+    },
+  });
+
+  // Fetch leaderboard
+  const { data: leaderboardData, isLoading: leaderboardLoading } = useQuery<{
+    leaderboard: Array<{
+      rank: number;
+      total_points: number;
+      quiz_points: number;
+      photo_challenge_points: number;
+      passenger: { name: string };
+    }>;
+  }>({
+    queryKey: queryKeys.guide.trips.engagement.leaderboard(tripId),
+    queryFn: async () => {
+      const res = await fetch(`/api/guide/trips/${tripId}/engagement/leaderboard`);
+      if (!res.ok) throw new Error('Failed to fetch leaderboard');
       return res.json();
     },
   });
@@ -154,22 +192,42 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
       </Card>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-200">
+      <div className="flex gap-2 border-b border-slate-200 overflow-x-auto">
         <Button
           variant={activeTab === 'quiz' ? 'default' : 'ghost'}
           onClick={() => setActiveTab('quiz')}
-          className="flex-1"
+          size="sm"
+          className="flex-shrink-0"
         >
           <Trophy className="mr-2 h-4 w-4" />
           Quiz
         </Button>
         <Button
+          variant={activeTab === 'photo' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('photo')}
+          size="sm"
+          className="flex-shrink-0"
+        >
+          <Camera className="mr-2 h-4 w-4" />
+          Photo Challenge
+        </Button>
+        <Button
+          variant={activeTab === 'leaderboard' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('leaderboard')}
+          size="sm"
+          className="flex-shrink-0"
+        >
+          <Trophy className="mr-2 h-4 w-4" />
+          Leaderboard
+        </Button>
+        <Button
           variant={activeTab === 'music' ? 'default' : 'ghost'}
           onClick={() => setActiveTab('music')}
-          className="flex-1"
+          size="sm"
+          className="flex-shrink-0"
         >
           <Music className="mr-2 h-4 w-4" />
-          Music Reference
+          Music
         </Button>
       </div>
 
@@ -449,6 +507,120 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
                 </Card>
               ))}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Photo Challenge Tab */}
+      {activeTab === 'photo' && (
+        <div className="space-y-4">
+          {photoLoading ? (
+            <LoadingState message="Memuat photo challenges..." />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                {photoData?.challenges.map((challenge) => (
+                  <Card key={challenge.type} className="border-0 shadow-sm">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-sm">{challenge.title}</h3>
+                        <p className="text-xs text-slate-600">{challenge.description}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-emerald-600">
+                            +{challenge.points} poin
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {photoData?.submissions && photoData.submissions.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-sm">Submissions</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {photoData.submissions.map((submission) => (
+                      <Card key={submission.id} className="border-0 shadow-sm">
+                        <CardContent className="p-3">
+                          <img
+                            src={submission.photoUrl}
+                            alt={submission.challengeType}
+                            className="w-full h-32 object-cover rounded-lg mb-2"
+                          />
+                          <p className="text-xs font-medium">{submission.passengerName}</p>
+                          <p className="text-xs text-slate-500">{submission.challengeType}</p>
+                          <p className="text-xs text-emerald-600 font-semibold">
+                            +{submission.points} poin
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Leaderboard Tab */}
+      {activeTab === 'leaderboard' && (
+        <div className="space-y-4">
+          {leaderboardLoading ? (
+            <LoadingState message="Memuat leaderboard..." />
+          ) : leaderboardData?.leaderboard && leaderboardData.leaderboard.length > 0 ? (
+            <div className="space-y-2">
+              {leaderboardData.leaderboard.map((entry, idx) => (
+                <Card
+                  key={idx}
+                  className={cn(
+                    'border-0 shadow-sm',
+                    entry.rank === 1 && 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200'
+                  )}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm',
+                            entry.rank === 1
+                              ? 'bg-amber-500 text-white'
+                              : entry.rank === 2
+                              ? 'bg-slate-400 text-white'
+                              : entry.rank === 3
+                              ? 'bg-amber-700 text-white'
+                              : 'bg-slate-200 text-slate-700'
+                          )}
+                        >
+                          {entry.rank}
+                        </div>
+                        <div>
+                          <p className="font-semibold">{entry.passenger.name}</p>
+                          <div className="flex gap-3 text-xs text-slate-600">
+                            <span>Quiz: {entry.quiz_points}</span>
+                            <span>Photo: {entry.photo_challenge_points}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-emerald-600">
+                          {entry.total_points}
+                        </p>
+                        <p className="text-xs text-slate-500">poin</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={Trophy}
+              title="Belum ada leaderboard"
+              description="Belum ada peserta yang mengikuti aktivitas engagement"
+            />
           )}
         </div>
       )}

@@ -212,9 +212,31 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
   }
 
   const { profile, user, currentTrips, stats, skills, performanceTier, leaderboardRank, totalGuidesInBranch, tripStatistics } = data;
+  
+  if (!profile || !profile.user_id || !profile.display_name) {
+    return (
+      <div className="space-y-4">
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-6">
+            <EmptyState
+              icon={Users}
+              title="Guide tidak ditemukan"
+              description="Data guide tidak lengkap"
+              variant="subtle"
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
   const availability = profile.current_availability || 'unknown';
   const availabilityLabel = availabilityLabels[availability] || availability;
   const availabilityColor = availabilityColors[availability] || availabilityColors.unknown;
+  
+  // Filter out invalid trips and skills
+  const validTrips = (currentTrips || []).filter((t) => t && t.id && t.trip_id);
+  const validSkills = (skills || []).filter((s) => s && s.id && s.name);
 
   // Performance tier colors
   const tierColors: Record<string, string> = {
@@ -231,8 +253,9 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
     needs_improvement: 'Needs Improvement',
   };
 
-  // Level info
-  const levelInfo = stats ? getLevelInfo(stats.currentLevel) : null;
+  // Level info - ensure safe access with default
+  const safeCurrentLevel = stats?.currentLevel || 'bronze';
+  const levelInfo = getLevelInfo(safeCurrentLevel);
 
   return (
     <div className="space-y-4">
@@ -368,15 +391,15 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
                     <HelpCircle className="h-3 w-3 text-slate-400" />
                   </div>
                 </div>
-                <p className="mt-1 text-lg font-bold text-slate-900">{stats.totalTrips}</p>
+                <p className="mt-1 text-lg font-bold text-slate-900">{stats.totalTrips ?? 0}</p>
                 <p className="mt-1 text-[10px] text-slate-500">
-                  {stats.totalTrips >= 100
+                  {(stats.totalTrips ?? 0) >= 100
                     ? 'Sangat berpengalaman'
-                    : stats.totalTrips >= 50
+                    : (stats.totalTrips ?? 0) >= 50
                       ? 'Berpengalaman'
-                      : stats.totalTrips >= 20
+                      : (stats.totalTrips ?? 0) >= 20
                         ? 'Cukup berpengalaman'
-                        : stats.totalTrips >= 10
+                        : (stats.totalTrips ?? 0) >= 10
                           ? 'Mulai berpengalaman'
                           : 'Pemula'}
                 </p>
@@ -388,13 +411,13 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
                     <HelpCircle className="h-3 w-3 text-slate-400" />
                   </div>
                 </div>
-                <p className="mt-1 text-lg font-bold text-slate-900">{stats.yearsOfExperience}</p>
+                <p className="mt-1 text-lg font-bold text-slate-900">{stats.yearsOfExperience ?? 0}</p>
                 <p className="mt-1 text-[10px] text-slate-500">
-                  {stats.yearsOfExperience >= 5
+                  {(stats.yearsOfExperience ?? 0) >= 5
                     ? 'Veteran guide'
-                    : stats.yearsOfExperience >= 3
+                    : (stats.yearsOfExperience ?? 0) >= 3
                       ? 'Senior guide'
-                      : stats.yearsOfExperience >= 1
+                      : (stats.yearsOfExperience ?? 0) >= 1
                         ? 'Experienced'
                         : 'New guide'}
                 </p>
@@ -402,7 +425,7 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
             </div>
 
             {/* Leaderboard Rank */}
-            {leaderboardRank && totalGuidesInBranch > 0 && (
+            {leaderboardRank && leaderboardRank > 0 && totalGuidesInBranch > 0 && (
               <div className="rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 p-3">
                 <div className="flex items-center gap-1">
                   <p className="text-xs text-slate-600">Leaderboard Rank</p>
@@ -417,7 +440,7 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
                   )}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Top {Math.round((leaderboardRank / totalGuidesInBranch) * 100)}% of guides
+                  Top {totalGuidesInBranch > 0 ? Math.round((leaderboardRank / totalGuidesInBranch) * 100) : 0}% of guides
                   {leaderboardRank <= 3 && ' • Excellent'}
                   {leaderboardRank > 3 && leaderboardRank <= 10 && ' • Very Good'}
                   {leaderboardRank > 10 && leaderboardRank <= 20 && ' • Good'}
@@ -442,11 +465,11 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
                       {levelInfo.name}
                     </p>
                     <p className="mt-1 text-[10px] text-slate-500">
-                      {stats.currentLevel === 'diamond' && 'Level tertinggi - Expert guide dengan pengalaman sangat banyak'}
-                      {stats.currentLevel === 'platinum' && 'Level tinggi - Senior guide berpengalaman'}
-                      {stats.currentLevel === 'gold' && 'Level menengah - Guide berpengalaman'}
-                      {stats.currentLevel === 'silver' && 'Level sedang - Guide dengan pengalaman cukup'}
-                      {stats.currentLevel === 'bronze' && 'Level awal - Guide baru atau sedang berkembang'}
+                      {safeCurrentLevel === 'diamond' && 'Level tertinggi - Expert guide dengan pengalaman sangat banyak'}
+                      {safeCurrentLevel === 'platinum' && 'Level tinggi - Senior guide berpengalaman'}
+                      {safeCurrentLevel === 'gold' && 'Level menengah - Guide berpengalaman'}
+                      {safeCurrentLevel === 'silver' && 'Level sedang - Guide dengan pengalaman cukup'}
+                      {safeCurrentLevel === 'bronze' && 'Level awal - Guide baru atau sedang berkembang'}
                     </p>
                   </div>
                 </div>
@@ -457,7 +480,7 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
       )}
 
       {/* Rating & Reviews */}
-      {stats && stats.totalRatings > 0 && (
+      {stats && (stats.totalRatings ?? 0) > 0 && (
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
@@ -476,17 +499,17 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
                   </div>
                 </div>
                 <p className="mt-1 flex items-center gap-2">
-                  <span className="text-2xl font-bold text-amber-900">{stats.averageRating.toFixed(1)}</span>
+                  <span className="text-2xl font-bold text-amber-900">{(stats.averageRating ?? 0).toFixed(1)}</span>
                   <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
                 </p>
                 <p className="mt-1 text-[10px] text-amber-700">
-                  {stats.averageRating >= 4.5
+                  {(stats.averageRating ?? 0) >= 4.5
                     ? '⭐ Excellent - Sangat direkomendasikan'
-                    : stats.averageRating >= 4.0
+                    : (stats.averageRating ?? 0) >= 4.0
                       ? '⭐ Very Good - Sangat baik'
-                      : stats.averageRating >= 3.5
+                      : (stats.averageRating ?? 0) >= 3.5
                         ? '⭐ Good - Baik'
-                        : stats.averageRating >= 3.0
+                        : (stats.averageRating ?? 0) >= 3.0
                           ? '⭐ Fair - Cukup baik'
                           : '⭐ Needs Improvement - Perlu peningkatan'}
                 </p>
@@ -498,13 +521,13 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
                     <HelpCircle className="h-3 w-3 text-amber-600" />
                   </div>
                 </div>
-                <p className="mt-1 text-lg font-semibold text-amber-900">{stats.totalRatings}</p>
+                <p className="mt-1 text-lg font-semibold text-amber-900">{stats.totalRatings ?? 0}</p>
                 <p className="mt-1 text-[10px] text-amber-700">
-                  {stats.totalRatings >= 50
+                  {(stats.totalRatings ?? 0) >= 50
                     ? 'Banyak review'
-                    : stats.totalRatings >= 20
+                    : (stats.totalRatings ?? 0) >= 20
                       ? 'Cukup review'
-                      : stats.totalRatings >= 10
+                      : (stats.totalRatings ?? 0) >= 10
                         ? 'Sedang'
                         : 'Sedikit review'}
                 </p>
@@ -512,57 +535,66 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
             </div>
 
             {/* Rating Distribution */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-1">
-                <p className="text-xs font-medium text-slate-600">Rating Distribution</p>
-                <div title="Distribusi rating menunjukkan sebaran review. Semakin banyak 5⭐ dan 4⭐, semakin baik. Jika banyak 1⭐ atau 2⭐, perlu perhatian.">
-                  <HelpCircle className="h-3 w-3 text-slate-400" />
-                </div>
-              </div>
-              {(['5', '4', '3', '2', '1'] as const).map((rating) => {
-                const count = stats.ratingDistribution[rating];
-                const percentage = stats.totalRatings > 0 ? (count / stats.totalRatings) * 100 : 0;
-                return (
-                  <div key={rating} className="flex items-center gap-2">
-                    <div className="flex w-8 items-center gap-1">
-                      <span className="text-xs font-medium text-slate-600">{rating}</span>
-                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                    </div>
-                    <div className="flex-1">
-                      <Progress value={percentage} className="h-2" />
-                    </div>
-                    <div className="flex w-16 items-center justify-end gap-1">
-                      <span className="text-right text-xs text-slate-600">{count}</span>
-                      {stats.totalRatings > 0 && (
-                        <span className="text-[10px] text-slate-400">
-                          ({percentage.toFixed(0)}%)
-                        </span>
-                      )}
-                    </div>
+            {stats.ratingDistribution && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <p className="text-xs font-medium text-slate-600">Rating Distribution</p>
+                  <div title="Distribusi rating menunjukkan sebaran review. Semakin banyak 5⭐ dan 4⭐, semakin baik. Jika banyak 1⭐ atau 2⭐, perlu perhatian.">
+                    <HelpCircle className="h-3 w-3 text-slate-400" />
                   </div>
-                );
-              })}
-              {/* Summary */}
-              {stats.totalRatings > 0 && (
-                <div className="mt-2 rounded-lg bg-slate-50 p-2">
-                  <p className="text-[10px] text-slate-600">
-                    {stats.ratingDistribution['5'] + stats.ratingDistribution['4'] >= stats.totalRatings * 0.8
-                      ? '✅ Mayoritas customer sangat puas (80%+ rating 4-5⭐)'
-                      : stats.ratingDistribution['5'] + stats.ratingDistribution['4'] >= stats.totalRatings * 0.6
-                        ? '✅ Sebagian besar customer puas (60%+ rating 4-5⭐)'
-                        : stats.ratingDistribution['1'] + stats.ratingDistribution['2'] >= stats.totalRatings * 0.3
-                          ? '⚠️ Perlu perhatian (30%+ rating rendah)'
-                          : '✅ Distribusi rating normal'}
-                  </p>
                 </div>
-              )}
-            </div>
+                {(() => {
+                  const totalRatings = stats.totalRatings ?? 0;
+                  return (
+                    <>
+                      {(['5', '4', '3', '2', '1'] as const).map((rating) => {
+                        const count = stats.ratingDistribution[rating] ?? 0;
+                        const percentage = totalRatings > 0 ? (count / totalRatings) * 100 : 0;
+                        return (
+                          <div key={rating} className="flex items-center gap-2">
+                            <div className="flex w-8 items-center gap-1">
+                              <span className="text-xs font-medium text-slate-600">{rating}</span>
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                            </div>
+                            <div className="flex-1">
+                              <Progress value={percentage} className="h-2" />
+                            </div>
+                            <div className="flex w-16 items-center justify-end gap-1">
+                              <span className="text-right text-xs text-slate-600">{count}</span>
+                              {totalRatings > 0 && (
+                                <span className="text-[10px] text-slate-400">
+                                  ({percentage.toFixed(0)}%)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {/* Summary */}
+                      {totalRatings > 0 && stats.ratingDistribution && (
+                        <div className="mt-2 rounded-lg bg-slate-50 p-2">
+                          <p className="text-[10px] text-slate-600">
+                            {(stats.ratingDistribution['5'] ?? 0) + (stats.ratingDistribution['4'] ?? 0) >= totalRatings * 0.8
+                              ? '✅ Mayoritas customer sangat puas (80%+ rating 4-5⭐)'
+                              : (stats.ratingDistribution['5'] ?? 0) + (stats.ratingDistribution['4'] ?? 0) >= totalRatings * 0.6
+                                ? '✅ Sebagian besar customer puas (60%+ rating 4-5⭐)'
+                                : (stats.ratingDistribution['1'] ?? 0) + (stats.ratingDistribution['2'] ?? 0) >= totalRatings * 0.3
+                                  ? '⚠️ Perhatian (30%+ rating rendah)'
+                                  : '✅ Distribusi rating normal'}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Skills & Certifications (Enhanced) */}
-      {(skills && skills.length > 0) || (profile.skills && profile.skills.length > 0) ? (
+      {(validSkills.length > 0) || (profile.skills && Array.isArray(profile.skills) && profile.skills.length > 0) ? (
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
@@ -572,7 +604,7 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
           </CardHeader>
           <CardContent>
             {/* Guide Skills from guide_skills table */}
-            {skills && skills.length > 0 && (
+            {validSkills.length > 0 && (
               <div className="mb-4 space-y-3">
                 <div className="flex items-center gap-1">
                   <p className="text-xs font-medium text-slate-600">Skills dari Sistem</p>
@@ -580,76 +612,86 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
                     <HelpCircle className="h-3 w-3 text-slate-400" />
                   </div>
                 </div>
-                {skills.map((skill) => (
-                  <div
-                    key={skill.id}
-                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-900">{skill.name}</span>
-                        {skill.certified && (
-                          <span
-                            className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700"
-                            title="Memiliki sertifikat resmi untuk skill ini"
-                          >
-                            Certified
-                          </span>
-                        )}
-                        {skill.validated && (
-                          <span
-                            className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700"
-                            title="Sudah diverifikasi oleh admin/ops"
-                          >
-                            Validated
-                          </span>
-                        )}
+                {validSkills.map((skill) => {
+                  if (!skill || !skill.id) return null;
+                  const skillName = skill.name || 'Skill';
+                  const skillLevel = skill.level ?? 0;
+                  const skillCategory = skill.category || 'General';
+                  return (
+                    <div
+                      key={skill.id}
+                      className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-slate-900">{skillName}</span>
+                          {skill.certified && (
+                            <span
+                              className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700"
+                              title="Memiliki sertifikat resmi untuk skill ini"
+                            >
+                              Certified
+                            </span>
+                          )}
+                          {skill.validated && (
+                            <span
+                              className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700"
+                              title="Sudah diverifikasi oleh admin/ops"
+                            >
+                              Validated
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Level {skillLevel} • {skillCategory}
+                          {skillLevel >= 4 && ' • Expert'}
+                          {skillLevel === 3 && ' • Advanced'}
+                          {skillLevel === 2 && ' • Intermediate'}
+                          {skillLevel === 1 && ' • Beginner'}
+                        </p>
                       </div>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Level {skill.level} • {skill.category}
-                        {skill.level >= 4 && ' • Expert'}
-                        {skill.level === 3 && ' • Advanced'}
-                        {skill.level === 2 && ' • Intermediate'}
-                        {skill.level === 1 && ' • Beginner'}
-                      </p>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
             {/* Badges from profile (fallback) */}
-            {profile.badges && profile.badges.length > 0 && (
+            {profile.badges && Array.isArray(profile.badges) && profile.badges.length > 0 && (
               <div>
                 <p className="mb-2 text-xs font-medium text-slate-600">Badges</p>
                 <div className="flex flex-wrap gap-2">
-                  {profile.badges.map((badge, idx) => (
-                    <span
-                      key={idx}
-                      className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700"
-                    >
-                      {badge.name}
-                      {badge.level && ` (${badge.level})`}
-                    </span>
-                  ))}
+                  {profile.badges
+                    .filter((badge) => badge && badge.name)
+                    .map((badge, idx) => (
+                      <span
+                        key={idx}
+                        className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700"
+                      >
+                        {badge.name}
+                        {badge.level && ` (${badge.level})`}
+                      </span>
+                    ))}
                 </div>
               </div>
             )}
 
             {/* Skills from profile (fallback) */}
-            {profile.skills && profile.skills.length > 0 && (
+            {profile.skills && Array.isArray(profile.skills) && profile.skills.length > 0 && (
               <div className="mt-4">
                 <p className="mb-2 text-xs font-medium text-slate-600">Additional Skills</p>
                 <div className="flex flex-wrap gap-2">
-                  {profile.skills.map((skill, idx) => (
-                    <span
-                      key={idx}
-                      className="rounded-full bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700"
-                    >
-                      {skill.name}
-                      {skill.level && ` Lv.${skill.level}`}
-                    </span>
-                  ))}
+                  {profile.skills
+                    .filter((skill) => skill && skill.name)
+                    .map((skill, idx) => (
+                      <span
+                        key={idx}
+                        className="rounded-full bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700"
+                      >
+                        {skill.name}
+                        {skill.level && ` Lv.${skill.level}`}
+                      </span>
+                    ))}
                 </div>
               </div>
             )}
@@ -675,24 +717,26 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-slate-900">{levelInfo.name} Level</p>
-                  <p className="text-xs text-slate-600">{stats.totalTrips} trips completed</p>
+                  <p className="text-xs text-slate-600">{stats.totalTrips ?? 0} trips completed</p>
                 </div>
               </div>
             )}
 
             {/* Badges from profile */}
-            {profile.badges && profile.badges.length > 0 && (
+            {profile.badges && Array.isArray(profile.badges) && profile.badges.length > 0 && (
               <div>
                 <p className="mb-2 text-xs font-medium text-slate-600">Earned Badges</p>
                 <div className="flex flex-wrap gap-2">
-                  {profile.badges.map((badge, idx) => (
-                    <span
-                      key={idx}
-                      className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700"
-                    >
-                      {badge.name}
-                    </span>
-                  ))}
+                  {profile.badges
+                    .filter((badge) => badge && badge.name)
+                    .map((badge, idx) => (
+                      <span
+                        key={idx}
+                        className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700"
+                      >
+                        {badge.name}
+                      </span>
+                    ))}
                 </div>
               </div>
             )}
@@ -718,22 +762,22 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
                   <HelpCircle className="h-3 w-3 text-slate-400" />
                 </div>
               </div>
-              <p className="mt-1 text-lg font-bold text-slate-900">{tripStatistics.totalCompleted}</p>
+              <p className="mt-1 text-lg font-bold text-slate-900">{tripStatistics.totalCompleted ?? 0}</p>
               <p className="mt-1 text-[10px] text-slate-500">
-                {tripStatistics.totalCompleted >= 100
+                {(tripStatistics.totalCompleted ?? 0) >= 100
                   ? 'Sangat berpengalaman - Expert level'
-                  : tripStatistics.totalCompleted >= 50
+                  : (tripStatistics.totalCompleted ?? 0) >= 50
                     ? 'Berpengalaman - Senior level'
-                    : tripStatistics.totalCompleted >= 20
+                    : (tripStatistics.totalCompleted ?? 0) >= 20
                       ? 'Cukup berpengalaman - Mid level'
-                      : tripStatistics.totalCompleted >= 10
+                      : (tripStatistics.totalCompleted ?? 0) >= 10
                         ? 'Mulai berpengalaman - Junior level'
                         : 'Pemula - New guide'}
               </p>
             </div>
 
             {/* Top Destinations */}
-            {tripStatistics.topDestinations.length > 0 && (
+            {tripStatistics.topDestinations && Array.isArray(tripStatistics.topDestinations) && tripStatistics.topDestinations.length > 0 && (
               <div>
                 <div className="mb-2 flex items-center gap-1">
                   <p className="text-xs font-medium text-slate-600">Favorite Destinations</p>
@@ -742,25 +786,27 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  {tripStatistics.topDestinations.map((dest, idx) => (
-                    <div key={idx} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-2">
-                      <div className="flex-1">
-                        <span className="text-sm font-medium text-slate-900">{dest.destination}</span>
-                        <p className="mt-0.5 text-[10px] text-slate-500">
-                          {idx === 0 && '📍 Paling sering'}
-                          {idx === 1 && '📍 Sering'}
-                          {idx === 2 && '📍 Cukup sering'}
-                        </p>
+                  {tripStatistics.topDestinations
+                    .filter((dest) => dest && dest.destination)
+                    .map((dest, idx) => (
+                      <div key={idx} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-2">
+                        <div className="flex-1">
+                          <span className="text-sm font-medium text-slate-900">{dest.destination}</span>
+                          <p className="mt-0.5 text-[10px] text-slate-500">
+                            {idx === 0 && '📍 Paling sering'}
+                            {idx === 1 && '📍 Sering'}
+                            {idx === 2 && '📍 Cukup sering'}
+                          </p>
+                        </div>
+                        <span className="text-xs text-slate-500">{dest.count ?? 0} trips</span>
                       </div>
-                      <span className="text-xs text-slate-500">{dest.count} trips</span>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
             )}
 
             {/* Trip Types */}
-            {tripStatistics.tripTypes.length > 0 && (
+            {tripStatistics.tripTypes && Array.isArray(tripStatistics.tripTypes) && tripStatistics.tripTypes.length > 0 && (
               <div>
                 <div className="mb-2 flex items-center gap-1">
                   <p className="text-xs font-medium text-slate-600">Trip Types</p>
@@ -769,15 +815,17 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {tripStatistics.tripTypes.map((type, idx) => (
-                    <span
-                      key={idx}
-                      className="rounded-full bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 capitalize"
-                    >
-                      {type.type} ({type.count})
-                      {idx === 0 && ' • Spesialisasi'}
-                    </span>
-                  ))}
+                  {tripStatistics.tripTypes
+                    .filter((type) => type && type.type)
+                    .map((type, idx) => (
+                      <span
+                        key={idx}
+                        className="rounded-full bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 capitalize"
+                      >
+                        {type.type} ({type.count ?? 0})
+                        {idx === 0 && ' • Spesialisasi'}
+                      </span>
+                    ))}
                 </div>
               </div>
             )}
@@ -786,7 +834,7 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
       )}
 
       {/* Current Trips */}
-      {currentTrips && currentTrips.length > 0 && (
+      {validTrips.length > 0 && (
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
@@ -796,7 +844,7 @@ export function GuideDetailClient({ guideId, locale }: GuideDetailClientProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {currentTrips.map((assignment) => (
+              {validTrips.map((assignment) => (
                 <div
                   key={assignment.id}
                   className="rounded-lg border border-slate-200 bg-slate-50 p-3"

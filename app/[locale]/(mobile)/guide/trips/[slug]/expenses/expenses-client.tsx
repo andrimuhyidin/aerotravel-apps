@@ -91,7 +91,7 @@ export function ExpensesClient({ tripId }: ExpensesClientProps) {
     staleTime: 300000, // Cache for 5 minutes
   });
 
-  const categories = categoriesData?.data?.categories || [];
+  const categories = categoriesData?.data?.categories ?? [];
 
   // Fetch trip info and submitted expenses
   const { data: tripInfo, isLoading: tripInfoLoading } = useQuery({
@@ -175,9 +175,9 @@ export function ExpensesClient({ tripId }: ExpensesClientProps) {
   const totalPax = tripInfo?.manifest?.length || 0;
   
   // Calculate fuel expenses (from all expenses including submitted)
-  const fuelExpenses = allExpenses.filter((e) => e.category === 'fuel' || e.category === 'transport');
-  const totalFuelExpense = fuelExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const totalFuelLiters = fuelExpenses.reduce((sum, e) => sum + (e.fuelLiters || 0), 0);
+  const fuelExpenses = allExpenses.filter((e) => e?.category === 'fuel' || e?.category === 'transport');
+  const totalFuelExpense = fuelExpenses.reduce((sum, e) => sum + (e?.amount ?? 0), 0);
+  const totalFuelLiters = fuelExpenses.reduce((sum, e) => sum + (e?.fuelLiters ?? 0), 0);
   
   // Get standard fuel cost
   const standardFuelCost = tripType === 'boat_trip' 

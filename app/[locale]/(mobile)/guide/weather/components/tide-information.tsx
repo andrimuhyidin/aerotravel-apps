@@ -23,7 +23,7 @@ type TideInformationProps = {
 type TideData = {
   highTides: Array<{ time: number; height: number; date: string }>;
   lowTides: Array<{ time: number; height: number; date: string }>;
-  heights: Array<{ dt: number; date: string; height: number }>;
+  heights: Array<{ dt: number; date?: string; height: number }>;
 };
 
 const fetchTideData = async (lat: number, lng: number): Promise<TideData | null> => {
@@ -40,12 +40,12 @@ const fetchTideData = async (lat: number, lng: number): Promise<TideData | null>
     status?: number;
     heights?: Array<{
       dt: number;
-      date: string;
+      date?: string;
       height: number;
     }>;
   };
 
-  if (!data.heights || data.heights.length === 0) {
+  if (!data.heights || !Array.isArray(data.heights) || data.heights.length === 0) {
     return null;
   }
 
@@ -56,23 +56,31 @@ const fetchTideData = async (lat: number, lng: number): Promise<TideData | null>
 
   // Simple algorithm: find local maxima (high) and minima (low)
   for (let i = 1; i < heights.length - 1; i++) {
-    const prev = heights[i - 1]!.height;
-    const curr = heights[i]!.height;
-    const next = heights[i + 1]!.height;
+    const prevItem = heights[i - 1];
+    const currItem = heights[i];
+    const nextItem = heights[i + 1];
+
+    if (!prevItem || !currItem || !nextItem) continue;
+
+    const prev = prevItem.height;
+    const curr = currItem.height;
+    const next = nextItem.height;
+
+    if (prev === undefined || curr === undefined || next === undefined) continue;
 
     if (curr > prev && curr > next) {
       // Local maximum (high tide)
       highTides.push({
-        time: heights[i]!.dt,
+        time: currItem.dt,
         height: curr,
-        date: heights[i]!.date,
+        date: currItem.date ?? new Date().toISOString(),
       });
     } else if (curr < prev && curr < next) {
       // Local minimum (low tide)
       lowTides.push({
-        time: heights[i]!.dt,
+        time: currItem.dt,
         height: curr,
-        date: heights[i]!.date,
+        date: currItem.date ?? new Date().toISOString(),
       });
     }
   }
@@ -142,11 +150,11 @@ export function TideInformation({ lat, lng, currentDate = new Date() }: TideInfo
 
   // Get next high and low tide
   const now = currentDate.getTime() / 1000;
-  const nextHighTide = tideData.highTides && Array.isArray(tideData.highTides)
-    ? tideData.highTides.find((ht) => ht.time > now)
+  const nextHighTide = Array.isArray(tideData.highTides) && tideData.highTides.length > 0
+    ? tideData.highTides.find((ht) => ht && ht.time && ht.time > now)
     : null;
-  const nextLowTide = tideData.lowTides && Array.isArray(tideData.lowTides)
-    ? tideData.lowTides.find((lt) => lt.time > now)
+  const nextLowTide = Array.isArray(tideData.lowTides) && tideData.lowTides.length > 0
+    ? tideData.lowTides.find((lt) => lt && lt.time && lt.time > now)
     : null;
 
   return (
@@ -158,39 +166,51 @@ export function TideInformation({ lat, lng, currentDate = new Date() }: TideInfo
         </div>
 
         <div className="space-y-3">
-          {nextHighTide && (
+          {nextHighTide && nextHighTide.time && (
             <div className="flex items-center justify-between rounded-lg bg-blue-50 p-2">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-blue-600" />
                 <div>
                   <div className="text-xs font-medium text-blue-900">Pasang Tinggi</div>
                   <div className="text-xs text-blue-700">
-                    {new Date(nextHighTide.time * 1000).toLocaleTimeString('id-ID', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {(() => {
+                      try {
+                        return new Date(nextHighTide.time * 1000).toLocaleTimeString('id-ID', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        });
+                      } catch {
+                        return 'N/A';
+                      }
+                    })()}
                   </div>
                 </div>
               </div>
-              <div className="text-sm font-bold text-blue-900">{nextHighTide.height.toFixed(2)}m</div>
+              <div className="text-sm font-bold text-blue-900">{(nextHighTide.height ?? 0).toFixed(2)}m</div>
             </div>
           )}
 
-          {nextLowTide && (
+          {nextLowTide && nextLowTide.time && (
             <div className="flex items-center justify-between rounded-lg bg-cyan-50 p-2">
               <div className="flex items-center gap-2">
                 <TrendingDown className="h-4 w-4 text-cyan-600" />
                 <div>
                   <div className="text-xs font-medium text-cyan-900">Pasang Rendah</div>
                   <div className="text-xs text-cyan-700">
-                    {new Date(nextLowTide.time * 1000).toLocaleTimeString('id-ID', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {(() => {
+                      try {
+                        return new Date(nextLowTide.time * 1000).toLocaleTimeString('id-ID', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        });
+                      } catch {
+                        return 'N/A';
+                      }
+                    })()}
                   </div>
                 </div>
               </div>
-              <div className="text-sm font-bold text-cyan-900">{nextLowTide.height.toFixed(2)}m</div>
+              <div className="text-sm font-bold text-cyan-900">{(nextLowTide.height ?? 0).toFixed(2)}m</div>
             </div>
           )}
 

@@ -96,7 +96,7 @@ export function FeedbackListClient({ locale }: FeedbackListClientProps) {
     return <ErrorState message="Gagal memuat feedback" onRetry={() => { refetch(); }} />;
   }
 
-  const feedbacks = data?.feedbacks || [];
+  const feedbacks = data?.feedbacks ?? [];
 
   return (
     <div className="space-y-4">
@@ -152,9 +152,11 @@ export function FeedbackListClient({ locale }: FeedbackListClientProps) {
         />
       ) : (
         <div className="space-y-3">
-          {feedbacks.map((feedback) => {
-            const statusInfo = getStatusInfo(feedback.status);
-            const typeLabel = typeLabels[feedback.feedback_type] || feedback.feedback_type;
+          {feedbacks
+            .filter((feedback) => feedback && feedback.id && feedback.title)
+            .map((feedback) => {
+              const statusInfo = getStatusInfo(feedback.status);
+              const typeLabel = typeLabels[feedback.feedback_type] || feedback.feedback_type;
 
             return (
               <Link
@@ -197,11 +199,19 @@ export function FeedbackListClient({ locale }: FeedbackListClientProps) {
                       </div>
                     )}
                     <p className="mt-2 text-xs text-slate-400">
-                      {new Date(feedback.created_at).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
+                      {feedback.created_at
+                        ? (() => {
+                            try {
+                              return new Date(feedback.created_at).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                              });
+                            } catch {
+                              return 'Tanggal tidak valid';
+                            }
+                          })()
+                        : 'Tanggal tidak tersedia'}
                     </p>
                   </CardContent>
                 </Card>

@@ -90,15 +90,20 @@ const getHealthRecommendation = (aqi: number): string => {
 };
 
 export function AirQualityCard({ airQuality }: AirQualityCardProps) {
-  const colors = getAQIColor(airQuality.aqi);
-  const recommendation = getHealthRecommendation(airQuality.aqi);
+  if (!airQuality || airQuality.aqi === undefined) {
+    return null;
+  }
+
+  const aqi = airQuality.aqi ?? 0;
+  const colors = getAQIColor(aqi);
+  const recommendation = getHealthRecommendation(aqi);
 
   return (
     <Card className={cn('border-0 shadow-sm', colors.bg, colors.border)}>
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className={cn('flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg', colors.bg)}>
-            {airQuality.aqi <= 2 ? (
+            {aqi <= 2 ? (
               <CheckCircle2 className={cn('h-5 w-5', colors.icon)} />
             ) : (
               <AlertCircle className={cn('h-5 w-5', colors.icon)} />
@@ -108,14 +113,14 @@ export function AirQualityCard({ airQuality }: AirQualityCardProps) {
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-semibold text-slate-900">Kualitas Udara (AQI)</h3>
               <Badge className={cn('text-xs', colors.badge)}>
-                {airQuality.aqi}/5
+                {aqi}/5
               </Badge>
             </div>
             <p className={cn('text-sm font-medium mb-2', colors.text)}>
-              {airQuality.level}
+              {airQuality.level ?? 'N/A'}
             </p>
             <p className="text-xs text-slate-600 mb-2">
-              {airQuality.description}
+              {airQuality.description ?? 'Tidak ada deskripsi'}
             </p>
             <div className="mt-3 flex items-start gap-2 rounded-lg bg-white/60 p-2">
               <Shield className="h-4 w-4 flex-shrink-0 mt-0.5 text-slate-500" />

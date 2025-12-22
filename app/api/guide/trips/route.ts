@@ -222,6 +222,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const paginatedTrips = filteredTrips.slice(offset, offset + limit);
   const total = filteredTrips.length;
 
+  // #region agent log
+  const logEndpoint = 'http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64';
+  fetch(logEndpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/guide/trips/route.ts:225',message:'/api/guide/trips returning response',data:{totalTrips:total,paginatedCount:paginatedTrips.length,firstTripKeys:paginatedTrips[0]?Object.keys(paginatedTrips[0]):[],firstTripId:paginatedTrips[0]?.id,firstTripDate:paginatedTrips[0]?.date},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+
   return NextResponse.json({
     trips: paginatedTrips,
     pagination: createPaginationMeta(total, page, limit),

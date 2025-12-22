@@ -120,12 +120,23 @@ export function LeaderboardClient({ locale: _locale, userId }: LeaderboardClient
     }
   };
 
-  const currentLevelInfo = currentStats ? getLevelInfo(currentStats.currentLevel) : null;
+  const currentLevel = currentStats?.currentLevel || 'bronze';
+  const currentLevelInfo = getLevelInfo(currentLevel);
+  
+  // Ensure currentStats has default values
+  const safeCurrentStats = currentStats ? {
+    ...currentStats,
+    totalTrips: currentStats.totalTrips ?? 0,
+    averageRating: currentStats.averageRating ?? 0,
+    totalRatings: currentStats.totalRatings ?? 0,
+    currentLevelProgress: currentStats.currentLevelProgress ?? 0,
+    nextLevelTripsRequired: currentStats.nextLevelTripsRequired ?? 0,
+  } : null;
 
   return (
     <div className="space-y-4 pb-6">
       {/* Current Guide Summary */}
-      {currentStats && (
+      {safeCurrentStats && (
         <Card className="border-0 bg-gradient-to-br from-emerald-50 to-emerald-100/50 shadow-sm">
           <CardHeader className="pb-3">
             <h2 className="text-base font-semibold text-slate-900">Level & Progress Saya</h2>
@@ -149,29 +160,29 @@ export function LeaderboardClient({ locale: _locale, userId }: LeaderboardClient
                   <Trophy className="h-4 w-4 text-amber-500" />
                 </div>
                 <p className="mt-1 text-xs text-slate-600">
-                  {currentStats.totalTrips} trip selesai
-                  {currentStats.totalRatings > 0 && (
+                  {safeCurrentStats.totalTrips} trip selesai
+                  {safeCurrentStats.totalRatings > 0 && (
                     <>
                       {' • '}
                       <span className="inline-flex items-center gap-0.5">
                         <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                        {currentStats.averageRating.toFixed(1)}
+                        {safeCurrentStats.averageRating.toFixed(1)}
                       </span>
-                      {' '}({currentStats.totalRatings} review)
+                      {' '}({safeCurrentStats.totalRatings} review)
                     </>
                   )}
                 </p>
-                {currentStats.nextLevelTripsRequired > 0 && (
+                {safeCurrentStats.nextLevelTripsRequired > 0 && (
                   <div className="mt-3">
                     <div className="mb-1.5 flex items-center justify-between text-xs">
                       <span className="text-slate-600">Progress ke level berikutnya</span>
                       <span className="font-medium text-slate-700">
-                        {currentStats.currentLevelProgress}%
+                        {safeCurrentStats.currentLevelProgress}%
                       </span>
                     </div>
-                    <Progress value={currentStats.currentLevelProgress} className="h-2" />
+                    <Progress value={safeCurrentStats.currentLevelProgress} className="h-2" />
                     <p className="mt-1.5 text-xs text-slate-500">
-                      Butuh {currentStats.nextLevelTripsRequired} trip lagi untuk naik level
+                      Butuh {safeCurrentStats.nextLevelTripsRequired} trip lagi untuk naik level
                     </p>
                   </div>
                 )}
@@ -195,9 +206,10 @@ export function LeaderboardClient({ locale: _locale, userId }: LeaderboardClient
               {ALL_LEVELS.map((level, index) => {
                 const levelInfo = getLevelInfo(level);
                 const levelBenefits = getLevelBenefits(level);
-                const isCurrentLevel = currentStats?.currentLevel === level;
-                const isUnlocked = currentStats
-                  ? ALL_LEVELS.indexOf(currentStats.currentLevel) >= index
+                const safeCurrentLevel = safeCurrentStats?.currentLevel || 'bronze';
+                const isCurrentLevel = safeCurrentLevel === level;
+                const isUnlocked = safeCurrentStats
+                  ? ALL_LEVELS.indexOf(safeCurrentLevel) >= index
                   : index === 0;
 
                 return (
@@ -277,17 +289,17 @@ export function LeaderboardClient({ locale: _locale, userId }: LeaderboardClient
                     </div>
 
                     {/* Progress (only for current level) */}
-                    {isCurrentLevel && currentStats && (
+                    {isCurrentLevel && safeCurrentStats && (
                       <div className="mt-3 border-t border-emerald-200 pt-3">
                         <div className="mb-1.5 flex items-center justify-between text-xs">
                           <span className="text-slate-600">Progress ke level berikutnya</span>
                           <span className="font-medium text-emerald-700">
-                            {currentStats.currentLevelProgress}%
+                            {safeCurrentStats.currentLevelProgress}%
                           </span>
                         </div>
-                        <Progress value={currentStats.currentLevelProgress} className="h-2" />
+                        <Progress value={safeCurrentStats.currentLevelProgress} className="h-2" />
                         <p className="mt-1 text-xs text-slate-500">
-                          {currentStats.nextLevelTripsRequired} trip lagi untuk naik level
+                          {safeCurrentStats.nextLevelTripsRequired} trip lagi untuk naik level
                         </p>
                       </div>
                     )}
@@ -404,23 +416,29 @@ export function LeaderboardClient({ locale: _locale, userId }: LeaderboardClient
           ) : (
             <div className="space-y-2">
               {leaderboardData.leaderboard.map((entry) => {
-                const entryLevelInfo = getLevelInfo(entry.level);
+                if (!entry || !entry.guideId) return null;
+                const entryLevel = entry.level || 'bronze';
+                const entryLevelInfo = getLevelInfo(entryLevel);
+                const entryName = entry.guideName || 'Guide';
+                const entryRating = entry.averageRating ?? 0;
+                const entryTrips = entry.totalTrips ?? 0;
+                const entryRank = entry.rank ?? 999;
                 return (
                   <div
                     key={entry.guideId}
                     className={cn(
                       'flex items-center gap-3 rounded-xl border-2 p-4 transition-all',
-                      getRankColor(entry.rank),
-                      entry.rank <= 3 && 'shadow-sm',
+                      getRankColor(entryRank),
+                      entryRank <= 3 && 'shadow-sm',
                     )}
                   >
                     {/* Rank */}
-                    <div className="flex-shrink-0">{getRankIcon(entry.rank)}</div>
+                    <div className="flex-shrink-0">{getRankIcon(entryRank)}</div>
 
                     {/* Guide Info */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-slate-900">{entry.guideName}</h3>
+                        <h3 className="font-semibold text-slate-900">{entryName}</h3>
                         {entry.guideId === userId && (
                           <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-medium text-white">
                             Anda
@@ -441,26 +459,26 @@ export function LeaderboardClient({ locale: _locale, userId }: LeaderboardClient
                         </div>
                         <div className="flex items-center gap-0.5">
                           <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                          <span className="font-medium">{entry.averageRating.toFixed(1)}</span>
+                          <span className="font-medium">{entryRating.toFixed(1)}</span>
                         </div>
-                        <span>{entry.totalTrips} trip</span>
+                        <span>{entryTrips} trip</span>
                       </div>
                     </div>
 
                     {/* Rank Badge for top 3 */}
-                    {entry.rank <= 3 && (
+                    {entryRank <= 3 && (
                       <div className="flex-shrink-0">
                         <div
                           className={cn(
                             'rounded-full px-3 py-1 text-xs font-bold',
-                            entry.rank === 1
+                            entryRank === 1
                               ? 'bg-amber-500 text-white'
-                              : entry.rank === 2
+                              : entryRank === 2
                                 ? 'bg-slate-400 text-white'
                                 : 'bg-amber-600 text-white',
                           )}
                         >
-                          #{entry.rank}
+                          #{entryRank}
                         </div>
                       </div>
                     )}

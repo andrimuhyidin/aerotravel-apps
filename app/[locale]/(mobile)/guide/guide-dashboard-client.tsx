@@ -68,10 +68,48 @@ import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
 
 import type { GreetingData, OnboardingData, WeatherAlert } from '@/types/guide';
-import { ChallengesWidget } from './widgets/challenges-widget';
-import { PromoUpdatesWidget } from './widgets/promo-updates-widget';
-import { RewardPointsWidget } from './widgets/reward-points-widget';
-import { SuperAppMenuGrid } from './widgets/super-app-menu-grid';
+import dynamic from 'next/dynamic';
+
+// Lazy load non-critical widgets untuk better code splitting
+const ChallengesWidget = dynamic(() => import('./widgets/challenges-widget').then((mod) => ({ default: mod.ChallengesWidget })), {
+  loading: () => (
+    <div>
+      <div className="mb-3 px-1">
+        <div className="h-3 w-24 bg-slate-200 rounded animate-pulse" />
+      </div>
+      <div className="h-24 w-full bg-slate-100 rounded-lg animate-pulse" />
+    </div>
+  ),
+  ssr: false,
+});
+
+const PromoUpdatesWidget = dynamic(() => import('./widgets/promo-updates-widget').then((mod) => ({ default: mod.PromoUpdatesWidget })), {
+  loading: () => (
+    <div>
+      <div className="mb-3 px-1">
+        <div className="h-3 w-32 bg-slate-200 rounded animate-pulse" />
+      </div>
+      <div className="h-[180px] w-full bg-slate-100 rounded-lg animate-pulse" />
+    </div>
+  ),
+  ssr: false,
+});
+
+const RewardPointsWidget = dynamic(() => import('./widgets/reward-points-widget').then((mod) => ({ default: mod.RewardPointsWidget })), {
+  loading: () => (
+    <div className="h-20 w-full bg-slate-100 rounded-lg animate-pulse" />
+  ),
+  ssr: false,
+});
+
+const SuperAppMenuGrid = dynamic(() => import('./widgets/super-app-menu-grid').then((mod) => ({ default: mod.SuperAppMenuGrid })), {
+  loading: () => (
+    <div className="h-48 w-full bg-slate-100 rounded-lg animate-pulse" />
+  ),
+  ssr: false,
+});
+
+// WeatherWidget compact version tetap di-load langsung karena digunakan di status bar
 import { WeatherWidget } from './widgets/weather-widget';
 
 // Stats Cards Component
@@ -197,10 +235,52 @@ function StatsCards({
 type GuideDashboardClientProps = {
   userName: string;
   locale: string;
+  initialData?: {
+    status?: {
+      status: {
+        current_status: 'standby' | 'on_trip' | 'not_available';
+        note: string | null;
+        updated_at: string | null;
+      };
+      upcoming: Array<{
+        id: string;
+        available_from: string;
+        available_until: string;
+        status: string;
+        reason: string | null;
+      }>;
+    };
+    trips?: {
+      trips: Array<{
+        id: string;
+        trip_code: string;
+        date: string;
+        status: string;
+        name?: string;
+        code?: string;
+        guests?: number;
+        destination?: string | null;
+        duration?: number | null;
+        meeting_point?: string | null;
+        assignment_status?: 'pending_confirmation' | 'confirmed' | 'rejected' | 'expired' | 'auto_reassigned' | null;
+        confirmation_deadline?: string | null;
+        confirmed_at?: string | null;
+        rejected_at?: string | null;
+        fee_amount?: number | null;
+      }>;
+    };
+    stats?: {
+      averageRating: number;
+      totalRatings: number;
+      totalTrips: number;
+      completedThisMonth: number;
+      joinDate?: string;
+    };
+  };
 };
 
 
-export function GuideDashboardClient({ userName, locale }: GuideDashboardClientProps) {
+export function GuideDashboardClient({ userName, locale, initialData }: GuideDashboardClientProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { online, pending } = useOfflineStatus();
@@ -210,10 +290,10 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
   const touchStartY = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Use shared hooks
-  const { data: statusData, isLoading: statusLoading, error: statusError, refetch: refetchStatus } = useGuideStatus();
-  const { data: tripsData, isLoading: tripsLoading, error: tripsError, refetch: refetchTrips } = useGuideTrips();
-  const { data: statsData, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useGuideStats();
+  // Use shared hooks with initialData from server
+  const { data: statusData, isLoading: statusLoading, error: statusError, refetch: refetchStatus } = useGuideStatus(initialData?.status);
+  const { data: tripsData, isLoading: tripsLoading, error: tripsError, refetch: refetchTrips } = useGuideTrips(initialData?.trips);
+  const { data: statsData, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useGuideStats(initialData?.stats);
 
   const activeTrip =
     tripsData?.trips.find((trip) => trip.status === 'ongoing') ??
@@ -264,7 +344,7 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
         ? 'text-blue-700'
         : 'text-slate-700';
 
-  // Fetch notifications for urgent alerts
+  // Fetch notifications for urgent alerts (deferred - load after critical content)
   const { data: notificationsData } = useQuery({
     queryKey: [...queryKeys.guide.notifications(), 'urgent'],
     queryFn: async () => {
@@ -274,9 +354,11 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
       return data.notifications.filter((n) => !n.read && (n.is_urgent || n.type === 'trip_assignment' || n.type === 'deadline'));
     },
     staleTime: 60000, // 1 minute
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    enabled: !statusLoading && !tripsLoading && !statsLoading, // Only fetch after critical data loaded
   });
 
-  // Fetch can-start data for active trip
+  // Fetch can-start data for active trip (deferred - only if active trip exists)
   const { data: canStartData } = useQuery({
     queryKey: ['guide', 'trip', 'can-start', activeTrip?.id],
     queryFn: async () => {
@@ -294,11 +376,12 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
         manifest: { boarded: number; total: number; percentage: number };
       };
     },
-    enabled: !!activeTrip?.id,
+    enabled: !!activeTrip?.id && !tripsLoading, // Only fetch after trips loaded
     staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: false,
   });
 
-  // Fetch trip crew data to check if user is lead guide
+  // Fetch trip crew data to check if user is lead guide (deferred)
   const { data: crewData } = useQuery({
     queryKey: ['guide', 'trip', 'crew', activeTrip?.id],
     queryFn: async () => {
@@ -310,11 +393,12 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
         isLeadGuide: boolean;
       };
     },
-    enabled: !!activeTrip?.id,
+    enabled: !!activeTrip?.id && !tripsLoading, // Only fetch after trips loaded
     staleTime: 300000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
-  // Fetch weather alerts
+  // Fetch weather alerts (deferred - non-critical)
   const { data: weatherAlerts } = useQuery({
     queryKey: [...queryKeys.guide.all, 'weather', 'alerts'],
     queryFn: async () => {
@@ -324,9 +408,11 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
       return data.alerts && data.alerts.length > 0 ? data.alerts : null;
     },
     staleTime: 300000, // 5 minutes
+    refetchOnWindowFocus: false,
+    enabled: !statusLoading && !tripsLoading && !statsLoading, // Defer until critical data loaded
   });
 
-  // Fetch wallet analytics for today's earnings
+  // Fetch wallet analytics for today's earnings (deferred - non-critical)
   const { data: walletAnalytics } = useQuery({
     queryKey: ['guide', 'wallet', 'analytics', 'today'],
     queryFn: async () => {
@@ -335,9 +421,11 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
       return await res.json() as { today: { amount: number } };
     },
     staleTime: 60000, // 1 minute
+    refetchOnWindowFocus: false,
+    enabled: !statusLoading && !tripsLoading && !statsLoading, // Defer until critical data loaded
   });
 
-  // Fetch AI-powered dynamic greeting
+  // Fetch AI-powered dynamic greeting (deferred - non-critical)
   const { data: greetingData } = useQuery<GreetingData | null>({
     queryKey: ['guide', 'greeting', 'dynamic'],
     queryFn: async () => {
@@ -347,6 +435,7 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
     },
     staleTime: 300000, // 5 minutes (greeting doesn't need to update too frequently)
     refetchOnWindowFocus: false,
+    enabled: !statusLoading && !tripsLoading && !statsLoading, // Defer until critical data loaded
   });
 
   const isLeadGuide = crewData?.isLeadGuide ?? false;
@@ -419,7 +508,7 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
   ];
 
 
-  // Check onboarding status
+  // Check onboarding status (deferred - non-critical)
   const { data: onboardingData } = useQuery<OnboardingData>({
     queryKey: queryKeys.guide.onboarding.steps(),
     queryFn: async () => {
@@ -428,10 +517,34 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
       return (await res.json()) as OnboardingData;
     },
     staleTime: 300000, // 5 minutes
+    refetchOnWindowFocus: false,
+    enabled: !statusLoading && !tripsLoading && !statsLoading, // Defer until critical data loaded
   });
 
   const needsOnboarding = onboardingData?.currentProgress?.status !== 'completed';
   const onboardingProgress = onboardingData?.currentProgress?.completion_percentage || 0;
+
+  // Fetch expiring certifications (deferred - non-critical)
+  const { data: expiringCerts } = useQuery<{
+    expiring: Array<{
+      id: string;
+      certification_type: string;
+      certification_name: string;
+      expiry_date: string;
+      days_until_expiry: number;
+    }>;
+    count: number;
+  }>({
+    queryKey: queryKeys.guide.certifications?.expiring() || ['certifications', 'expiring'],
+    queryFn: async () => {
+      const res = await fetch('/api/guide/certifications/expiring');
+      if (!res.ok) return { expiring: [], count: 0 };
+      return res.json();
+    },
+    staleTime: 300000, // 5 minutes
+    refetchOnWindowFocus: false,
+    enabled: !statusLoading && !tripsLoading && !statsLoading, // Defer until critical data loaded
+  });
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {
@@ -778,6 +891,46 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
         </Card>
       )}
 
+      {/* Certification Expiry Alert */}
+      {expiringCerts && expiringCerts.expiring.length > 0 && (
+        <Link href={`/${locale}/guide/certifications`} className="block" aria-label="Lihat sertifikat yang akan berakhir">
+          <Card className="border-0 shadow-sm bg-amber-50 border-amber-200 cursor-pointer transition-all hover:shadow-md active:scale-[0.98]">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
+                  <AlertTriangle className="h-5 w-5 text-amber-600" aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-amber-900 mb-1">Peringatan: Sertifikat Akan Berakhir</h3>
+                  <p className="text-sm text-amber-700 mb-2">
+                    {expiringCerts.expiring.length} sertifikat akan berakhir dalam 30 hari ke depan
+                  </p>
+                  <div className="space-y-1">
+                    {expiringCerts.expiring.slice(0, 2).map((cert) => (
+                      <p key={cert.id} className="text-xs text-amber-600">
+                        <span className="font-medium">{cert.certification_name}:</span>{' '}
+                        {cert.days_until_expiry} hari lagi
+                        {cert.expiry_date && (
+                          <span className="text-amber-500">
+                            {' '}({new Date(cert.expiry_date).toLocaleDateString('id-ID')})
+                          </span>
+                        )}
+                      </p>
+                    ))}
+                    {expiringCerts.expiring.length > 2 && (
+                      <p className="text-xs text-amber-600 font-medium">
+                        +{expiringCerts.expiring.length - 2} sertifikat lainnya
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-amber-600 flex-shrink-0 mt-1" aria-hidden="true" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      )}
+
       {/* Active Trip Card - Ultra Compact & Unified Design */}
       {tripsLoading ? (
         <Card className="border-0 shadow-sm">
@@ -801,11 +954,11 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
                   <span className="text-xs font-medium text-emerald-100">Trip Aktif</span>
                   <span className="h-1 w-1 rounded-full bg-emerald-200" />
                   <span className="text-xs text-emerald-50">
-                    {activeTrip.status === 'ongoing' ? 'Berlangsung' : 'Akan Berjalan'}
+                    {(activeTrip.status ?? 'upcoming') === 'ongoing' ? 'Berlangsung' : 'Akan Berjalan'}
                   </span>
                 </div>
                 <h3 className="text-lg font-bold leading-tight text-white mb-1 truncate">
-                  {(activeTrip as { name?: string }).name || activeTrip.trip_code || activeTrip.code || 'Trip'}
+                  {(activeTrip as { name?: string }).name || activeTrip.trip_code || activeTrip.code || activeTrip.id || 'Trip'}
                 </h3>
                 {(activeTrip as { destination?: string | null }).destination && (
                   <p className="flex items-center gap-1 text-xs text-emerald-50 truncate">
@@ -815,7 +968,7 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
                 )}
               </div>
               {/* Quick Readiness Badge untuk upcoming trip */}
-              {activeTrip.status === 'upcoming' && canStartData && (
+              {(activeTrip.status ?? 'upcoming') === 'upcoming' && canStartData && (
                 <div className={cn(
                   'flex-shrink-0 rounded-lg px-2 py-1.5 text-center min-w-[60px]',
                   canStartTrip 
@@ -825,7 +978,7 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
                   <div className={cn('text-[10px] font-semibold mb-0.5', canStartTrip ? 'text-emerald-100' : 'text-red-100')}>
                     {canStartTrip ? 'Siap' : 'Belum Siap'}
                   </div>
-                  {!canStartTrip && canStartData.reasons && (
+                  {!canStartTrip && canStartData?.reasons && canStartData.reasons.length > 0 && (
                     <div className="text-[9px] text-red-100/80">
                       {canStartData.reasons.length} syarat
                     </div>
@@ -860,13 +1013,16 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
                 <span>{activeTrip.guests || 0} tamu</span>
               </div>
               {/* Readiness Progress untuk upcoming trip */}
-              {activeTrip.status === 'upcoming' && canStartData && (() => {
-                const totalChecks = 2 + (canStartData.facility_checklist.total > 0 ? 1 : 0) + (canStartData.equipment_checklist.total > 0 ? 1 : 0);
+              {(activeTrip.status ?? 'upcoming') === 'upcoming' && canStartData && (() => {
+                const facilityChecklist = canStartData.facility_checklist ?? { total: 0, checked: 0, complete: false };
+                const equipmentChecklist = canStartData.equipment_checklist ?? { total: 0, checked: 0, complete: false };
+                const riskAssessment = canStartData.risk_assessment ?? { exists: false, safe: false };
+                const totalChecks = 2 + (facilityChecklist.total > 0 ? 1 : 0) + (equipmentChecklist.total > 0 ? 1 : 0);
                 const completedChecks = 
                   (canStartData.attendance_checked_in ? 1 : 0) +
-                  (canStartData.facility_checklist.complete ? 1 : 0) +
-                  (canStartData.equipment_checklist.complete ? 1 : 0) +
-                  (canStartData.risk_assessment.safe ? 1 : 0) +
+                  (facilityChecklist.complete ? 1 : 0) +
+                  (equipmentChecklist.complete ? 1 : 0) +
+                  (riskAssessment.safe ? 1 : 0) +
                   (canStartData.certifications_valid ? 1 : 0);
                 const progress = totalChecks > 0 ? (completedChecks / totalChecks) * 100 : 0;
                 return (
@@ -888,9 +1044,9 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
             {/* Action Buttons - Minimalis dengan 3 tombol */}
             <div className="grid grid-cols-3 gap-2">
               {/* Primary Action - Start Trip (upcoming) atau Manifest (ongoing) */}
-              {isLeadGuide && activeTrip.status === 'upcoming' ? (
+              {isLeadGuide && (activeTrip.status ?? 'upcoming') === 'upcoming' ? (
                 <Button
-                  onClick={() => router.push(`/${locale}/guide/trips/${activeTrip.trip_code || activeTrip.code || activeTrip.id}`)}
+                  onClick={() => router.push(`/${locale}/guide/trips/${activeTrip.trip_code || activeTrip.code || activeTrip.id || ''}`)}
                   className={cn(
                     'h-14 flex-col gap-1 py-0 text-white shadow-sm transition-all',
                     canStartTrip 
@@ -902,7 +1058,7 @@ export function GuideDashboardClient({ userName, locale }: GuideDashboardClientP
                   <Play className="h-4 w-4" />
                   <span className="text-[10px] font-semibold leading-tight">Start Trip</span>
                 </Button>
-              ) : activeTrip.status === 'ongoing' ? (
+              ) : (activeTrip.status ?? 'upcoming') === 'ongoing' ? (
                 <Link href={`/${locale}/guide/trips/${activeTrip.trip_code || activeTrip.code || activeTrip.id}/manifest`} className="block">
                   <Button className="h-14 flex-col gap-1 py-0 w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all active:scale-95">
                     <ClipboardList className="h-4 w-4" />

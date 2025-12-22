@@ -1,4 +1,5 @@
 import { ErrorBoundary } from '@/components/error-boundary';
+import { WebVitalsTracker } from '@/components/analytics/web-vitals-tracker';
 import { PostHogProvider } from '@/lib/analytics/posthog';
 import { env } from '@/lib/env';
 import { QueryProvider } from '@/lib/providers/query-provider';
@@ -79,7 +80,10 @@ export default function RootLayout({
       <body>
         <ErrorBoundary>
           <QueryProvider>
-            <PostHogProvider>{children}</PostHogProvider>
+            <PostHogProvider>
+              {children}
+              <WebVitalsTracker />
+            </PostHogProvider>
           </QueryProvider>
         </ErrorBoundary>
         {env.NEXT_PUBLIC_GA4_MEASUREMENT_ID && (

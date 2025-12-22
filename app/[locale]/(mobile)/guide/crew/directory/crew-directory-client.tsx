@@ -6,10 +6,11 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { Map, MapPin, Phone, Search, Users } from 'lucide-react';
+import { Loader2, Map, MapPin, Phone, Search, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 
 import queryKeys from '@/lib/queries/query-keys';
 
@@ -26,6 +27,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { DynamicMap, type MapLocation } from '@/components/map/dynamic-map';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
 
@@ -78,12 +80,128 @@ const availabilityColors: Record<string, string> = {
   unknown: 'bg-slate-100 text-slate-500',
 };
 
+// Helper function to format distance
+function formatDistance(meters: number): string {
+  if (meters >= 1000) {
+    return `${(meters / 1000).toFixed(1)} km`;
+  }
+  return `${Math.round(meters)} m`;
+}
+
+// Helper function to format relative time
+function formatRelativeTime(dateString: string | null | undefined): string {
+  if (!dateString) return 'Tidak diketahui';
+  
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Baru saja';
+    if (diffMins < 60) return `${diffMins} menit lalu`;
+    if (diffHours < 24) return `${diffHours} jam lalu`;
+    if (diffDays < 7) return `${diffDays} hari lalu`;
+    
+    return date.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+    });
+  } catch {
+    return 'Tidak diketahui';
+  }
+}
+
+// Helper function to calculate experience level from skills
+function getExperienceLevel(skills: Array<{ name: string; level?: number }> | null | undefined): {
+  totalLevel: number;
+  skillCount: number;
+  maxLevel: number;
+} {
+  if (!skills || !Array.isArray(skills) || skills.length === 0) {
+    return { totalLevel: 0, skillCount: 0, maxLevel: 0 };
+  }
+
+  const levels = skills
+    .map((s) => s.level || 0)
+    .filter((l) => l > 0);
+  
+  const totalLevel = levels.reduce((sum, level) => sum + level, 0);
+  const skillCount = skills.length;
+  const maxLevel = levels.length > 0 ? Math.max(...levels) : 0;
+
+  return { totalLevel, skillCount, maxLevel };
+}
+
+type LocationUpdate = {
+  guideId: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  lastSeenAt: string;
+  isOnline: boolean;
+};
+
 export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
   const [skillFilter, setSkillFilter] = useState<string>('');
   const [showMap, setShowMap] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [realtimeLocations, setRealtimeLocations] = useState<Record<string, LocationUpdate>>({});
+  const [streamConnected, setStreamConnected] = useState(false);
+
+  // Real-time location stream using SSE
+  useEffect(() => {
+    if (!showMap) return;
+
+    const eventSource = new EventSource('/api/guide/crew/location-stream');
+
+    eventSource.onopen = () => {
+      setStreamConnected(true);
+      logger.info('Location stream connected');
+    };
+
+    eventSource.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data) as { type: string; data?: LocationUpdate[]; timestamp?: string };
+        
+        if (message.type === 'locations' && message.data) {
+          const locationMap: Record<string, LocationUpdate> = {};
+          message.data.forEach((loc) => {
+            locationMap[loc.guideId] = loc;
+          });
+          setRealtimeLocations(locationMap);
+        } else if (message.type === 'error') {
+          logger.error('Location stream error', { message });
+        }
+      } catch (error) {
+        logger.error('Failed to parse location stream message', error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      logger.error('Location stream error', error);
+      setStreamConnected(false);
+      // Reconnect after 5 seconds
+      setTimeout(() => {
+        if (showMap) {
+          eventSource.close();
+          // Will reconnect automatically
+        }
+      }, 5000);
+    };
+
+    return () => {
+      eventSource.close();
+      setStreamConnected(false);
+    };
+  }, [showMap]);
 
   const { data, isLoading, error, refetch } = useQuery<CrewDirectoryResponse>({
     queryKey: queryKeys.guide.team.directory.search({
@@ -107,19 +225,45 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
 
   // Get user location for nearby crew
   useEffect(() => {
-    if (showMap && 'geolocation' in navigator) {
+    if (showMap) {
+      if (!('geolocation' in navigator)) {
+        setLocationError('Geolocation tidak didukung di browser ini');
+        setIsGettingLocation(false);
+        return;
+      }
+
+      setIsGettingLocation(true);
+      setLocationError(null);
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setUserLocation({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           });
+          setLocationError(null);
+          setIsGettingLocation(false);
         },
         (error) => {
           logger.warn('GPS capture failed', { error });
+          let errorMessage = 'Gagal mendapatkan lokasi';
+          if (error.code === error.PERMISSION_DENIED) {
+            errorMessage = 'Akses lokasi ditolak. Silakan izinkan akses lokasi di pengaturan browser.';
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            errorMessage = 'Lokasi tidak tersedia. Pastikan GPS aktif.';
+          } else if (error.code === error.TIMEOUT) {
+            errorMessage = 'Timeout saat mendapatkan lokasi. Silakan coba lagi.';
+          }
+          setLocationError(errorMessage);
+          setIsGettingLocation(false);
         },
-        { enableHighAccuracy: true, timeout: 5000 },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
       );
+    } else {
+      // Reset states when map is hidden
+      setUserLocation(null);
+      setLocationError(null);
+      setIsGettingLocation(false);
     }
   }, [showMap]);
 
@@ -227,6 +371,10 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
 
   const myCrew = data?.myCrew ?? [];
   const directory = data?.directory ?? [];
+  
+  // Filter out invalid crew members
+  const validMyCrew = myCrew.filter((m: CrewMember) => m && m.user_id && m.display_name);
+  const validDirectory = directory.filter((m: CrewMember) => m && m.user_id && m.display_name);
 
   return (
     <div className="space-y-4">
@@ -251,37 +399,134 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
         )}
       </div>
 
+      {/* Real-time Connection Status */}
+      {showMap && (
+        <div className="flex items-center gap-2 text-xs">
+          <div className={`h-2 w-2 rounded-full ${streamConnected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+          <span className={cn('text-slate-600', streamConnected && 'text-emerald-600')}>
+            {streamConnected ? 'Real-time location aktif' : 'Menghubungkan...'}
+          </span>
+        </div>
+      )}
+
+      {/* Loading State - Getting Location */}
+      {showMap && isGettingLocation && !userLocation && !locationError && (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="py-6">
+            <div className="flex items-center justify-center gap-2 text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Mendapatkan lokasi...</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Error State - Location Error */}
+      {showMap && locationError && (
+        <Card className="border-0 shadow-sm border-amber-200 bg-amber-50">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-900">
+                  Gagal mendapatkan lokasi
+                </p>
+                <p className="text-xs text-amber-700 mt-1">{locationError}</p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setLocationError(null);
+                  setIsGettingLocation(true);
+                  if ('geolocation' in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                      (position) => {
+                        setUserLocation({
+                          latitude: position.coords.latitude,
+                          longitude: position.coords.longitude,
+                        });
+                        setLocationError(null);
+                        setIsGettingLocation(false);
+                      },
+                      (error) => {
+                        logger.warn('GPS retry failed', { error });
+                        let errorMessage = 'Gagal mendapatkan lokasi';
+                        if (error.code === error.PERMISSION_DENIED) {
+                          errorMessage = 'Akses lokasi ditolak. Silakan izinkan akses lokasi di pengaturan browser.';
+                        } else if (error.code === error.POSITION_UNAVAILABLE) {
+                          errorMessage = 'Lokasi tidak tersedia. Pastikan GPS aktif.';
+                        } else if (error.code === error.TIMEOUT) {
+                          errorMessage = 'Timeout saat mendapatkan lokasi. Silakan coba lagi.';
+                        }
+                        setLocationError(errorMessage);
+                        setIsGettingLocation(false);
+                      },
+                      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+                    );
+                  }
+                }}
+                className="border-amber-300 text-amber-700 hover:bg-amber-100"
+              >
+                Coba Lagi
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Map Display */}
-      {showMap && userLocation && (
+      {showMap && userLocation && !locationError && (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-0">
-            <div className="h-64 w-full rounded-lg bg-slate-100 relative overflow-hidden">
-              {/* Map would be rendered here - using DynamicMap component */}
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                <div className="text-center">
-                  <MapPin className="h-8 w-8 mx-auto mb-2" />
-                  <p className="text-sm">Map akan ditampilkan di sini</p>
-                  <p className="text-xs mt-1">
-                    Lokasi Anda: {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
-                  </p>
-                  {nearbyData && nearbyData.nearby.length > 0 && (
-                    <p className="text-xs mt-2 text-emerald-600">
-                      {nearbyData.nearby.length} crew dalam radius 10km
-                    </p>
-                  )}
-                </div>
-              </div>
+            <div className="h-64 w-full rounded-lg overflow-hidden">
+              <DynamicMap
+                center={[userLocation.latitude, userLocation.longitude]}
+                zoom={13}
+                height="256px"
+                markers={[
+                  // User location marker
+                  {
+                    lat: userLocation.latitude,
+                    lng: userLocation.longitude,
+                    name: 'Lokasi Anda',
+                    description: 'Posisi Anda saat ini',
+                  },
+                  // Real-time location markers (prioritize over nearby data)
+                  ...Object.values(realtimeLocations)
+                    .filter((loc) => loc && loc.guideId && loc.latitude !== undefined && loc.longitude !== undefined)
+                    .map((loc) => ({
+                      lat: loc.latitude,
+                      lng: loc.longitude,
+                      name: loc.name || 'Unknown',
+                      description: `Last seen: ${formatRelativeTime(loc.lastSeenAt)}`,
+                    })),
+                  // Nearby crew markers (fallback if no realtime data)
+                  ...(Object.keys(realtimeLocations).length === 0 && nearbyData?.nearby && Array.isArray(nearbyData.nearby)
+                    ? nearbyData.nearby
+                        .filter((crew) => crew && crew.user_id && crew.location && crew.display_name)
+                        .map((crew) => ({
+                          lat: crew.location.latitude,
+                          lng: crew.location.longitude,
+                          name: crew.display_name,
+                          description: `${formatDistance(crew.distance ?? 0)} away`,
+                        }))
+                    : []),
+                ]}
+              />
             </div>
-            {nearbyData && nearbyData.nearby.length > 0 && (
+            {nearbyData && nearbyData.nearby && Array.isArray(nearbyData.nearby) && nearbyData.nearby.length > 0 && (
               <div className="p-4 space-y-2 border-t">
                 <p className="text-sm font-semibold">Crew Terdekat:</p>
                 <div className="space-y-1">
-                  {nearbyData.nearby.slice(0, 5).map((crew) => (
-                    <div key={crew.user_id} className="flex items-center justify-between text-xs">
-                      <span>{crew.display_name}</span>
-                      <span className="text-slate-500">{crew.distance}m</span>
-                    </div>
-                  ))}
+                  {nearbyData.nearby
+                    .filter((crew) => crew && crew.user_id && crew.display_name)
+                    .slice(0, 5)
+                    .map((crew) => (
+                      <div key={crew.user_id} className="flex items-center justify-between text-xs">
+                        <span>{crew.display_name}</span>
+                        <span className="text-slate-500">{formatDistance(crew.distance ?? 0)}</span>
+                      </div>
+                    ))}
                 </div>
               </div>
             )}
@@ -324,13 +569,13 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
       </Card>
 
       {/* My Trip Crew */}
-      {myCrew.length > 0 && (
+      {validMyCrew.length > 0 && (
         <div>
           <h2 className="mb-3 px-1 text-sm font-semibold uppercase tracking-wider text-slate-500">
             My Trip Crew
           </h2>
           <div className="space-y-2">
-            {myCrew.map((member) => (
+            {validMyCrew.map((member) => (
               <CrewMemberCard
                 key={member.user_id}
                 member={member}
@@ -348,9 +593,9 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
           <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
             All Directory
           </h2>
-          <span className="text-xs text-slate-500">{directory.length} guide</span>
+          <span className="text-xs text-slate-500">{validDirectory.length} guide</span>
         </div>
-        {directory.length === 0 ? (
+        {validDirectory.length === 0 ? (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <EmptyState
@@ -367,7 +612,7 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
           </Card>
         ) : (
           <div className="space-y-2">
-            {directory.map((member) => (
+            {validDirectory.map((member) => (
               <CrewMemberCard
                 key={member.user_id}
                 member={member}
@@ -391,11 +636,20 @@ function CrewMemberCard({
   onContact: (guideId: string) => void;
   locale: string;
 }) {
+  if (!member || !member.user_id || !member.display_name) return null;
+  
   const params = useParams();
   const localeParam = (params?.locale as string) || locale;
   const availability = member.current_availability || 'unknown';
   const availabilityLabel = availabilityLabels[availability] || availability;
   const availabilityColor = availabilityColors[availability] || availabilityColors.unknown;
+  
+  // Calculate experience level
+  const experience = getExperienceLevel(member.skills);
+  const lastSeen = formatRelativeTime(member.last_status_update);
+  const memberName = member.display_name;
+  const memberPhoto = member.photo_url;
+  const memberBranch = member.branch;
 
   return (
     <Card className="border-0 shadow-sm transition-all hover:shadow-md">
@@ -403,10 +657,10 @@ function CrewMemberCard({
         <div className="flex items-start gap-3">
           {/* Avatar */}
           <Link href={`/${localeParam}/guide/crew/${member.user_id}`} className="relative flex-shrink-0">
-            {member.photo_url ? (
+            {memberPhoto ? (
               <img
-                src={member.photo_url}
-                alt={member.display_name}
+                src={memberPhoto}
+                alt={memberName}
                 className="h-12 w-12 rounded-full object-cover"
               />
             ) : (
@@ -431,18 +685,39 @@ function CrewMemberCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <Link
-                  href={`/${localeParam}/guide/crew/${member.user_id}`}
-                  className="font-semibold text-slate-900 hover:text-emerald-600"
-                >
-                  {member.display_name}
-                </Link>
-                {member.branch && (
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/${localeParam}/guide/crew/${member.user_id}`}
+                    className="font-semibold text-slate-900 hover:text-emerald-600"
+                  >
+                    {memberName}
+                  </Link>
+                  {experience.skillCount > 0 && experience.maxLevel > 0 && (
+                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                      Lv.{experience.maxLevel}
+                    </span>
+                  )}
+                </div>
+                {memberBranch && memberBranch.name && memberBranch.code && (
                   <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
                     <MapPin className="h-3 w-3" />
-                    {member.branch.name} ({member.branch.code})
+                    {memberBranch.name} ({memberBranch.code})
                   </p>
                 )}
+                <div className="mt-1 flex items-center gap-3 text-xs text-slate-500">
+                  {experience.skillCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {experience.skillCount} skill{experience.skillCount > 1 ? 's' : ''}
+                    </span>
+                  )}
+                  {member.last_status_update && (
+                    <span className="flex items-center gap-1">
+                      <span>•</span>
+                      Terakhir: {lastSeen}
+                    </span>
+                  )}
+                </div>
                 {member.trip_info && (
                   <p className="mt-1 text-xs text-slate-600">
                     Trip: {member.trip_info.trip_code} ({member.trip_role === 'lead' ? 'Lead' : 'Support'})

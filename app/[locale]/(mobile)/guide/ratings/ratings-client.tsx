@@ -86,8 +86,8 @@ export function RatingsClient({ locale: _locale }: RatingsClientProps) {
   }
 
   const { reviews, summary } = data;
-  const avg = summary.averageRating;
-  const total = summary.totalRatings;
+  const avg = summary?.averageRating ?? 0;
+  const total = summary?.totalRatings ?? 0;
 
   return (
     <div className="space-y-4">
@@ -115,7 +115,7 @@ export function RatingsClient({ locale: _locale }: RatingsClientProps) {
             </p>
 
             {/* Trend Indicator */}
-            {summary.trend && summary.recentAverageRating && (
+            {summary?.trend && summary?.recentAverageRating && (
               <div className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-white/50 px-4 py-2">
                 {summary.trend === 'up' ? (
                   <TrendingUp className="h-4 w-4 text-emerald-600" />
@@ -188,13 +188,13 @@ export function RatingsClient({ locale: _locale }: RatingsClientProps) {
           </div>
 
           {/* Rating Distribution */}
-          {total > 0 && (
+          {total > 0 && summary?.ratingDistribution && (
             <div className="mt-6 space-y-2 border-t border-amber-200 pt-4">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
                 Distribusi Rating
               </p>
               {[5, 4, 3, 2, 1].map((rating) => {
-                const count = summary.ratingDistribution[String(rating) as '1' | '2' | '3' | '4' | '5'] || 0;
+                const count = summary.ratingDistribution[String(rating) as '1' | '2' | '3' | '4' | '5'] ?? 0;
                 const percentage = total > 0 ? (count / total) * 100 : 0;
                 return (
                   <div key={rating} className="flex items-center gap-3">
@@ -222,7 +222,7 @@ export function RatingsClient({ locale: _locale }: RatingsClientProps) {
       </Card>
 
       {/* Reviews List */}
-      {reviews.length === 0 ? (
+      {(!reviews || reviews.length === 0) ? (
         <EmptyState
           icon={Star}
           title="Belum ada ulasan"
@@ -237,18 +237,28 @@ export function RatingsClient({ locale: _locale }: RatingsClientProps) {
             </h2>
             <span className="text-xs text-slate-500">{reviews.length} ulasan</span>
           </div>
-          {reviews.map((review) => {
-            const date = new Date(review.createdAt);
-            const formattedDate = date.toLocaleDateString('id-ID', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            });
-            const formattedTime = date.toLocaleTimeString('id-ID', {
-              hour: '2-digit',
-              minute: '2-digit',
-            });
-            const rating = review.guideRating || review.overallRating;
+          {reviews
+            .filter((review) => review && review.id)
+            .map((review) => {
+              let date: Date;
+              try {
+                date = new Date(review.createdAt);
+                if (isNaN(date.getTime())) {
+                  date = new Date();
+                }
+              } catch {
+                date = new Date();
+              }
+              const formattedDate = date.toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              });
+              const formattedTime = date.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+              const rating = review.guideRating ?? review.overallRating ?? 0;
 
             return (
               <Card key={review.id} className="border-0 shadow-sm">
@@ -258,15 +268,15 @@ export function RatingsClient({ locale: _locale }: RatingsClientProps) {
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-slate-900">{review.reviewerName}</p>
                         <div className="flex gap-0.5">
-                          {Array.from({ length: rating }).map((_, j) => (
+                          {Array.from({ length: Math.min(Math.max(rating, 0), 5) }).map((_, j) => (
                             <Star
                               key={j}
                               className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
                             />
                           ))}
-                          {Array.from({ length: 5 - rating }).map((_, j) => (
+                          {Array.from({ length: Math.max(5 - Math.min(Math.max(rating, 0), 5), 0) }).map((_, j) => (
                             <Star
-                              key={j + rating}
+                              key={j + Math.min(Math.max(rating, 0), 5)}
                               className="h-3.5 w-3.5 text-slate-300"
                             />
                           ))}

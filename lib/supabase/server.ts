@@ -47,6 +47,7 @@ export async function createClient() {
 
 /**
  * Get current user with profile and multi-role support
+ * Optimized with caching for better performance
  */
 export async function getCurrentUser() {
   const supabase = await createClient();
@@ -57,27 +58,43 @@ export async function getCurrentUser() {
 
   if (!user) return null;
 
-  const { data: profileData } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+  // Cache user data for 5 minutes to reduce database queries
+  const { getCached, cacheKeys, cacheTTL } = await import('@/lib/cache/redis-cache');
+  const cacheKey = `user:${user.id}:full`;
+  
+  const cachedUser = await getCached(
+    cacheKey,
+    300, // 5 minutes TTL
+    async () => {
+      const { data: profileData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
 
-  const profile = profileData as
-    | Database['public']['Tables']['users']['Row']
-    | null;
+      const profile = profileData as
+        | Database['public']['Tables']['users']['Row']
+        | null;
 
-  // Get active role (server-side session)
-  const activeRole = await getActiveRole(user.id);
+      // Get active role (server-side session)
+      const activeRole = await getActiveRole(user.id);
 
-  // Get all user roles
-  const roles = await getUserRoles(user.id);
+      // Get all user roles
+      const roles = await getUserRoles(user.id);
+
+      return {
+        profile,
+        activeRole,
+        roles,
+      };
+    }
+  );
 
   return {
     ...user,
-    profile,
-    activeRole, // New field: current active role
-    roles, // New field: all active roles
+    profile: cachedUser.profile,
+    activeRole: cachedUser.activeRole,
+    roles: cachedUser.roles,
   };
 }
 

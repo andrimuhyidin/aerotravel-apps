@@ -102,7 +102,7 @@ export function RewardsHistoryClient({ locale: _locale }: RewardsHistoryClientPr
     },
   });
 
-  const redemptions = redemptionsData?.redemptions || [];
+  const redemptions = redemptionsData?.redemptions ?? [];
 
   // Cancel redemption mutation
   const cancelMutation = useMutation({
@@ -196,10 +196,12 @@ export function RewardsHistoryClient({ locale: _locale }: RewardsHistoryClientPr
             />
           ) : (
             <div className="space-y-4">
-              {redemptions.map((redemption) => {
-                const status = statusConfig[redemption.status] || statusConfig.pending;
-                const StatusIcon = status?.icon || Clock;
-                const catalog = redemption.guide_reward_catalog;
+              {redemptions
+                .filter((redemption) => redemption && redemption.id)
+                .map((redemption) => {
+                  const status = statusConfig[redemption.status] || statusConfig.pending;
+                  const StatusIcon = status?.icon || Clock;
+                  const catalog = redemption.guide_reward_catalog;
 
                 return (
                   <Card key={redemption.id} className="border-0 shadow-sm">
@@ -254,24 +256,38 @@ export function RewardsHistoryClient({ locale: _locale }: RewardsHistoryClientPr
                               )}
                               <p className="mt-2 text-xs text-slate-500">
                                 Ditukar pada{' '}
-                                {new Date(redemption.redeemed_at).toLocaleDateString('id-ID', {
-                                  day: 'numeric',
-                                  month: 'long',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
+                                {redemption.redeemed_at
+                                  ? (() => {
+                                      try {
+                                        return new Date(redemption.redeemed_at).toLocaleDateString('id-ID', {
+                                          day: 'numeric',
+                                          month: 'long',
+                                          year: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        });
+                                      } catch {
+                                        return 'Tanggal tidak valid';
+                                      }
+                                    })()
+                                  : 'Tanggal tidak tersedia'}
                               </p>
                               {redemption.completed_at && (
                                 <p className="mt-1 text-xs text-slate-500">
                                   Selesai pada{' '}
-                                  {new Date(redemption.completed_at).toLocaleDateString('id-ID', {
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
+                                  {(() => {
+                                    try {
+                                      return new Date(redemption.completed_at).toLocaleDateString('id-ID', {
+                                        day: 'numeric',
+                                        month: 'long',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      });
+                                    } catch {
+                                      return 'Tanggal tidak valid';
+                                    }
+                                  })()}
                                 </p>
                               )}
 

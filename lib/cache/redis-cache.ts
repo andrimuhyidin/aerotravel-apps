@@ -62,9 +62,27 @@ export async function getCached<T>(
     if (cached !== null && cached !== undefined) {
       logger.debug('Cache hit', { key });
       try {
-        return JSON.parse(cached) as T;
+        // Check if cached value is already an object (shouldn't happen but handle gracefully)
+        if (typeof cached === 'object' && cached !== null) {
+          logger.warn('Cached value is already an object, invalidating cache', { key });
+          await redis.del(key);
+          const data = await fetcher();
+          await redis.setex(key, ttl, JSON.stringify(data));
+          return data;
+        }
+        
+        // Ensure cached is a string before parsing
+        const cachedString = typeof cached === 'string' ? cached : String(cached);
+        
+        // Try to parse JSON
+        const parsed = JSON.parse(cachedString);
+        return parsed as T;
       } catch (parseError) {
-        logger.error('Failed to parse cached data', parseError, { key });
+        logger.error('Failed to parse cached data', parseError, { 
+          key,
+          cachedType: typeof cached,
+          cachedValue: typeof cached === 'string' ? cached.substring(0, 100) : String(cached).substring(0, 100)
+        });
         // If parsing fails, invalidate cache and fetch fresh
         await redis.del(key);
         const data = await fetcher();
@@ -117,7 +135,16 @@ export async function getCache<T>(key: string): Promise<T | null> {
   try {
     const cached = await redis.get<string>(key);
     if (cached === null || cached === undefined) return null;
-    return JSON.parse(cached) as T;
+    
+    // Check if cached value is already an object (shouldn't happen but handle gracefully)
+    if (typeof cached === 'object' && cached !== null) {
+      logger.warn('Cached value is already an object in getCache, returning as-is', { key });
+      return cached as unknown as T;
+    }
+    
+    // Ensure cached is a string before parsing
+    const cachedString = typeof cached === 'string' ? cached : String(cached);
+    return JSON.parse(cachedString) as T;
   } catch (error) {
     logger.error('Failed to get cache', error, { key });
     return null;
@@ -166,6 +193,7 @@ export const cacheKeys = {
     stats: (userId: string) => `guide:stats:${userId}`,
     trips: (userId: string, status?: string) => 
       status ? `guide:trips:${userId}:${status}` : `guide:trips:${userId}`,
+    dashboard: (userId: string) => `guide:dashboard:${userId}`,
     wallet: (userId: string) => `guide:wallet:${userId}`,
     walletTransactions: (userId: string, page: number, limit: number) =>
       `guide:wallet:tx:${userId}:${page}:${limit}`,

@@ -86,7 +86,9 @@ export function GuideBadges({ locale: _locale }: GuideBadgesProps) {
     badges: [],
   };
 
-  const levelInfo = getLevelInfo(displayStats.currentLevel);
+  // Ensure currentLevel exists, default to bronze if undefined
+  const currentLevel = displayStats.currentLevel || 'bronze';
+  const levelInfo = getLevelInfo(currentLevel);
 
   return (
     <Card className="border-0 bg-gradient-to-br from-emerald-50 to-emerald-100/50 shadow-sm transition-all hover:shadow-md active:scale-[0.99] cursor-pointer group">
@@ -130,7 +132,8 @@ export function GuideBadges({ locale: _locale }: GuideBadgesProps) {
                 <Progress value={displayStats.currentLevelProgress} className="h-1.5" />
                 {(() => {
                   const levels: GuideLevel[] = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
-                  const currentIndex = levels.indexOf(displayStats.currentLevel);
+                  const safeCurrentLevel = displayStats.currentLevel || 'bronze';
+                  const currentIndex = levels.indexOf(safeCurrentLevel);
                   const nextLevel = currentIndex < levels.length - 1 ? levels[currentIndex + 1] : null;
                   const nextLevelInfo = nextLevel ? getLevelInfo(nextLevel) : null;
                   return nextLevelInfo ? (

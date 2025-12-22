@@ -107,7 +107,12 @@ export function PassengerConsentSection({ tripId, locale }: PassengerConsentSect
   });
 
   // Fetch or generate briefing
-  const { data: briefingData, isLoading: briefingLoading, refetch: refetchBriefing } = useQuery<{
+  const { 
+    data: briefingData, 
+    isLoading: briefingLoading, 
+    error: briefingError,
+    refetch: refetchBriefing 
+  } = useQuery<{
     briefing: BriefingPoints | null;
     generatedAt?: string;
     updatedAt?: string;
@@ -152,17 +157,18 @@ export function PassengerConsentSection({ tripId, locale }: PassengerConsentSect
       });
       
       if (!generateRes.ok) {
+        const errorData = await generateRes.json().catch(() => ({ error: 'Unknown error' }));
         // If generation fails, try cached template
         const cached = await getCachedBriefingTemplate(tripId);
         if (cached && cached.briefingPoints) {
-          logger.warn('Briefing generation failed, using cached template', { tripId });
+          logger.warn('Briefing generation failed, using cached template', { tripId, error: errorData.error });
           return {
             briefing: cached.briefingPoints as BriefingPoints,
             generatedAt: cached.generatedAt,
             cached: true,
           };
         }
-        throw new Error('Failed to generate briefing');
+        throw new Error(errorData.error || 'Failed to generate briefing');
       }
       
       const generated = await generateRes.json();
@@ -179,6 +185,8 @@ export function PassengerConsentSection({ tripId, locale }: PassengerConsentSect
       return { briefing: generated.briefing };
     },
     enabled: passengers.length > 0, // Only fetch if passengers exist
+    retry: 2, // Retry 2 times on failure
+    retryDelay: 1000, // Wait 1 second between retries
   });
   
   // Extract consents and allConsented from consentData
@@ -375,6 +383,32 @@ export function PassengerConsentSection({ tripId, locale }: PassengerConsentSect
             <div className="flex items-center justify-center gap-2 text-slate-500">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span className="text-sm">Generating briefing...</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {briefingError && !briefingLoading && (
+        <Card className="border-0 shadow-sm mb-4 border-amber-200 bg-amber-50">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-900">
+                  Gagal memuat briefing
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  {briefingError instanceof Error ? briefingError.message : 'Terjadi kesalahan saat generate briefing'}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void refetchBriefing()}
+                className="border-amber-300 text-amber-700 hover:bg-amber-100"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Coba Lagi
+              </Button>
             </div>
           </CardContent>
         </Card>

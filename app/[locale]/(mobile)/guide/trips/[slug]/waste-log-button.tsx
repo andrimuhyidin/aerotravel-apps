@@ -24,15 +24,23 @@ type WasteLogButtonProps = {
 type WasteLog = {
   id: string;
   waste_type: 'plastic' | 'organic' | 'glass' | 'hazmat';
+  waste_type_label?: string;
   quantity: number;
+  quantity_kg?: number;
   unit: 'kg' | 'pieces';
   disposal_method: 'landfill' | 'recycling' | 'incineration' | 'ocean';
+  disposal_method_label?: string;
   notes: string | null;
+  logged_by?: {
+    id: string;
+    name: string;
+    email?: string | null;
+  } | null;
   logged_at: string;
   photos?: Array<{
     id: string;
     photo_url: string;
-    photo_gps: { latitude?: number; longitude?: number } | null;
+    photo_gps: { latitude?: number; longitude?: number; accuracy?: number } | null;
     captured_at: string | null;
   }>;
 };
@@ -125,35 +133,60 @@ export function WasteLogButton({ tripId, locale }: WasteLogButtonProps) {
                   key={log.id}
                   className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1 flex-1">
-                      <div className="font-medium">
-                        {WASTE_TYPES.find((t) => t.value === log.waste_type)?.label || log.waste_type}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900">
+                        {log.waste_type_label || WASTE_TYPES.find((t) => t.value === log.waste_type)?.label || log.waste_type}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-slate-700 font-medium">
+                          {log.quantity} {log.unit}
+                        </span>
+                        {log.quantity_kg && log.unit !== 'kg' && (
+                          <span className="text-xs text-slate-500">
+                            (~{log.quantity_kg.toFixed(2)} kg)
+                          </span>
+                        )}
                       </div>
                       <div className="text-slate-600">
-                        {log.quantity} {log.unit}
-                      </div>
-                      <div className="text-slate-500">
-                        {DISPOSAL_METHODS.find((m) => m.value === log.disposal_method)?.label ||
+                        {log.disposal_method_label || DISPOSAL_METHODS.find((m) => m.value === log.disposal_method)?.label ||
                           log.disposal_method}
                       </div>
                       {log.notes && (
-                        <div className="text-slate-500 italic text-xs">{log.notes}</div>
+                        <div className="text-slate-500 italic text-xs bg-white/50 rounded px-2 py-1">
+                          {log.notes}
+                        </div>
+                      )}
+                      {log.logged_by && (
+                        <div className="text-xs text-slate-500">
+                          Dicatat oleh: <span className="font-medium">{log.logged_by.name}</span>
+                        </div>
                       )}
                     </div>
-                    <div className="text-xs text-slate-400 ml-2">
-                      {new Date(log.logged_at).toLocaleDateString('id-ID')}
+                    <div className="text-xs text-slate-400 whitespace-nowrap">
+                      {new Date(log.logged_at).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </div>
                   </div>
                   {log.photos && log.photos.length > 0 && (
-                    <div className="mt-2 flex gap-2">
+                    <div className="mt-2 grid grid-cols-4 gap-2">
                       {log.photos.map((photo) => (
-                        <img
-                          key={photo.id}
-                          src={photo.photo_url}
-                          alt="Waste photo"
-                          className="h-12 w-12 rounded object-cover"
-                        />
+                        <div key={photo.id} className="relative aspect-square">
+                          <img
+                            src={photo.photo_url}
+                            alt="Waste photo"
+                            className="h-full w-full rounded object-cover"
+                          />
+                          {photo.photo_gps && (
+                            <div className="absolute bottom-1 right-1 bg-black/50 rounded px-1 py-0.5 text-[10px] text-white">
+                              📍
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}

@@ -137,14 +137,15 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
     },
   });
 
-  const filteredPassengers = manifest?.passengers.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredPassengers = (manifest?.passengers ?? []).filter((p) => {
+    if (!p) return false;
+    const matchesSearch = (p.name ?? '').toLowerCase().includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
-    if (filter === 'pending') return p.status === 'pending';
-    if (filter === 'boarded') return p.status === 'boarded';
-    if (filter === 'returned') return p.status === 'returned';
+    if (filter === 'pending') return (p.status ?? 'pending') === 'pending';
+    if (filter === 'boarded') return (p.status ?? 'pending') === 'boarded';
+    if (filter === 'returned') return (p.status ?? 'pending') === 'returned';
     return true;
-  }) ?? [];
+  });
 
   if (isLoading || !manifest) {
     return null; // Will be handled by parent
@@ -229,7 +230,7 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
               Daftar Penumpang
             </CardTitle>
             <span className="text-xs font-medium text-slate-500">
-              {filteredPassengers.length} dari {manifest.passengers.length}
+              {filteredPassengers.length} dari {manifest?.passengers?.length ?? 0}
             </span>
           </div>
         </CardHeader>
@@ -242,110 +243,121 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
             </div>
           ) : (
             <div className="divide-y divide-slate-100" style={{ userSelect: 'none' } as React.CSSProperties}>
-              {filteredPassengers.map((passenger, index) => (
-                <div
-                  key={passenger.id}
-                  className="flex min-h-[64px] items-center justify-between px-4 py-3 transition-colors hover:bg-slate-50"
-                  style={{ 
-                    userSelect: 'none',
-                    WebkitUserSelect: 'none',
-                    MozUserSelect: 'none',
-                    msUserSelect: 'none',
-                  } as React.CSSProperties}
-                  onContextMenu={(e) => e.preventDefault()}
-                  onCopy={(e) => e.preventDefault()}
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div
-                      className={cn(
-                        'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold',
-                        passenger.status === 'returned'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : passenger.status === 'boarded'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-slate-100 text-slate-600',
-                      )}
-                    >
-                      {index + 1}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p 
-                        className="font-semibold text-slate-900"
-                        style={{ userSelect: 'none' } as React.CSSProperties}
-                      >
-                        {isMasked ? maskPassengerName(passenger.name) : passenger.name}
-                      </p>
-                      <p 
-                        className="mt-0.5 text-xs text-slate-500"
-                        style={{ userSelect: 'none' } as React.CSSProperties}
-                      >
-                        {passengerTypeLabels[passenger.type] ?? passenger.type}
-                        {!isMasked && passenger.phone && (
-                          <span className="ml-2 text-slate-600">
-                            • {passenger.phone}
-                          </span>
+              {filteredPassengers.map((passenger, index) => {
+                if (!passenger?.id) return null;
+                const passengerName = passenger.name ?? 'Unknown';
+                const passengerType = passenger.type ?? 'adult';
+                const passengerStatus = passenger.status ?? 'pending';
+                const passengerPhone = passenger.phone;
+                const passengerNotes = passenger.notes;
+                const passengerAllergy = passenger.allergy;
+                const passengerSpecialRequest = passenger.specialRequest;
+                
+                return (
+                  <div
+                    key={passenger.id}
+                    className="flex min-h-[64px] items-center justify-between px-4 py-3 transition-colors hover:bg-slate-50"
+                    style={{ 
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      MozUserSelect: 'none',
+                      msUserSelect: 'none',
+                    } as React.CSSProperties}
+                    onContextMenu={(e) => e.preventDefault()}
+                    onCopy={(e) => e.preventDefault()}
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div
+                        className={cn(
+                          'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold',
+                          passengerStatus === 'returned'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : passengerStatus === 'boarded'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-slate-100 text-slate-600',
                         )}
-                        {isMasked && passenger.phone && (
-                          <span className="ml-2 text-slate-400">
-                            • {maskPhone(passenger.phone)}
-                          </span>
-                        )}
-                      </p>
-                      {!isMasked && (passenger.notes || passenger.allergy || passenger.specialRequest) && (
-                        <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-500">
-                          {passenger.notes && <span>Catatan: {passenger.notes}. </span>}
-                          {passenger.allergy && <span>Alergi: {passenger.allergy}. </span>}
-                          {passenger.specialRequest && (
-                            <span>Permintaan: {passenger.specialRequest}.</span>
+                      >
+                        {index + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p 
+                          className="font-semibold text-slate-900"
+                          style={{ userSelect: 'none' } as React.CSSProperties}
+                        >
+                          {isMasked ? maskPassengerName(passengerName) : passengerName}
+                        </p>
+                        <p 
+                          className="mt-0.5 text-xs text-slate-500"
+                          style={{ userSelect: 'none' } as React.CSSProperties}
+                        >
+                          {passengerTypeLabels[passengerType] ?? passengerType}
+                          {!isMasked && passengerPhone && (
+                            <span className="ml-2 text-slate-600">
+                              • {passengerPhone}
+                            </span>
+                          )}
+                          {isMasked && passengerPhone && (
+                            <span className="ml-2 text-slate-400">
+                              • {maskPhone(passengerPhone)}
+                            </span>
                           )}
                         </p>
+                        {!isMasked && (passengerNotes || passengerAllergy || passengerSpecialRequest) && (
+                          <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-500">
+                            {passengerNotes && <span>Catatan: {passengerNotes}. </span>}
+                            {passengerAllergy && <span>Alergi: {passengerAllergy}. </span>}
+                            {passengerSpecialRequest && (
+                              <span>Permintaan: {passengerSpecialRequest}.</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-shrink-0 items-center gap-2">
+                      {canEdit && passengerStatus === 'pending' && (
+                        <Button
+                          size="sm"
+                          className="h-8 bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
+                          onClick={() => boardMutation.mutate(passenger.id)}
+                          disabled={boardMutation.isPending}
+                        >
+                          <Ship className="mr-1.5 h-3.5 w-3.5" />
+                          Naik
+                        </Button>
+                      )}
+                      {canEdit && passengerStatus === 'boarded' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 active:scale-95"
+                          onClick={() => returnMutation.mutate(passenger.id)}
+                          disabled={returnMutation.isPending}
+                        >
+                          <ArrowLeftRight className="mr-1.5 h-3.5 w-3.5" />
+                          Kembali
+                        </Button>
+                      )}
+                      {passengerStatus === 'returned' && (
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-emerald-600">
+                          <CheckCircle className="h-4 w-4" />
+                          <span>Selesai</span>
+                        </div>
+                      )}
+                      {canEdit && (
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-8 w-8 border-slate-200 text-slate-500 hover:bg-slate-100 active:scale-95"
+                          onClick={() => setEditingPassenger(passenger)}
+                        >
+                          <span className="text-xs font-semibold">i</span>
+                        </Button>
                       )}
                     </div>
                   </div>
-
-                  <div className="flex flex-shrink-0 items-center gap-2">
-                    {canEdit && passenger.status === 'pending' && (
-                      <Button
-                        size="sm"
-                        className="h-8 bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
-                        onClick={() => boardMutation.mutate(passenger.id)}
-                        disabled={boardMutation.isPending}
-                      >
-                        <Ship className="mr-1.5 h-3.5 w-3.5" />
-                        Naik
-                      </Button>
-                    )}
-                    {canEdit && passenger.status === 'boarded' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 active:scale-95"
-                        onClick={() => returnMutation.mutate(passenger.id)}
-                        disabled={returnMutation.isPending}
-                      >
-                        <ArrowLeftRight className="mr-1.5 h-3.5 w-3.5" />
-                        Kembali
-                      </Button>
-                    )}
-                    {passenger.status === 'returned' && (
-                      <div className="flex items-center gap-1.5 text-sm font-medium text-emerald-600">
-                        <CheckCircle className="h-4 w-4" />
-                        <span>Selesai</span>
-                      </div>
-                    )}
-                    {canEdit && (
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="h-8 w-8 border-slate-200 text-slate-500 hover:bg-slate-100 active:scale-95"
-                        onClick={() => setEditingPassenger(passenger)}
-                      >
-                        <span className="text-xs font-semibold">i</span>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

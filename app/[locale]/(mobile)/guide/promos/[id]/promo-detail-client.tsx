@@ -94,24 +94,36 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
   }, [promo?.id, promo?.isRead]);
 
   // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Tanggal tidak tersedia';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Tanggal tidak valid';
+      return date.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+    } catch {
+      return 'Tanggal tidak valid';
+    }
   };
 
   // Format date short for display
-  const formatDateShort = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+  const formatDateShort = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Tanggal tidak tersedia';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Tanggal tidak valid';
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return 'Tanggal tidak valid';
+    }
   };
 
   // Get priority badge color

@@ -16,8 +16,6 @@ import {
 } from 'recharts';
 import { Cloud, CloudRain, Sun } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
-
 type ForecastItem = {
   date: string;
   temp_max: number;
@@ -69,10 +67,27 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const CustomTooltip = ({ active, payload }: any) => {
+type CustomTooltipProps = {
+  active?: boolean;
+  payload?: Array<{
+    payload?: {
+      date: string;
+      tempMax: number;
+      tempMin: number;
+      humidity?: number;
+      windSpeed: number;
+      weather: {
+        main: string;
+        description: string;
+      };
+    };
+  }>;
+};
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   if (active && payload && payload.length > 0) {
     const data = payload[0]?.payload;
-    if (!data) return null;
+    if (!data || !data.date || !data.weather) return null;
 
     return (
       <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
@@ -80,11 +95,11 @@ const CustomTooltip = ({ active, payload }: any) => {
         <div className="space-y-1 text-sm">
           <div className="flex items-center justify-between gap-4">
             <span className="text-slate-600">Suhu Maks:</span>
-            <span className="font-semibold text-red-600">{data.temp_max}°C</span>
+            <span className="font-semibold text-red-600">{data.tempMax ?? 0}°C</span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <span className="text-slate-600">Suhu Min:</span>
-            <span className="font-semibold text-blue-600">{data.temp_min}°C</span>
+            <span className="font-semibold text-blue-600">{data.tempMin ?? 0}°C</span>
           </div>
           {data.humidity && (
             <div className="flex items-center justify-between gap-4">
@@ -94,11 +109,11 @@ const CustomTooltip = ({ active, payload }: any) => {
           )}
           <div className="flex items-center justify-between gap-4">
             <span className="text-slate-600">Angin:</span>
-            <span className="font-semibold text-slate-900">{Math.round(data.wind_speed)} km/h</span>
+            <span className="font-semibold text-slate-900">{Math.round(data.windSpeed ?? 0)} km/h</span>
           </div>
           <div className="mt-2 flex items-center gap-2 border-t border-slate-200 pt-2">
-            {getWeatherIcon(data.weather.main)}
-            <span className="text-xs capitalize text-slate-600">{data.weather.description}</span>
+            {getWeatherIcon(data.weather.main ?? 'clear')}
+            <span className="text-xs capitalize text-slate-600">{data.weather.description ?? 'N/A'}</span>
           </div>
         </div>
       </div>
@@ -108,19 +123,21 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 export function ForecastChart({ forecast }: ForecastChartProps) {
-  if (!forecast || forecast.length === 0) {
+  if (!forecast || !Array.isArray(forecast) || forecast.length === 0) {
     return null;
   }
 
   // Prepare chart data
-  const chartData = forecast.map((item) => ({
-    date: item.date,
-    tempMax: item.temp_max,
-    tempMin: item.temp_min,
-    humidity: item.humidity || 0,
-    windSpeed: item.wind_speed,
-    weather: item.weather,
-  }));
+  const chartData = forecast
+    .filter((item) => item && item.date && item.weather)
+    .map((item) => ({
+      date: item.date,
+      tempMax: item.temp_max ?? 0,
+      tempMin: item.temp_min ?? 0,
+      humidity: item.humidity ?? 0,
+      windSpeed: item.wind_speed ?? 0,
+      weather: item.weather,
+    }));
 
   // Calculate min and max for Y-axis
   const allTemps = [...chartData.map((d) => d.tempMax), ...chartData.map((d) => d.tempMin)];

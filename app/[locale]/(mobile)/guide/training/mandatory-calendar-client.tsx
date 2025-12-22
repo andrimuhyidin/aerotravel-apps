@@ -86,7 +86,19 @@ export function MandatoryTrainingCalendarClient({
     return null;
   }
 
-  const { compliance, assignments } = data;
+  const compliance = data.compliance || {
+    percentage: 0,
+    total_assignments: 0,
+    completed_count: 0,
+    pending_count: 0,
+    overdue_count: 0,
+  };
+  const assignments = data.assignments || {
+    upcoming: [],
+    overdue: [],
+    completed: [],
+    all: [],
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -176,7 +188,9 @@ export function MandatoryTrainingCalendarClient({
               </CardHeader>
               <CardContent className="space-y-3">
                 {assignments.overdue.map((assignment) => {
-                  const daysOverdue = Math.abs(getDaysUntilDue(assignment.due_date));
+                  if (!assignment || !assignment.id || !assignment.mandatory_training) return null;
+                  const daysOverdue = Math.abs(getDaysUntilDue(assignment.due_date || new Date().toISOString()));
+                  const training = assignment.mandatory_training;
                   return (
                     <div
                       key={assignment.id}
@@ -187,15 +201,21 @@ export function MandatoryTrainingCalendarClient({
                           <div className="flex items-center gap-2">
                             {getStatusIcon(assignment.status)}
                             <h4 className="font-semibold text-slate-900">
-                              {assignment.mandatory_training.title}
+                              {training.title || 'Training'}
                             </h4>
                           </div>
-                          <p className="mt-1 text-sm text-slate-600">
-                            {assignment.mandatory_training.description || 'No description'}
-                          </p>
+                          {training.description && (
+                            <p className="mt-1 text-sm text-slate-600">
+                              {training.description}
+                            </p>
+                          )}
                           <div className="mt-2 flex items-center gap-2">
-                            <Badge variant="outline">{assignment.mandatory_training.training_type}</Badge>
-                            <Badge variant="outline">{assignment.mandatory_training.frequency}</Badge>
+                            {training.training_type && (
+                              <Badge variant="outline">{training.training_type}</Badge>
+                            )}
+                            {training.frequency && (
+                              <Badge variant="outline">{training.frequency}</Badge>
+                            )}
                             <span className="text-xs text-red-600">
                               {daysOverdue} day{daysOverdue !== 1 ? 's' : ''} overdue
                             </span>
@@ -224,7 +244,9 @@ export function MandatoryTrainingCalendarClient({
               </CardHeader>
               <CardContent className="space-y-3">
                 {assignments.upcoming.map((assignment) => {
-                  const daysUntil = getDaysUntilDue(assignment.due_date);
+                  if (!assignment || !assignment.id || !assignment.mandatory_training) return null;
+                  const daysUntil = getDaysUntilDue(assignment.due_date || new Date().toISOString());
+                  const training = assignment.mandatory_training;
                   return (
                     <div
                       key={assignment.id}
@@ -235,15 +257,21 @@ export function MandatoryTrainingCalendarClient({
                           <div className="flex items-center gap-2">
                             {getStatusIcon(assignment.status)}
                             <h4 className="font-semibold text-slate-900">
-                              {assignment.mandatory_training.title}
+                              {training.title || 'Training'}
                             </h4>
                           </div>
-                          <p className="mt-1 text-sm text-slate-600">
-                            {assignment.mandatory_training.description || 'No description'}
-                          </p>
+                          {training.description && (
+                            <p className="mt-1 text-sm text-slate-600">
+                              {training.description}
+                            </p>
+                          )}
                           <div className="mt-2 flex items-center gap-2">
-                            <Badge variant="outline">{assignment.mandatory_training.training_type}</Badge>
-                            <Badge variant="outline">{assignment.mandatory_training.frequency}</Badge>
+                            {training.training_type && (
+                              <Badge variant="outline">{training.training_type}</Badge>
+                            )}
+                            {training.frequency && (
+                              <Badge variant="outline">{training.frequency}</Badge>
+                            )}
                             <span
                               className={cn(
                                 'text-xs',
@@ -278,35 +306,43 @@ export function MandatoryTrainingCalendarClient({
                 <CardDescription>Trainings you have completed</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {assignments.completed.slice(0, 5).map((assignment) => (
-                  <div
-                    key={assignment.id}
-                    className="rounded-lg border border-green-200 bg-green-50/50 p-4"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(assignment.status)}
-                          <h4 className="font-semibold text-slate-900">
-                            {assignment.mandatory_training.title}
-                          </h4>
-                        </div>
-                        <div className="mt-2 flex items-center gap-2">
-                          <Badge variant="outline">{assignment.mandatory_training.training_type}</Badge>
-                          <Badge variant="outline">{assignment.mandatory_training.frequency}</Badge>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        {getStatusBadge(assignment.status)}
-                        {assignment.completed_at && (
-                          <div className="mt-1 text-xs text-slate-500">
-                            Completed: {formatDate(assignment.completed_at)}
+                {assignments.completed.slice(0, 5).map((assignment) => {
+                  if (!assignment || !assignment.id || !assignment.mandatory_training) return null;
+                  const training = assignment.mandatory_training;
+                  return (
+                    <div
+                      key={assignment.id}
+                      className="rounded-lg border border-green-200 bg-green-50/50 p-4"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(assignment.status)}
+                            <h4 className="font-semibold text-slate-900">
+                              {training.title || 'Training'}
+                            </h4>
                           </div>
-                        )}
+                          <div className="mt-2 flex items-center gap-2">
+                            {training.training_type && (
+                              <Badge variant="outline">{training.training_type}</Badge>
+                            )}
+                            {training.frequency && (
+                              <Badge variant="outline">{training.frequency}</Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          {getStatusBadge(assignment.status)}
+                          {assignment.completed_at && (
+                            <div className="mt-1 text-xs text-slate-500">
+                              Completed: {formatDate(assignment.completed_at)}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
           )}

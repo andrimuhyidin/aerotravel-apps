@@ -66,7 +66,7 @@ type RewardsCatalogClientProps = {
   locale: string;
 };
 
-export function RewardsCatalogClient({ locale }: RewardsCatalogClientProps) {
+export function RewardsCatalogClient({ locale: _locale }: RewardsCatalogClientProps) {
   const queryClient = useQueryClient();
   const [selectedReward, setSelectedReward] = useState<RewardCatalogItem | null>(null);
   const [showRedeemDialog, setShowRedeemDialog] = useState(false);
@@ -151,8 +151,8 @@ export function RewardsCatalogClient({ locale }: RewardsCatalogClientProps) {
     },
   });
 
-  const balance = pointsData?.balance || 0;
-  const rewards = catalogData?.rewards || [];
+  const balance = pointsData?.balance ?? 0;
+  const rewards = catalogData?.rewards ?? [];
 
   const handleRedeem = (reward: RewardCatalogItem) => {
     if (balance < reward.points_cost) {
@@ -247,9 +247,11 @@ export function RewardsCatalogClient({ locale }: RewardsCatalogClientProps) {
             />
           ) : (
             <div className="grid grid-cols-1 gap-4">
-              {rewards.map((reward) => {
-                const canAfford = balance >= reward.points_cost;
-                const isOutOfStock = reward.stock_quantity !== null && reward.stock_quantity <= 0;
+              {rewards
+                .filter((reward) => reward && reward.id && reward.title)
+                .map((reward) => {
+                  const canAfford = balance >= (reward.points_cost ?? 0);
+                  const isOutOfStock = reward.stock_quantity !== null && reward.stock_quantity <= 0;
 
                 return (
                   <Card

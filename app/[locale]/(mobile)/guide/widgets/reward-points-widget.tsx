@@ -55,7 +55,10 @@ export function RewardPointsWidget({ locale }: RewardPointsWidgetProps) {
     return null; // Don't show widget if error
   }
 
-  const hasExpiringPoints = data.expiringSoon.total > 0;
+  // Ensure all properties exist with defaults
+  const balance = data.balance ?? 0;
+  const expiringSoon = data.expiringSoon ?? { total: 0, details: [], warningDays: 30 };
+  const hasExpiringPoints = (expiringSoon.total ?? 0) > 0;
 
   return (
     <Link href={`/${locale}/guide/rewards`}>
@@ -79,13 +82,13 @@ export function RewardPointsWidget({ locale }: RewardPointsWidgetProps) {
                 </div>
                 <div className="flex items-baseline gap-2 mt-1">
                   <p className="text-2xl font-bold text-slate-900">
-                    {data.balance.toLocaleString('id-ID')}
+                    {balance.toLocaleString('id-ID')}
                   </p>
                   <p className="text-xs text-slate-500">poin</p>
                 </div>
                 {hasExpiringPoints && (
                   <p className="text-xs text-red-600 mt-1">
-                    {data.expiringSoon.total.toLocaleString('id-ID')} poin akan kadaluarsa dalam 30 hari
+                    {expiringSoon.total.toLocaleString('id-ID')} poin akan kadaluarsa dalam {expiringSoon.warningDays ?? 30} hari
                   </p>
                 )}
               </div>

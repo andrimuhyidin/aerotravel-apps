@@ -28,11 +28,20 @@ export function useTripCrew(tripId: string) {
   return useQuery<TripCrewResponse>({
     queryKey: queryKeys.guide.team.tripTeam(tripId),
     queryFn: async () => {
-      const res = await fetch(`/api/guide/crew/trip/${tripId}`);
-      if (!res.ok) {
+      try {
+        const res = await fetch(`/api/guide/crew/trip/${tripId}`);
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ error: 'Failed to fetch crew' }));
+          throw new Error(errorData.error || errorData.message || `Failed to fetch crew: ${res.status}`);
+        }
+        const data = await res.json();
+        return (data.data ?? data) as TripCrewResponse;
+      } catch (error) {
+        if (error instanceof Error) {
+          throw error;
+        }
         throw new Error('Failed to fetch crew');
       }
-      return (await res.json()) as TripCrewResponse;
     },
     staleTime: 60000, // 1 minute
   });

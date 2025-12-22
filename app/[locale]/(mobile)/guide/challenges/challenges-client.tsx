@@ -96,12 +96,13 @@ export function ChallengesClient({ locale: _locale }: ChallengesClientProps) {
     );
   }
 
-  const challenges = data?.data?.challenges || [];
-  const activeChallenges = challenges.filter((c) => c.status === 'active');
-  const completedChallenges = challenges.filter((c) => c.status === 'completed');
+  const challenges = data?.data?.challenges ?? [];
+  const activeChallenges = challenges.filter((c) => c && c.status === 'active');
+  const completedChallenges = challenges.filter((c) => c && c.status === 'completed');
 
   const getProgress = (challenge: Challenge) => {
-    return Math.min((challenge.current_value / challenge.target_value) * 100, 100);
+    if (!challenge || !challenge.target_value || challenge.target_value === 0) return 0;
+    return Math.min((challenge.current_value ?? 0) / challenge.target_value * 100, 100);
   };
 
   const getStatusIcon = (status: string) => {
@@ -134,7 +135,7 @@ export function ChallengesClient({ locale: _locale }: ChallengesClientProps) {
               </div>
             )}
 
-            {aiInsights.tips.length > 0 && (
+            {aiInsights.tips && Array.isArray(aiInsights.tips) && aiInsights.tips.length > 0 && (
               <div>
                 <h4 className="text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
                   <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
@@ -151,7 +152,7 @@ export function ChallengesClient({ locale: _locale }: ChallengesClientProps) {
               </div>
             )}
 
-            {aiInsights.strategies.length > 0 && (
+            {aiInsights.strategies && Array.isArray(aiInsights.strategies) && aiInsights.strategies.length > 0 && (
               <div>
                 <h4 className="text-xs font-semibold text-slate-700 mb-1.5">Strategi</h4>
                 <ul className="space-y-1.5">
@@ -172,7 +173,7 @@ export function ChallengesClient({ locale: _locale }: ChallengesClientProps) {
               </div>
             )}
 
-            {aiInsights.recommendations.length > 0 && (
+            {aiInsights.recommendations && Array.isArray(aiInsights.recommendations) && aiInsights.recommendations.length > 0 && (
               <div>
                 <h4 className="text-xs font-semibold text-slate-700 mb-1.5">Rekomendasi</h4>
                 <ul className="space-y-1.5">
@@ -194,9 +195,11 @@ export function ChallengesClient({ locale: _locale }: ChallengesClientProps) {
         <div>
           <h2 className="mb-3 text-sm font-semibold text-slate-700">Challenges Aktif</h2>
           <div className="space-y-3">
-            {activeChallenges.map((challenge) => {
-              const progress = getProgress(challenge);
-              const remaining = challenge.target_value - challenge.current_value;
+            {activeChallenges
+              .filter((c) => c && c.id)
+              .map((challenge) => {
+                const progress = getProgress(challenge);
+                const remaining = (challenge.target_value ?? 0) - (challenge.current_value ?? 0);
               return (
                 <Card key={challenge.id} className="border-blue-200 bg-blue-50/50 shadow-sm">
                   <CardContent className="p-4">
@@ -265,7 +268,9 @@ export function ChallengesClient({ locale: _locale }: ChallengesClientProps) {
         <div>
           <h2 className="mb-3 text-sm font-semibold text-slate-700">Challenges Selesai</h2>
           <div className="space-y-3">
-            {completedChallenges.map((challenge) => (
+            {completedChallenges
+              .filter((c) => c && c.id)
+              .map((challenge) => (
               <Card key={challenge.id} className="border-emerald-200 bg-emerald-50/50 shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">

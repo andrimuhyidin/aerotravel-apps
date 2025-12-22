@@ -8,7 +8,6 @@
 import { ArrowDown, ArrowUp, TrendingDown, TrendingUp } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 
 type HistoricalComparisonProps = {
   currentTemp: number;
@@ -45,6 +44,10 @@ export function HistoricalComparison({
   currentCondition,
   historicalComparison,
 }: HistoricalComparisonProps) {
+  if (!historicalComparison || !historicalComparison.yesterday || !historicalComparison.lastWeek) {
+    return null;
+  }
+
   const { yesterday, lastWeek } = historicalComparison;
 
   return (
@@ -62,31 +65,31 @@ export function HistoricalComparison({
             <div>
               <div className="text-xs font-medium text-slate-600">Kemarin</div>
               <div className="mt-1 text-lg font-bold text-slate-900">
-                {yesterday.temp}°C
+                {yesterday.temp ?? 0}°C
               </div>
               <div className="mt-0.5 text-xs text-slate-600">
-                {getConditionLabel(yesterday.condition)}
+                {getConditionLabel(yesterday.condition ?? 'N/A')}
               </div>
             </div>
             <div className="text-right">
               <div className="text-xs font-medium text-slate-600">Hari Ini</div>
               <div className="mt-1 text-lg font-bold text-slate-900">
-                {currentTemp}°C
+                {currentTemp ?? 0}°C
               </div>
               <div className="mt-0.5 text-xs text-slate-600">
-                {getConditionLabel(currentCondition)}
+                {getConditionLabel(currentCondition ?? 'N/A')}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2 border-t border-slate-200 pt-3">
-            {yesterday.diff > 0 ? (
+            {yesterday.diff !== undefined && yesterday.diff > 0 ? (
               <>
                 <ArrowUp className="h-4 w-4 text-red-500" />
                 <span className="text-sm font-semibold text-red-600">
                   {Math.abs(yesterday.diff).toFixed(1)}°C lebih panas
                 </span>
               </>
-            ) : yesterday.diff < 0 ? (
+            ) : yesterday.diff !== undefined && yesterday.diff < 0 ? (
               <>
                 <ArrowDown className="h-4 w-4 text-blue-500" />
                 <span className="text-sm font-semibold text-blue-600">
@@ -110,31 +113,31 @@ export function HistoricalComparison({
             <div>
               <div className="text-xs font-medium text-slate-600">Minggu Lalu (Rata-rata)</div>
               <div className="mt-1 text-lg font-bold text-slate-900">
-                {lastWeek.avgTemp}°C
+                {lastWeek.avgTemp ?? 0}°C
               </div>
               <div className="mt-0.5 text-xs text-slate-600">
-                {getConditionLabel(lastWeek.avgCondition)}
+                {getConditionLabel(lastWeek.avgCondition ?? 'N/A')}
               </div>
             </div>
             <div className="text-right">
               <div className="text-xs font-medium text-slate-600">Hari Ini</div>
               <div className="mt-1 text-lg font-bold text-slate-900">
-                {currentTemp}°C
+                {currentTemp ?? 0}°C
               </div>
               <div className="mt-0.5 text-xs text-slate-600">
-                {getConditionLabel(currentCondition)}
+                {getConditionLabel(currentCondition ?? 'N/A')}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2 border-t border-slate-200 pt-3">
-            {lastWeek.diff > 0 ? (
+            {lastWeek.diff !== undefined && lastWeek.diff > 0 ? (
               <>
                 <TrendingUp className="h-4 w-4 text-red-500" />
                 <span className="text-sm font-semibold text-red-600">
                   {Math.abs(lastWeek.diff).toFixed(1)}°C lebih panas dari rata-rata
                 </span>
               </>
-            ) : lastWeek.diff < 0 ? (
+            ) : lastWeek.diff !== undefined && lastWeek.diff < 0 ? (
               <>
                 <TrendingDown className="h-4 w-4 text-blue-500" />
                 <span className="text-sm font-semibold text-blue-600">

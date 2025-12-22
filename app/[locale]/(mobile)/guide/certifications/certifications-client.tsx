@@ -118,9 +118,33 @@ export function CertificationsClient({ locale: _locale }: CertificationsClientPr
     },
   });
 
+  const { data: expiringData } = useQuery<{
+    expiring: Array<{
+      id: string;
+      certification_type: string;
+      certification_name: string;
+      expiry_date: string;
+      days_until_expiry: number;
+    }>;
+    count: number;
+  }>({
+    queryKey: queryKeys.guide.certifications?.expiring() || ['certifications', 'expiring'],
+    queryFn: async () => {
+      const res = await fetch('/api/guide/certifications/expiring');
+      if (!res.ok) {
+        throw new Error('Failed to fetch expiring certifications');
+      }
+      return res.json();
+    },
+  });
+
   const certifications = data?.certifications || [];
-  const isValid = validityData?.is_valid || false;
-  const expiringSoon = validityData?.expiring_soon || [];
+  const isValid = validityData?.is_valid ?? false;
+  const expiringSoon = expiringData?.expiring || validityData?.expiring_soon || [];
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+
+  // Filter out invalid certifications
+  const validCertifications = certifications.filter((c) => c && c.id && c.certification_name);
 
   // Add certification form state
   const [formData, setFormData] = useState({
@@ -269,21 +293,64 @@ export function CertificationsClient({ locale: _locale }: CertificationsClientPr
         </CardContent>
       </Card>
 
-      {/* Expiring Soon Alert */}
-      {expiringSoon.length > 0 && (
+      {/* Expiring Soon Alert - Dismissible */}
+      {expiringSoon.length > 0 && expiringSoon.filter((cert: any) => cert && !dismissedAlerts.has(cert.id || cert.certification_type || '')).length > 0 && (
         <Card className="border-0 bg-amber-50 shadow-sm border-amber-200">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <Clock className="h-5 w-5 text-amber-600 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-900">Sertifikat akan expired</p>
-                <ul className="mt-2 space-y-1">
-                  {expiringSoon.map((cert, idx) => (
-                    <li key={idx} className="text-xs text-amber-700">
-                      {cert.certification_type}: {cert.days_until_expiry} hari lagi
-                    </li>
-                  ))}
-                </ul>
+              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-amber-900">Peringatan: Sertifikat Akan Berakhir</p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      {expiringSoon.filter((cert: any) => cert && !dismissedAlerts.has(cert.id || cert.certification_type || '')).length} sertifikat akan berakhir dalam 30 hari ke depan
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                      {expiringSoon
+                        .filter((cert: any) => cert && !dismissedAlerts.has(cert.id || cert.certification_type || ''))
+                        .map((cert: any) => {
+                          if (!cert) return null;
+                          const certId = cert.id || cert.certification_type || '';
+                          const certName = cert.certification_name || cert.certification_type || 'Certification';
+                          const daysUntil = cert.days_until_expiry ?? 0;
+                          let expiryDateStr = '';
+                          try {
+                            if (cert.expiry_date) {
+                              expiryDateStr = new Date(cert.expiry_date).toLocaleDateString('id-ID');
+                            }
+                          } catch {
+                            // Invalid date
+                          }
+                          return (
+                            <li key={certId} className="text-xs text-amber-700">
+                              <span className="font-medium">{certName}:</span> {daysUntil} hari lagi
+                              {expiryDateStr && (
+                                <span className="text-amber-600"> (berakhir: {expiryDateStr})</span>
+                              )}
+                            </li>
+                          );
+                        })}
+                    </ul>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-100"
+                    onClick={() => {
+                      const newDismissed = new Set(dismissedAlerts);
+                      expiringSoon.forEach((cert: any) => {
+                        if (cert) {
+                          newDismissed.add(cert.id || cert.certification_type || '');
+                        }
+                      });
+                      setDismissedAlerts(newDismissed);
+                    }}
+                    aria-label="Tutup peringatan"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -300,7 +367,7 @@ export function CertificationsClient({ locale: _locale }: CertificationsClientPr
       </Button>
 
       {/* Certifications List */}
-      {certifications.length === 0 ? (
+      {validCertifications.length === 0 ? (
         <EmptyState
           icon={FileText}
           title="Belum ada sertifikat"
@@ -308,11 +375,25 @@ export function CertificationsClient({ locale: _locale }: CertificationsClientPr
         />
       ) : (
         <div className="space-y-3">
-          {certifications.map((cert) => {
-            const StatusIcon = STATUS_ICONS[cert.status];
-            const daysUntilExpiry = getDaysUntilExpiry(cert.expiry_date);
+          {validCertifications.map((cert) => {
+            if (!cert || !cert.id) return null;
+            const certName = cert.certification_name || 'Certification';
+            const certStatus = cert.status || 'pending';
+            const StatusIcon = STATUS_ICONS[certStatus] || STATUS_ICONS.pending;
+            const issuedDate = cert.issued_date || new Date().toISOString();
+            const expiryDate = cert.expiry_date || new Date().toISOString();
+            const daysUntilExpiry = getDaysUntilExpiry(expiryDate);
             const isExpiringSoon = daysUntilExpiry <= 30 && daysUntilExpiry > 0;
             const isExpired = daysUntilExpiry < 0;
+
+            let formattedIssuedDate = 'Tanggal tidak tersedia';
+            let formattedExpiryDate = 'Tanggal tidak tersedia';
+            try {
+              formattedIssuedDate = new Date(issuedDate).toLocaleDateString('id-ID');
+              formattedExpiryDate = new Date(expiryDate).toLocaleDateString('id-ID');
+            } catch {
+              // Invalid date, use default
+            }
 
             return (
               <Card key={cert.id} className="border-0 shadow-sm">
@@ -320,18 +401,18 @@ export function CertificationsClient({ locale: _locale }: CertificationsClientPr
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold text-slate-900">{cert.certification_name}</h3>
+                        <h3 className="font-semibold text-slate-900">{certName}</h3>
                         <span
                           className={cn(
                             'px-2 py-0.5 rounded-full text-xs font-medium border',
-                            STATUS_COLORS[cert.status],
+                            STATUS_COLORS[certStatus] || STATUS_COLORS.pending,
                           )}
                         >
                           <StatusIcon className="inline h-3 w-3 mr-1" />
-                          {cert.status === 'pending' && 'Menunggu Verifikasi'}
-                          {cert.status === 'verified' && 'Terverifikasi'}
-                          {cert.status === 'expired' && 'Expired'}
-                          {cert.status === 'rejected' && 'Ditolak'}
+                          {certStatus === 'pending' && 'Menunggu Verifikasi'}
+                          {certStatus === 'verified' && 'Terverifikasi'}
+                          {certStatus === 'expired' && 'Expired'}
+                          {certStatus === 'rejected' && 'Ditolak'}
                         </span>
                       </div>
 
@@ -347,13 +428,12 @@ export function CertificationsClient({ locale: _locale }: CertificationsClientPr
                           </p>
                         )}
                         <p>
-                          <span className="font-medium">Diterbitkan:</span>{' '}
-                          {new Date(cert.issued_date).toLocaleDateString('id-ID')}
+                          <span className="font-medium">Diterbitkan:</span> {formattedIssuedDate}
                         </p>
                         <p>
                           <span className="font-medium">Berlaku hingga:</span>{' '}
                           <span className={cn(isExpired && 'text-red-600 font-semibold', isExpiringSoon && 'text-amber-600 font-semibold')}>
-                            {new Date(cert.expiry_date).toLocaleDateString('id-ID')}
+                            {formattedExpiryDate}
                             {isExpired && ' (Expired)'}
                             {isExpiringSoon && ` (${daysUntilExpiry} hari lagi)`}
                           </span>

@@ -171,7 +171,7 @@ export function EquipmentChecklistClient({
     if (templates.length > 0) {
       const templateItems: EquipmentItem[] = templates.map((t) => ({
         id: t.id,
-        name: t.name,
+        name: t?.name ?? 'Equipment',
         checked: false,
       }));
 

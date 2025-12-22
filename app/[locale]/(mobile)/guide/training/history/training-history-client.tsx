@@ -97,6 +97,10 @@ export function TrainingHistoryClient({ locale: _locale }: TrainingHistoryClient
   const sessions = sessionsData?.sessions || [];
   const certificates = certificatesData?.certificates || [];
 
+  // Filter out invalid sessions and certificates
+  const validSessions = sessions.filter((s) => s && s.id && s.title);
+  const validCertificates = certificates.filter((c) => c && c.id && c.module);
+
   const handleDownloadCertificate = async (certificateId: string) => {
     try {
       const res = await fetch(`/api/guide/training/certificates/${certificateId}`);
@@ -137,7 +141,7 @@ export function TrainingHistoryClient({ locale: _locale }: TrainingHistoryClient
       {/* Certificates Section */}
       <div>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Sertifikat</h2>
-        {certificates.length === 0 ? (
+        {validCertificates.length === 0 ? (
           <EmptyState
             icon={FileText}
             title="Belum ada sertifikat"
@@ -145,43 +149,62 @@ export function TrainingHistoryClient({ locale: _locale }: TrainingHistoryClient
           />
         ) : (
           <div className="space-y-3">
-            {certificates.map((cert) => (
-              <Card key={cert.id} className="border-0 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-slate-900">{cert.module.title}</h3>
-                      <p className="mt-1 text-sm text-slate-600">
-                        {SESSION_TYPE_LABELS[cert.module.category as keyof typeof SESSION_TYPE_LABELS] || cert.module.category}
-                      </p>
-                      <div className="mt-2 space-y-1 text-xs text-slate-500">
-                        <p>
-                          <span className="font-medium">No. Sertifikat:</span> {cert.certificate_number}
+            {validCertificates.map((cert) => {
+              if (!cert || !cert.id || !cert.module) return null;
+              const module = cert.module;
+              const moduleTitle = module.title || 'Training Module';
+              const moduleCategory = module.category || 'other';
+              const certificateNumber = cert.certificate_number || 'N/A';
+              let issuedDate = 'N/A';
+              let expiresDate: string | null = null;
+              
+              try {
+                if (cert.issued_at) {
+                  issuedDate = new Date(cert.issued_at).toLocaleDateString('id-ID');
+                }
+                if (cert.expires_at) {
+                  expiresDate = new Date(cert.expires_at).toLocaleDateString('id-ID');
+                }
+              } catch {
+                // Invalid date, use default
+              }
+              
+              return (
+                <Card key={cert.id} className="border-0 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-slate-900">{moduleTitle}</h3>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {SESSION_TYPE_LABELS[moduleCategory as keyof typeof SESSION_TYPE_LABELS] || moduleCategory}
                         </p>
-                        <p>
-                          <span className="font-medium">Diterbitkan:</span>{' '}
-                          {new Date(cert.issued_at).toLocaleDateString('id-ID')}
-                        </p>
-                        {cert.expires_at && (
+                        <div className="mt-2 space-y-1 text-xs text-slate-500">
                           <p>
-                            <span className="font-medium">Berlaku hingga:</span>{' '}
-                            {new Date(cert.expires_at).toLocaleDateString('id-ID')}
+                            <span className="font-medium">No. Sertifikat:</span> {certificateNumber}
                           </p>
-                        )}
+                          <p>
+                            <span className="font-medium">Diterbitkan:</span> {issuedDate}
+                          </p>
+                          {expiresDate && (
+                            <p>
+                              <span className="font-medium">Berlaku hingga:</span> {expiresDate}
+                            </p>
+                          )}
+                        </div>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDownloadCertificate(cert.id)}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Download
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDownloadCertificate(cert.id)}
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      Download
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
@@ -189,7 +212,7 @@ export function TrainingHistoryClient({ locale: _locale }: TrainingHistoryClient
       {/* Sessions Section */}
       <div>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Training Sessions</h2>
-        {sessions.length === 0 ? (
+        {validSessions.length === 0 ? (
           <EmptyState
             icon={Calendar}
             title="Belum ada training session"
@@ -197,31 +220,42 @@ export function TrainingHistoryClient({ locale: _locale }: TrainingHistoryClient
           />
         ) : (
           <div className="space-y-3">
-            {sessions.map((session) => {
+            {validSessions.map((session) => {
+              if (!session || !session.id) return null;
+              const sessionTitle = session.title || 'Training Session';
+              const sessionDescription = session.description;
+              const sessionDate = session.training_date;
               const StatusIcon = session.attendance_status
                 ? ATTENDANCE_STATUS_ICONS[session.attendance_status as keyof typeof ATTENDANCE_STATUS_ICONS]
                 : Clock;
+
+              let formattedDate = 'Tanggal tidak tersedia';
+              try {
+                if (sessionDate) {
+                  formattedDate = new Date(sessionDate).toLocaleDateString('id-ID', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  });
+                }
+              } catch {
+                // Invalid date, use default
+              }
 
               return (
                 <Card key={session.id} className="border-0 shadow-sm">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-slate-900">{session.title}</h3>
-                        {session.description && (
-                          <p className="mt-1 text-sm text-slate-600">{session.description}</p>
+                        <h3 className="font-semibold text-slate-900">{sessionTitle}</h3>
+                        {sessionDescription && (
+                          <p className="mt-1 text-sm text-slate-600">{sessionDescription}</p>
                         )}
                         <div className="mt-3 space-y-1 text-xs text-slate-500">
                           <div className="flex items-center gap-2">
                             <Calendar className="h-3 w-3" />
-                            <span>
-                              {new Date(session.training_date).toLocaleDateString('id-ID', {
-                                weekday: 'long',
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric',
-                              })}
-                            </span>
+                            <span>{formattedDate}</span>
                           </div>
                           {session.start_time && session.end_time && (
                             <div className="flex items-center gap-2">
@@ -243,7 +277,7 @@ export function TrainingHistoryClient({ locale: _locale }: TrainingHistoryClient
                         <span
                           className={cn(
                             'px-2 py-1 rounded-full text-xs font-medium border flex items-center gap-1',
-                            ATTENDANCE_STATUS_COLORS[session.attendance_status as keyof typeof ATTENDANCE_STATUS_COLORS],
+                            ATTENDANCE_STATUS_COLORS[session.attendance_status as keyof typeof ATTENDANCE_STATUS_COLORS] || ATTENDANCE_STATUS_COLORS.present,
                           )}
                         >
                           <StatusIcon className="h-3 w-3" />

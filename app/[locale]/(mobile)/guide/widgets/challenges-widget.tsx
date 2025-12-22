@@ -49,14 +49,14 @@ const challengeTypeLabels: Record<string, string> = {
 };
 
 export function ChallengesWidget({ locale }: ChallengesWidgetProps) {
-  const { data, isLoading } = useQuery<{ data: ChallengesResponse }>({
+  const { data, isLoading } = useQuery<ChallengesResponse>({
     queryKey: queryKeys.guide.challenges(),
     queryFn: async () => {
       const res = await fetch('/api/guide/challenges');
       if (!res.ok) throw new Error('Failed to fetch challenges');
       const json = await res.json();
-      // API returns { data: { challenges: [...] } }, so we need to extract it
-      return json;
+      // API returns { challenges: [...] } or { data: { challenges: [...] } }
+      return (json.data ?? json) as ChallengesResponse;
     },
     staleTime: 60000,
   });
@@ -76,7 +76,7 @@ export function ChallengesWidget({ locale }: ChallengesWidgetProps) {
     );
   }
 
-  const challenges = data?.data?.challenges || [];
+  const challenges = data?.challenges || [];
   const activeChallenges = challenges.filter((c) => c.status === 'active').slice(0, 2);
 
   // Show empty state if no active challenges

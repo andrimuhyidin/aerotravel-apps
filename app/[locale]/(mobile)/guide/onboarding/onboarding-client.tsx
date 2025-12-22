@@ -151,12 +151,12 @@ export function OnboardingClient({ locale }: OnboardingClientProps) {
     },
   });
 
-  const steps = data?.steps || [];
+  const steps = data?.steps ?? [];
   // Always use progress from progress endpoint (which has recalculate logic)
   // Only fallback to currentProgress if progress endpoint fails
   const progress = progressData?.progress || (progressData === undefined ? data?.currentProgress : null) || null;
-  const completedSteps = progressData?.completedSteps || [];
-  const completionPercentage = progress?.completion_percentage || 0;
+  const completedSteps = progressData?.completedSteps ?? [];
+  const completionPercentage = progress?.completion_percentage ?? 0;
 
   const handleStart = () => {
     startMutation.mutate();
@@ -275,73 +275,88 @@ export function OnboardingClient({ locale }: OnboardingClientProps) {
   // Completed
   if (progress.status === 'completed') {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 pb-6">
+        {/* Success Card */}
         <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50 to-emerald-100">
-          <CardContent className="p-6 text-center">
-            <CheckCircle className="mx-auto h-16 w-16 text-emerald-600 mb-4" />
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Onboarding Selesai! 🎉</h2>
-            <p className="text-slate-600 mb-6">
-              Anda telah menyelesaikan semua langkah onboarding. Siap untuk memulai perjalanan sebagai guide!
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href={`/${locale}/guide/id-card`}>
-                <Button size="lg" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700">
-                  <FileText className="mr-2 h-5 w-5" />
-                  Apply Guide License
-                </Button>
-              </Link>
-              <Link href={`/${locale}/guide`}>
-                <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                  Kembali ke Dashboard
-                </Button>
-              </Link>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-600">
+                <CheckCircle className="h-10 w-10 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Onboarding Selesai! 🎉</h2>
+              <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                Anda telah menyelesaikan semua langkah onboarding. Siap untuk memulai perjalanan sebagai guide!
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href={`/${locale}/guide/id-card`}>
+                  <Button size="lg" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700">
+                    <FileText className="mr-2 h-5 w-5" />
+                    Apply Guide License
+                  </Button>
+                </Link>
+                <Link href={`/${locale}/guide`}>
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                    Kembali ke Dashboard
+                  </Button>
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Guide License Info Card */}
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-indigo-50">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
+        <Card className="border-0 shadow-sm">
+          <CardHeader>
+            <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100">
                 <FileText className="h-6 w-6 text-blue-600" />
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
                   Langkah Selanjutnya: AeroTravel Guide License (ATGL)
                 </h3>
-                <p className="text-sm text-slate-600 mb-4">
-                  Untuk dapat menerima trip dan mulai bekerja sebagai guide, Anda perlu mendapatkan Guide License.
+                <p className="text-sm text-slate-600 mt-1">
+                  Untuk dapat menerima trip dan mulai bekerja sebagai guide
+                </p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-slate-700 mb-3">
                   Pastikan semua persyaratan sudah terpenuhi:
                 </p>
-                <ul className="text-sm text-slate-600 space-y-1 mb-4">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>Profil lengkap (Nama, Phone, NIK)</span>
+                <ul className="space-y-2.5">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-slate-600">Profil lengkap (Nama, Phone, NIK)</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>Kontrak ditandatangani</span>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-slate-600">Kontrak ditandatangani</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>Dokumen wajib terupload (KTP, SKCK, Surat Kesehatan, Foto)</span>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-slate-600">Dokumen wajib terupload (KTP, SKCK, Surat Kesehatan, Foto)</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>Kontak darurat & informasi medis</span>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-slate-600">Kontak darurat & informasi medis</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>Rekening bank (disetujui)</span>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-slate-600">Rekening bank (disetujui)</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>Training & Assessment selesai</span>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-slate-600">Training & Assessment selesai</span>
                   </li>
                 </ul>
+              </div>
+              <div className="pt-2 border-t border-slate-200">
                 <Link href={`/${locale}/guide/id-card`}>
-                  <Button size="sm" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+                  <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700">
                     Cek Eligibility & Apply License
                   </Button>
                 </Link>
@@ -435,7 +450,11 @@ export function OnboardingClient({ locale }: OnboardingClientProps) {
               {currentStep.step_type === 'training' && currentStep.resource_url && (
                 <Button
                   className="flex-1"
-                  onClick={() => window.open(currentStep.resource_url!, '_blank')}
+                  onClick={() => {
+                    if (currentStep.resource_url) {
+                      window.open(currentStep.resource_url, '_blank');
+                    }
+                  }}
                 >
                   <Play className="mr-2 h-4 w-4" />
                   Tonton Video

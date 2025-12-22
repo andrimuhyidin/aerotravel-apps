@@ -31,6 +31,11 @@ const Popup = dynamic(
   { ssr: false }
 );
 
+const Polyline = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Polyline),
+  { ssr: false }
+);
+
 export type MapLocation = {
   lat: number;
   lng: number;
@@ -38,10 +43,18 @@ export type MapLocation = {
   description?: string;
 };
 
+export type BreadcrumbPoint = {
+  latitude: number;
+  longitude: number;
+  timestamp?: string;
+};
+
 export type DynamicMapProps = {
   center: [number, number];
   zoom?: number;
   markers?: MapLocation[];
+  breadcrumbTrail?: BreadcrumbPoint[];
+  showBreadcrumb?: boolean;
   height?: string;
   className?: string;
 };
@@ -50,6 +63,8 @@ export function DynamicMap({
   center,
   zoom = 13,
   markers = [],
+  breadcrumbTrail = [],
+  showBreadcrumb = false,
   height = '400px',
   className = '',
 }: DynamicMapProps) {
@@ -82,6 +97,17 @@ export function DynamicMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        {/* Breadcrumb Trail */}
+        {showBreadcrumb && breadcrumbTrail.length > 1 && (
+          <Polyline
+            positions={breadcrumbTrail.map((point) => [point.latitude, point.longitude] as [number, number])}
+            pathOptions={{
+              color: '#3b82f6',
+              weight: 4,
+              opacity: 0.7,
+            }}
+          />
+        )}
         {markers.map((marker, index) => (
           <Marker key={index} position={[marker.lat, marker.lng]}>
             {marker.name && (

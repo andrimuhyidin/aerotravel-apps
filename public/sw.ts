@@ -46,6 +46,29 @@ registerRoute(
   })
 );
 
+// Map tile caching - CacheFirst strategy for offline support
+// Note: This requires tiles to be downloaded first via /api/guide/maps/download
+registerRoute(
+  ({ url }) => {
+    // Match common tile server patterns (OpenStreetMap, Mapbox, etc.)
+    return (
+      url.pathname.includes('/tile/') ||
+      url.pathname.includes('/tiles/') ||
+      url.pathname.match(/\/\d+\/\d+\/\d+\.(png|jpg|jpeg|webp)$/i) !== null
+    );
+  },
+  new CacheFirst({
+    cacheName: 'map-tiles-cache',
+    plugins: [
+      {
+        cacheWillUpdate: async ({ response }) => {
+          return response?.status === 200 ? response : null;
+        },
+      },
+    ],
+  })
+);
+
 // Push notification event handler
 self.addEventListener('push', (event: PushEvent) => {
   if (!event.data) return;

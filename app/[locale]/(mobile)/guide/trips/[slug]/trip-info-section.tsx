@@ -53,9 +53,10 @@ export function TripInfoSection({ tripId, locale: _locale }: TripInfoSectionProp
       const res = await fetch(`/api/guide/trips/${tripId}/package-info`);
       if (!res.ok) throw new Error('Failed to fetch package info');
       const data = await res.json();
+      const responseData = (data?.data ?? data) as { package?: { facilities?: FacilityDisplayItem[] } };
       return {
         package: {
-          facilities: data.package?.facilities || [],
+          facilities: responseData.package?.facilities ?? [],
         },
       };
     },
@@ -99,17 +100,17 @@ export function TripInfoSection({ tripId, locale: _locale }: TripInfoSectionProp
     },
   });
 
-  const facilities = data?.package?.facilities || [];
+  const facilities = (data?.package?.facilities ?? []).filter((f) => f?.code && f?.name);
   const hasFacilities = facilities.length > 0;
-  const checklist = checklistData?.checklist || {};
+  const checklist = checklistData?.checklist ?? {};
   
   const handleCheckboxChange = (facilityCode: string, checked: boolean) => {
     updateChecklistMutation.mutate({ facilityCode, checked });
   };
   
   // Group facilities by status
-  const includedFacilities = facilities.filter((f) => f.status === 'included');
-  const excludedFacilities = facilities.filter((f) => f.status === 'excluded');
+  const includedFacilities = facilities.filter((f) => f?.status === 'included');
+  const excludedFacilities = facilities.filter((f) => f?.status === 'excluded');
   
   // Debug: Log excluded facilities (only in development)
   if (process.env.NODE_ENV === 'development' && excludedFacilities.length === 0 && facilities.length > 0) {
@@ -122,17 +123,21 @@ export function TripInfoSection({ tripId, locale: _locale }: TripInfoSectionProp
   
   // Sort each group: by category, then by name
   const sortFacilities = (a: FacilityDisplayItem, b: FacilityDisplayItem) => {
-    if (a.category !== b.category) {
-      return a.category.localeCompare(b.category);
+    const categoryA = a.category ?? '';
+    const categoryB = b.category ?? '';
+    if (categoryA !== categoryB) {
+      return categoryA.localeCompare(categoryB);
     }
-    return a.name.localeCompare(b.name);
+    const nameA = a.name ?? '';
+    const nameB = b.name ?? '';
+    return nameA.localeCompare(nameB);
   };
   
   const sortedIncluded = [...includedFacilities].sort(sortFacilities);
   const sortedExcluded = [...excludedFacilities].sort(sortFacilities);
   
   // Calculate checklist progress (only for included facilities)
-  const checkedCount = includedFacilities.filter((f) => checklist[f.code] === true).length;
+  const checkedCount = includedFacilities.filter((f) => f?.code && checklist[f.code] === true).length;
   const totalCount = includedFacilities.length;
   const allChecked = totalCount > 0 && checkedCount === totalCount;
 
@@ -215,7 +220,12 @@ export function TripInfoSection({ tripId, locale: _locale }: TripInfoSectionProp
                       </TableHeader>
                       <TableBody>
                         {sortedIncluded.map((facility) => {
+                          if (!facility?.code) return null;
                           const isChecked = checklist[facility.code] === true;
+                          const facilityName = facility.name ?? 'Facility';
+                          const facilityDescription = facility.description;
+                          const facilityIcon = facility.icon;
+                          const facilityQuantity = facility.quantity;
                           
                           return (
                             <TableRow
@@ -227,24 +237,24 @@ export function TripInfoSection({ tripId, locale: _locale }: TripInfoSectionProp
                             >
                               <TableCell className="min-w-0 py-3">
                                 <div className="flex items-start gap-2 min-w-0">
-                                  {facility.icon && (
-                                    <span className="text-base flex-shrink-0 mt-0.5">{facility.icon}</span>
+                                  {facilityIcon && (
+                                    <span className="text-base flex-shrink-0 mt-0.5">{facilityIcon}</span>
                                   )}
                                   <div className="min-w-0 flex-1">
-                                    {facility.description ? (
+                                    {facilityDescription ? (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <span className="text-sm font-medium break-words cursor-help underline decoration-dotted underline-offset-2 text-slate-900">
-                                            {facility.name}
+                                            {facilityName}
                                           </span>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                          <p className="max-w-xs">{facility.description}</p>
+                                          <p className="max-w-xs">{facilityDescription}</p>
                                         </TooltipContent>
                                       </Tooltip>
                                     ) : (
                                       <span className="text-sm font-medium break-words text-slate-900">
-                                        {facility.name}
+                                        {facilityName}
                                       </span>
                                     )}
                                   </div>
@@ -253,9 +263,9 @@ export function TripInfoSection({ tripId, locale: _locale }: TripInfoSectionProp
                               <TableCell className="w-[80px] px-2 py-3 text-right">
                                 <span className={cn(
                                   'text-sm font-medium',
-                                  facility.quantity ? 'text-slate-900' : 'text-slate-400'
+                                  facilityQuantity ? 'text-slate-900' : 'text-slate-400'
                                 )}>
-                                  {facility.quantity ?? '-'}
+                                  {facilityQuantity ?? '-'}
                                 </span>
                               </TableCell>
                               <TableCell className="w-[70px] px-2 py-3 text-center">
@@ -298,46 +308,54 @@ export function TripInfoSection({ tripId, locale: _locale }: TripInfoSectionProp
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {sortedExcluded.map((facility) => (
-                          <TableRow
-                            key={facility.code}
-                            className="opacity-75"
-                          >
-                            <TableCell className="min-w-0 py-3">
-                              <div className="flex items-start gap-2 min-w-0">
-                                {facility.icon && (
-                                  <span className="text-base flex-shrink-0 mt-0.5">{facility.icon}</span>
-                                )}
-                                <div className="min-w-0 flex-1">
-                                  {facility.description ? (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span className="text-sm font-medium break-words cursor-help underline decoration-dotted underline-offset-2 text-slate-600">
-                                          {facility.name}
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p className="max-w-xs">{facility.description}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  ) : (
-                                    <span className="text-sm font-medium break-words text-slate-600">
-                                      {facility.name}
-                                    </span>
+                        {sortedExcluded.map((facility) => {
+                          if (!facility?.code) return null;
+                          const facilityName = facility.name ?? 'Facility';
+                          const facilityDescription = facility.description;
+                          const facilityIcon = facility.icon;
+                          const facilityQuantity = facility.quantity;
+                          
+                          return (
+                            <TableRow
+                              key={facility.code}
+                              className="opacity-75"
+                            >
+                              <TableCell className="min-w-0 py-3">
+                                <div className="flex items-start gap-2 min-w-0">
+                                  {facilityIcon && (
+                                    <span className="text-base flex-shrink-0 mt-0.5">{facilityIcon}</span>
                                   )}
+                                  <div className="min-w-0 flex-1">
+                                    {facilityDescription ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="text-sm font-medium break-words cursor-help underline decoration-dotted underline-offset-2 text-slate-600">
+                                            {facilityName}
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="max-w-xs">{facilityDescription}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    ) : (
+                                      <span className="text-sm font-medium break-words text-slate-600">
+                                        {facilityName}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="w-[80px] px-2 py-3 text-right">
-                              <span className="text-sm font-medium text-slate-400">
-                                {facility.quantity ?? '-'}
-                              </span>
-                            </TableCell>
-                            <TableCell className="w-[70px] px-2 py-3 text-center">
-                              <div className="h-4 w-4 mx-auto" />
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                              </TableCell>
+                              <TableCell className="w-[80px] px-2 py-3 text-right">
+                                <span className="text-sm font-medium text-slate-400">
+                                  {facilityQuantity ?? '-'}
+                                </span>
+                              </TableCell>
+                              <TableCell className="w-[70px] px-2 py-3 text-center">
+                                <div className="h-4 w-4 mx-auto" />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
