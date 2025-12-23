@@ -822,39 +822,107 @@ export function AIInsightsCard({
             </div>
           )}
 
-        {/* Coaching Action Plan */}
-        {sectionsToShow.includes('coaching') &&
-          insights.coaching &&
-          insights.coaching.actionPlan &&
-          insights.coaching.actionPlan.length > 0 && (
-            <div className="rounded-lg bg-white/60 p-4 backdrop-blur-sm">
-              <div className="mb-3 flex items-center gap-2">
-                <Target className="h-4 w-4 text-emerald-600" />
-                <span className="text-xs font-semibold text-slate-700">
-                  Action Plan (4 Minggu)
-                </span>
-              </div>
-              <div className="space-y-1.5">
-                {insights.coaching.actionPlan.slice(0, 2).map((week) => (
-                  <div
-                    key={week.week}
-                    className="rounded-lg border border-slate-200 bg-slate-50 p-2.5"
-                  >
-                    <p className="text-xs font-semibold text-slate-900">
-                      Minggu {week.week}: {week.focus}
-                    </p>
-                    <ul className="mt-1 space-y-0.5">
-                      {week.goals.slice(0, 2).map((goal, idx) => (
-                        <li key={idx} className="text-[11px] text-slate-600">
-                          • {goal}
-                        </li>
-                      ))}
-                    </ul>
+        {/* Coaching Action Plan & Skill Gaps */}
+        {sectionsToShow.includes('coaching') && insights.coaching && (
+          <div className="space-y-4">
+            {/* Action Plan */}
+            {insights.coaching.actionPlan &&
+              insights.coaching.actionPlan.length > 0 && (
+                <div className="rounded-lg bg-white/60 p-4 backdrop-blur-sm">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-emerald-600" />
+                    <span className="text-xs font-semibold text-slate-700">
+                      Action Plan (4 Minggu)
+                    </span>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                  <div className="space-y-1.5">
+                    {insights.coaching.actionPlan.slice(0, 2).map((week) => (
+                      <div
+                        key={week.week}
+                        className="rounded-lg border border-slate-200 bg-slate-50 p-2.5"
+                      >
+                        <p className="text-xs font-semibold text-slate-900">
+                          Minggu {week.week}: {week.focus}
+                        </p>
+                        <ul className="mt-1 space-y-0.5">
+                          {week.goals.slice(0, 2).map((goal, idx) => (
+                            <li
+                              key={idx}
+                              className="text-[11px] text-slate-600"
+                            >
+                              • {goal}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            {/* Skill Gaps */}
+            {insights.coaching.skillGaps &&
+              insights.coaching.skillGaps.length > 0 && (
+                <div className="rounded-lg bg-white/60 p-4 backdrop-blur-sm">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-blue-600" />
+                    <span className="text-xs font-semibold text-slate-700">
+                      Skill Gaps
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {insights.coaching.skillGaps.slice(0, 3).map((gap, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-lg border border-blue-200 bg-blue-50/50 p-3"
+                      >
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className="text-xs font-semibold text-slate-900">
+                            {gap.skill}
+                          </p>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'text-[10px]',
+                              gap.priority === 'high' &&
+                                'border-red-500 text-red-700',
+                              gap.priority === 'medium' &&
+                                'border-yellow-500 text-yellow-700',
+                              gap.priority === 'low' &&
+                                'border-blue-500 text-blue-700'
+                            )}
+                          >
+                            {gap.priority === 'high' && 'Tinggi'}
+                            {gap.priority === 'medium' && 'Sedang'}
+                            {gap.priority === 'low' && 'Rendah'}
+                          </Badge>
+                        </div>
+                        <div className="mb-2 flex items-center gap-2">
+                          <span className="text-[10px] text-slate-600">
+                            Level: {gap.currentLevel} → {gap.targetLevel}
+                          </span>
+                        </div>
+                        {gap.learningPath && gap.learningPath.length > 0 && (
+                          <ul className="mt-2 space-y-0.5">
+                            {gap.learningPath
+                              .slice(0, 2)
+                              .map((path, pathIdx) => (
+                                <li
+                                  key={pathIdx}
+                                  className="text-[10px] text-slate-600"
+                                >
+                                  • {path}
+                                </li>
+                              ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
