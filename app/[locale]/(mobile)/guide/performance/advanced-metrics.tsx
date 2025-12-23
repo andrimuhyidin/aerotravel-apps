@@ -59,8 +59,28 @@ export function AdvancedMetrics({ metrics, className }: AdvancedMetricsProps) {
   // Always show Advanced Metrics section if metrics object exists
   // Even if all data is null, show empty states
   if (!hasAdvancedMetrics) {
+    // Debug: Log why component is not rendering
+    console.log('[AdvancedMetrics] Not rendering - no advanced metrics found', {
+      customerSatisfaction: metrics.customerSatisfaction !== undefined,
+      efficiency: metrics.efficiency !== undefined,
+      financial: metrics.financial !== undefined,
+      quality: metrics.quality !== undefined,
+      growth: metrics.growth !== undefined,
+      comparative: metrics.comparative !== undefined,
+      sustainability: metrics.sustainability !== undefined,
+      operations: metrics.operations !== undefined,
+      safety: metrics.safety !== undefined,
+    });
     return null;
   }
+
+  // Debug: Log that component is rendering
+  console.log('[AdvancedMetrics] Rendering with tabs', {
+    activeTab,
+    hasSustainability: metrics.sustainability !== undefined,
+    hasOperations: metrics.operations !== undefined,
+    hasSafety: metrics.safety !== undefined,
+  });
 
   return (
     <div className={className}>
