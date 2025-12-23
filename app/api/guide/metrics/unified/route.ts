@@ -23,6 +23,7 @@ import { withErrorHandler } from '@/lib/api/error-handler';
 import { cacheKeys, cacheTTL, getCached } from '@/lib/cache/redis-cache';
 import { calculateUnifiedMetrics } from '@/lib/guide/metrics-calculator';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
 import type { MetricsCalculationOptions } from '@/types/guide-metrics';
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
