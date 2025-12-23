@@ -8,7 +8,9 @@ type TabsContextValue = {
   onValueChange: (value: string) => void;
 };
 
-const TabsContext = React.createContext<TabsContextValue | undefined>(undefined);
+const TabsContext = React.createContext<TabsContextValue | undefined>(
+  undefined
+);
 
 type TabsProps = {
   value: string;
@@ -32,16 +34,15 @@ type TabsListProps = {
 };
 
 export function TabsList({ children, className, style }: TabsListProps) {
-  const baseClasses = 'h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-500';
+  const baseClasses =
+    'h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-500';
   // Check if className includes grid, if so use grid, otherwise inline-flex
-  const hasGrid = className?.includes('grid') || className?.includes('inline-grid');
+  const hasGrid =
+    className?.includes('grid') || className?.includes('inline-grid');
   const displayClass = hasGrid ? '' : 'inline-flex';
-  
+
   return (
-    <div 
-      className={cn(displayClass, baseClasses, className)} 
-      style={style}
-    >
+    <div className={cn(displayClass, baseClasses, className)} style={style}>
       {children}
     </div>
   );
@@ -63,12 +64,13 @@ export function TabsTrigger({ value, children, className }: TabsTriggerProps) {
     <button
       type="button"
       onClick={() => context.onValueChange(value)}
+      data-state={isActive ? 'active' : 'inactive'}
       className={cn(
         'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
         isActive
           ? 'bg-white text-slate-900 shadow-sm'
           : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
-        className,
+        className
       )}
     >
       {children}
