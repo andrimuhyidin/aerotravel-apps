@@ -23,7 +23,6 @@ import type { UnifiedMetrics } from '@/types/guide-metrics';
 import { ChallengesClient } from '../challenges/challenges-client';
 import { RatingsClient } from '../ratings/ratings-client';
 import { MonthlyInsightsDetail } from './monthly-insights-detail';
-import { PerformanceAiCoach } from './performance-ai-coach';
 import { AdvancedMetrics } from './advanced-metrics';
 
 type PerformanceClientProps = {
@@ -205,8 +204,6 @@ export function PerformanceClient({ locale: _locale }: PerformanceClientProps) {
                 'coaching',
               ]}
             />
-            {/* Additional AI Performance Coach */}
-            <PerformanceAiCoach locale={_locale} />
           </div>
         )}
       </TabsContent>
