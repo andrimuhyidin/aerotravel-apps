@@ -9,6 +9,7 @@ import { MessageSquare, Repeat, ShieldCheck, Star } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import type { UnifiedMetrics } from '@/types/guide-metrics';
 
@@ -24,7 +25,47 @@ export function CustomerSatisfactionMetrics({
   const satisfaction = metrics.customerSatisfaction;
 
   if (!satisfaction) {
-    return null;
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Customer Satisfaction
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={MessageSquare}
+            title="Belum ada data customer satisfaction"
+            description="Data akan muncul setelah ada feedback dan rating dari customer."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const hasData = Object.values(satisfaction).some(
+    (value) => value !== null && value !== undefined
+  );
+
+  if (!hasData) {
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Customer Satisfaction
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={MessageSquare}
+            title="Belum ada data customer satisfaction"
+            description="Data akan muncul setelah ada feedback dan rating dari customer."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
   }
 
   const getScoreColor = (score: number | null) => {

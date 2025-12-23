@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import type { UnifiedMetrics } from '@/types/guide-metrics';
 
@@ -29,7 +30,50 @@ export function FinancialMetrics({
   const financial = metrics.financial;
 
   if (!financial) {
-    return null;
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Financial Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={DollarSign}
+            title="Belum ada data financial"
+            description="Data financial akan muncul setelah Anda menyelesaikan trip dan menerima pembayaran."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const hasData =
+    financial.netEarnings !== undefined ||
+    financial.penaltyImpact !== undefined ||
+    financial.savingsRate !== null ||
+    financial.withdrawalFrequency !== undefined ||
+    (financial.earningsTrend && financial.earningsTrend.length > 0);
+
+  if (!hasData) {
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Financial Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={DollarSign}
+            title="Belum ada data financial"
+            description="Data financial akan muncul setelah Anda menyelesaikan trip dan menerima pembayaran."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
   }
 
   const formatCurrency = (amount: number) => {

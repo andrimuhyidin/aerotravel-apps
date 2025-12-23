@@ -15,6 +15,7 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import type { UnifiedMetrics } from '@/types/guide-metrics';
 
@@ -27,7 +28,47 @@ export function QualityMetrics({ metrics, className }: QualityMetricsProps) {
   const quality = metrics.quality;
 
   if (!quality) {
-    return null;
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Quality Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={CheckCircle2}
+            title="Belum ada data quality"
+            description="Data quality akan muncul setelah Anda menyelesaikan trip dan melengkapi dokumentasi."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const hasData = Object.values(quality).some(
+    (value) => value !== null && value !== undefined
+  );
+
+  if (!hasData) {
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Quality Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={CheckCircle2}
+            title="Belum ada data quality"
+            description="Data quality akan muncul setelah Anda menyelesaikan trip dan melengkapi dokumentasi."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
   }
 
   const getQualityColor = (rate: number | null, reverse: boolean = false) => {

@@ -16,6 +16,7 @@ import {
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import type { UnifiedMetrics } from '@/types/guide-metrics';
 
@@ -28,7 +29,51 @@ export function GrowthMetrics({ metrics, className }: GrowthMetricsProps) {
   const growth = metrics.growth;
 
   if (!growth) {
-    return null;
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Growth Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={TrendingUp}
+            title="Belum ada data growth"
+            description="Data growth akan muncul setelah Anda memiliki data dari beberapa periode."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const hasData =
+    growth.momGrowth.trips !== null ||
+    growth.momGrowth.earnings !== null ||
+    growth.momGrowth.ratings !== null ||
+    growth.skillProgressionRate !== null ||
+    growth.certificationCompletionRate !== null ||
+    growth.assessmentImprovement !== null;
+
+  if (!hasData) {
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Growth Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={TrendingUp}
+            title="Belum ada data growth"
+            description="Data growth akan muncul setelah Anda memiliki data dari beberapa periode."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
   }
 
   const formatGrowth = (value: number | null) => {

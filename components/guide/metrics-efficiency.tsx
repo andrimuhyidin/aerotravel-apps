@@ -8,6 +8,7 @@
 import { Clock, DollarSign, TrendingUp, Users, Zap } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import type { UnifiedMetrics } from '@/types/guide-metrics';
 
@@ -23,7 +24,47 @@ export function EfficiencyMetrics({
   const efficiency = metrics.efficiency;
 
   if (!efficiency) {
-    return null;
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Efficiency Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={Zap}
+            title="Belum ada data efficiency"
+            description="Data akan muncul setelah Anda menyelesaikan beberapa trip."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const hasData = Object.values(efficiency).some(
+    (value) => value !== null && value !== undefined
+  );
+
+  if (!hasData) {
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Efficiency Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={Zap}
+            title="Belum ada data efficiency"
+            description="Data akan muncul setelah Anda menyelesaikan beberapa trip."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
   }
 
   const formatDuration = (hours: number | null) => {

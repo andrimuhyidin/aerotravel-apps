@@ -10,6 +10,7 @@ import { AlertTriangle, Shield, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import type { UnifiedMetrics } from '@/types/guide-metrics';
 
@@ -22,7 +23,50 @@ export function SafetyMetrics({ metrics, className }: SafetyMetricsProps) {
   const safety = metrics.safety;
 
   if (!safety) {
-    return null;
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Safety & Compliance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={Shield}
+            title="Belum ada data safety"
+            description="Data safety akan muncul setelah Anda melakukan risk assessment dan melaporkan incident (jika ada)."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Check if any data exists
+  const hasData =
+    safety.incidentFrequency !== undefined ||
+    safety.riskAssessmentFrequency !== undefined ||
+    safety.safetyComplianceScore !== null ||
+    safety.preTripReadinessRate !== null;
+
+  if (!hasData) {
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Safety & Compliance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={Shield}
+            title="Belum ada data safety"
+            description="Data safety akan muncul setelah Anda melakukan risk assessment dan melaporkan incident (jika ada)."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
   }
 
   const getScoreColor = (score: number | null) => {

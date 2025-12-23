@@ -9,6 +9,7 @@ import { Award, BarChart3, Percent, TrendingUp } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import type { UnifiedMetrics } from '@/types/guide-metrics';
 
@@ -24,7 +25,51 @@ export function ComparativeMetrics({
   const comparative = metrics.comparative;
 
   if (!comparative) {
-    return null;
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Comparative Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={BarChart3}
+            title="Belum ada data comparative"
+            description="Data perbandingan akan muncul setelah ada cukup data dari guide lain untuk perbandingan."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const hasData =
+    comparative.peerRanking !== null ||
+    comparative.percentileImprovement !== null ||
+    comparative.topPerformerGap.trips !== null ||
+    comparative.topPerformerGap.earnings !== null ||
+    comparative.topPerformerGap.ratings !== null ||
+    comparative.marketShare !== null;
+
+  if (!hasData) {
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Comparative Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={BarChart3}
+            title="Belum ada data comparative"
+            description="Data perbandingan akan muncul setelah ada cukup data dari guide lain untuk perbandingan."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
   }
 
   const getRankBadgeColor = (rank: number | null) => {

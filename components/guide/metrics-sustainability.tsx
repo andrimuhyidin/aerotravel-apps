@@ -10,6 +10,7 @@ import { Leaf, Recycle, TrendingDown, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import type { UnifiedMetrics } from '@/types/guide-metrics';
 
@@ -25,7 +26,51 @@ export function SustainabilityMetrics({
   const sustainability = metrics.sustainability;
 
   if (!sustainability) {
-    return null;
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Sustainability & Waste
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={Leaf}
+            title="Belum ada data sustainability"
+            description="Data waste logs dan carbon footprint akan muncul setelah Anda mencatat waste pada trip."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Check if all data is null/zero
+  const hasData =
+    sustainability.totalWasteKg > 0 ||
+    sustainability.carbonFootprintKg > 0 ||
+    sustainability.sustainabilityScore !== null ||
+    sustainability.recyclingRate !== null ||
+    sustainability.wasteReductionTrend !== null;
+
+  if (!hasData) {
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Sustainability & Waste
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={Leaf}
+            title="Belum ada data sustainability"
+            description="Data waste logs dan carbon footprint akan muncul setelah Anda mencatat waste pada trip."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
   }
 
   const getScoreColor = (score: number | null) => {

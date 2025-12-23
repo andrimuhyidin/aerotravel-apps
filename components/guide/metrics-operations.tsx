@@ -17,6 +17,7 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import type { UnifiedMetrics } from '@/types/guide-metrics';
 
@@ -32,7 +33,48 @@ export function OperationsMetrics({
   const operations = metrics.operations;
 
   if (!operations) {
-    return null;
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Operations & Compliance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={ClipboardCheck}
+            title="Belum ada data operations"
+            description="Data operations akan muncul setelah Anda menyelesaikan equipment checklist, risk assessment, dan dokumentasi trip."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Check if any data exists
+  const hasData = Object.values(operations).some(
+    (value) => value !== null && value !== undefined
+  );
+
+  if (!hasData) {
+    return (
+      <Card className={cn('border-0 shadow-sm', className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Operations & Compliance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={ClipboardCheck}
+            title="Belum ada data operations"
+            description="Data operations akan muncul setelah Anda menyelesaikan equipment checklist, risk assessment, dan dokumentasi trip."
+            variant="minimal"
+          />
+        </CardContent>
+      </Card>
+    );
   }
 
   const getRateColor = (rate: number | null) => {
