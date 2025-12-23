@@ -53,6 +53,17 @@ export async function generateUnifiedAIInsights(
     try {
       const cleaned = aiResponse.replace(/```json\n?|\n?```/g, '').trim();
       parsedInsights = JSON.parse(cleaned);
+
+      // Log parsed insights keys for debugging
+      logger.info('Parsed AI insights keys', {
+        guideId: context.guideId,
+        keys: Object.keys(parsedInsights),
+        hasRiskAlerts: parsedInsights.risk_alerts !== undefined,
+        hasQuickWins: parsedInsights.quick_wins !== undefined,
+        hasComparative: parsedInsights.comparative_insights !== undefined,
+        hasOpportunities: parsedInsights.opportunities !== undefined,
+        hasFinancialHealth: parsedInsights.financial_health !== undefined,
+      });
     } catch (parseError) {
       logger.error('Failed to parse AI insights', parseError, {
         guideId: context.guideId,
