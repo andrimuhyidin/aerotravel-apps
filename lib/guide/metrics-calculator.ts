@@ -105,6 +105,7 @@ export async function calculateUnifiedMetrics(
         skillsImproved: 0,
         assessmentsCompleted: 0,
       },
+      // Initialize advanced metrics with default values to ensure they're always defined
       customerSatisfaction: undefined,
       efficiency: undefined,
       financial: undefined,
@@ -115,6 +116,9 @@ export async function calculateUnifiedMetrics(
       operations: undefined,
       safety: undefined,
     };
+
+    // Always calculate advanced metrics if they're in the include list
+    // This ensures the UI can always show empty states
 
     // Calculate trips metrics
     if (include.includes('trips')) {
@@ -299,6 +303,7 @@ export async function calculateUnifiedMetrics(
     }
 
     // Calculate operations metrics
+    // Always calculate if in include list to ensure object is always defined
     if (include.includes('operations')) {
       logger.info('Calculating operations metrics', {
         guideId,
@@ -315,10 +320,12 @@ export async function calculateUnifiedMetrics(
         equipmentChecklistRate: operationsData.equipmentChecklistRate,
         hasData: operationsData.equipmentChecklistRate !== null,
       });
+      // Always set the object, even if all values are null
       metrics.operations = operationsData;
     }
 
     // Calculate safety metrics
+    // Always calculate if in include list to ensure object is always defined
     if (include.includes('safety')) {
       logger.info('Calculating safety metrics', {
         guideId,
@@ -329,13 +336,14 @@ export async function calculateUnifiedMetrics(
         period,
         branchContext,
         client,
-        metrics.trips
+        metrics.trips || { total: 0, completed: 0, cancelled: 0 }
       );
       logger.info('Safety metrics calculated', {
         guideId,
         incidentFrequency: safetyData.incidentFrequency,
         hasData: safetyData.incidentFrequency !== undefined,
       });
+      // Always set the object, even if all values are null/zero
       metrics.safety = safetyData;
     }
 
