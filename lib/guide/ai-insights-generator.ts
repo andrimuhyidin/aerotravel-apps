@@ -118,7 +118,7 @@ export async function generateUnifiedAIInsights(
             source: 'insights',
           });
         } else if (rec.title || rec.description) {
-          // Structured recommendation
+          // Structured recommendation with predicted impact
           recommendations.push({
             id: `rec-${recommendations.length}`,
             type: rec.type || 'performance',
@@ -127,6 +127,14 @@ export async function generateUnifiedAIInsights(
             priority: rec.priority || 'medium',
             source: 'insights',
             category: rec.category,
+            predictedImpact: rec.predicted_impact
+              ? {
+                  earnings: rec.predicted_impact.earnings,
+                  rating: rec.predicted_impact.rating,
+                  timeframe: rec.predicted_impact.timeframe || '1-2 weeks',
+                  confidence: rec.predicted_impact.confidence || 'medium',
+                }
+              : undefined,
           });
         }
       }
@@ -134,6 +142,121 @@ export async function generateUnifiedAIInsights(
 
     // Deduplicate recommendations
     insights.recommendations = deduplicateRecommendations(recommendations);
+
+    // Parse risk alerts
+    if (
+      parsedInsights.risk_alerts &&
+      Array.isArray(parsedInsights.risk_alerts)
+    ) {
+      insights.riskAlerts = parsedInsights.risk_alerts.map(
+        (alert: any, idx: number) => ({
+          id: `risk-${idx}`,
+          type: alert.type || 'operational',
+          severity: alert.severity || 'medium',
+          title: alert.title || 'Risk Alert',
+          description: alert.description || '',
+          metric: alert.metric || '',
+          currentValue: alert.current_value || '',
+          threshold: alert.threshold || '',
+          recommendedAction: alert.recommended_action || '',
+          impact: alert.impact || '',
+        })
+      );
+    }
+
+    // Parse quick wins
+    if (parsedInsights.quick_wins && Array.isArray(parsedInsights.quick_wins)) {
+      insights.quickWins = parsedInsights.quick_wins.map(
+        (win: any, idx: number) => ({
+          id: `quickwin-${idx}`,
+          title: win.title || 'Quick Win',
+          description: win.description || '',
+          estimatedImpact: {
+            earnings: win.estimated_impact?.earnings,
+            rating: win.estimated_impact?.rating,
+            time: win.estimated_impact?.time || '1-2 days',
+          },
+          difficulty: win.difficulty || 'easy',
+          category: win.category || 'general',
+          actionSteps: win.action_steps || [],
+        })
+      );
+    }
+
+    // Parse comparative insights
+    if (parsedInsights.comparative_insights) {
+      const comp = parsedInsights.comparative_insights;
+      insights.comparative = {
+        peerRanking: {
+          overall: comp.peer_ranking?.overall || 50,
+          trips: comp.peer_ranking?.trips || 50,
+          earnings: comp.peer_ranking?.earnings || 50,
+          ratings: comp.peer_ranking?.ratings || 50,
+          efficiency: comp.peer_ranking?.efficiency || 50,
+        },
+        topPerformerGap: {
+          trips: comp.top_performer_gap?.trips || 0,
+          earnings: comp.top_performer_gap?.earnings || 0,
+          ratings: comp.top_performer_gap?.ratings || 0,
+        },
+        strengthsVsPeer: comp.strengths_vs_peer || [],
+        improvementOpportunities:
+          comp.improvement_opportunities?.map((opp: any) => ({
+            metric: opp.metric || '',
+            currentValue: opp.current_value || 0,
+            peerAverage: opp.peer_average || 0,
+            topPerformerValue: opp.top_performer_value || 0,
+            potential: opp.potential || '',
+          })) || [],
+      };
+    }
+
+    // Parse opportunities
+    if (
+      parsedInsights.opportunities &&
+      Array.isArray(parsedInsights.opportunities)
+    ) {
+      insights.opportunities = parsedInsights.opportunities.map(
+        (opp: any, idx: number) => ({
+          id: `opp-${idx}`,
+          type: opp.type || 'performance',
+          title: opp.title || 'Opportunity',
+          description: opp.description || '',
+          potentialImpact: {
+            earnings: opp.potential_impact?.earnings,
+            rating: opp.potential_impact?.rating,
+            trips: opp.potential_impact?.trips,
+          },
+          feasibility: opp.feasibility || 'medium',
+          timeframe: opp.timeframe || '1 month',
+          requirements: opp.requirements || [],
+        })
+      );
+    }
+
+    // Parse financial health
+    if (parsedInsights.financial_health) {
+      const fh = parsedInsights.financial_health;
+      insights.financialHealth = {
+        score: fh.score || 50,
+        level: fh.level || 'fair',
+        factors:
+          fh.factors?.map((factor: any) => ({
+            name: factor.name || '',
+            value: factor.value || '',
+            status: factor.status || 'neutral',
+            impact: factor.impact || '',
+          })) || [],
+        recommendations: fh.recommendations || [],
+      };
+    }
+
+    // Add risk detection from metrics (complement AI-generated risks)
+    const detectedRisks = detectRisks(metrics);
+    if (detectedRisks.length > 0) {
+      // Merge with AI-generated risks, prioritizing detected risks
+      insights.riskAlerts = [...detectedRisks, ...(insights.riskAlerts || [])];
+    }
 
     // Generate coaching insights if requested
     if (
@@ -286,11 +409,113 @@ Provide comprehensive insights in JSON format:
       "title": "recommendation title",
       "description": "detailed recommendation",
       "priority": "high" | "medium" | "low",
-      "category": "optional category"
+      "category": "optional category",
+      "predicted_impact": {
+        "earnings": number (potential earnings increase in IDR, optional),
+        "rating": number (potential rating increase 0-5, optional),
+        "timeframe": "string (e.g., '1-2 weeks', '1 month')",
+        "confidence": "high" | "medium" | "low"
+      }
     }
   ],
+  "risk_alerts": [
+    {
+      "type": "safety" | "financial" | "operational" | "quality" | "compliance",
+      "severity": "critical" | "high" | "medium" | "low",
+      "title": "risk alert title",
+      "description": "detailed description of the risk",
+      "metric": "metric name that triggered the alert",
+      "current_value": "current metric value",
+      "threshold": "acceptable threshold value",
+      "recommended_action": "action to address the risk",
+      "impact": "potential impact if not addressed"
+    }
+  ],
+  "quick_wins": [
+    {
+      "title": "quick win title",
+      "description": "description of the quick win",
+      "estimated_impact": {
+        "earnings": number (potential earnings increase in IDR, optional),
+        "rating": number (potential rating increase 0-5, optional),
+        "time": "time to implement (e.g., '1 day', '2 days')"
+      },
+      "difficulty": "easy" | "medium" | "hard",
+      "category": "category name",
+      "action_steps": ["step 1", "step 2", "step 3"]
+    }
+  ],
+  "comparative_insights": {
+    "peer_ranking": {
+      "overall": number (percentile 0-100),
+      "trips": number (percentile 0-100),
+      "earnings": number (percentile 0-100),
+      "ratings": number (percentile 0-100),
+      "efficiency": number (percentile 0-100)
+    },
+    "top_performer_gap": {
+      "trips": number (percentage gap),
+      "earnings": number (percentage gap),
+      "ratings": number (percentage gap)
+    },
+    "strengths_vs_peer": ["strength 1", "strength 2"],
+    "improvement_opportunities": [
+      {
+        "metric": "metric name",
+        "current_value": number,
+        "peer_average": number,
+        "top_performer_value": number,
+        "potential": "description of potential improvement"
+      }
+    ]
+  },
+  "opportunities": [
+    {
+      "type": "earnings" | "performance" | "efficiency" | "growth",
+      "title": "opportunity title",
+      "description": "detailed description",
+      "potential_impact": {
+        "earnings": number (potential earnings increase in IDR, optional),
+        "rating": number (potential rating increase 0-5, optional),
+        "trips": number (potential trips increase, optional)
+      },
+      "feasibility": "high" | "medium" | "low",
+      "timeframe": "estimated time to achieve (e.g., '1 month', '3 months')",
+      "requirements": ["requirement 1", "requirement 2"]
+    }
+  ],
+  "financial_health": {
+    "score": number (0-100),
+    "level": "excellent" | "good" | "fair" | "poor",
+    "factors": [
+      {
+        "name": "factor name",
+        "value": "factor value",
+        "status": "positive" | "neutral" | "negative",
+        "impact": "description of impact"
+      }
+    ],
+    "recommendations": ["recommendation 1", "recommendation 2"]
+  },
   "summary": "brief summary of overall performance and key insights"
 }
+
+IMPORTANT INSTRUCTIONS:
+1. Risk Alerts: Analyze metrics to detect risks. Set severity based on:
+   - Critical: Safety incidents, severe financial issues
+   - High: Significant operational problems, quality issues
+   - Medium: Moderate concerns that need attention
+   - Low: Minor issues to monitor
+
+2. Quick Wins: Focus on actions that can be done in 1-2 days with high impact. Prioritize by impact vs effort.
+
+3. Comparative Insights: Use comparative metrics to show where guide stands vs peers and top performers.
+
+4. Opportunities: Identify actionable opportunities with clear potential impact and feasibility.
+
+5. Financial Health: Calculate score based on savings rate, withdrawal frequency, penalty impact, and earnings stability.
+
+6. Recommendations: Include predicted impact for each recommendation showing potential earnings/rating increase.
 
 Return ONLY the JSON object, no additional text.`;
 }
@@ -386,6 +611,179 @@ function getPriorityValue(priority: 'high' | 'medium' | 'low'): number {
     default:
       return 0;
   }
+}
+
+/**
+ * Detect risks from metrics
+ * This function analyzes metrics to identify potential risks that need attention
+ */
+function detectRisks(metrics: UnifiedMetrics): UnifiedAIInsights['riskAlerts'] {
+  const risks: UnifiedAIInsights['riskAlerts'] = [];
+
+  // Safety risks
+  if (metrics.safety) {
+    if (metrics.safety.incidentFrequency > 5) {
+      risks.push({
+        id: 'risk-safety-incident',
+        type: 'safety',
+        severity: metrics.safety.incidentFrequency > 10 ? 'critical' : 'high',
+        title: 'Tingkat Insiden Tinggi',
+        description: `Frekuensi insiden ${metrics.safety.incidentFrequency.toFixed(1)} per 100 trip melebihi batas aman.`,
+        metric: 'Incident Frequency',
+        currentValue: `${metrics.safety.incidentFrequency.toFixed(1)} per 100 trips`,
+        threshold: '5 per 100 trips',
+        recommendedAction:
+          'Lakukan review menyeluruh terhadap prosedur keselamatan dan pastikan semua risk assessment dilakukan sebelum trip.',
+        impact:
+          'Dapat menyebabkan penurunan rating, kehilangan kepercayaan customer, dan potensi masalah hukum.',
+      });
+    }
+
+    if (
+      metrics.safety.safetyComplianceScore !== null &&
+      metrics.safety.safetyComplianceScore < 70
+    ) {
+      risks.push({
+        id: 'risk-safety-compliance',
+        type: 'safety',
+        severity:
+          metrics.safety.safetyComplianceScore < 50 ? 'critical' : 'high',
+        title: 'Safety Compliance Rendah',
+        description: `Safety compliance score ${metrics.safety.safetyComplianceScore}/100 berada di bawah standar.`,
+        metric: 'Safety Compliance Score',
+        currentValue: `${metrics.safety.safetyComplianceScore}/100`,
+        threshold: '70/100',
+        recommendedAction:
+          'Tingkatkan compliance dengan menyelesaikan semua safety checklist dan risk assessment sebelum trip.',
+        impact: 'Dapat menyebabkan insiden keselamatan dan penurunan rating.',
+      });
+    }
+  }
+
+  // Financial risks
+  if (metrics.financial) {
+    if (metrics.financial.penaltyImpact > 10) {
+      risks.push({
+        id: 'risk-financial-penalty',
+        type: 'financial',
+        severity: metrics.financial.penaltyImpact > 20 ? 'critical' : 'high',
+        title: 'Dampak Penalty Tinggi',
+        description: `Penalty impact ${metrics.financial.penaltyImpact.toFixed(1)}% mengurangi earnings secara signifikan.`,
+        metric: 'Penalty Impact',
+        currentValue: `${metrics.financial.penaltyImpact.toFixed(1)}%`,
+        threshold: '10%',
+        recommendedAction:
+          'Fokus pada on-time completion dan compliance untuk mengurangi penalty.',
+        impact:
+          'Dapat mengurangi earnings hingga 20% atau lebih jika tidak ditangani.',
+      });
+    }
+
+    if (
+      metrics.financial.savingsRate !== null &&
+      metrics.financial.savingsRate < 10
+    ) {
+      risks.push({
+        id: 'risk-financial-savings',
+        type: 'financial',
+        severity: 'medium',
+        title: 'Savings Rate Rendah',
+        description: `Savings rate ${metrics.financial.savingsRate.toFixed(0)}% di bawah rekomendasi minimum.`,
+        metric: 'Savings Rate',
+        currentValue: `${metrics.financial.savingsRate.toFixed(0)}%`,
+        threshold: '10%',
+        recommendedAction:
+          'Buat rencana penghematan dan kurangi withdrawal frequency untuk meningkatkan savings rate.',
+        impact:
+          'Dapat menyebabkan kesulitan finansial di masa depan jika tidak ada tabungan.',
+      });
+    }
+  }
+
+  // Operational risks
+  if (metrics.operations) {
+    if (
+      metrics.operations.equipmentChecklistRate !== null &&
+      metrics.operations.equipmentChecklistRate < 80
+    ) {
+      risks.push({
+        id: 'risk-operational-equipment',
+        type: 'operational',
+        severity:
+          metrics.operations.equipmentChecklistRate < 60 ? 'high' : 'medium',
+        title: 'Equipment Checklist Tidak Lengkap',
+        description: `Equipment checklist rate ${metrics.operations.equipmentChecklistRate.toFixed(0)}% di bawah standar.`,
+        metric: 'Equipment Checklist Rate',
+        currentValue: `${metrics.operations.equipmentChecklistRate.toFixed(0)}%`,
+        threshold: '80%',
+        recommendedAction:
+          'Pastikan semua equipment checklist diselesaikan sebelum setiap trip.',
+        impact:
+          'Dapat menyebabkan masalah operasional dan penurunan kualitas service.',
+      });
+    }
+
+    if (
+      metrics.operations.riskAssessmentRate !== null &&
+      metrics.operations.riskAssessmentRate < 90
+    ) {
+      risks.push({
+        id: 'risk-operational-risk-assessment',
+        type: 'compliance',
+        severity:
+          metrics.operations.riskAssessmentRate < 70 ? 'high' : 'medium',
+        title: 'Risk Assessment Tidak Lengkap',
+        description: `Risk assessment rate ${metrics.operations.riskAssessmentRate.toFixed(0)}% perlu ditingkatkan.`,
+        metric: 'Risk Assessment Rate',
+        currentValue: `${metrics.operations.riskAssessmentRate.toFixed(0)}%`,
+        threshold: '90%',
+        recommendedAction:
+          'Lakukan risk assessment untuk setiap trip sebelum departure.',
+        impact: 'Dapat meningkatkan risiko keselamatan dan masalah compliance.',
+      });
+    }
+  }
+
+  // Quality risks
+  if (metrics.quality) {
+    if (metrics.quality.noShowRate !== null && metrics.quality.noShowRate > 5) {
+      risks.push({
+        id: 'risk-quality-no-show',
+        type: 'quality',
+        severity: metrics.quality.noShowRate > 10 ? 'high' : 'medium',
+        title: 'No-Show Rate Tinggi',
+        description: `No-show rate ${metrics.quality.noShowRate.toFixed(0)}% melebihi batas normal.`,
+        metric: 'No-Show Rate',
+        currentValue: `${metrics.quality.noShowRate.toFixed(0)}%`,
+        threshold: '5%',
+        recommendedAction:
+          'Tingkatkan komunikasi dengan customer sebelum trip dan pastikan konfirmasi ulang.',
+        impact:
+          'Dapat mengurangi earnings dan rating karena trip cancellation.',
+      });
+    }
+
+    if (
+      metrics.quality.lateCheckInRate !== null &&
+      metrics.quality.lateCheckInRate > 10
+    ) {
+      risks.push({
+        id: 'risk-quality-late-checkin',
+        type: 'quality',
+        severity: 'medium',
+        title: 'Late Check-in Rate Tinggi',
+        description: `Late check-in rate ${metrics.quality.lateCheckInRate.toFixed(0)}% perlu diperbaiki.`,
+        metric: 'Late Check-in Rate',
+        currentValue: `${metrics.quality.lateCheckInRate.toFixed(0)}%`,
+        threshold: '10%',
+        recommendedAction:
+          'Tingkatkan time management dan pastikan tiba di lokasi lebih awal.',
+        impact: 'Dapat menyebabkan penurunan customer satisfaction dan rating.',
+      });
+    }
+  }
+
+  return risks;
 }
 
 /**

@@ -6,7 +6,16 @@
  * Used in both insights and performance pages
  */
 
-import { Brain, Lightbulb, Target } from 'lucide-react';
+import {
+  AlertTriangle,
+  Brain,
+  DollarSign,
+  Lightbulb,
+  Target,
+  TrendingUp,
+  Users,
+  Zap,
+} from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -273,6 +282,530 @@ export function AIInsightsCard({
                               <p className="mt-1 text-xs text-slate-600">
                                 {rec.description}
                               </p>
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="shrink-0 border-blue-500 text-[10px] text-blue-700"
+                            >
+                              Rendah
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+              </div>
+            </div>
+          )}
+
+        {/* Risk Alerts */}
+        {insights.riskAlerts && insights.riskAlerts.length > 0 && (
+          <div className="rounded-lg bg-white/60 p-4 backdrop-blur-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <span className="text-xs font-semibold text-slate-700">
+                Risk Alerts
+              </span>
+            </div>
+            <div className="space-y-2">
+              {insights.riskAlerts.slice(0, 3).map((alert) => (
+                <div
+                  key={alert.id}
+                  className={cn(
+                    'rounded-lg border p-3',
+                    alert.severity === 'critical' &&
+                      'border-red-500 bg-red-50/50',
+                    alert.severity === 'high' &&
+                      'border-orange-500 bg-orange-50/50',
+                    alert.severity === 'medium' &&
+                      'border-yellow-500 bg-yellow-50/50',
+                    alert.severity === 'low' && 'border-blue-500 bg-blue-50/50'
+                  )}
+                >
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-slate-900">
+                        {alert.title}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {alert.description}
+                      </p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'shrink-0 text-[10px]',
+                        alert.severity === 'critical' &&
+                          'border-red-500 text-red-700',
+                        alert.severity === 'high' &&
+                          'border-orange-500 text-orange-700',
+                        alert.severity === 'medium' &&
+                          'border-yellow-500 text-yellow-700',
+                        alert.severity === 'low' &&
+                          'border-blue-500 text-blue-700'
+                      )}
+                    >
+                      {alert.severity === 'critical' && 'Kritis'}
+                      {alert.severity === 'high' && 'Tinggi'}
+                      {alert.severity === 'medium' && 'Sedang'}
+                      {alert.severity === 'low' && 'Rendah'}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 rounded bg-white/60 p-2">
+                    <p className="text-[10px] font-medium text-slate-700">
+                      Rekomendasi:
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-slate-600">
+                      {alert.recommendedAction}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Quick Wins */}
+        {insights.quickWins && insights.quickWins.length > 0 && (
+          <div className="rounded-lg bg-white/60 p-4 backdrop-blur-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <Zap className="h-4 w-4 text-amber-600" />
+              <span className="text-xs font-semibold text-slate-700">
+                Quick Wins
+              </span>
+            </div>
+            <div className="space-y-2">
+              {insights.quickWins.slice(0, 3).map((win) => (
+                <div
+                  key={win.id}
+                  className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3"
+                >
+                  <div className="mb-2">
+                    <p className="text-xs font-semibold text-slate-900">
+                      {win.title}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      {win.description}
+                    </p>
+                  </div>
+                  {win.estimatedImpact && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {win.estimatedImpact.earnings && (
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-500 text-[10px] text-emerald-700"
+                        >
+                          +Rp{' '}
+                          {win.estimatedImpact.earnings.toLocaleString('id-ID')}
+                        </Badge>
+                      )}
+                      {win.estimatedImpact.rating && (
+                        <Badge
+                          variant="outline"
+                          className="border-blue-500 text-[10px] text-blue-700"
+                        >
+                          +{win.estimatedImpact.rating.toFixed(1)} Rating
+                        </Badge>
+                      )}
+                      {win.estimatedImpact.time && (
+                        <Badge
+                          variant="outline"
+                          className="border-slate-500 text-[10px] text-slate-700"
+                        >
+                          {win.estimatedImpact.time}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                  {win.actionSteps.length > 0 && (
+                    <ul className="mt-2 space-y-0.5">
+                      {win.actionSteps.slice(0, 2).map((step, idx) => (
+                        <li key={idx} className="text-[10px] text-slate-600">
+                          • {step}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Comparative Insights */}
+        {insights.comparative && (
+          <div className="rounded-lg bg-white/60 p-4 backdrop-blur-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-600" />
+              <span className="text-xs font-semibold text-slate-700">
+                Perbandingan dengan Peer
+              </span>
+            </div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-2">
+                  <p className="text-[10px] text-slate-500">Overall Ranking</p>
+                  <p className="text-sm font-bold text-blue-700">
+                    Top{' '}
+                    {100 - Math.round(insights.comparative.peerRanking.overall)}
+                    %
+                  </p>
+                </div>
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-2">
+                  <p className="text-[10px] text-slate-500">Earnings</p>
+                  <p className="text-sm font-bold text-emerald-700">
+                    Top{' '}
+                    {100 -
+                      Math.round(insights.comparative.peerRanking.earnings)}
+                    %
+                  </p>
+                </div>
+              </div>
+              {insights.comparative.strengthsVsPeer.length > 0 && (
+                <div>
+                  <p className="mb-1.5 text-xs font-medium text-green-700">
+                    Kekuatan vs Peer:
+                  </p>
+                  <ul className="space-y-1">
+                    {insights.comparative.strengthsVsPeer
+                      .slice(0, 2)
+                      .map((strength, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-start gap-2 text-xs text-slate-600"
+                        >
+                          <span className="mt-0.5 text-green-600">✓</span>
+                          <span>{strength}</span>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Opportunities */}
+        {insights.opportunities && insights.opportunities.length > 0 && (
+          <div className="rounded-lg bg-white/60 p-4 backdrop-blur-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-600" />
+              <span className="text-xs font-semibold text-slate-700">
+                Peluang Peningkatan
+              </span>
+            </div>
+            <div className="space-y-2">
+              {insights.opportunities.slice(0, 3).map((opp) => (
+                <div
+                  key={opp.id}
+                  className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3"
+                >
+                  <div className="mb-2">
+                    <p className="text-xs font-semibold text-slate-900">
+                      {opp.title}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      {opp.description}
+                    </p>
+                  </div>
+                  {opp.potentialImpact && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {opp.potentialImpact.earnings && (
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-500 text-[10px] text-emerald-700"
+                        >
+                          +Rp{' '}
+                          {opp.potentialImpact.earnings.toLocaleString('id-ID')}
+                        </Badge>
+                      )}
+                      {opp.potentialImpact.rating && (
+                        <Badge
+                          variant="outline"
+                          className="border-blue-500 text-[10px] text-blue-700"
+                        >
+                          +{opp.potentialImpact.rating.toFixed(1)} Rating
+                        </Badge>
+                      )}
+                      {opp.potentialImpact.trips && (
+                        <Badge
+                          variant="outline"
+                          className="border-purple-500 text-[10px] text-purple-700"
+                        >
+                          +{opp.potentialImpact.trips} Trips
+                        </Badge>
+                      )}
+                      <Badge
+                        variant="outline"
+                        className="border-slate-500 text-[10px] text-slate-700"
+                      >
+                        {opp.timeframe}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Financial Health */}
+        {insights.financialHealth && (
+          <div className="rounded-lg bg-white/60 p-4 backdrop-blur-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-emerald-600" />
+              <span className="text-xs font-semibold text-slate-700">
+                Financial Health
+              </span>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-600">Score</span>
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-24 rounded-full bg-slate-200">
+                    <div
+                      className={cn(
+                        'h-2 rounded-full',
+                        insights.financialHealth.score >= 80 &&
+                          'bg-emerald-600',
+                        insights.financialHealth.score >= 60 &&
+                          insights.financialHealth.score < 80 &&
+                          'bg-blue-600',
+                        insights.financialHealth.score >= 40 &&
+                          insights.financialHealth.score < 60 &&
+                          'bg-yellow-600',
+                        insights.financialHealth.score < 40 && 'bg-red-600'
+                      )}
+                      style={{
+                        width: `${insights.financialHealth.score}%`,
+                      }}
+                    />
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-xs',
+                      insights.financialHealth.level === 'excellent' &&
+                        'border-emerald-500 text-emerald-700',
+                      insights.financialHealth.level === 'good' &&
+                        'border-blue-500 text-blue-700',
+                      insights.financialHealth.level === 'fair' &&
+                        'border-yellow-500 text-yellow-700',
+                      insights.financialHealth.level === 'poor' &&
+                        'border-red-500 text-red-700'
+                    )}
+                  >
+                    {insights.financialHealth.level === 'excellent' &&
+                      'Excellent'}
+                    {insights.financialHealth.level === 'good' && 'Good'}
+                    {insights.financialHealth.level === 'fair' && 'Fair'}
+                    {insights.financialHealth.level === 'poor' && 'Poor'}
+                  </Badge>
+                </div>
+              </div>
+              {insights.financialHealth.recommendations.length > 0 && (
+                <div>
+                  <p className="mb-1.5 text-xs font-medium text-slate-700">
+                    Rekomendasi:
+                  </p>
+                  <ul className="space-y-1">
+                    {insights.financialHealth.recommendations
+                      .slice(0, 2)
+                      .map((rec, idx) => (
+                        <li key={idx} className="text-xs text-slate-600">
+                          • {rec}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Recommendations with Impact Prediction */}
+        {sectionsToShow.includes('recommendations') &&
+          insights.recommendations.length > 0 && (
+            <div className="rounded-lg bg-white/60 p-4 backdrop-blur-sm">
+              <div className="mb-3 flex items-center gap-2">
+                <Lightbulb className="h-4 w-4 text-amber-600" />
+                <span className="text-xs font-semibold text-slate-700">
+                  Rekomendasi
+                </span>
+              </div>
+              <div className="space-y-2">
+                {/* High Priority */}
+                {recommendationsByPriority.high.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-red-700">
+                      Prioritas Tinggi
+                    </p>
+                    {recommendationsByPriority.high.slice(0, 3).map((rec) => (
+                      <div
+                        key={rec.id}
+                        className="mb-2 rounded-lg border border-red-200 bg-red-50/50 p-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="text-xs font-semibold text-slate-900">
+                              {rec.title}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-600">
+                              {rec.description}
+                            </p>
+                            {rec.predictedImpact && (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {rec.predictedImpact.earnings && (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-emerald-500 text-[10px] text-emerald-700"
+                                  >
+                                    +Rp{' '}
+                                    {rec.predictedImpact.earnings.toLocaleString(
+                                      'id-ID'
+                                    )}
+                                  </Badge>
+                                )}
+                                {rec.predictedImpact.rating && (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-blue-500 text-[10px] text-blue-700"
+                                  >
+                                    +{rec.predictedImpact.rating.toFixed(1)}{' '}
+                                    Rating
+                                  </Badge>
+                                )}
+                                <Badge
+                                  variant="outline"
+                                  className="border-slate-500 text-[10px] text-slate-700"
+                                >
+                                  {rec.predictedImpact.timeframe}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className="shrink-0 border-red-500 text-[10px] text-red-700"
+                          >
+                            Tinggi
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Medium Priority */}
+                {recommendationsByPriority.medium.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-yellow-700">
+                      Prioritas Sedang
+                    </p>
+                    {recommendationsByPriority.medium.slice(0, 3).map((rec) => (
+                      <div
+                        key={rec.id}
+                        className="mb-2 rounded-lg border border-yellow-200 bg-yellow-50/50 p-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="text-xs font-semibold text-slate-900">
+                              {rec.title}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-600">
+                              {rec.description}
+                            </p>
+                            {rec.predictedImpact && (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {rec.predictedImpact.earnings && (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-emerald-500 text-[10px] text-emerald-700"
+                                  >
+                                    +Rp{' '}
+                                    {rec.predictedImpact.earnings.toLocaleString(
+                                      'id-ID'
+                                    )}
+                                  </Badge>
+                                )}
+                                {rec.predictedImpact.rating && (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-blue-500 text-[10px] text-blue-700"
+                                  >
+                                    +{rec.predictedImpact.rating.toFixed(1)}{' '}
+                                    Rating
+                                  </Badge>
+                                )}
+                                <Badge
+                                  variant="outline"
+                                  className="border-slate-500 text-[10px] text-slate-700"
+                                >
+                                  {rec.predictedImpact.timeframe}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className="shrink-0 border-yellow-500 text-[10px] text-yellow-700"
+                          >
+                            Sedang
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Low Priority */}
+                {recommendationsByPriority.low.length > 0 &&
+                  recommendationsByPriority.high.length === 0 &&
+                  recommendationsByPriority.medium.length === 0 && (
+                    <div>
+                      {recommendationsByPriority.low.slice(0, 3).map((rec) => (
+                        <div
+                          key={rec.id}
+                          className="mb-2 rounded-lg border border-blue-200 bg-blue-50/50 p-3"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <p className="text-xs font-semibold text-slate-900">
+                                {rec.title}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-600">
+                                {rec.description}
+                              </p>
+                              {rec.predictedImpact && (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {rec.predictedImpact.earnings && (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-emerald-500 text-[10px] text-emerald-700"
+                                    >
+                                      +Rp{' '}
+                                      {rec.predictedImpact.earnings.toLocaleString(
+                                        'id-ID'
+                                      )}
+                                    </Badge>
+                                  )}
+                                  {rec.predictedImpact.rating && (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-blue-500 text-[10px] text-blue-700"
+                                    >
+                                      +{rec.predictedImpact.rating.toFixed(1)}{' '}
+                                      Rating
+                                    </Badge>
+                                  )}
+                                  <Badge
+                                    variant="outline"
+                                    className="border-slate-500 text-[10px] text-slate-700"
+                                  >
+                                    {rec.predictedImpact.timeframe}
+                                  </Badge>
+                                </div>
+                              )}
                             </div>
                             <Badge
                               variant="outline"
