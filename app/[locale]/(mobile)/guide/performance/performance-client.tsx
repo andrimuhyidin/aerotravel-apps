@@ -47,7 +47,7 @@ export function PerformanceClient({ locale: _locale }: PerformanceClientProps) {
     queryKey: queryKeys.guide.metrics.unified({ period: 'monthly' }),
     queryFn: async () => {
       const res = await fetch(
-        '/api/guide/metrics/unified?period=monthly&include=trips,earnings,ratings,performance,development,trends,customerSatisfaction,efficiency,financial,quality,growth,comparative&compareWithPrevious=true'
+        '/api/guide/metrics/unified?period=monthly&include=trips,earnings,ratings,performance,development,trends,customerSatisfaction,efficiency,financial,quality,growth,comparative,sustainability,operations,safety&compareWithPrevious=true'
       );
       if (!res.ok) throw new Error('Failed to load metrics');
       return (await res.json()) as { metrics: UnifiedMetrics };

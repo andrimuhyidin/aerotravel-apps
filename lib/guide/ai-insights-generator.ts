@@ -218,6 +218,39 @@ Comparative Metrics:
 - Market Share: ${metrics.comparative.marketShare !== null ? `${metrics.comparative.marketShare.toFixed(1)}%` : 'N/A'}`
     : '';
 
+  const sustainability = metrics.sustainability
+    ? `
+Sustainability Metrics:
+- Total Waste: ${metrics.sustainability.totalWasteKg.toFixed(1)} kg
+- Waste by Type: Plastic ${metrics.sustainability.wasteByType.plastic.toFixed(1)}kg, Organic ${metrics.sustainability.wasteByType.organic.toFixed(1)}kg, Glass ${metrics.sustainability.wasteByType.glass.toFixed(1)}kg, Hazmat ${metrics.sustainability.wasteByType.hazmat.toFixed(1)}kg
+- Recycling Rate: ${metrics.sustainability.recyclingRate !== null ? `${metrics.sustainability.recyclingRate.toFixed(0)}%` : 'N/A'}
+- Carbon Footprint: ${metrics.sustainability.carbonFootprintKg.toFixed(1)} kg CO₂
+- Carbon per Guest: ${metrics.sustainability.carbonPerGuest !== null ? `${metrics.sustainability.carbonPerGuest.toFixed(2)} kg CO₂` : 'N/A'}
+- Sustainability Score: ${metrics.sustainability.sustainabilityScore !== null ? `${metrics.sustainability.sustainabilityScore}/100` : 'N/A'}
+- Waste Reduction Trend: ${metrics.sustainability.wasteReductionTrend !== null ? `${metrics.sustainability.wasteReductionTrend > 0 ? '+' : ''}${metrics.sustainability.wasteReductionTrend.toFixed(1)}%` : 'N/A'}`
+    : '';
+
+  const operations = metrics.operations
+    ? `
+Operations Metrics:
+- Equipment Checklist Rate: ${metrics.operations.equipmentChecklistRate !== null ? `${metrics.operations.equipmentChecklistRate.toFixed(0)}%` : 'N/A'}
+- Risk Assessment Rate: ${metrics.operations.riskAssessmentRate !== null ? `${metrics.operations.riskAssessmentRate.toFixed(0)}%` : 'N/A'}
+- Documentation Upload Rate: ${metrics.operations.documentationUploadRate !== null ? `${metrics.operations.documentationUploadRate.toFixed(0)}%` : 'N/A'}
+- Expense Submission Rate: ${metrics.operations.expenseSubmissionRate !== null ? `${metrics.operations.expenseSubmissionRate.toFixed(0)}%` : 'N/A'}
+- Task Completion Rate: ${metrics.operations.taskCompletionRate !== null ? `${metrics.operations.taskCompletionRate.toFixed(0)}%` : 'N/A'}
+- Attendance Compliance Rate: ${metrics.operations.attendanceComplianceRate !== null ? `${metrics.operations.attendanceComplianceRate.toFixed(0)}%` : 'N/A'}
+- Logistics Handover Rate: ${metrics.operations.logisticsHandoverRate !== null ? `${metrics.operations.logisticsHandoverRate.toFixed(0)}%` : 'N/A'}`
+    : '';
+
+  const safety = metrics.safety
+    ? `
+Safety Metrics:
+- Incident Frequency: ${metrics.safety.incidentFrequency.toFixed(1)} per 100 trips
+- Risk Assessment Frequency: ${metrics.safety.riskAssessmentFrequency.toFixed(2)} per trip
+- Safety Compliance Score: ${metrics.safety.safetyComplianceScore !== null ? `${metrics.safety.safetyComplianceScore}/100` : 'N/A'}
+- Pre-Trip Readiness Rate: ${metrics.safety.preTripReadinessRate !== null ? `${metrics.safety.preTripReadinessRate.toFixed(0)}%` : 'N/A'}`
+    : '';
+
   return `You are an AI assistant helping a tour guide improve their performance and earnings.
 
 Guide Statistics:
@@ -232,7 +265,7 @@ Guide Statistics:
 - On-Time Rate: ${metrics.performance.onTimeRate !== null ? `${metrics.performance.onTimeRate}%` : 'N/A'}
 - Percentile: ${metrics.performance.percentile}%
 - Skills Improved: ${metrics.development.skillsImproved}
-- Assessments Completed: ${metrics.development.assessmentsCompleted}${customerSatisfaction}${efficiency}${financial}${quality}${growth}${comparative}
+- Assessments Completed: ${metrics.development.assessmentsCompleted}${customerSatisfaction}${efficiency}${financial}${quality}${growth}${comparative}${sustainability}${operations}${safety}
 
 Provide comprehensive insights in JSON format:
 {

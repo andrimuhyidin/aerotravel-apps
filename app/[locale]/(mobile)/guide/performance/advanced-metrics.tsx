@@ -14,6 +14,9 @@ import { FinancialMetrics } from '@/components/guide/metrics-financial';
 import { QualityMetrics } from '@/components/guide/metrics-quality';
 import { GrowthMetrics } from '@/components/guide/metrics-growth';
 import { ComparativeMetrics } from '@/components/guide/metrics-comparative';
+import { SustainabilityMetrics } from '@/components/guide/metrics-sustainability';
+import { OperationsMetrics } from '@/components/guide/metrics-operations';
+import { SafetyMetrics } from '@/components/guide/metrics-safety';
 import type { UnifiedMetrics } from '@/types/guide-metrics';
 
 type AdvancedMetricsProps = {
@@ -30,6 +33,9 @@ export function AdvancedMetrics({ metrics, className }: AdvancedMetricsProps) {
     if (metrics.quality) return 'quality';
     if (metrics.growth) return 'growth';
     if (metrics.comparative) return 'comparative';
+    if (metrics.sustainability) return 'sustainability';
+    if (metrics.operations) return 'operations';
+    if (metrics.safety) return 'safety';
     return 'customer';
   };
 
@@ -42,7 +48,10 @@ export function AdvancedMetrics({ metrics, className }: AdvancedMetricsProps) {
     metrics.financial ||
     metrics.quality ||
     metrics.growth ||
-    metrics.comparative;
+    metrics.comparative ||
+    metrics.sustainability ||
+    metrics.operations ||
+    metrics.safety;
 
   if (!hasAdvancedMetrics) {
     return null;
@@ -55,7 +64,7 @@ export function AdvancedMetrics({ metrics, className }: AdvancedMetricsProps) {
         onValueChange={setActiveTab}
         className="space-y-4"
       >
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-9">
           {metrics.customerSatisfaction && (
             <TabsTrigger value="customer" className="text-xs">
               Customer
@@ -84,6 +93,21 @@ export function AdvancedMetrics({ metrics, className }: AdvancedMetricsProps) {
           {metrics.comparative && (
             <TabsTrigger value="comparative" className="text-xs">
               Compare
+            </TabsTrigger>
+          )}
+          {metrics.sustainability && (
+            <TabsTrigger value="sustainability" className="text-xs">
+              Waste
+            </TabsTrigger>
+          )}
+          {metrics.operations && (
+            <TabsTrigger value="operations" className="text-xs">
+              Ops
+            </TabsTrigger>
+          )}
+          {metrics.safety && (
+            <TabsTrigger value="safety" className="text-xs">
+              Safety
             </TabsTrigger>
           )}
         </TabsList>
@@ -121,6 +145,24 @@ export function AdvancedMetrics({ metrics, className }: AdvancedMetricsProps) {
         {metrics.comparative && (
           <TabsContent value="comparative" className="mt-4">
             <ComparativeMetrics metrics={metrics} />
+          </TabsContent>
+        )}
+
+        {metrics.sustainability && (
+          <TabsContent value="sustainability" className="mt-4">
+            <SustainabilityMetrics metrics={metrics} />
+          </TabsContent>
+        )}
+
+        {metrics.operations && (
+          <TabsContent value="operations" className="mt-4">
+            <OperationsMetrics metrics={metrics} />
+          </TabsContent>
+        )}
+
+        {metrics.safety && (
+          <TabsContent value="safety" className="mt-4">
+            <SafetyMetrics metrics={metrics} />
           </TabsContent>
         )}
       </Tabs>

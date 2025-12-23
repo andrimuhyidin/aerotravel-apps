@@ -102,6 +102,9 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         'quality',
         'growth',
         'comparative',
+        'sustainability',
+        'operations',
+        'safety',
       ],
       calculateTrends: false,
       compareWithPrevious: true, // Needed for growth metrics

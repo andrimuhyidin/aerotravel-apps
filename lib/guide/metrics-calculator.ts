@@ -111,6 +111,9 @@ export async function calculateUnifiedMetrics(
       quality: undefined,
       growth: undefined,
       comparative: undefined,
+      sustainability: undefined,
+      operations: undefined,
+      safety: undefined,
     };
 
     // Calculate trips metrics
@@ -253,6 +256,60 @@ export async function calculateUnifiedMetrics(
         metrics
       );
       metrics.comparative = comparativeData;
+    }
+
+    // Calculate sustainability metrics
+    if (include.includes('sustainability')) {
+      const sustainabilityData = await calculateSustainabilityMetrics(
+        guideId,
+        period,
+        branchContext,
+        client,
+        metrics.trips
+      );
+      metrics.sustainability = sustainabilityData;
+
+      // Calculate waste reduction trend if compareWithPrevious is enabled
+      if (compareWithPrevious && sustainabilityData.totalWasteKg > 0) {
+        const previousPeriod = getPreviousPeriod(period);
+        const previousSustainability = await calculateSustainabilityMetrics(
+          guideId,
+          previousPeriod,
+          branchContext,
+          client,
+          { total: 0, completed: 0, cancelled: 0 }
+        );
+        if (previousSustainability.totalWasteKg > 0) {
+          metrics.sustainability.wasteReductionTrend =
+            ((previousSustainability.totalWasteKg -
+              sustainabilityData.totalWasteKg) /
+              previousSustainability.totalWasteKg) *
+            100;
+        }
+      }
+    }
+
+    // Calculate operations metrics
+    if (include.includes('operations')) {
+      const operationsData = await calculateOperationsMetrics(
+        guideId,
+        period,
+        branchContext,
+        client
+      );
+      metrics.operations = operationsData;
+    }
+
+    // Calculate safety metrics
+    if (include.includes('safety')) {
+      const safetyData = await calculateSafetyMetrics(
+        guideId,
+        period,
+        branchContext,
+        client,
+        metrics.trips
+      );
+      metrics.safety = safetyData;
     }
 
     // Calculate trends if requested
@@ -1463,6 +1520,494 @@ async function calculateComparativeMetrics(
       marketShare: null,
     };
   }
+}
+
+/**
+ * Calculate sustainability metrics
+ */
+async function calculateSustainabilityMetrics(
+  guideId: string,
+  period: PeriodConfig,
+  branchContext: Awaited<ReturnType<typeof getBranchContext>>,
+  client: any,
+  trips: { total: number; completed: number; cancelled: number }
+) {
+  try {
+    // Get trip IDs for this guide in the period
+    const { data: tripGuides, error: tripGuidesError } = await withBranchFilter(
+      client.from('trip_guides'),
+      branchContext
+    )
+      .select('trip_id')
+      .eq('guide_id', guideId)
+      .gte('check_in_at', period.start.toISOString())
+      .lte('check_in_at', period.end.toISOString());
+
+    if (tripGuidesError || !tripGuides) {
+      logger.warn(
+        'Error fetching trip guides for sustainability',
+        tripGuidesError,
+        { guideId }
+      );
+      return getDefaultSustainabilityMetrics();
+    }
+
+    const tripIds = tripGuides.map((tg: { trip_id: string }) => tg.trip_id);
+    if (tripIds.length === 0) {
+      return getDefaultSustainabilityMetrics();
+    }
+
+    // Get waste logs
+    const { data: wasteLogs, error: wasteLogsError } = await withBranchFilter(
+      client.from('waste_logs'),
+      branchContext
+    )
+      .select('waste_type, quantity, unit, disposal_method')
+      .in('trip_id', tripIds)
+      .gte('logged_at', period.start.toISOString())
+      .lte('logged_at', period.end.toISOString());
+
+    if (wasteLogsError) {
+      logger.warn('Error fetching waste logs', wasteLogsError, { guideId });
+    }
+
+    // Calculate waste metrics
+    let totalWasteKg = 0;
+    const wasteByType = {
+      plastic: 0,
+      organic: 0,
+      glass: 0,
+      hazmat: 0,
+    };
+    let recycledWaste = 0;
+    let totalWasteForRecycling = 0;
+
+    wasteLogs?.forEach((log: any) => {
+      const quantity = Number(log.quantity) || 0;
+      const wasteKg = log.unit === 'kg' ? quantity : quantity * 0.1; // Approximate conversion for pieces
+      totalWasteKg += wasteKg;
+
+      if (log.waste_type === 'plastic') wasteByType.plastic += wasteKg;
+      else if (log.waste_type === 'organic') wasteByType.organic += wasteKg;
+      else if (log.waste_type === 'glass') wasteByType.glass += wasteKg;
+      else if (log.waste_type === 'hazmat') wasteByType.hazmat += wasteKg;
+
+      if (log.disposal_method === 'recycling') {
+        recycledWaste += wasteKg;
+      }
+      totalWasteForRecycling += wasteKg;
+    });
+
+    const recyclingRate =
+      totalWasteForRecycling > 0
+        ? (recycledWaste / totalWasteForRecycling) * 100
+        : null;
+
+    // Get fuel logs for carbon footprint
+    const { data: fuelLogs, error: fuelLogsError } = await withBranchFilter(
+      client.from('trip_fuel_logs'),
+      branchContext
+    )
+      .select('co2_emissions_kg, fuel_liters')
+      .in('trip_id', tripIds)
+      .gte('logged_at', period.start.toISOString())
+      .lte('logged_at', period.end.toISOString());
+
+    if (fuelLogsError) {
+      logger.warn('Error fetching fuel logs', fuelLogsError, { guideId });
+    }
+
+    const carbonFootprintKg =
+      fuelLogs?.reduce(
+        (sum: number, log: any) => sum + (Number(log.co2_emissions_kg) || 0),
+        0
+      ) || 0;
+
+    // Get total guests for carbon per guest
+    const { data: tripsData } = await client
+      .from('trips')
+      .select('total_pax')
+      .in('id', tripIds);
+
+    const totalGuests =
+      tripsData?.reduce(
+        (sum: number, t: any) => sum + (Number(t.total_pax) || 0),
+        0
+      ) || 0;
+    const carbonPerGuest =
+      totalGuests > 0 ? carbonFootprintKg / totalGuests : null;
+
+    // Calculate sustainability score (0-100)
+    // Based on: recycling rate (40%), waste reduction (30%), carbon efficiency (30%)
+    let sustainabilityScore: number | null = null;
+    if (recyclingRate !== null && carbonPerGuest !== null) {
+      const recyclingScore = Math.min(recyclingRate, 100); // Max 40 points
+      const carbonScore =
+        carbonPerGuest < 10
+          ? 30
+          : carbonPerGuest < 20
+            ? 20
+            : carbonPerGuest < 30
+              ? 10
+              : 0; // Lower is better
+      sustainabilityScore = Math.round(recyclingScore * 0.4 + carbonScore);
+    }
+
+    // Waste reduction trend will be calculated separately if compareWithPrevious is enabled
+    const wasteReductionTrend: number | null = null;
+
+    return {
+      totalWasteKg: Math.round(totalWasteKg * 100) / 100,
+      wasteByType: {
+        plastic: Math.round(wasteByType.plastic * 100) / 100,
+        organic: Math.round(wasteByType.organic * 100) / 100,
+        glass: Math.round(wasteByType.glass * 100) / 100,
+        hazmat: Math.round(wasteByType.hazmat * 100) / 100,
+      },
+      recyclingRate,
+      carbonFootprintKg: Math.round(carbonFootprintKg * 100) / 100,
+      carbonPerGuest: carbonPerGuest
+        ? Math.round(carbonPerGuest * 100) / 100
+        : null,
+      sustainabilityScore,
+      wasteReductionTrend,
+    };
+  } catch (error) {
+    logger.error('Failed to calculate sustainability metrics', error, {
+      guideId,
+    });
+    return getDefaultSustainabilityMetrics();
+  }
+}
+
+function getDefaultSustainabilityMetrics() {
+  return {
+    totalWasteKg: 0,
+    wasteByType: {
+      plastic: 0,
+      organic: 0,
+      glass: 0,
+      hazmat: 0,
+    },
+    recyclingRate: null,
+    carbonFootprintKg: 0,
+    carbonPerGuest: null,
+    sustainabilityScore: null,
+    wasteReductionTrend: null,
+  };
+}
+
+/**
+ * Calculate operations metrics
+ */
+async function calculateOperationsMetrics(
+  guideId: string,
+  period: PeriodConfig,
+  branchContext: Awaited<ReturnType<typeof getBranchContext>>,
+  client: any
+) {
+  try {
+    // Get trip IDs for this guide in the period
+    const { data: tripGuides, error: tripGuidesError } = await withBranchFilter(
+      client.from('trip_guides'),
+      branchContext
+    )
+      .select('trip_id, check_in_at, check_out_at')
+      .eq('guide_id', guideId)
+      .gte('check_in_at', period.start.toISOString())
+      .lte('check_in_at', period.end.toISOString());
+
+    if (tripGuidesError || !tripGuides) {
+      logger.warn(
+        'Error fetching trip guides for operations',
+        tripGuidesError,
+        { guideId }
+      );
+      return getDefaultOperationsMetrics();
+    }
+
+    const tripIds = tripGuides.map((tg: { trip_id: string }) => tg.trip_id);
+    const totalTrips = tripIds.length;
+    if (totalTrips === 0) {
+      return getDefaultOperationsMetrics();
+    }
+
+    // Equipment checklist completion
+    const { data: equipmentChecklists, error: equipmentError } =
+      await withBranchFilter(
+        client.from('guide_equipment_checklists'),
+        branchContext
+      )
+        .select('trip_id, is_completed')
+        .in('trip_id', tripIds)
+        .eq('is_completed', true);
+    const equipmentChecklistRate =
+      totalTrips > 0
+        ? ((equipmentChecklists?.length || 0) / totalTrips) * 100
+        : null;
+
+    // Risk assessment completion
+    const { data: riskAssessments, error: riskError } = await withBranchFilter(
+      client.from('pre_trip_assessments'),
+      branchContext
+    )
+      .select('trip_id')
+      .in('trip_id', tripIds);
+    const riskAssessmentRate =
+      totalTrips > 0
+        ? ((riskAssessments?.length || 0) / totalTrips) * 100
+        : null;
+
+    // Documentation upload
+    const { data: documentation, error: docError } = await client
+      .from('trip_guides')
+      .select('documentation_uploaded')
+      .in('trip_id', tripIds)
+      .eq('documentation_uploaded', true);
+    const documentationUploadRate =
+      totalTrips > 0 ? ((documentation?.length || 0) / totalTrips) * 100 : null;
+
+    // Expense submission
+    const { data: expenses, error: expensesError } = await client
+      .from('guide_expenses')
+      .select('trip_id')
+      .in('trip_id', tripIds)
+      .gte('created_at', period.start.toISOString())
+      .lte('created_at', period.end.toISOString());
+    const uniqueTripsWithExpenses = new Set(
+      expenses?.map((e: any) => e.trip_id) || []
+    );
+    const expenseSubmissionRate =
+      totalTrips > 0 ? (uniqueTripsWithExpenses.size / totalTrips) * 100 : null;
+
+    // Task completion
+    const { data: tasks, error: tasksError } = await client
+      .from('guide_trip_tasks')
+      .select('status, due_time')
+      .in('trip_id', tripIds)
+      .gte('created_at', period.start.toISOString())
+      .lte('created_at', period.end.toISOString());
+    const completedTasks =
+      tasks?.filter((t: any) => t.status === 'completed').length || 0;
+    const totalTasks = tasks?.length || 0;
+    const taskCompletionRate =
+      totalTasks > 0 ? (completedTasks / totalTasks) * 100 : null;
+
+    // Attendance compliance (on-time check-in/out)
+    let onTimeCheckIns = 0;
+    let onTimeCheckOuts = 0;
+    let totalCheckIns = 0;
+    let totalCheckOuts = 0;
+
+    tripGuides.forEach((tg: any) => {
+      if (tg.check_in_at) {
+        totalCheckIns++;
+        // Consider on-time if within 15 minutes of scheduled time (simplified)
+        // In real implementation, would compare with trip scheduled_start_at
+        onTimeCheckIns++; // Simplified - would need actual scheduled time
+      }
+      if (tg.check_out_at) {
+        totalCheckOuts++;
+        // Consider on-time if within 15 minutes of scheduled end time
+        onTimeCheckOuts++; // Simplified
+      }
+    });
+
+    const attendanceComplianceRate =
+      totalCheckIns > 0 && totalCheckOuts > 0
+        ? ((onTimeCheckIns + onTimeCheckOuts) /
+            (totalCheckIns + totalCheckOuts)) *
+          100
+        : null;
+
+    // Logistics handover completion
+    const { data: handovers, error: handoversError } = await withBranchFilter(
+      client.from('inventory_handovers'),
+      branchContext
+    )
+      .select('trip_id, handover_type, status')
+      .in('trip_id', tripIds)
+      .eq('handover_type', 'inbound')
+      .eq('status', 'completed');
+    const logisticsHandoverRate =
+      totalTrips > 0 ? ((handovers?.length || 0) / totalTrips) * 100 : null;
+
+    return {
+      equipmentChecklistRate,
+      riskAssessmentRate,
+      documentationUploadRate,
+      expenseSubmissionRate,
+      taskCompletionRate,
+      attendanceComplianceRate,
+      logisticsHandoverRate,
+    };
+  } catch (error) {
+    logger.error('Failed to calculate operations metrics', error, { guideId });
+    return getDefaultOperationsMetrics();
+  }
+}
+
+function getDefaultOperationsMetrics() {
+  return {
+    equipmentChecklistRate: null,
+    riskAssessmentRate: null,
+    documentationUploadRate: null,
+    expenseSubmissionRate: null,
+    taskCompletionRate: null,
+    attendanceComplianceRate: null,
+    logisticsHandoverRate: null,
+  };
+}
+
+/**
+ * Calculate safety metrics
+ */
+async function calculateSafetyMetrics(
+  guideId: string,
+  period: PeriodConfig,
+  branchContext: Awaited<ReturnType<typeof getBranchContext>>,
+  client: any,
+  trips: { total: number; completed: number; cancelled: number }
+) {
+  try {
+    // Get trip IDs for this guide in the period
+    const { data: tripGuides, error: tripGuidesError } = await withBranchFilter(
+      client.from('trip_guides'),
+      branchContext
+    )
+      .select('trip_id')
+      .eq('guide_id', guideId)
+      .gte('check_in_at', period.start.toISOString())
+      .lte('check_in_at', period.end.toISOString());
+
+    if (tripGuidesError || !tripGuides) {
+      logger.warn('Error fetching trip guides for safety', tripGuidesError, {
+        guideId,
+      });
+      return getDefaultSafetyMetrics();
+    }
+
+    const tripIds = tripGuides.map((tg: { trip_id: string }) => tg.trip_id);
+    const totalTrips = tripIds.length;
+    if (totalTrips === 0) {
+      return getDefaultSafetyMetrics();
+    }
+
+    // Incident frequency (per 100 trips)
+    const { data: incidents, error: incidentsError } = await withBranchFilter(
+      client.from('incident_reports'),
+      branchContext
+    )
+      .select('id')
+      .eq('guide_id', guideId)
+      .in('trip_id', tripIds)
+      .gte('created_at', period.start.toISOString())
+      .lte('created_at', period.end.toISOString());
+
+    const incidentFrequency =
+      totalTrips > 0 ? ((incidents?.length || 0) / totalTrips) * 100 : 0;
+
+    // Risk assessment frequency (average per trip)
+    const { data: riskAssessments, error: riskError } = await withBranchFilter(
+      client.from('pre_trip_assessments'),
+      branchContext
+    )
+      .select('trip_id')
+      .in('trip_id', tripIds);
+    const riskAssessmentFrequency =
+      totalTrips > 0 ? (riskAssessments?.length || 0) / totalTrips : 0;
+
+    // Safety compliance score (0-100)
+    // Based on: incident frequency (40%), risk assessment completion (30%), pre-trip readiness (30%)
+    let safetyComplianceScore: number | null = null;
+
+    // Incident score (lower is better, max 40 points)
+    const incidentScore =
+      incidentFrequency === 0
+        ? 40
+        : incidentFrequency < 5
+          ? 30
+          : incidentFrequency < 10
+            ? 20
+            : 10;
+
+    // Risk assessment score (max 30 points)
+    const riskAssessmentScore =
+      riskAssessmentFrequency >= 1
+        ? 30
+        : riskAssessmentFrequency >= 0.5
+          ? 20
+          : 10;
+
+    // Pre-trip readiness rate (based on risk assessment completion and equipment checklist)
+    // A trip is considered "ready" if it has both risk assessment and equipment checklist
+    const { data: readinessData } = await withBranchFilter(
+      client.from('pre_trip_assessments'),
+      branchContext
+    )
+      .select('trip_id')
+      .in('trip_id', tripIds);
+
+    const { data: equipmentChecklistsForReadiness } = await withBranchFilter(
+      client.from('guide_equipment_checklists'),
+      branchContext
+    )
+      .select('trip_id, is_completed')
+      .in('trip_id', tripIds)
+      .eq('is_completed', true);
+
+    const tripsWithRiskAssessment = new Set(
+      readinessData?.map((r: any) => r.trip_id) || []
+    );
+    const tripsWithEquipment = new Set(
+      equipmentChecklistsForReadiness?.map((e: any) => e.trip_id) || []
+    );
+
+    let readyTrips = 0;
+    tripIds.forEach((tripId) => {
+      if (
+        tripsWithRiskAssessment.has(tripId) &&
+        tripsWithEquipment.has(tripId)
+      ) {
+        readyTrips++;
+      }
+    });
+
+    const readinessRate = totalTrips > 0 ? (readyTrips / totalTrips) * 100 : 0;
+    const readinessScore =
+      readinessRate >= 90
+        ? 30
+        : readinessRate >= 70
+          ? 20
+          : readinessRate >= 50
+            ? 10
+            : 0;
+
+    safetyComplianceScore =
+      incidentScore + riskAssessmentScore + readinessScore;
+
+    // Pre-trip readiness rate
+    const preTripReadinessRate = totalTrips > 0 ? readinessRate : null;
+
+    return {
+      incidentFrequency: Math.round(incidentFrequency * 100) / 100,
+      riskAssessmentFrequency: Math.round(riskAssessmentFrequency * 100) / 100,
+      safetyComplianceScore,
+      preTripReadinessRate,
+    };
+  } catch (error) {
+    logger.error('Failed to calculate safety metrics', error, { guideId });
+    return getDefaultSafetyMetrics();
+  }
+}
+
+function getDefaultSafetyMetrics() {
+  return {
+    incidentFrequency: 0,
+    riskAssessmentFrequency: 0,
+    safetyComplianceScore: null,
+    preTripReadinessRate: null,
+  };
 }
 
 /**

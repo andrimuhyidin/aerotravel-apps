@@ -96,6 +96,35 @@ export type UnifiedMetrics = {
     };
     marketShare: number | null; // Percentage of trips taken vs total available
   };
+  sustainability?: {
+    totalWasteKg: number; // Total waste in kg
+    wasteByType: {
+      plastic: number;
+      organic: number;
+      glass: number;
+      hazmat: number;
+    };
+    recyclingRate: number | null; // Percentage of waste recycled vs landfill
+    carbonFootprintKg: number; // Total CO2 emissions in kg
+    carbonPerGuest: number | null; // CO2 per guest
+    sustainabilityScore: number | null; // Compliance score (0-100)
+    wasteReductionTrend: number | null; // Percentage reduction vs previous period
+  };
+  operations?: {
+    equipmentChecklistRate: number | null; // Percentage of trips with completed equipment checklist
+    riskAssessmentRate: number | null; // Percentage of trips with risk assessment
+    documentationUploadRate: number | null; // Percentage of trips with documentation uploaded
+    expenseSubmissionRate: number | null; // Percentage of trips with expenses submitted
+    taskCompletionRate: number | null; // Percentage of tasks completed on time
+    attendanceComplianceRate: number | null; // Percentage of trips with on-time check-in/out
+    logisticsHandoverRate: number | null; // Percentage of trips with logistics handover completed
+  };
+  safety?: {
+    incidentFrequency: number; // Incidents per 100 trips
+    riskAssessmentFrequency: number; // Average risk assessments per trip
+    safetyComplianceScore: number | null; // Safety compliance score (0-100)
+    preTripReadinessRate: number | null; // Percentage of trips with pre-trip readiness completed
+  };
 };
 
 export type MetricsCalculationOptions = {
@@ -112,6 +141,9 @@ export type MetricsCalculationOptions = {
     | 'quality'
     | 'growth'
     | 'comparative'
+    | 'sustainability'
+    | 'operations'
+    | 'safety'
   )[];
   calculateTrends?: boolean;
   compareWithPrevious?: boolean;

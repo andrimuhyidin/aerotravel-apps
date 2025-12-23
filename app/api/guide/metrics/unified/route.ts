@@ -94,6 +94,9 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         | 'quality'
         | 'growth'
         | 'comparative'
+        | 'sustainability'
+        | 'operations'
+        | 'safety'
       >)
     : undefined;
 
