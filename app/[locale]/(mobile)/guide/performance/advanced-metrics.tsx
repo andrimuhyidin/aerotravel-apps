@@ -27,16 +27,17 @@ type AdvancedMetricsProps = {
 export function AdvancedMetrics({ metrics, className }: AdvancedMetricsProps) {
   // Determine initial tab based on available metrics
   const getInitialTab = () => {
-    if (metrics.customerSatisfaction) return 'customer';
-    if (metrics.efficiency) return 'efficiency';
-    if (metrics.financial) return 'financial';
-    if (metrics.quality) return 'quality';
-    if (metrics.growth) return 'growth';
-    if (metrics.comparative) return 'comparative';
-    if (metrics.sustainability) return 'sustainability';
-    if (metrics.operations) return 'operations';
-    if (metrics.safety) return 'safety';
-    return 'customer';
+    // Prioritize metrics that are more likely to have data
+    if (metrics.sustainability !== undefined) return 'sustainability';
+    if (metrics.operations !== undefined) return 'operations';
+    if (metrics.safety !== undefined) return 'safety';
+    if (metrics.financial !== undefined) return 'financial';
+    if (metrics.efficiency !== undefined) return 'efficiency';
+    if (metrics.quality !== undefined) return 'quality';
+    if (metrics.customerSatisfaction !== undefined) return 'customer';
+    if (metrics.growth !== undefined) return 'growth';
+    if (metrics.comparative !== undefined) return 'comparative';
+    return 'sustainability';
   };
 
   const [activeTab, setActiveTab] = useState<string>(getInitialTab());
@@ -55,6 +56,8 @@ export function AdvancedMetrics({ metrics, className }: AdvancedMetricsProps) {
     metrics.operations !== undefined ||
     metrics.safety !== undefined;
 
+  // Always show Advanced Metrics section if metrics object exists
+  // Even if all data is null, show empty states
   if (!hasAdvancedMetrics) {
     return null;
   }
