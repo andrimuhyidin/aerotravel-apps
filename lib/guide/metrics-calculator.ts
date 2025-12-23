@@ -263,6 +263,7 @@ export async function calculateUnifiedMetrics(
     }
 
     // Calculate sustainability metrics
+    // Always calculate if in include list to ensure object is always defined
     if (include.includes('sustainability')) {
       logger.info('Calculating sustainability metrics', {
         guideId,
@@ -273,13 +274,14 @@ export async function calculateUnifiedMetrics(
         period,
         branchContext,
         client,
-        metrics.trips
+        metrics.trips || { total: 0, completed: 0, cancelled: 0 }
       );
       logger.info('Sustainability metrics calculated', {
         guideId,
         totalWasteKg: sustainabilityData.totalWasteKg,
         hasData: sustainabilityData.totalWasteKg > 0,
       });
+      // Always set the object, even if all values are null/zero
       metrics.sustainability = sustainabilityData;
 
       // Calculate waste reduction trend if compareWithPrevious is enabled
