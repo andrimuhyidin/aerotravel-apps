@@ -267,6 +267,43 @@ export async function generateUnifiedAIInsights(
     if (detectedRisks.length > 0) {
       // Merge with AI-generated risks, prioritizing detected risks
       insights.riskAlerts = [...detectedRisks, ...(insights.riskAlerts || [])];
+    } else if (!insights.riskAlerts) {
+      // Initialize empty array if no risks detected
+      insights.riskAlerts = [];
+    }
+
+    // Initialize empty arrays/objects for sections that weren't parsed from AI
+    if (!insights.quickWins) {
+      insights.quickWins = [];
+    }
+    if (!insights.comparative) {
+      insights.comparative = {
+        peerRanking: {
+          overall: 50,
+          trips: 50,
+          earnings: 50,
+          ratings: 50,
+          efficiency: 50,
+        },
+        topPerformerGap: {
+          trips: 0,
+          earnings: 0,
+          ratings: 0,
+        },
+        strengthsVsPeer: [],
+        improvementOpportunities: [],
+      };
+    }
+    if (!insights.opportunities) {
+      insights.opportunities = [];
+    }
+    if (!insights.financialHealth) {
+      insights.financialHealth = {
+        score: 50,
+        level: 'fair',
+        factors: [],
+        recommendations: [],
+      };
     }
 
     // Log insights for debugging

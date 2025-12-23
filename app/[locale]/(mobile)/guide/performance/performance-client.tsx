@@ -67,7 +67,7 @@ export function PerformanceClient({ locale: _locale }: PerformanceClientProps) {
     queryKey: queryKeys.guide.aiInsights.unified({ period: 'monthly' }),
     queryFn: async () => {
       const res = await fetch(
-        '/api/guide/ai/insights/unified?period=monthly&include=performance,recommendations,predictions,coaching&includeCoaching=true'
+        '/api/guide/ai/insights/unified?period=monthly&include=performance,recommendations,predictions,coaching,riskAlerts,quickWins,comparative,opportunities,financialHealth&includeCoaching=true'
       );
       if (!res.ok) throw new Error('Failed to load insights');
       return (await res.json()) as { insights: UnifiedAIInsights };
