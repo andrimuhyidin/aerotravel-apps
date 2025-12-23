@@ -260,6 +260,10 @@ export async function calculateUnifiedMetrics(
 
     // Calculate sustainability metrics
     if (include.includes('sustainability')) {
+      logger.info('Calculating sustainability metrics', {
+        guideId,
+        period: period.type,
+      });
       const sustainabilityData = await calculateSustainabilityMetrics(
         guideId,
         period,
@@ -267,6 +271,11 @@ export async function calculateUnifiedMetrics(
         client,
         metrics.trips
       );
+      logger.info('Sustainability metrics calculated', {
+        guideId,
+        totalWasteKg: sustainabilityData.totalWasteKg,
+        hasData: sustainabilityData.totalWasteKg > 0,
+      });
       metrics.sustainability = sustainabilityData;
 
       // Calculate waste reduction trend if compareWithPrevious is enabled
@@ -291,17 +300,30 @@ export async function calculateUnifiedMetrics(
 
     // Calculate operations metrics
     if (include.includes('operations')) {
+      logger.info('Calculating operations metrics', {
+        guideId,
+        period: period.type,
+      });
       const operationsData = await calculateOperationsMetrics(
         guideId,
         period,
         branchContext,
         client
       );
+      logger.info('Operations metrics calculated', {
+        guideId,
+        equipmentChecklistRate: operationsData.equipmentChecklistRate,
+        hasData: operationsData.equipmentChecklistRate !== null,
+      });
       metrics.operations = operationsData;
     }
 
     // Calculate safety metrics
     if (include.includes('safety')) {
+      logger.info('Calculating safety metrics', {
+        guideId,
+        period: period.type,
+      });
       const safetyData = await calculateSafetyMetrics(
         guideId,
         period,
@@ -309,6 +331,11 @@ export async function calculateUnifiedMetrics(
         client,
         metrics.trips
       );
+      logger.info('Safety metrics calculated', {
+        guideId,
+        incidentFrequency: safetyData.incidentFrequency,
+        hasData: safetyData.incidentFrequency !== undefined,
+      });
       metrics.safety = safetyData;
     }
 
@@ -1558,6 +1585,10 @@ async function calculateSustainabilityMetrics(
     }
 
     // Get waste logs
+    logger.info('Fetching waste logs', {
+      guideId,
+      tripIdsCount: tripIds.length,
+    });
     const { data: wasteLogs, error: wasteLogsError } = await withBranchFilter(
       client.from('waste_logs'),
       branchContext
@@ -1569,6 +1600,11 @@ async function calculateSustainabilityMetrics(
 
     if (wasteLogsError) {
       logger.warn('Error fetching waste logs', wasteLogsError, { guideId });
+    } else {
+      logger.info('Waste logs fetched', {
+        guideId,
+        count: wasteLogs?.length || 0,
+      });
     }
 
     // Calculate waste metrics

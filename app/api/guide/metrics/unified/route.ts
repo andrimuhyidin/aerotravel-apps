@@ -130,6 +130,21 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     }
   );
 
+  // Log metrics keys for debugging
+  logger.info('Unified metrics response', {
+    guideId: user.id,
+    period: periodType,
+    metricsKeys: Object.keys(metrics),
+    hasSustainability: metrics.sustainability !== undefined,
+    hasOperations: metrics.operations !== undefined,
+    hasSafety: metrics.safety !== undefined,
+    sustainabilityKeys: metrics.sustainability
+      ? Object.keys(metrics.sustainability)
+      : null,
+    operationsKeys: metrics.operations ? Object.keys(metrics.operations) : null,
+    safetyKeys: metrics.safety ? Object.keys(metrics.safety) : null,
+  });
+
   return NextResponse.json({
     metrics,
   });
