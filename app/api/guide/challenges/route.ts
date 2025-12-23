@@ -18,7 +18,13 @@ import {
 } from '@/lib/guide/reward-points';
 
 const createChallengeSchema = z.object({
-  challenge_type: z.enum(['trip_count', 'rating', 'earnings', 'perfect_month', 'custom']),
+  challenge_type: z.enum([
+    'trip_count',
+    'rating',
+    'earnings',
+    'perfect_month',
+    'custom',
+  ]),
   target_value: z.number().positive(),
   target_date: z.string().optional(), // ISO date
   description: z.string().optional(),
@@ -29,7 +35,7 @@ const createChallengeSchema = z.object({
 /**
  * Get current guide stats for challenge progress calculation
  */
-async function getGuideStats(client: any, guideId: string) {
+async function getGuideStats(client: unknown, guideId: string) {
   // Get completed trips count
   const { count: completedTrips } = await client
     .from('trip_guides')
@@ -55,7 +61,9 @@ async function getGuideStats(client: any, guideId: string) {
         .in('trip_id', tripIds);
 
       if (tripBookings && tripBookings.length > 0) {
-        const bookingIds = tripBookings.map((tb: { booking_id: string }) => tb.booking_id);
+        const bookingIds = tripBookings.map(
+          (tb: { booking_id: string }) => tb.booking_id
+        );
         const { data: reviews } = await client
           .from('reviews')
           .select('guide_rating')
@@ -68,7 +76,9 @@ async function getGuideStats(client: any, guideId: string) {
             .filter((r: number | null): r is number => r !== null && r > 0);
           totalRatings = ratings.length;
           if (ratings.length > 0) {
-            avgRating = ratings.reduce((sum: number, r: number) => sum + r, 0) / ratings.length;
+            avgRating =
+              ratings.reduce((sum: number, r: number) => sum + r, 0) /
+              ratings.length;
           }
         }
       }
@@ -98,9 +108,13 @@ async function getGuideStats(client: any, guideId: string) {
  * Auto-create default challenges if they don't exist
  */
 async function ensureDefaultChallenges(
-  client: any,
+  client: unknown,
   guideId: string,
-  stats: { completedTrips: number; averageRating: number; totalEarnings: number }
+  stats: {
+    completedTrips: number;
+    averageRating: number;
+    totalEarnings: number;
+  }
 ) {
   // Check if guide already has challenges
   const { data: existingChallenges } = await client
@@ -110,7 +124,9 @@ async function ensureDefaultChallenges(
     .in('status', ['active', 'completed']);
 
   const existingTypes = new Set(
-    (existingChallenges || []).map((c: { challenge_type: string }) => c.challenge_type)
+    (existingChallenges || []).map(
+      (c: { challenge_type: string }) => c.challenge_type
+    )
   );
 
   const defaultChallenges = [
@@ -140,7 +156,9 @@ async function ensureDefaultChallenges(
     },
   ];
 
-  const toCreate = defaultChallenges.filter((c) => !existingTypes.has(c.challenge_type));
+  const toCreate = defaultChallenges.filter(
+    (c) => !existingTypes.has(c.challenge_type)
+  );
 
   if (toCreate.length > 0) {
     const inserts = toCreate.map((challenge) => ({
@@ -150,12 +168,19 @@ async function ensureDefaultChallenges(
       status: 'active',
     }));
 
-    const { error: insertError } = await client.from('guide_challenges').insert(inserts);
+    const { error: insertError } = await client
+      .from('guide_challenges')
+      .insert(inserts);
 
     if (insertError) {
-      logger.error('Failed to create default challenges', insertError, { guideId });
+      logger.error('Failed to create default challenges', insertError, {
+        guideId,
+      });
     } else {
-      logger.info('Created default challenges', { guideId, count: toCreate.length });
+      logger.info('Created default challenges', {
+        guideId,
+        count: toCreate.length,
+      });
     }
   }
 }
@@ -164,9 +189,13 @@ async function ensureDefaultChallenges(
  * Update challenge progress and status based on current stats
  */
 async function updateChallengeProgress(
-  client: any,
+  client: unknown,
   guideId: string,
-  stats: { completedTrips: number; averageRating: number; totalEarnings: number }
+  stats: {
+    completedTrips: number;
+    averageRating: number;
+    totalEarnings: number;
+  }
 ) {
   const { data: activeChallenges } = await client
     .from('guide_challenges')
@@ -208,7 +237,9 @@ async function updateChallengeProgress(
     }
 
     // Check if deadline passed
-    const targetDate = challenge.target_date ? new Date(challenge.target_date) : null;
+    const targetDate = challenge.target_date
+      ? new Date(challenge.target_date)
+      : null;
     const isExpired = targetDate && targetDate < now && !isCompleted;
 
     const newStatus = isCompleted
@@ -251,7 +282,7 @@ async function updateChallengeProgress(
   // Batch update
   for (const update of updates) {
     const { completed_at, ...updateData } = update;
-    const updatePayload: any = {
+    const updatePayload = {
       current_value: update.current_value,
       status: update.status,
       updated_at: now.toISOString(),
@@ -275,7 +306,10 @@ async function updateChallengeProgress(
   }
 
   if (updates.length > 0) {
-    logger.info('Updated challenge progress', { guideId, count: updates.length });
+    logger.info('Updated challenge progress', {
+      guideId,
+      count: updates.length,
+    });
   }
 }
 
@@ -319,13 +353,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
     if (challengesError) {
       // Check if it's an RLS/permission error
-      const isRlsError = 
-        challengesError.code === 'PGRST301' || 
+      const isRlsError =
+        challengesError.code === 'PGRST301' ||
         challengesError.code === '42501' ||
         challengesError.message?.toLowerCase().includes('permission') ||
         challengesError.message?.toLowerCase().includes('policy') ||
         challengesError.message?.toLowerCase().includes('row-level security');
-      
+
       logger.error('Failed to fetch challenges', challengesError, {
         guideId: user.id,
         branchId: branchContext.branchId,
@@ -335,16 +369,19 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         errorHint: challengesError.hint,
         isRlsError,
       });
-      
+
       // If RLS error, return empty array (expected - RLS policy may not be active)
       if (isRlsError) {
-        logger.warn('RLS error detected for challenges - returning empty array', {
-          guideId: user.id,
-          hint: 'Check if RLS policy is active for guide_challenges table',
-        });
+        logger.warn(
+          'RLS error detected for challenges - returning empty array',
+          {
+            guideId: user.id,
+            hint: 'Check if RLS policy is active for guide_challenges table',
+          }
+        );
         return NextResponse.json({ challenges: [] });
       }
-      
+
       throw new Error('Failed to fetch challenges');
     }
 
@@ -415,7 +452,9 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     description: payload.description || null,
     target_value: payload.target_value,
     current_value: initialValue,
-    target_date: payload.target_date ? new Date(payload.target_date).toISOString().split('T')[0] : null,
+    target_date: payload.target_date
+      ? new Date(payload.target_date).toISOString().split('T')[0]
+      : null,
     reward_description: null,
     status: 'active',
   };
@@ -436,10 +475,18 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       errorDetails: insertError.details,
       errorHint: insertError.hint,
     });
-    return createErrorResponse('Gagal membuat challenge', 'DATABASE_ERROR', insertError, 500);
+    return createErrorResponse(
+      'Gagal membuat challenge',
+      'DATABASE_ERROR',
+      insertError,
+      500
+    );
   }
 
-  logger.info('Challenge created', { challengeId: newChallenge.id, guideId: user.id });
+  logger.info('Challenge created', {
+    challengeId: newChallenge.id,
+    guideId: user.id,
+  });
 
   return NextResponse.json({
     success: true,
@@ -457,4 +504,3 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     },
   });
 });
-

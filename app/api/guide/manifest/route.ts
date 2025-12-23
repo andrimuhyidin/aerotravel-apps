@@ -39,16 +39,18 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const client = supabase as unknown as any;
 
   // Pastikan guide ini memang ter-assign ke trip tersebut
-  let assignmentQuery = client.from('trip_guides')
+  let assignmentQuery = client
+    .from('trip_guides')
     .select('trip_id')
     .eq('trip_id', tripId)
     .eq('guide_id', user.id);
-  
+
   if (!branchContext.isSuperAdmin && branchContext.branchId) {
     assignmentQuery = assignmentQuery.eq('branch_id', branchContext.branchId);
   }
-  
-  const { data: assignment, error: assignmentError } = await assignmentQuery.maybeSingle();
+
+  const { data: assignment, error: assignmentError } =
+    await assignmentQuery.maybeSingle();
 
   if (assignmentError) {
     logger.error('Failed to verify guide assignment', assignmentError, {
@@ -57,7 +59,10 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       errorCode: assignmentError.code,
       errorMessage: assignmentError.message,
     });
-    return NextResponse.json({ error: 'Failed to verify access' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to verify access' },
+      { status: 500 }
+    );
   }
 
   if (!assignment) {
@@ -65,14 +70,15 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Get trip info and documentation URL
-  let tripQuery = client.from('trips')
+  let tripQuery = client
+    .from('trips')
     .select('id, trip_code, trip_date, documentation_url')
     .eq('id', tripId);
-  
+
   if (!branchContext.isSuperAdmin && branchContext.branchId) {
     tripQuery = tripQuery.eq('branch_id', branchContext.branchId);
   }
-  
+
   const { data: trip, error: tripError } = await tripQuery.single();
 
   if (tripError || !trip) {
@@ -86,15 +92,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Ambil semua booking_id untuk trip ini
-  let tripBookingsQuery = client.from('trip_bookings')
+  // Note: trip_bookings doesn't have branch_id, filtering already done at trips level
+  const { data: tripBookings, error: bookingsError } = await client
+    .from('trip_bookings')
     .select('booking_id')
     .eq('trip_id', tripId);
-  
-  if (!branchContext.isSuperAdmin && branchContext.branchId) {
-    tripBookingsQuery = tripBookingsQuery.eq('branch_id', branchContext.branchId);
-  }
-  
-  const { data: tripBookings, error: bookingsError } = await tripBookingsQuery;
 
   if (bookingsError) {
     logger.error('Failed to load trip bookings for manifest', bookingsError, {
@@ -103,23 +105,24 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       errorCode: bookingsError.code,
       errorMessage: bookingsError.message,
     });
-    return NextResponse.json({ error: 'Failed to load manifest data' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to load manifest data' },
+      { status: 500 }
+    );
   }
 
-  const bookingIds = (tripBookings ?? []).map((b: { booking_id: string }) => b.booking_id) as string[];
+  const bookingIds = (tripBookings ?? []).map(
+    (b: { booking_id: string }) => b.booking_id
+  ) as string[];
 
   let passengers: PassengerRow[] = [];
 
   if (bookingIds.length > 0) {
-    let passengersQuery = client.from('booking_passengers')
+    // Note: booking_passengers doesn't have branch_id, filtering via booking_id relationship
+    const { data: passengerRows, error: paxError } = await client
+      .from('booking_passengers')
       .select('id, booking_id, full_name, phone, passenger_type')
       .in('booking_id', bookingIds);
-    
-    if (!branchContext.isSuperAdmin && branchContext.branchId) {
-      passengersQuery = passengersQuery.eq('branch_id', branchContext.branchId);
-    }
-    
-    const { data: passengerRows, error: paxError } = await passengersQuery;
 
     if (paxError) {
       logger.error('Failed to load booking passengers for manifest', paxError, {
@@ -129,22 +132,21 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         errorCode: paxError.code,
         errorMessage: paxError.message,
       });
-      return NextResponse.json({ error: 'Failed to load passengers' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to load passengers' },
+        { status: 500 }
+      );
     }
 
     passengers = (passengerRows as PassengerRow[]) ?? [];
   }
 
   // Ambil status boarding/return dari manifest_checks
-  let manifestQuery = client.from('manifest_checks')
+  // Note: manifest_checks filtering via trip_id (already filtered at trips level)
+  const { data: manifestRows, error: manifestError } = await client
+    .from('manifest_checks')
     .select('passenger_id, boarded_at, returned_at')
     .eq('trip_id', tripId);
-  
-  if (!branchContext.isSuperAdmin && branchContext.branchId) {
-    manifestQuery = manifestQuery.eq('branch_id', branchContext.branchId);
-  }
-  
-  const { data: manifestRows, error: manifestError } = await manifestQuery;
 
   if (manifestError) {
     logger.warn('Failed to load manifest checks', {
@@ -193,7 +195,9 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const boardedCount = manifestPassengers.filter(
     (p) => p.status === 'boarded' || p.status === 'returned'
   ).length;
-  const returnedCount = manifestPassengers.filter((p) => p.status === 'returned').length;
+  const returnedCount = manifestPassengers.filter(
+    (p) => p.status === 'returned'
+  ).length;
 
   const manifest = {
     tripId: trip.id as string,
@@ -208,9 +212,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   // Log manifest access
   try {
-    const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const clientIp =
+      request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
-    
+
     await client.from('manifest_access_logs').insert({
       trip_id: tripId,
       guide_id: user.id,
@@ -224,7 +231,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     });
   } catch (auditError) {
     // Don't fail the request if audit logging fails
-    logger.warn('Failed to log manifest access', { error: auditError, tripId, guideId: user.id });
+    logger.warn('Failed to log manifest access', {
+      error: auditError,
+      tripId,
+      guideId: user.id,
+    });
   }
 
   logger.info('Guide manifest fetched', { tripId, guideId: user.id, totalPax });

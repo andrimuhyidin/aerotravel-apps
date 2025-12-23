@@ -4,11 +4,10 @@
  */
 
 import { Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 
 import { Container } from '@/components/layout/container';
-import { Section } from '@/components/layout/section';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -24,6 +23,12 @@ export const dynamic = 'force-dynamic';
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#000000',
+};
 
 export async function generateMetadata({
   params,
@@ -74,144 +79,132 @@ export default async function ContactPage({ params }: PageProps) {
   ];
 
   return (
-    <>
+    <Container className="py-6">
       {/* Hero */}
-      <Section className="bg-gradient-to-br from-primary/5 via-background to-aero-teal/5">
-        <Container>
-          <div className="py-8 sm:py-12 text-center">
-            <h1 className="mb-4 text-2xl sm:text-3xl md:text-4xl font-bold">Hubungi Kami</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Ada pertanyaan? Tim kami siap membantu Anda
-            </p>
-          </div>
-        </Container>
-      </Section>
+      <div className="mb-6 text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+          <MessageCircle className="h-8 w-8 text-primary" />
+        </div>
+        <h1 className="mb-2 text-2xl font-bold">Hubungi Kami</h1>
+        <p className="text-sm text-muted-foreground">
+          Ada pertanyaan? Tim kami siap membantu Anda
+        </p>
+      </div>
 
-      {/* Contact Info & Form */}
-      <Section>
-        <Container>
-          <div className="grid gap-6 sm:gap-8 py-8 sm:py-12 md:grid-cols-2">
-            {/* Contact Info */}
-            <div className="space-y-6">
-              <div>
-                <h2 className="mb-4 text-xl sm:text-2xl font-bold">Informasi Kontak</h2>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  Hubungi kami melalui channel berikut atau isi form di samping.
-                </p>
-              </div>
-
-              <div className="grid gap-4">
-                {contactInfo.map((info, index) => (
-                  <a
-                    key={index}
-                    href={info.href}
-                    className="group"
-                    target={info.href.startsWith('http') ? '_blank' : undefined}
-                    rel={
-                      info.href.startsWith('http')
-                        ? 'noopener noreferrer'
-                        : undefined
-                    }
-                  >
-                    <Card className="transition-shadow group-hover:shadow-md">
-                      <CardContent className="flex items-center gap-4 p-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                          <info.icon className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">
-                            {info.title}
-                          </p>
-                          <p className="font-medium group-hover:text-primary">
-                            {info.value}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </a>
-                ))}
-              </div>
-
-              {/* Operating Hours */}
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <Clock className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">Jam Operasional</p>
-                      <p className="text-sm text-muted-foreground">
-                        Senin - Minggu: 08:00 - 21:00 WIB
-                      </p>
-                    </div>
+      {/* Contact Info */}
+      <div className="mb-6">
+        <h2 className="mb-3 text-base font-semibold">Informasi Kontak</h2>
+        <div className="space-y-2">
+          {contactInfo.map((info, index) => (
+            <a
+              key={index}
+              href={info.href}
+              className="group block"
+              target={info.href.startsWith('http') ? '_blank' : undefined}
+              rel={
+                info.href.startsWith('http') ? 'noopener noreferrer' : undefined
+              }
+            >
+              <Card className="border-none shadow-sm transition-shadow group-hover:shadow-md">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <info.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {info.title}
+                    </p>
+                    <p className="text-sm font-medium group-hover:text-primary">
+                      {info.value}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
-            </div>
+            </a>
+          ))}
+        </div>
+      </div>
 
-            {/* Contact Form */}
-            <Card className="border-none shadow-lg">
-              <CardContent className="p-4 sm:p-6">
-                <h2 className="mb-4 sm:mb-6 text-lg sm:text-xl font-bold">Kirim Pesan</h2>
-                <form className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nama Lengkap</Label>
-                      <Input id="name" placeholder="John Doe" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">No. WhatsApp</Label>
-                      <Input id="phone" placeholder="08123456789" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="john@example.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subjek</Label>
-                    <Input id="subject" placeholder="Pertanyaan tentang..." />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Pesan</Label>
-                    <textarea
-                      id="message"
-                      rows={4}
-                      className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      placeholder="Tulis pesan Anda..."
-                    />
-                  </div>
-                  <Button type="submit" className="w-full">
-                    Kirim Pesan
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+      {/* Operating Hours */}
+      <Card className="mb-6 border-none shadow-sm">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <Clock className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-sm font-medium">Jam Operasional</p>
+              <p className="text-xs text-muted-foreground">
+                Senin - Minggu: 08:00 - 21:00 WIB
+              </p>
+            </div>
           </div>
-        </Container>
-      </Section>
+        </CardContent>
+      </Card>
+
+      {/* Contact Form */}
+      <Card className="mb-6 border-none shadow-sm">
+        <CardContent className="p-6">
+          <h2 className="mb-4 text-base font-semibold">Kirim Pesan</h2>
+          <form className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm">
+                Nama Lengkap
+              </Label>
+              <Input id="name" placeholder="John Doe" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-sm">
+                No. WhatsApp
+              </Label>
+              <Input id="phone" placeholder="08123456789" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm">
+                Email
+              </Label>
+              <Input id="email" type="email" placeholder="john@example.com" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subject" className="text-sm">
+                Subjek
+              </Label>
+              <Input id="subject" placeholder="Pertanyaan tentang..." />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="message" className="text-sm">
+                Pesan
+              </Label>
+              <textarea
+                id="message"
+                rows={4}
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="Tulis pesan Anda..."
+              />
+            </div>
+            <Button type="submit" className="w-full" size="sm">
+              Kirim Pesan
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {/* Map Placeholder */}
-      <Section className="bg-muted/30">
-        <Container>
-          <div className="py-8 sm:py-12">
-            <h2 className="mb-4 sm:mb-6 text-center text-xl sm:text-2xl font-bold">Lokasi Kami</h2>
-            <div className="aspect-[21/9] overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 to-aero-teal/10">
-              <div className="flex h-full items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="mx-auto mb-2 h-12 w-12 text-primary" />
-                  <p className="text-muted-foreground">
-                    Bandar Lampung, Indonesia
-                  </p>
-                </div>
+      <Card className="border-none shadow-sm">
+        <CardContent className="p-6">
+          <h2 className="mb-4 text-center text-base font-semibold">
+            Lokasi Kami
+          </h2>
+          <div className="aspect-video overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 to-aero-teal/10">
+            <div className="flex h-full items-center justify-center">
+              <div className="text-center">
+                <MapPin className="mx-auto mb-2 h-10 w-10 text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  Bandar Lampung, Indonesia
+                </p>
               </div>
             </div>
           </div>
-        </Container>
-      </Section>
-    </>
+        </CardContent>
+      </Card>
+    </Container>
   );
 }

@@ -16,7 +16,12 @@ export type RewardSourceType =
   | 'manual'
   | 'adjustment';
 
-export type RewardTransactionType = 'earn' | 'redeem' | 'expire' | 'adjustment' | 'refund';
+export type RewardTransactionType =
+  | 'earn'
+  | 'redeem'
+  | 'expire'
+  | 'adjustment'
+  | 'refund';
 
 /**
  * Award points to a guide
@@ -36,7 +41,7 @@ export async function awardPoints(
     }
 
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     // Call database function
     const { data, error } = await client.rpc('award_reward_points', {
@@ -100,7 +105,7 @@ export async function redeemPoints(
     }
 
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     // Call database function
     const { data, error } = await client.rpc('redeem_reward_points', {
@@ -145,7 +150,7 @@ export async function getPointsBalance(guideId: string): Promise<{
 } | null> {
   try {
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     const { data, error } = await client
       .from('guide_reward_points')
@@ -182,7 +187,10 @@ export async function getPointsBalance(guideId: string): Promise<{
 /**
  * Calculate points for challenge completion
  */
-export function calculateChallengePoints(challengeType: string, targetValue: number): number {
+export function calculateChallengePoints(
+  challengeType: string,
+  targetValue: number
+): number {
   switch (challengeType) {
     case 'trip_count':
       return Math.min(500, Math.floor(targetValue / 10) * 100); // 100 points per 10 trips, max 500
@@ -268,7 +276,7 @@ export async function getExpiringPoints(
 ): Promise<Array<{ points: number; expiresAt: string }>> {
   try {
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + days);
@@ -290,7 +298,13 @@ export async function getExpiringPoints(
 
     // Group by expiration date and sum points
     const grouped = (data || []).reduce(
-      (acc: Record<string, number>, item: { points: number | unknown; expires_at: string | null | undefined }) => {
+      (
+        acc: Record<string, number>,
+        item: {
+          points: number | unknown;
+          expires_at: string | null | undefined;
+        }
+      ) => {
         if (!item.expires_at) return acc;
         const dateParts = item.expires_at.split('T');
         const date = dateParts[0];
@@ -324,14 +338,16 @@ export async function notifyPointsEarned(
 ): Promise<void> {
   try {
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     // Create notification (using notification_logs table)
     await client.from('notification_logs').insert({
       user_id: guideId,
       channel: 'push',
       subject: 'Poin Reward Diperoleh!',
-      body: description || `Anda memperoleh ${points.toLocaleString('id-ID')} poin reward dari ${source}`,
+      body:
+        description ||
+        `Anda memperoleh ${points.toLocaleString('id-ID')} poin reward dari ${source}`,
       status: 'pending',
       entity_type: 'reward_points',
       metadata: {
@@ -361,7 +377,7 @@ export async function notifyPointsExpiring(
 ): Promise<void> {
   try {
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     // Check if notification already exists for this expiry period
     const { data: existing } = await client
@@ -411,4 +427,3 @@ export async function notifyPointsExpiring(
     });
   }
 }
-

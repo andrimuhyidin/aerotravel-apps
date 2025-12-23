@@ -8,8 +8,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
-import { createTransaction } from '@/lib/integrations/midtrans';
+import {
+  getBranchContext,
+  withBranchFilter,
+} from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -35,7 +37,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   // Get active tipping request for this guide
   const { data: activeRequest } = await withBranchFilter(
     client.from('tipping_requests'),
-    branchContext,
+    branchContext
   )
     .select('*')
     .eq('guide_id', user.id)
@@ -46,7 +48,10 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   if (activeRequest && activeRequest.qris_qr_code) {
     // Check if expired
-    if (activeRequest.qris_expires_at && new Date(activeRequest.qris_expires_at) < new Date()) {
+    if (
+      activeRequest.qris_expires_at &&
+      new Date(activeRequest.qris_expires_at) < new Date()
+    ) {
       // Mark as expired
       await client
         .from('tipping_requests')
@@ -83,7 +88,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const branchContext = await getBranchContext(user.id);
 
   if (!branchContext.branchId && !branchContext.isSuperAdmin) {
-    return NextResponse.json({ error: 'Branch context required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Branch context required' },
+      { status: 400 }
+    );
   }
 
   const client = supabase as unknown as any;
@@ -132,22 +140,36 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     });
 
     // Extract QRIS code from response
-    if (chargeResponse && typeof chargeResponse === 'object' && 'qr_string' in chargeResponse) {
+    if (
+      chargeResponse &&
+      typeof chargeResponse === 'object' &&
+      'qr_string' in chargeResponse
+    ) {
       qrisCode = chargeResponse.qr_string as string;
       qrisUrl = chargeResponse.qr_string as string; // QRIS string can be used as URL
-      
+
       // Get expiry from response or set default (24 hours)
       if ('expiry_time' in chargeResponse && chargeResponse.expiry_time) {
         expiresAt = chargeResponse.expiry_time as string;
       } else {
         expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       }
-      
+
       midtransOrderId = orderId;
-    } else if (chargeResponse && typeof chargeResponse === 'object' && 'actions' in chargeResponse) {
+    } else if (
+      chargeResponse &&
+      typeof chargeResponse === 'object' &&
+      'actions' in chargeResponse
+    ) {
       // Fallback: try to get from actions
-      const actions = chargeResponse.actions as Array<{ name?: string; method?: string; url?: string }>;
-      const qrisAction = actions?.find((action) => action.method === 'qr_code' || action.name === 'qr-code');
+      const actions = chargeResponse.actions as Array<{
+        name?: string;
+        method?: string;
+        url?: string;
+      }>;
+      const qrisAction = actions?.find(
+        (action) => action.method === 'qr_code' || action.name === 'qr-code'
+      );
       if (qrisAction && qrisAction.url) {
         qrisCode = qrisAction.url;
         qrisUrl = qrisAction.url;
@@ -176,7 +198,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   // Create tipping request
   const { data: tippingRequest, error: insertError } = await withBranchFilter(
     client.from('tipping_requests'),
-    branchContext,
+    branchContext
   )
     .insert({
       guide_id: user.id,
@@ -194,7 +216,9 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     .single();
 
   if (insertError) {
-    logger.error('Failed to create tipping request', insertError, { guideId: user.id });
+    logger.error('Failed to create tipping request', insertError, {
+      guideId: user.id,
+    });
     return NextResponse.json(
       { error: 'Gagal membuat request tipping' },
       { status: 500 }
@@ -219,4 +243,3 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     { status: 201 }
   );
 });
-

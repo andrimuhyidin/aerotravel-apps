@@ -6,14 +6,13 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, Clock, DollarSign, FileText } from 'lucide-react';
+import { Calendar, DollarSign, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
-import { LoadingState } from '@/components/ui/loading-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import queryKeys from '@/lib/queries/query-keys';
 import { formatCurrency } from '@/lib/partner/wallet';
@@ -59,15 +58,15 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
       <div className="space-y-4">
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
-            <Skeleton className="h-6 w-48 mb-4" />
-            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="mb-4 h-6 w-48" />
+            <Skeleton className="mb-2 h-4 w-full" />
             <Skeleton className="h-4 w-3/4" />
           </CardContent>
         </Card>
         {Array.from({ length: 3 }).map((_, i) => (
           <Card key={i} className="border-0 shadow-sm">
             <CardContent className="p-4">
-              <Skeleton className="h-5 w-32 mb-2" />
+              <Skeleton className="mb-2 h-5 w-32" />
               <Skeleton className="h-4 w-24" />
             </CardContent>
           </Card>
@@ -86,7 +85,11 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
     );
   }
 
-  const { pending, salary, total } = data || { pending: [], salary: [], total: 0 };
+  const { pending, salary, total } = data || {
+    pending: [],
+    salary: [],
+    total: 0,
+  };
 
   if (pending.length === 0 && salary.length === 0) {
     return (
@@ -102,12 +105,16 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
   return (
     <div className="space-y-4">
       {/* Total Summary */}
-      <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50 to-emerald-100/50">
+      <Card className="border-0 bg-gradient-to-br from-emerald-50 to-emerald-100/50 shadow-sm">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600">Total Pendapatan Tertunda</p>
-              <p className="mt-1 text-3xl font-bold text-slate-900">{formatCurrency(total)}</p>
+              <p className="text-sm font-medium text-slate-600">
+                Total Pendapatan Tertunda
+              </p>
+              <p className="mt-1 text-3xl font-bold text-slate-900">
+                {formatCurrency(total)}
+              </p>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600/10">
               <DollarSign className="h-6 w-6 text-emerald-600" />
@@ -119,7 +126,9 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
       {/* Trip Earnings */}
       {pending.length > 0 && (
         <div>
-          <h2 className="mb-3 text-base font-semibold text-slate-900">Pendapatan Trip</h2>
+          <h2 className="mb-3 text-base font-semibold text-slate-900">
+            Pendapatan Trip
+          </h2>
           <div className="space-y-3">
             {pending.map((earning) => {
               if (!earning || !earning.tripId) return null;
@@ -132,7 +141,7 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
                           <Calendar className="h-4 w-4 text-slate-400" />
                           <Link
                             href={`/${locale}/guide/trips/${earning.tripCode || earning.tripId}`}
-                            className="font-semibold text-slate-900 hover:text-emerald-600 transition-colors"
+                            className="font-semibold text-slate-900 transition-colors hover:text-emerald-600"
                           >
                             {earning.tripCode || earning.tripId}
                           </Link>
@@ -141,7 +150,9 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
                           <p className="mt-1 text-sm text-slate-600">
                             {(() => {
                               try {
-                                return new Date(earning.tripDate).toLocaleDateString('id-ID', {
+                                return new Date(
+                                  earning.tripDate
+                                ).toLocaleDateString('id-ID', {
                                   day: 'numeric',
                                   month: 'long',
                                   year: 'numeric',
@@ -156,14 +167,14 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
                           {formatCurrency(earning.amount ?? 0)}
                         </p>
                       </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-                        Menunggu
-                      </span>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                          Menunggu
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
@@ -173,7 +184,9 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
       {/* Salary Payments */}
       {salary.length > 0 && (
         <div>
-          <h2 className="mb-3 text-base font-semibold text-slate-900">Gaji Tertunda</h2>
+          <h2 className="mb-3 text-base font-semibold text-slate-900">
+            Gaji Tertunda
+          </h2>
           <div className="space-y-3">
             {salary.map((s) => {
               if (!s || !s.id) return null;
@@ -184,9 +197,13 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-slate-400" />
-                          <span className="font-semibold text-slate-900">Gaji</span>
+                          <span className="font-semibold text-slate-900">
+                            Gaji
+                          </span>
                         </div>
-                        <p className="mt-1 text-sm text-slate-600">{s.period ?? '-'}</p>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {s.period ?? '-'}
+                        </p>
                         <p className="mt-2 text-lg font-bold text-emerald-600">
                           {formatCurrency(s.amount ?? 0)}
                         </p>
@@ -199,7 +216,9 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
                               : 'bg-amber-100 text-amber-700'
                           }`}
                         >
-                          {s.status === 'ready' ? 'Siap Dibayar' : 'Perlu Dokumen'}
+                          {s.status === 'ready'
+                            ? 'Siap Dibayar'
+                            : 'Perlu Dokumen'}
                         </span>
                       </div>
                     </div>
@@ -222,4 +241,3 @@ export function PendingEarningsClient({ locale }: PendingEarningsClientProps) {
     </div>
   );
 }
-

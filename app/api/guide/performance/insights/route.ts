@@ -1,6 +1,9 @@
 /**
  * API: Performance Insights (AI-powered)
  * GET /api/guide/performance/insights
+ *
+ * @deprecated This endpoint is deprecated. Use /api/guide/ai/insights/unified instead.
+ * This endpoint will be removed in a future version.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -24,21 +27,21 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
 
   // Use cache for expensive AI insights generation
   const cacheKey = cacheKeys.guide.performanceInsights(user.id, 'monthly');
-  
+
   const insights = await getCached(
     cacheKey,
     cacheTTL.performance, // 5 minutes
     async () => {
       try {
-    // Get current metrics
-    const { data: metrics } = await (supabase as any)
-      .from('guide_performance_metrics')
-      .select('*')
-      .eq('guide_id', user.id)
-      .eq('period_type', 'monthly')
-      .order('period_start', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+        // Get current metrics
+        const { data: metrics } = await (supabase as any)
+          .from('guide_performance_metrics')
+          .select('*')
+          .eq('guide_id', user.id)
+          .eq('period_type', 'monthly')
+          .order('period_start', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
         if (!metrics) {
           return {
@@ -50,10 +53,11 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
           };
         }
 
-    // Get recent trips for context
-    const { data: recentTrips } = await (supabase as any)
-      .from('trip_guides')
-      .select(`
+        // Get recent trips for context
+        const { data: recentTrips } = await (supabase as any)
+          .from('trip_guides')
+          .select(
+            `
         trip:trips(
           trip_code,
           trip_date,
@@ -61,34 +65,35 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
           total_pax
         ),
         fee_amount
-      `)
-      .eq('guide_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
+      `
+          )
+          .eq('guide_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
 
-    // Get recent reviews
-    const { data: recentReviews } = await (supabase as any)
-      .from('reviews')
-      .select('guide_rating, comment')
-      .eq('guide_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
+        // Get recent reviews
+        const { data: recentReviews } = await (supabase as any)
+          .from('reviews')
+          .select('guide_rating, comment')
+          .eq('guide_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
 
-    // Build context for AI
-    const context = {
-      totalTrips: metrics.total_trips,
-      completedTrips: metrics.completed_trips,
-      averageRating: metrics.average_rating,
-      totalRatings: metrics.total_ratings,
-      totalEarnings: metrics.total_earnings,
-      overallScore: metrics.overall_score,
-      performanceTier: metrics.performance_tier,
-      recentTripsCount: recentTrips?.length || 0,
-      recentReviewsCount: recentReviews?.length || 0,
-    };
+        // Build context for AI
+        const context = {
+          totalTrips: metrics.total_trips,
+          completedTrips: metrics.completed_trips,
+          averageRating: metrics.average_rating,
+          totalRatings: metrics.total_ratings,
+          totalEarnings: metrics.total_earnings,
+          overallScore: metrics.overall_score,
+          performanceTier: metrics.performance_tier,
+          recentTripsCount: recentTrips?.length || 0,
+          recentReviewsCount: recentReviews?.length || 0,
+        };
 
-    // Generate AI insights
-    const prompt = `Analyze this tour guide's performance metrics and provide insights:
+        // Generate AI insights
+        const prompt = `Analyze this tour guide's performance metrics and provide insights:
 
 Performance Metrics:
 - Total Trips: ${context.totalTrips}
@@ -116,29 +121,34 @@ Provide insights in JSON format:
 
 Return ONLY the JSON object, no additional text.`;
 
-    let insights: Record<string, unknown>;
-    try {
-      const aiResponse = await generateContent(prompt);
-      const cleaned = aiResponse.replace(/```json\n?|\n?```/g, '').trim();
-      insights = JSON.parse(cleaned);
-    } catch (aiError) {
-      logger.warn('Failed to generate AI insights', { guideId: user.id, error: aiError });
-      // Return fallback insights
-      insights = {
-        summary: 'Analisis performa berdasarkan data yang tersedia',
-        trends: [],
-        recommendations: [
-          'Terus tingkatkan kualitas pelayanan untuk mendapatkan rating yang lebih baik',
-          'Selesaikan lebih banyak trip untuk meningkatkan earnings',
-        ],
-      };
-    }
+        let insights: Record<string, unknown>;
+        try {
+          const aiResponse = await generateContent(prompt);
+          const cleaned = aiResponse.replace(/```json\n?|\n?```/g, '').trim();
+          insights = JSON.parse(cleaned);
+        } catch (aiError) {
+          logger.warn('Failed to generate AI insights', {
+            guideId: user.id,
+            error: aiError,
+          });
+          // Return fallback insights
+          insights = {
+            summary: 'Analisis performa berdasarkan data yang tersedia',
+            trends: [],
+            recommendations: [
+              'Terus tingkatkan kualitas pelayanan untuk mendapatkan rating yang lebih baik',
+              'Selesaikan lebih banyak trip untuk meningkatkan earnings',
+            ],
+          };
+        }
 
         return {
           insights,
         };
       } catch (error) {
-        logger.error('Failed to generate performance insights', error, { guideId: user.id });
+        logger.error('Failed to generate performance insights', error, {
+          guideId: user.id,
+        });
         throw error;
       }
     }

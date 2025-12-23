@@ -5,8 +5,19 @@
  * Form untuk melaporkan kejadian insiden
  */
 
-import { AlertCircle, Bot, Camera, FileText, Loader2, Plus, Save, Sparkles, Users, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  Bot,
+  Camera,
+  FileText,
+  Loader2,
+  Plus,
+  Save,
+  Sparkles,
+  Users,
+  X,
+} from 'lucide-react';
+import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -16,13 +27,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
-import { SignaturePad, type SignatureData } from '@/components/ui/signature-pad';
+import {
+  SignaturePad,
+  type SignatureData,
+} from '@/components/ui/signature-pad';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
@@ -71,19 +85,26 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
   const [incidentType, setIncidentType] = useState<IncidentType | ''>('');
   const [chronology, setChronology] = useState('');
   const [witnesses, setWitnesses] = useState('');
-  const [involvedPassengerIds, setInvolvedPassengerIds] = useState<string[]>([]);
+  const [involvedPassengerIds, setInvolvedPassengerIds] = useState<string[]>(
+    []
+  );
   const [injuries, setInjuries] = useState<Injury[]>([]);
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
   const [signature, setSignature] = useState<SignatureData | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch manifest if tripId is provided
   const { data: manifestData } = useQuery<{
-    passengers: Array<Passenger & { status: 'pending' | 'boarded' | 'returned' }>;
+    passengers: Array<
+      Passenger & { status: 'pending' | 'boarded' | 'returned' }
+    >;
   }>({
     queryKey: ['manifest', tripId],
     queryFn: async () => {
@@ -100,7 +121,9 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const imageFiles = files.filter((file) => file.type.startsWith('image/')).slice(0, 5);
+    const imageFiles = files
+      .filter((file) => file.type.startsWith('image/'))
+      .slice(0, 5);
 
     if (imageFiles.length + photos.length > 5) {
       setMessage({ type: 'error', text: 'Maksimal 5 foto' });
@@ -134,7 +157,10 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
 
   const generateAiReport = async () => {
     if (!chronology.trim()) {
-      setMessage({ type: 'error', text: 'Mohon isi kronologi terlebih dahulu' });
+      setMessage({
+        type: 'error',
+        text: 'Mohon isi kronologi terlebih dahulu',
+      });
       return;
     }
 
@@ -147,7 +173,11 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
           const buffer = Buffer.from(arrayBuffer);
           return {
             base64: buffer.toString('base64'),
-            mimeType: photo.type as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif',
+            mimeType: photo.type as
+              | 'image/png'
+              | 'image/jpeg'
+              | 'image/webp'
+              | 'image/gif',
           };
         })
       );
@@ -181,13 +211,19 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
     setMessage(null);
 
     if (!incidentType || !chronology.trim()) {
-      setMessage({ type: 'error', text: 'Mohon isi jenis insiden dan kronologi' });
+      setMessage({
+        type: 'error',
+        text: 'Mohon isi jenis insiden dan kronologi',
+      });
       setSubmitting(false);
       return;
     }
 
     if (!signature) {
-      setMessage({ type: 'error', text: 'Mohon berikan tanda tangan untuk konfirmasi data akurat' });
+      setMessage({
+        type: 'error',
+        text: 'Mohon berikan tanda tangan untuk konfirmasi data akurat',
+      });
       setSubmitting(false);
       return;
     }
@@ -215,18 +251,22 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
       }
 
       // Prepare involved people data
-      const involvedPeople = involvedPassengerIds.length > 0
-        ? involvedPassengerIds.map((passengerId) => ({
-            person_id: passengerId,
-            person_type: 'passenger' as const,
-            role_in_incident: undefined,
-            notes: undefined,
-          }))
-        : undefined;
+      const involvedPeople =
+        involvedPassengerIds.length > 0
+          ? involvedPassengerIds.map((passengerId) => ({
+              person_id: passengerId,
+              person_type: 'passenger' as const,
+              role_in_incident: undefined,
+              notes: undefined,
+            }))
+          : undefined;
 
       // Validate injuries if incident type is injury
       if (incidentType === 'injury' && injuries.length === 0) {
-        setMessage({ type: 'error', text: 'Mohon tambahkan detail cedera untuk insiden cedera' });
+        setMessage({
+          type: 'error',
+          text: 'Mohon tambahkan detail cedera untuk insiden cedera',
+        });
         setSubmitting(false);
         return;
       }
@@ -243,22 +283,32 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
           injuries: injuries.length > 0 ? injuries : undefined,
           photoUrls,
           tripId: tripId || undefined,
-          signature: signature ? {
-            method: signature.method,
-            data: signature.data,
-          } : undefined,
+          signature: signature
+            ? {
+                method: signature.method,
+                data: signature.data,
+              }
+            : undefined,
         }),
       });
 
       if (!res.ok) {
-        const errorData = (await res.json().catch(() => ({}))) as { error?: string };
-        setMessage({ type: 'error', text: errorData.error || 'Gagal mengirim laporan insiden' });
+        const errorData = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        setMessage({
+          type: 'error',
+          text: errorData.error || 'Gagal mengirim laporan insiden',
+        });
       } else {
         const data = (await res.json()) as { reportNumber?: string };
         const reportNumber = data.reportNumber || 'N/A';
-        setMessage({ type: 'success', text: `Laporan insiden berhasil dikirim (${reportNumber}). Notifikasi telah dikirim ke asuransi & admin.` });
+        setMessage({
+          type: 'success',
+          text: `Laporan insiden berhasil dikirim (${reportNumber}). Notifikasi telah dikirim ke asuransi & admin.`,
+        });
         toast.success(`Laporan insiden ${reportNumber} berhasil dikirim`);
-        
+
         // Reset form
         setIncidentType('');
         setChronology('');
@@ -274,7 +324,10 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
         }
       }
     } catch (_error) {
-      setMessage({ type: 'error', text: 'Gagal mengirim laporan. Periksa koneksi internet.' });
+      setMessage({
+        type: 'error',
+        text: 'Gagal mengirim laporan. Periksa koneksi internet.',
+      });
     } finally {
       setSubmitting(false);
     }
@@ -295,7 +348,10 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Incident Type */}
           <div className="space-y-2">
-            <Label htmlFor="incident-type" className="text-sm font-medium text-slate-700">
+            <Label
+              htmlFor="incident-type"
+              className="text-sm font-medium text-slate-700"
+            >
               Jenis Insiden <span className="text-red-500">*</span>
             </Label>
             <Select
@@ -317,7 +373,10 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
 
           {/* Chronology */}
           <div className="space-y-2">
-            <Label htmlFor="chronology" className="text-sm font-medium text-slate-700">
+            <Label
+              htmlFor="chronology"
+              className="text-sm font-medium text-slate-700"
+            >
               Kronologi Kejadian <span className="text-red-500">*</span>
             </Label>
             <Textarea
@@ -334,13 +393,13 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
           {/* People Involved - Only show if tripId is provided and passengers exist */}
           {tripId && passengers.length > 0 && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+              <Label className="flex items-center gap-2 text-sm font-medium text-slate-700">
                 <Users className="h-4 w-4" />
                 Orang yang Terlibat (Opsional)
               </Label>
               <Card className="border-slate-200 bg-slate-50">
                 <CardContent className="p-3">
-                  <p className="text-xs text-slate-600 mb-3">
+                  <p className="mb-3 text-xs text-slate-600">
                     Pilih penumpang yang terlibat dalam insiden ini
                   </p>
                   <div className="max-h-48 space-y-2 overflow-y-auto">
@@ -354,9 +413,14 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
                           checked={involvedPassengerIds.includes(passenger.id)}
                           onCheckedChange={(checked) => {
                             if (checked) {
-                              setInvolvedPassengerIds((prev) => [...prev, passenger.id]);
+                              setInvolvedPassengerIds((prev) => [
+                                ...prev,
+                                passenger.id,
+                              ]);
                             } else {
-                              setInvolvedPassengerIds((prev) => prev.filter((id) => id !== passenger.id));
+                              setInvolvedPassengerIds((prev) =>
+                                prev.filter((id) => id !== passenger.id)
+                              );
                             }
                           }}
                         />
@@ -366,7 +430,9 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
                         >
                           {passenger.full_name}
                           {passenger.passenger_type && (
-                            <span className="ml-2 text-xs text-slate-500">({passenger.passenger_type})</span>
+                            <span className="ml-2 text-xs text-slate-500">
+                              ({passenger.passenger_type})
+                            </span>
                           )}
                         </Label>
                       </div>
@@ -386,7 +452,7 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
           {incidentType === 'injury' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                <Label className="flex items-center gap-2 text-sm font-medium text-slate-700">
                   <AlertCircle className="h-4 w-4" />
                   Detail Cedera (ISO 21101)
                 </Label>
@@ -395,14 +461,24 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    if (involvedPassengerIds.length === 0 && passengers.length === 0) {
-                      setMessage({ type: 'error', text: 'Pilih orang yang terlibat terlebih dahulu' });
+                    if (
+                      involvedPassengerIds.length === 0 &&
+                      passengers.length === 0
+                    ) {
+                      setMessage({
+                        type: 'error',
+                        text: 'Pilih orang yang terlibat terlebih dahulu',
+                      });
                       return;
                     }
                     // Add new injury - default to first selected passenger or first passenger
-                    const defaultPersonId = involvedPassengerIds[0] || passengers[0]?.id || '';
+                    const defaultPersonId =
+                      involvedPassengerIds[0] || passengers[0]?.id || '';
                     if (!defaultPersonId) {
-                      setMessage({ type: 'error', text: 'Tidak ada penumpang tersedia' });
+                      setMessage({
+                        type: 'error',
+                        text: 'Tidak ada penumpang tersedia',
+                      });
                       return;
                     }
                     setInjuries((prev) => [
@@ -419,7 +495,7 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
                   }}
                   className="text-xs"
                 >
-                  <Plus className="h-3 w-3 mr-1" />
+                  <Plus className="mr-1 h-3 w-3" />
                   Tambah Cedera
                 </Button>
               </div>
@@ -435,14 +511,20 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
                 <div className="space-y-3">
                   {injuries.map((injury, index) => (
                     <Card key={index} className="border-slate-200">
-                      <CardContent className="p-4 space-y-3">
+                      <CardContent className="space-y-3 p-4">
                         <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-semibold text-slate-900">Cedera #{index + 1}</h4>
+                          <h4 className="text-sm font-semibold text-slate-900">
+                            Cedera #{index + 1}
+                          </h4>
                           <Button
                             type="button"
                             size="sm"
                             variant="ghost"
-                            onClick={() => setInjuries((prev) => prev.filter((_, i) => i !== index))}
+                            onClick={() =>
+                              setInjuries((prev) =>
+                                prev.filter((_, i) => i !== index)
+                              )
+                            }
                             className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
                           >
                             <X className="h-4 w-4" />
@@ -451,12 +533,18 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
 
                         {/* Person */}
                         <div className="space-y-2">
-                          <Label className="text-xs font-medium text-slate-700">Orang yang Cedera</Label>
+                          <Label className="text-xs font-medium text-slate-700">
+                            Orang yang Cedera
+                          </Label>
                           <Select
                             value={injury.person_id}
                             onValueChange={(value) => {
                               setInjuries((prev) =>
-                                prev.map((inj, i) => (i === index ? { ...inj, person_id: value } : inj))
+                                prev.map((inj, i) =>
+                                  i === index
+                                    ? { ...inj, person_id: value }
+                                    : inj
+                                )
                               );
                             }}
                           >
@@ -475,12 +563,21 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
 
                         {/* Body Part */}
                         <div className="space-y-2">
-                          <Label className="text-xs font-medium text-slate-700">Bagian Tubuh</Label>
+                          <Label className="text-xs font-medium text-slate-700">
+                            Bagian Tubuh
+                          </Label>
                           <Select
                             value={injury.body_part}
                             onValueChange={(value) => {
                               setInjuries((prev) =>
-                                prev.map((inj, i) => (i === index ? { ...inj, body_part: value as Injury['body_part'] } : inj))
+                                prev.map((inj, i) =>
+                                  i === index
+                                    ? {
+                                        ...inj,
+                                        body_part: value as Injury['body_part'],
+                                      }
+                                    : inj
+                                )
                               );
                             }}
                           >
@@ -499,12 +596,21 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
 
                         {/* Severity */}
                         <div className="space-y-2">
-                          <Label className="text-xs font-medium text-slate-700">Tingkat Keparahan</Label>
+                          <Label className="text-xs font-medium text-slate-700">
+                            Tingkat Keparahan
+                          </Label>
                           <Select
                             value={injury.severity}
                             onValueChange={(value) => {
                               setInjuries((prev) =>
-                                prev.map((inj, i) => (i === index ? { ...inj, severity: value as Injury['severity'] } : inj))
+                                prev.map((inj, i) =>
+                                  i === index
+                                    ? {
+                                        ...inj,
+                                        severity: value as Injury['severity'],
+                                      }
+                                    : inj
+                                )
                               );
                             }}
                           >
@@ -528,11 +634,18 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
                               checked={injury.first_aid_given}
                               onCheckedChange={(checked) => {
                                 setInjuries((prev) =>
-                                  prev.map((inj, i) => (i === index ? { ...inj, first_aid_given: !!checked } : inj))
+                                  prev.map((inj, i) =>
+                                    i === index
+                                      ? { ...inj, first_aid_given: !!checked }
+                                      : inj
+                                  )
                                 );
                               }}
                             />
-                            <Label htmlFor={`first-aid-${index}`} className="text-xs font-medium text-slate-700">
+                            <Label
+                              htmlFor={`first-aid-${index}`}
+                              className="text-xs font-medium text-slate-700"
+                            >
                               First Aid Diberikan
                             </Label>
                           </div>
@@ -542,7 +655,14 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
                               value={injury.first_aid_description || ''}
                               onChange={(e) => {
                                 setInjuries((prev) =>
-                                  prev.map((inj, i) => (i === index ? { ...inj, first_aid_description: e.target.value } : inj))
+                                  prev.map((inj, i) =>
+                                    i === index
+                                      ? {
+                                          ...inj,
+                                          first_aid_description: e.target.value,
+                                        }
+                                      : inj
+                                  )
                                 );
                               }}
                               rows={2}
@@ -559,11 +679,18 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
                               checked={injury.hospital_required}
                               onCheckedChange={(checked) => {
                                 setInjuries((prev) =>
-                                  prev.map((inj, i) => (i === index ? { ...inj, hospital_required: !!checked } : inj))
+                                  prev.map((inj, i) =>
+                                    i === index
+                                      ? { ...inj, hospital_required: !!checked }
+                                      : inj
+                                  )
                                 );
                               }}
                             />
-                            <Label htmlFor={`hospital-${index}`} className="text-xs font-medium text-slate-700">
+                            <Label
+                              htmlFor={`hospital-${index}`}
+                              className="text-xs font-medium text-slate-700"
+                            >
                               Perlu Perawatan Rumah Sakit
                             </Label>
                           </div>
@@ -573,7 +700,14 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
                               value={injury.hospital_name || ''}
                               onChange={(e) => {
                                 setInjuries((prev) =>
-                                  prev.map((inj, i) => (i === index ? { ...inj, hospital_name: e.target.value } : inj))
+                                  prev.map((inj, i) =>
+                                    i === index
+                                      ? {
+                                          ...inj,
+                                          hospital_name: e.target.value,
+                                        }
+                                      : inj
+                                  )
                                 );
                               }}
                               className="text-xs"
@@ -595,7 +729,9 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-emerald-600" />
-                    <p className="text-sm font-semibold text-emerald-900">AI Report Assistant</p>
+                    <p className="text-sm font-semibold text-emerald-900">
+                      AI Report Assistant
+                    </p>
                   </div>
                   <Button
                     size="sm"
@@ -619,28 +755,33 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
                 </div>
                 {aiReport && (
                   <div className="mt-3 space-y-2 rounded-lg border border-emerald-200 bg-white p-3">
-                    <p className="text-xs font-semibold text-emerald-900">AI Generated Report:</p>
+                    <p className="text-xs font-semibold text-emerald-900">
+                      AI Generated Report:
+                    </p>
                     <div className="space-y-1 text-xs text-slate-700">
                       {aiReport.summary && (
                         <p>
-                          <span className="font-medium">Summary:</span> {aiReport.summary}
+                          <span className="font-medium">Summary:</span>{' '}
+                          {aiReport.summary}
                         </p>
                       )}
                       {aiReport.what && (
                         <p>
-                          <span className="font-medium">What:</span> {aiReport.what}
+                          <span className="font-medium">What:</span>{' '}
+                          {aiReport.what}
                         </p>
                       )}
-                      {aiReport.immediateActions && aiReport.immediateActions.length > 0 && (
-                        <div>
-                          <p className="font-medium">Immediate Actions:</p>
-                          <ul className="ml-4 list-disc">
-                            {aiReport.immediateActions.map((action, i) => (
-                              <li key={i}>{action}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      {aiReport.immediateActions &&
+                        aiReport.immediateActions.length > 0 && (
+                          <div>
+                            <p className="font-medium">Immediate Actions:</p>
+                            <ul className="ml-4 list-disc">
+                              {aiReport.immediateActions.map((action, i) => (
+                                <li key={i}>{action}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                     </div>
                   </div>
                 )}
@@ -650,7 +791,10 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
 
           {/* Witnesses */}
           <div className="space-y-2">
-            <Label htmlFor="witnesses" className="text-sm font-medium text-slate-700">
+            <Label
+              htmlFor="witnesses"
+              className="text-sm font-medium text-slate-700"
+            >
               Saksi (opsional)
             </Label>
             <Input
@@ -711,7 +855,9 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
             <div
               className={cn(
                 'flex items-start gap-2 rounded-lg p-3 text-sm',
-                message.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700',
+                message.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-red-50 text-red-700'
               )}
             >
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
@@ -740,7 +886,9 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
           <Button
             type="submit"
             className="w-full bg-emerald-600 hover:bg-emerald-700"
-            disabled={submitting || !incidentType || !chronology.trim() || !signature}
+            disabled={
+              submitting || !incidentType || !chronology.trim() || !signature
+            }
           >
             {submitting ? (
               <>

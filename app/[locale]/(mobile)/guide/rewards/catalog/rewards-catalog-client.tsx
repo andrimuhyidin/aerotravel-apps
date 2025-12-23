@@ -6,7 +6,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Coins, Filter, Gift, Loader2, ShoppingCart } from 'lucide-react';
+import { AlertCircle, Coins, Gift, Loader2, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -66,9 +66,12 @@ type RewardsCatalogClientProps = {
   locale: string;
 };
 
-export function RewardsCatalogClient({ locale: _locale }: RewardsCatalogClientProps) {
+export function RewardsCatalogClient({
+  locale: _locale,
+}: RewardsCatalogClientProps) {
   const queryClient = useQueryClient();
-  const [selectedReward, setSelectedReward] = useState<RewardCatalogItem | null>(null);
+  const [selectedReward, setSelectedReward] =
+    useState<RewardCatalogItem | null>(null);
   const [showRedeemDialog, setShowRedeemDialog] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -86,29 +89,36 @@ export function RewardsCatalogClient({ locale: _locale }: RewardsCatalogClientPr
   });
 
   // Fetch catalog
-  const { data: catalogData, isLoading: catalogLoading } = useQuery<RewardCatalogData>({
-    queryKey: [...queryKeys.guide.rewardCatalog(), filterType],
-    queryFn: async () => {
-      const url = filterType === 'all' 
-        ? '/api/guide/rewards/catalog'
-        : `/api/guide/rewards/catalog?type=${filterType}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch catalog');
-      return res.json();
-    },
-  });
+  const { data: catalogData, isLoading: catalogLoading } =
+    useQuery<RewardCatalogData>({
+      queryKey: [...queryKeys.guide.rewardCatalog(), filterType],
+      queryFn: async () => {
+        const url =
+          filterType === 'all'
+            ? '/api/guide/rewards/catalog'
+            : `/api/guide/rewards/catalog?type=${filterType}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to fetch catalog');
+        return res.json();
+      },
+    });
 
   // Redeem mutation
   const redeemMutation = useMutation({
     mutationFn: async (catalogId: string) => {
-      const body: { catalog_id: string; delivery_info?: { address: string; phone: string; notes?: string } } = {
+      const body: {
+        catalog_id: string;
+        delivery_info?: { address: string; phone: string; notes?: string };
+      } = {
         catalog_id: catalogId,
       };
 
       // Add delivery info if merchandise
       if (selectedReward?.reward_type === 'merchandise') {
         if (!deliveryAddress.trim() || !deliveryPhone.trim()) {
-          throw new Error('Alamat dan nomor telepon wajib diisi untuk merchandise');
+          throw new Error(
+            'Alamat dan nomor telepon wajib diisi untuk merchandise'
+          );
         }
         body.delivery_info = {
           address: deliveryAddress.trim(),
@@ -130,7 +140,7 @@ export function RewardsCatalogClient({ locale: _locale }: RewardsCatalogClientPr
     },
     onSuccess: (data) => {
       toast.success('Reward berhasil ditukar!', {
-        description: data.voucherCode 
+        description: data.voucherCode
           ? `Kode voucher: ${data.voucherCode}`
           : 'Reward Anda sedang diproses',
       });
@@ -141,8 +151,12 @@ export function RewardsCatalogClient({ locale: _locale }: RewardsCatalogClientPr
       setDeliveryPhone('');
       setDeliveryNotes('');
       // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.guide.rewardPoints() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.guide.rewardRedemptions() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.rewardPoints(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.rewardRedemptions(),
+      });
     },
     onError: (error: Error) => {
       toast.error('Gagal menukar reward', {
@@ -205,53 +219,57 @@ export function RewardsCatalogClient({ locale: _locale }: RewardsCatalogClientPr
 
   return (
     <Container className="py-4">
-        <div className="space-y-6">
-          {/* Header */}
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Katalog Reward</h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Saldo Anda: <span className="font-semibold text-amber-600">{balance.toLocaleString('id-ID')} poin</span>
-            </p>
-          </div>
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Katalog Reward</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Saldo Anda:{' '}
+            <span className="font-semibold text-amber-600">
+              {balance.toLocaleString('id-ID')} poin
+            </span>
+          </p>
+        </div>
 
-          {/* Filters */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2">
+        {/* Filters */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          <Button
+            variant={filterType === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilterType('all')}
+          >
+            Semua
+          </Button>
+          {Object.entries(rewardTypeLabels).map(([type, label]) => (
             <Button
-              variant={filterType === 'all' ? 'default' : 'outline'}
+              key={type}
+              variant={filterType === type ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setFilterType('all')}
+              onClick={() => setFilterType(type)}
             >
-              Semua
+              {label}
             </Button>
-            {Object.entries(rewardTypeLabels).map(([type, label]) => (
-              <Button
-                key={type}
-                variant={filterType === type ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType(type)}
-              >
-                {label}
-              </Button>
-            ))}
-          </div>
+          ))}
+        </div>
 
-          {/* Rewards Grid */}
-          {catalogLoading ? (
-            <LoadingState variant="skeleton" lines={6} />
-          ) : rewards.length === 0 ? (
-            <EmptyState
-              icon={Gift}
-              title="Tidak ada reward tersedia"
-              description="Reward akan muncul di sini saat tersedia"
-              variant="minimal"
-            />
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {rewards
-                .filter((reward) => reward && reward.id && reward.title)
-                .map((reward) => {
-                  const canAfford = balance >= (reward.points_cost ?? 0);
-                  const isOutOfStock = reward.stock_quantity !== null && reward.stock_quantity <= 0;
+        {/* Rewards Grid */}
+        {catalogLoading ? (
+          <LoadingState variant="skeleton" lines={6} />
+        ) : rewards.length === 0 ? (
+          <EmptyState
+            icon={Gift}
+            title="Tidak ada reward tersedia"
+            description="Reward akan muncul di sini saat tersedia"
+            variant="minimal"
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {rewards
+              .filter((reward) => reward && reward.id && reward.title)
+              .map((reward) => {
+                const canAfford = balance >= (reward.points_cost ?? 0);
+                const isOutOfStock =
+                  reward.stock_quantity !== null && reward.stock_quantity <= 0;
 
                 return (
                   <Card
@@ -269,28 +287,30 @@ export function RewardsCatalogClient({ locale: _locale }: RewardsCatalogClientPr
                           <img
                             src={reward.image_url}
                             alt={reward.title}
-                            className="h-20 w-20 rounded-lg object-cover flex-shrink-0"
+                            className="h-20 w-20 flex-shrink-0 rounded-lg object-cover"
                           />
                         ) : (
-                          <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-slate-100 flex-shrink-0">
+                          <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
                             <Gift className="h-8 w-8 text-slate-400" />
                           </div>
                         )}
 
                         {/* Content */}
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
+                            <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
                                 <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                    rewardTypeColors[reward.reward_type] || 'bg-slate-100 text-slate-700'
+                                  className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${
+                                    rewardTypeColors[reward.reward_type] ||
+                                    'bg-slate-100 text-slate-700'
                                   }`}
                                 >
-                                  {rewardTypeLabels[reward.reward_type] || reward.reward_type}
+                                  {rewardTypeLabels[reward.reward_type] ||
+                                    reward.reward_type}
                                 </span>
                                 {isOutOfStock && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                                  <span className="inline-flex items-center rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
                                     Habis
                                   </span>
                                 )}
@@ -299,13 +319,14 @@ export function RewardsCatalogClient({ locale: _locale }: RewardsCatalogClientPr
                                 {reward.title}
                               </h3>
                               {reward.description && (
-                                <p className="mt-1 text-sm text-slate-600 line-clamp-2">
+                                <p className="mt-1 line-clamp-2 text-sm text-slate-600">
                                   {reward.description}
                                 </p>
                               )}
                               {reward.cash_value && (
                                 <p className="mt-2 text-sm font-semibold text-emerald-600">
-                                  Nilai: Rp {reward.cash_value.toLocaleString('id-ID')}
+                                  Nilai: Rp{' '}
+                                  {reward.cash_value.toLocaleString('id-ID')}
                                 </p>
                               )}
                             </div>
@@ -316,16 +337,22 @@ export function RewardsCatalogClient({ locale: _locale }: RewardsCatalogClientPr
                             <div className="flex items-center gap-2">
                               <Coins className="h-4 w-4 text-amber-600" />
                               <span className="text-lg font-bold text-slate-900">
-                                {reward.points_cost.toLocaleString('id-ID')} poin
+                                {reward.points_cost.toLocaleString('id-ID')}{' '}
+                                poin
                               </span>
                             </div>
                             <Button
                               size="sm"
                               onClick={() => handleRedeem(reward)}
-                              disabled={!canAfford || isOutOfStock || redeemMutation.isPending}
+                              disabled={
+                                !canAfford ||
+                                isOutOfStock ||
+                                redeemMutation.isPending
+                              }
                               className="bg-amber-600 hover:bg-amber-700"
                             >
-                              {redeemMutation.isPending && selectedReward?.id === reward.id ? (
+                              {redeemMutation.isPending &&
+                              selectedReward?.id === reward.id ? (
                                 <>
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                   Memproses...
@@ -340,7 +367,7 @@ export function RewardsCatalogClient({ locale: _locale }: RewardsCatalogClientPr
                           </div>
 
                           {!canAfford && (
-                            <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                            <p className="mt-2 flex items-center gap-1 text-xs text-red-600">
                               <AlertCircle className="h-3 w-3" />
                               Poin tidak cukup
                             </p>
@@ -351,121 +378,145 @@ export function RewardsCatalogClient({ locale: _locale }: RewardsCatalogClientPr
                   </Card>
                 );
               })}
+          </div>
+        )}
+      </div>
+
+      {/* Redeem Confirmation Dialog */}
+      <Dialog open={showRedeemDialog} onOpenChange={setShowRedeemDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tukar Reward</DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menukar reward ini?
+            </DialogDescription>
+          </DialogHeader>
+          {selectedReward && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  {selectedReward.title}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {selectedReward.description}
+                </p>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                <span className="text-sm text-slate-600">
+                  Poin yang digunakan:
+                </span>
+                <span className="text-lg font-bold text-slate-900">
+                  {selectedReward.points_cost.toLocaleString('id-ID')} poin
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                <span className="text-sm text-slate-600">
+                  Saldo setelah penukaran:
+                </span>
+                <span className="text-lg font-bold text-emerald-600">
+                  {(balance - selectedReward.points_cost).toLocaleString(
+                    'id-ID'
+                  )}{' '}
+                  poin
+                </span>
+              </div>
+              {selectedReward.terms_conditions && (
+                <div className="rounded-lg bg-amber-50 p-3">
+                  <p className="text-xs font-medium text-amber-900">
+                    Syarat & Ketentuan:
+                  </p>
+                  <p className="mt-1 text-xs text-amber-700">
+                    {selectedReward.terms_conditions}
+                  </p>
+                </div>
+              )}
+
+              {/* Delivery Info Form for Merchandise */}
+              {selectedReward.reward_type === 'merchandise' && (
+                <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
+                  <div>
+                    <Label
+                      htmlFor="delivery-address"
+                      className="text-sm font-medium text-slate-700"
+                    >
+                      Alamat Pengiriman <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      id="delivery-address"
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      placeholder="Masukkan alamat lengkap untuk pengiriman"
+                      required
+                      className="mt-1.5"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label
+                      htmlFor="delivery-phone"
+                      className="text-sm font-medium text-slate-700"
+                    >
+                      Nomor Telepon <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="delivery-phone"
+                      type="tel"
+                      value={deliveryPhone}
+                      onChange={(e) => setDeliveryPhone(e.target.value)}
+                      placeholder="08xxxxxxxxxx"
+                      required
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div>
+                    <Label
+                      htmlFor="delivery-notes"
+                      className="text-sm font-medium text-slate-700"
+                    >
+                      Catatan (Opsional)
+                    </Label>
+                    <Textarea
+                      id="delivery-notes"
+                      value={deliveryNotes}
+                      onChange={(e) => setDeliveryNotes(e.target.value)}
+                      placeholder="Catatan tambahan untuk kurir"
+                      className="mt-1.5"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </div>
-
-        {/* Redeem Confirmation Dialog */}
-        <Dialog open={showRedeemDialog} onOpenChange={setShowRedeemDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Tukar Reward</DialogTitle>
-              <DialogDescription>
-                Apakah Anda yakin ingin menukar reward ini?
-              </DialogDescription>
-            </DialogHeader>
-            {selectedReward && (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">{selectedReward.title}</p>
-                  <p className="mt-1 text-sm text-slate-600">{selectedReward.description}</p>
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
-                  <span className="text-sm text-slate-600">Poin yang digunakan:</span>
-                  <span className="text-lg font-bold text-slate-900">
-                    {selectedReward.points_cost.toLocaleString('id-ID')} poin
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
-                  <span className="text-sm text-slate-600">Saldo setelah penukaran:</span>
-                  <span className="text-lg font-bold text-emerald-600">
-                    {(balance - selectedReward.points_cost).toLocaleString('id-ID')} poin
-                  </span>
-                </div>
-                {selectedReward.terms_conditions && (
-                  <div className="rounded-lg bg-amber-50 p-3">
-                    <p className="text-xs font-medium text-amber-900">Syarat & Ketentuan:</p>
-                    <p className="mt-1 text-xs text-amber-700">{selectedReward.terms_conditions}</p>
-                  </div>
-                )}
-
-                {/* Delivery Info Form for Merchandise */}
-                {selectedReward.reward_type === 'merchandise' && (
-                  <div className="space-y-3 mt-4 pt-4 border-t border-slate-200">
-                    <div>
-                      <Label htmlFor="delivery-address" className="text-sm font-medium text-slate-700">
-                        Alamat Pengiriman <span className="text-red-500">*</span>
-                      </Label>
-                      <Textarea
-                        id="delivery-address"
-                        value={deliveryAddress}
-                        onChange={(e) => setDeliveryAddress(e.target.value)}
-                        placeholder="Masukkan alamat lengkap untuk pengiriman"
-                        required
-                        className="mt-1.5"
-                        rows={3}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="delivery-phone" className="text-sm font-medium text-slate-700">
-                        Nomor Telepon <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="delivery-phone"
-                        type="tel"
-                        value={deliveryPhone}
-                        onChange={(e) => setDeliveryPhone(e.target.value)}
-                        placeholder="08xxxxxxxxxx"
-                        required
-                        className="mt-1.5"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="delivery-notes" className="text-sm font-medium text-slate-700">
-                        Catatan (Opsional)
-                      </Label>
-                      <Textarea
-                        id="delivery-notes"
-                        value={deliveryNotes}
-                        onChange={(e) => setDeliveryNotes(e.target.value)}
-                        placeholder="Catatan tambahan untuk kurir"
-                        className="mt-1.5"
-                        rows={2}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setShowRedeemDialog(false)}
-                disabled={redeemMutation.isPending}
-              >
-                Batal
-              </Button>
-              <Button
-                onClick={confirmRedeem}
-                disabled={
-                  redeemMutation.isPending ||
-                  (selectedReward?.reward_type === 'merchandise' && (!deliveryAddress.trim() || !deliveryPhone.trim()))
-                }
-                className="bg-amber-600 hover:bg-amber-700"
-              >
-                {redeemMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Memproses...
-                  </>
-                ) : (
-                  'Konfirmasi'
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowRedeemDialog(false)}
+              disabled={redeemMutation.isPending}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={confirmRedeem}
+              disabled={
+                redeemMutation.isPending ||
+                (selectedReward?.reward_type === 'merchandise' &&
+                  (!deliveryAddress.trim() || !deliveryPhone.trim()))
+              }
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {redeemMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Memproses...
+                </>
+              ) : (
+                'Konfirmasi'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Container>
   );
 }
-

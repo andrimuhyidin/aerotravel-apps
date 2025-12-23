@@ -18,9 +18,11 @@ export async function checkGeolocationPermission(): Promise<PermissionState> {
   }
 
   try {
-    const result = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+    const result = await navigator.permissions.query({
+      name: 'geolocation' as PermissionName,
+    });
     return result.state;
-  } catch (error) {
+  } catch (_error) {
     // Fallback: try to get current position
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
@@ -37,7 +39,7 @@ export async function checkGeolocationPermission(): Promise<PermissionState> {
             resolve('prompt');
           }
         },
-        { timeout: 1000 },
+        { timeout: 1000 }
       );
     });
   }
@@ -63,7 +65,8 @@ export function getPermissionStatusInfo(state: PermissionState): {
     case 'denied':
       return {
         label: 'Izin Lokasi Ditolak',
-        description: 'Aktifkan izin lokasi di pengaturan browser untuk check-in',
+        description:
+          'Aktifkan izin lokasi di pengaturan browser untuk check-in',
         color: 'red',
         icon: 'x',
       };
@@ -108,7 +111,7 @@ export async function requestGeolocationPermission(): Promise<{
         }
         resolve({ granted: false, error: errorMessage });
       },
-      { timeout: 5000, enableHighAccuracy: true },
+      { timeout: 5000, enableHighAccuracy: true }
     );
   });
 }

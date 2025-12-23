@@ -5,7 +5,7 @@
  * This is an alternative when access token is not available
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 

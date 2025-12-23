@@ -1,7 +1,7 @@
 /**
  * Attendance Page
  * Route: /[locale]/guide/attendance
- * 
+ *
  * GPS Geofencing Check-in/Check-out untuk Guide
  * PRD 4.1.C - GPS Attendance & Auto-Penalty
  */
@@ -28,11 +28,13 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { locale } = await params;
   setRequestLocale(locale);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
-  
+
   return {
     title: 'Absensi - Aero Travel',
     alternates: {
@@ -57,7 +59,8 @@ export default async function GuideAttendancePage({ params }: PageProps) {
   const today = new Date().toISOString().slice(0, 10);
   const { data: assignments } = await typedSupabase
     .from('trip_guides')
-    .select(`
+    .select(
+      `
       trip_id,
       trip:trips(
         id,
@@ -75,7 +78,8 @@ export default async function GuideAttendancePage({ params }: PageProps) {
           meeting_point
         )
       )
-    `)
+    `
+    )
     .eq('guide_id', user.id)
     .order('trip_id', { ascending: true });
 
@@ -130,20 +134,32 @@ export default async function GuideAttendancePage({ params }: PageProps) {
     );
   }
 
+  // Get geofence radius from settings (default: 5000000 meters = 5000 km for all Indonesia)
+  const { data: geofenceSetting } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('key', 'geofence_radius_meters')
+    .is('branch_id', null)
+    .single();
+
+  const radiusMeters = geofenceSetting?.value
+    ? parseInt(geofenceSetting.value)
+    : 5000000;
+
   // Default meeting point - bisa di-mapping per branch/cabang nanti
   const meetingPoint = {
     id: 'default',
     name: 'Dermaga Ketapang',
     coordinates: {
       latitude: -5.4294,
-      longitude: 105.2620,
+      longitude: 105.262,
     },
-    radiusMeters: 50,
-  } as const;
+    radiusMeters,
+  };
 
   // Use first trip as default
   const selectedTrip = trips[0];
-  
+
   if (!selectedTrip) {
     return (
       <Container className="py-6">
@@ -163,18 +179,24 @@ export default async function GuideAttendancePage({ params }: PageProps) {
   return (
     <Container className="py-4">
       <div className="mb-4">
-        <h1 className="text-xl font-bold leading-tight text-slate-900">Absensi GPS</h1>
+        <h1 className="text-xl font-bold leading-tight text-slate-900">
+          Absensi GPS
+        </h1>
         {trips.length > 1 && (
-          <p className="mt-1 text-sm text-slate-600">{trips.length} trip hari ini</p>
+          <p className="mt-1 text-sm text-slate-600">
+            {trips.length} trip hari ini
+          </p>
         )}
       </div>
 
       <AttendanceClient
         tripId={selectedTrip.id}
         guideId={user.id}
-        tripStartTime={selectedTrip.departure_time 
-          ? `${selectedTrip.trip_date}T${selectedTrip.departure_time}`
-          : `${selectedTrip.trip_date}T07:30:00`}
+        tripStartTime={
+          selectedTrip.departure_time
+            ? `${selectedTrip.trip_date}T${selectedTrip.departure_time}`
+            : `${selectedTrip.trip_date}T07:30:00`
+        }
         meetingPoint={meetingPoint}
         trips={trips.length > 1 ? trips : undefined}
         locale={locale}

@@ -72,7 +72,11 @@ Return JSON array:
 
 Return ONLY the JSON array, no additional text.`;
 
-    const response = await generateContent(prompt, undefined, 'gemini-1.5-pro');
+    const response = await generateContent(
+      prompt,
+      undefined,
+      'gemini-1.5-flash'
+    );
 
     try {
       const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
@@ -102,13 +106,15 @@ Return ONLY the JSON array, no additional text.`;
  */
 export async function getMaintenanceSchedule(
   equipment: EquipmentUsage[]
-): Promise<Array<{
-  equipmentId: string;
-  equipmentName: string;
-  nextMaintenance: string;
-  frequency: 'weekly' | 'monthly' | 'quarterly' | 'as_needed';
-  reason: string;
-}>> {
+): Promise<
+  Array<{
+    equipmentId: string;
+    equipmentName: string;
+    nextMaintenance: string;
+    frequency: 'weekly' | 'monthly' | 'quarterly' | 'as_needed';
+    reason: string;
+  }>
+> {
   try {
     const equipmentList = equipment
       .map(
@@ -139,7 +145,11 @@ Return JSON array:
 
 Return ONLY the JSON array, no additional text.`;
 
-    const response = await generateContent(prompt, undefined, 'gemini-1.5-flash');
+    const response = await generateContent(
+      prompt,
+      undefined,
+      'gemini-1.5-flash'
+    );
 
     try {
       const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
@@ -153,32 +163,44 @@ Return ONLY the JSON array, no additional text.`;
   }
 }
 
-function getFallbackPredictions(equipment: EquipmentUsage[]): MaintenancePrediction[] {
+function getFallbackPredictions(
+  equipment: EquipmentUsage[]
+): MaintenancePrediction[] {
   return equipment
     .filter((eq) => {
       // High usage or no maintenance
-      const daysSinceLastUse = Math.floor(
-        (new Date().getTime() - new Date(eq.lastUsed).getTime()) / (1000 * 60 * 60 * 24)
+      const _daysSinceLastUse = Math.floor(
+        (new Date().getTime() - new Date(eq.lastUsed).getTime()) /
+          (1000 * 60 * 60 * 24)
       );
       const daysSinceMaintenance = eq.lastMaintenance
         ? Math.floor(
-            (new Date().getTime() - new Date(eq.lastMaintenance).getTime()) / (1000 * 60 * 60 * 24)
+            (new Date().getTime() - new Date(eq.lastMaintenance).getTime()) /
+              (1000 * 60 * 60 * 24)
           )
         : Infinity;
 
-      return eq.usageCount > 50 || daysSinceMaintenance > 90 || eq.condition === 'poor';
+      return (
+        eq.usageCount > 50 ||
+        daysSinceMaintenance > 90 ||
+        eq.condition === 'poor'
+      );
     })
     .map((eq) => {
       const daysSinceMaintenance = eq.lastMaintenance
         ? Math.floor(
-            (new Date().getTime() - new Date(eq.lastMaintenance).getTime()) / (1000 * 60 * 60 * 24)
+            (new Date().getTime() - new Date(eq.lastMaintenance).getTime()) /
+              (1000 * 60 * 60 * 24)
           )
         : Infinity;
 
       let urgency: 'low' | 'medium' | 'high' | 'critical' = 'medium';
       let issueProbability = 50;
 
-      if ((eq.condition === 'poor' && eq.reportedIssues > 5) || eq.reportedIssues > 10) {
+      if (
+        (eq.condition === 'poor' && eq.reportedIssues > 5) ||
+        eq.reportedIssues > 10
+      ) {
         urgency = 'critical';
         issueProbability = 95;
       } else if (eq.condition === 'poor' || eq.reportedIssues > 3) {
@@ -201,7 +223,9 @@ function getFallbackPredictions(equipment: EquipmentUsage[]): MaintenancePredict
         predictedIssue: 'General wear and tear or maintenance needed',
         recommendedAction: 'Schedule maintenance inspection',
         urgency,
-        estimatedMaintenanceDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        estimatedMaintenanceDate: new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000
+        )
           .toISOString()
           .split('T')[0]!,
         safetyAlert: isHighOrCritical,
@@ -218,9 +242,10 @@ function getFallbackSchedule(equipment: EquipmentUsage[]): Array<{
   reason: string;
 }> {
   return equipment.map((eq) => {
-    const daysSinceMaintenance = eq.lastMaintenance
+    const _daysSinceMaintenance = eq.lastMaintenance
       ? Math.floor(
-          (new Date().getTime() - new Date(eq.lastMaintenance).getTime()) / (1000 * 60 * 60 * 24)
+          (new Date().getTime() - new Date(eq.lastMaintenance).getTime()) /
+            (1000 * 60 * 60 * 24)
         )
       : Infinity;
 
@@ -241,7 +266,9 @@ function getFallbackSchedule(equipment: EquipmentUsage[]): Array<{
     return {
       equipmentId: eq.equipmentId,
       equipmentName: eq.equipmentName,
-      nextMaintenance: new Date(Date.now() + nextMaintenanceDays * 24 * 60 * 60 * 1000)
+      nextMaintenance: new Date(
+        Date.now() + nextMaintenanceDays * 24 * 60 * 60 * 1000
+      )
         .toISOString()
         .split('T')[0]!,
       frequency,

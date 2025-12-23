@@ -1,6 +1,5 @@
 import { config } from 'dotenv';
-import { readFileSync } from 'fs';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
 import pg from 'pg';
 import { fileURLToPath } from 'url';
 

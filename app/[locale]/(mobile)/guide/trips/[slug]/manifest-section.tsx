@@ -10,15 +10,13 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-    ArrowLeftRight,
-    CheckCircle,
-    Download,
-    Info,
-    Lightbulb,
-    Loader2,
-    Search,
-    Shield,
-    Ship
+  ArrowLeftRight,
+  CheckCircle,
+  Download,
+  Lightbulb,
+  Loader2,
+  Search,
+  Ship,
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -26,16 +24,20 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { canViewManifest, type CrewRole } from '@/lib/guide/crew-permissions';
-import { getTripManifest, type Passenger, type TripManifest } from '@/lib/guide/manifest';
+import {
+  getTripManifest,
+  type Passenger,
+  type TripManifest,
+} from '@/lib/guide/manifest';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 
@@ -68,10 +70,19 @@ function maskPhone(phone: string): string {
   return `****${last4}`;
 }
 
-export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: ManifestSectionProps) {
+export function ManifestSection({
+  tripId,
+  locale,
+  crewRole,
+  isLeadGuide,
+}: ManifestSectionProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'pending' | 'boarded' | 'returned'>('all');
-  const [editingPassenger, setEditingPassenger] = useState<Passenger | null>(null);
+  const [filter, setFilter] = useState<
+    'all' | 'pending' | 'boarded' | 'returned'
+  >('all');
+  const [editingPassenger, setEditingPassenger] = useState<Passenger | null>(
+    null
+  );
   const queryClient = useQueryClient();
 
   const manifestPermission = canViewManifest((crewRole as CrewRole) ?? null);
@@ -83,7 +94,6 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
     queryFn: () => getTripManifest(tripId),
   });
 
-
   // Update boarding status
   const boardMutation = useMutation({
     mutationFn: async (passengerId: string) => {
@@ -92,8 +102,12 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
     },
     onSuccess: (result) => {
       toast.success(result.message || 'Penumpang berhasil ditandai naik');
-      void queryClient.invalidateQueries({ queryKey: ['guide', 'manifest', tripId] });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.guide.tripsDetail(tripId) });
+      void queryClient.invalidateQueries({
+        queryKey: ['guide', 'manifest', tripId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.tripsDetail(tripId),
+      });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Gagal menandai penumpang');
@@ -108,18 +122,27 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
     },
     onSuccess: (result) => {
       toast.success(result.message || 'Penumpang berhasil ditandai kembali');
-      void queryClient.invalidateQueries({ queryKey: ['guide', 'manifest', tripId] });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.guide.tripsDetail(tripId) });
+      void queryClient.invalidateQueries({
+        queryKey: ['guide', 'manifest', tripId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.tripsDetail(tripId),
+      });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Gagal menandai penumpang');
     },
   });
 
-
   // Update passenger details
   const updatePassengerMutation = useMutation({
-    mutationFn: async ({ passengerId, details }: { passengerId: string; details: Partial<Passenger> }) => {
+    mutationFn: async ({
+      passengerId,
+      details,
+    }: {
+      passengerId: string;
+      details: Partial<Passenger>;
+    }) => {
       const { updatePassengerDetails } = await import('@/lib/guide/manifest');
       return await updatePassengerDetails(tripId, passengerId, {
         notes: details.notes,
@@ -130,7 +153,9 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
     onSuccess: (result) => {
       toast.success(result.message || 'Detail penumpang berhasil diperbarui');
       setEditingPassenger(null);
-      void queryClient.invalidateQueries({ queryKey: ['guide', 'manifest', tripId] });
+      void queryClient.invalidateQueries({
+        queryKey: ['guide', 'manifest', tripId],
+      });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Gagal memperbarui detail penumpang');
@@ -139,7 +164,9 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
 
   const filteredPassengers = (manifest?.passengers ?? []).filter((p) => {
     if (!p) return false;
-    const matchesSearch = (p.name ?? '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (p.name ?? '')
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
     if (filter === 'pending') return (p.status ?? 'pending') === 'pending';
     if (filter === 'boarded') return (p.status ?? 'pending') === 'boarded';
@@ -176,7 +203,9 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
             className="h-10 w-10 flex-shrink-0"
             onClick={async () => {
               try {
-                const response = await fetch(`/api/guide/manifest/pdf?tripId=${tripId}`);
+                const response = await fetch(
+                  `/api/guide/manifest/pdf?tripId=${tripId}`
+                );
                 if (!response.ok) {
                   throw new Error('Failed to download PDF');
                 }
@@ -190,7 +219,7 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
                 toast.success('Manifest PDF berhasil diunduh');
-              } catch (error) {
+              } catch (_error) {
                 toast.error('Gagal mengunduh PDF');
               }
             }}
@@ -212,7 +241,7 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
                 'whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-medium transition-all active:scale-95',
                 filter === tab.key
                   ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               )}
               onClick={() => setFilter(tab.key as typeof filter)}
             >
@@ -230,7 +259,8 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
               Daftar Penumpang
             </CardTitle>
             <span className="text-xs font-medium text-slate-500">
-              {filteredPassengers.length} dari {manifest?.passengers?.length ?? 0}
+              {filteredPassengers.length} dari{' '}
+              {manifest?.passengers?.length ?? 0}
             </span>
           </div>
         </CardHeader>
@@ -238,11 +268,16 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
           {filteredPassengers.length === 0 ? (
             <div className="p-6 text-center">
               <p className="text-sm text-slate-500">
-                {searchQuery ? 'Tidak ada penumpang yang sesuai' : 'Tidak ada penumpang'}
+                {searchQuery
+                  ? 'Tidak ada penumpang yang sesuai'
+                  : 'Tidak ada penumpang'}
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100" style={{ userSelect: 'none' } as React.CSSProperties}>
+            <div
+              className="divide-y divide-slate-100"
+              style={{ userSelect: 'none' } as React.CSSProperties}
+            >
               {filteredPassengers.map((passenger, index) => {
                 if (!passenger?.id) return null;
                 const passengerName = passenger.name ?? 'Unknown';
@@ -252,17 +287,19 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
                 const passengerNotes = passenger.notes;
                 const passengerAllergy = passenger.allergy;
                 const passengerSpecialRequest = passenger.specialRequest;
-                
+
                 return (
                   <div
                     key={passenger.id}
                     className="flex min-h-[64px] items-center justify-between px-4 py-3 transition-colors hover:bg-slate-50"
-                    style={{ 
-                      userSelect: 'none',
-                      WebkitUserSelect: 'none',
-                      MozUserSelect: 'none',
-                      msUserSelect: 'none',
-                    } as React.CSSProperties}
+                    style={
+                      {
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
+                        MozUserSelect: 'none',
+                        msUserSelect: 'none',
+                      } as React.CSSProperties
+                    }
                     onContextMenu={(e) => e.preventDefault()}
                     onCopy={(e) => e.preventDefault()}
                   >
@@ -274,19 +311,21 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
                             ? 'bg-emerald-100 text-emerald-700'
                             : passengerStatus === 'boarded'
                               ? 'bg-blue-100 text-blue-700'
-                              : 'bg-slate-100 text-slate-600',
+                              : 'bg-slate-100 text-slate-600'
                         )}
                       >
                         {index + 1}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p 
+                        <p
                           className="font-semibold text-slate-900"
                           style={{ userSelect: 'none' } as React.CSSProperties}
                         >
-                          {isMasked ? maskPassengerName(passengerName) : passengerName}
+                          {isMasked
+                            ? maskPassengerName(passengerName)
+                            : passengerName}
                         </p>
-                        <p 
+                        <p
                           className="mt-0.5 text-xs text-slate-500"
                           style={{ userSelect: 'none' } as React.CSSProperties}
                         >
@@ -302,15 +341,24 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
                             </span>
                           )}
                         </p>
-                        {!isMasked && (passengerNotes || passengerAllergy || passengerSpecialRequest) && (
-                          <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-500">
-                            {passengerNotes && <span>Catatan: {passengerNotes}. </span>}
-                            {passengerAllergy && <span>Alergi: {passengerAllergy}. </span>}
-                            {passengerSpecialRequest && (
-                              <span>Permintaan: {passengerSpecialRequest}.</span>
-                            )}
-                          </p>
-                        )}
+                        {!isMasked &&
+                          (passengerNotes ||
+                            passengerAllergy ||
+                            passengerSpecialRequest) && (
+                            <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-500">
+                              {passengerNotes && (
+                                <span>Catatan: {passengerNotes}. </span>
+                              )}
+                              {passengerAllergy && (
+                                <span>Alergi: {passengerAllergy}. </span>
+                              )}
+                              {passengerSpecialRequest && (
+                                <span>
+                                  Permintaan: {passengerSpecialRequest}.
+                                </span>
+                              )}
+                            </p>
+                          )}
                       </div>
                     </div>
 
@@ -364,19 +412,28 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
       </Card>
 
       {/* Edit Passenger Dialog */}
-      <Dialog open={!!editingPassenger} onOpenChange={(open) => !open && setEditingPassenger(null)}>
+      <Dialog
+        open={!!editingPassenger}
+        onOpenChange={(open) => !open && setEditingPassenger(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Detail Penumpang</DialogTitle>
             <DialogDescription>
-              {editingPassenger?.name} • {(editingPassenger && (passengerTypeLabels[editingPassenger.type] ?? editingPassenger.type)) || ''}
+              {editingPassenger?.name} •{' '}
+              {(editingPassenger &&
+                (passengerTypeLabels[editingPassenger.type] ??
+                  editingPassenger.type)) ||
+                ''}
             </DialogDescription>
           </DialogHeader>
           {editingPassenger && (
             <div className="space-y-4">
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-medium text-slate-600">Catatan</label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-600">
+                    Catatan
+                  </label>
                   <Button
                     type="button"
                     variant="ghost"
@@ -397,7 +454,9 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
                           const data = await res.json();
                           if (data.suggestedNotes) {
                             setEditingPassenger((prev) =>
-                              prev ? { ...prev, notes: data.suggestedNotes } : prev,
+                              prev
+                                ? { ...prev, notes: data.suggestedNotes }
+                                : prev
                             );
                           }
                         }
@@ -416,34 +475,38 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
                   value={editingPassenger.notes ?? ''}
                   onChange={(e) =>
                     setEditingPassenger((prev) =>
-                      prev ? { ...prev, notes: e.target.value } : prev,
+                      prev ? { ...prev, notes: e.target.value } : prev
                     )
                   }
                   rows={2}
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-slate-600">Alergi</label>
+                <label className="text-xs font-medium text-slate-600">
+                  Alergi
+                </label>
                 <Input
                   className="mt-1 h-9 text-xs"
                   placeholder="Mis. seafood, obat tertentu, dll."
                   value={editingPassenger.allergy ?? ''}
                   onChange={(e) =>
                     setEditingPassenger((prev) =>
-                      prev ? { ...prev, allergy: e.target.value } : prev,
+                      prev ? { ...prev, allergy: e.target.value } : prev
                     )
                   }
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-slate-600">Permintaan Khusus</label>
+                <label className="text-xs font-medium text-slate-600">
+                  Permintaan Khusus
+                </label>
                 <Input
                   className="mt-1 h-9 text-xs"
                   placeholder="Mis. vegetarian, butuh bantuan khusus, dll."
                   value={editingPassenger.specialRequest ?? ''}
                   onChange={(e) =>
                     setEditingPassenger((prev) =>
-                      prev ? { ...prev, specialRequest: e.target.value } : prev,
+                      prev ? { ...prev, specialRequest: e.target.value } : prev
                     )
                   }
                 />
@@ -485,7 +548,6 @@ export function ManifestSection({ tripId, locale, crewRole, isLeadGuide }: Manif
           )}
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

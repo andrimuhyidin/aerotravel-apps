@@ -15,13 +15,13 @@ function getGeminiClient(): GoogleGenerativeAI {
 
 /**
  * Gemini Model Selection (December 2025):
- * - gemini-1.5-pro: Recommended for production - More capable, best for complex reasoning
- * - gemini-1.5-flash: Fast, for high-volume tasks
+ * - gemini-1.5-flash: Fast, recommended for Google AI Studio (free tier)
+ * - gemini-1.5-pro: More capable, requires paid API (not available in v1beta)
  * - gemini-2.0-flash-exp: Latest experimental, fastest (use with caution in production)
- * 
- * Default: gemini-1.5-pro (most stable and capable for Google AI Studio)
+ *
+ * Default: gemini-1.5-flash (most compatible with Google AI Studio free tier)
  */
-const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-pro';
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
 export type ChatMessage = {
   role: 'user' | 'model';
@@ -75,6 +75,43 @@ export async function generateContent(
 
   const result = await model.generateContent(prompt);
   return result.response.text();
+}
+
+/**
+ * Generate content with fallback models
+ * Tries primary model first, then falls back to alternative models
+ */
+export async function generateContentWithFallback(
+  prompt: string,
+  systemPrompt?: string,
+  primaryModel?: string
+): Promise<string> {
+  const models = [
+    primaryModel || DEFAULT_MODEL,
+    'gemini-pro', // Fallback to older stable model
+    'gemini-1.5-flash', // Try again with explicit name
+  ].filter((m, i, arr) => arr.indexOf(m) === i); // Remove duplicates
+
+  let lastError: Error | null = null;
+
+  for (const model of models) {
+    try {
+      const client = getGeminiClient();
+      const geminiModel = client.getGenerativeModel({
+        model,
+        systemInstruction: systemPrompt,
+      });
+      const result = await geminiModel.generateContent(prompt);
+      return result.response.text();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      // Continue to next model
+      continue;
+    }
+  }
+
+  // If all models fail, throw the last error
+  throw lastError || new Error('All Gemini models failed');
 }
 
 /**

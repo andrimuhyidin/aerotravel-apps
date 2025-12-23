@@ -8,10 +8,8 @@
 import {
   ArrowRight,
   BarChart3,
-  Building2,
   CheckCircle,
   Clock,
-  CreditCard,
   FileText,
   Shield,
   TrendingUp,
@@ -78,44 +76,47 @@ export function CorporateLandingContent({
     <div className="flex min-h-[100vh] flex-col bg-background">
       <main className="flex-1 pb-24">
         {/* Hero Section */}
-        <Section className="bg-gradient-to-br from-primary/10 via-primary/5 to-teal-50" spacing="lg">
+        <Section
+          className="bg-gradient-to-br from-primary/10 via-primary/5 to-teal-50"
+          spacing="lg"
+        >
           <Container>
             <div className="text-center">
-              <h1 className="mb-4 text-2xl sm:text-3xl font-bold text-foreground">
+              <h1 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl">
                 Program Corporate Travel
               </h1>
-              <p className="mb-6 text-sm sm:text-base text-muted-foreground">
+              <p className="mb-6 text-sm text-muted-foreground sm:text-base">
                 Kelola perjalanan bisnis karyawan dengan mudah dan efisien.
                 Sistem terintegrasi untuk perusahaan dengan invoice otomatis
               </p>
               <div className="flex flex-col gap-2">
-              {hasCorporateRole ? (
-                <Button asChild size="lg" className="w-full">
-                  <Link href={`/${locale}/corporate`}>
-                    Buka Dashboard Corporate
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              ) : (
-                <>
+                {hasCorporateRole ? (
                   <Button asChild size="lg" className="w-full">
-                    <Link href={`/${locale}/corporate/apply`}>
-                      Daftar Corporate
+                    <Link href={`/${locale}/corporate`}>
+                      Buka Dashboard Corporate
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-full justify-center text-xs text-muted-foreground"
-                  >
-                    <Link href={`/${locale}/corporate`}>
-                      Sudah punya akses? Lihat dashboard
-                    </Link>
-                  </Button>
-                </>
-              )}
+                ) : (
+                  <>
+                    <Button asChild size="lg" className="w-full">
+                      <Link href={`/${locale}/corporate/apply`}>
+                        Daftar Corporate
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-full justify-center text-xs text-muted-foreground"
+                    >
+                      <Link href={`/${locale}/corporate`}>
+                        Sudah punya akses? Lihat dashboard
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </Container>
@@ -128,11 +129,12 @@ export function CorporateLandingContent({
               <p className="text-xs font-medium uppercase tracking-wide text-primary">
                 Untuk HR & finance
               </p>
-              <h2 className="mt-1 text-xl sm:text-2xl font-bold text-foreground">
+              <h2 className="mt-1 text-xl font-bold text-foreground sm:text-2xl">
                 Keuntungan Program Corporate
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Satu platform untuk kontrol budget, approval, dan laporan perjalanan bisnis.
+                Satu platform untuk kontrol budget, approval, dan laporan
+                perjalanan bisnis.
               </p>
             </div>
             <div className="space-y-3">
@@ -165,11 +167,12 @@ export function CorporateLandingContent({
         <Section className="bg-muted/50" spacing="lg">
           <Container>
             <div className="mb-4 text-left">
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+              <h2 className="text-xl font-bold text-foreground sm:text-2xl">
                 Fitur & Layanan
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Fitur yang biasa dipakai perusahaan untuk mengelola corporate travel.
+                Fitur yang biasa dipakai perusahaan untuk mengelola corporate
+                travel.
               </p>
             </div>
             <div className="space-y-2.5">
@@ -191,33 +194,32 @@ export function CorporateLandingContent({
       <div className="sticky bottom-0 z-20 border-t border-primary/20 bg-gradient-to-r from-primary to-primary/90 px-4 pb-4 pt-3">
         <Container>
           <div className="flex flex-col gap-2 text-center">
-          <div className="space-y-1">
-            <h2 className="text-base font-semibold text-primary-foreground">
-              Siap optimalkan corporate travel?
-            </h2>
-            <p className="text-xs text-primary-foreground/90">
-              Integrasi mudah dengan proses approval dan pelaporan yang rapi.
-            </p>
-          </div>
-          {!hasCorporateRole ? (
-            <Button asChild size="lg" variant="secondary" className="w-full">
-              <Link href={`/${locale}/corporate/apply`}>
-                Daftar Corporate
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          ) : (
-            <Button asChild size="lg" variant="secondary" className="w-full">
-              <Link href={`/${locale}/corporate`}>
-                Buka Dashboard Corporate
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          )}
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold text-primary-foreground">
+                Siap optimalkan corporate travel?
+              </h2>
+              <p className="text-xs text-primary-foreground/90">
+                Integrasi mudah dengan proses approval dan pelaporan yang rapi.
+              </p>
+            </div>
+            {!hasCorporateRole ? (
+              <Button asChild size="lg" variant="secondary" className="w-full">
+                <Link href={`/${locale}/corporate/apply`}>
+                  Daftar Corporate
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Button asChild size="lg" variant="secondary" className="w-full">
+                <Link href={`/${locale}/corporate`}>
+                  Buka Dashboard Corporate
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
           </div>
         </Container>
       </div>
     </div>
   );
 }
-

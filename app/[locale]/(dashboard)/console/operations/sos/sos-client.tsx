@@ -3,16 +3,18 @@
 import 'leaflet/dist/leaflet.css';
 
 import { AlertTriangle, CheckCircle, MapPin, Navigation } from 'lucide-react';
-import L from 'leaflet';
 import dynamic from 'next/dynamic';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Dynamic import untuk map component
-const MapComponent = dynamic(() => import('@/app/[locale]/(mobile)/guide/tracking/map-component'), {
-  ssr: false,
-});
+const MapComponent = dynamic(
+  () => import('@/app/[locale]/(mobile)/guide/tracking/map-component'),
+  {
+    ssr: false,
+  }
+);
 
 type SOSAlert = {
   id: string;
@@ -48,7 +50,7 @@ export function SOSClient() {
       }
       const data = (await res.json()) as { alerts: SOSAlert[]; count: number };
       setAlerts(data.alerts);
-      
+
       // Auto-select first active alert if none selected
       if (!selectedAlert && data.alerts.length > 0) {
         setSelectedAlert(data.alerts[0] || null);
@@ -95,11 +97,14 @@ export function SOSClient() {
     }
   };
 
-  const activeAlerts = alerts.filter((a) => a.streaming_active || a.latitude !== null);
+  const activeAlerts = alerts.filter(
+    (a) => a.streaming_active || a.latitude !== null
+  );
 
-  const selectedAlertWithLocation = selectedAlert && selectedAlert.latitude && selectedAlert.longitude
-    ? selectedAlert
-    : null;
+  const selectedAlertWithLocation =
+    selectedAlert && selectedAlert.latitude && selectedAlert.longitude
+      ? selectedAlert
+      : null;
 
   return (
     <div className="space-y-4">
@@ -134,7 +139,9 @@ export function SOSClient() {
       {selectedAlertWithLocation && (
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Live Map - {selectedAlertWithLocation.guide_name}</CardTitle>
+            <CardTitle className="text-base">
+              Live Map - {selectedAlertWithLocation.guide_name}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-96 overflow-hidden rounded-lg bg-slate-100">
@@ -150,15 +157,22 @@ export function SOSClient() {
                 meetingPoints={[]}
               />
             </div>
-            {selectedAlertWithLocation.locationHistory && selectedAlertWithLocation.locationHistory.length > 1 && (
-              <div className="mt-2 text-xs text-slate-500">
-                <MapPin className="mr-1 inline h-3 w-3" />
-                Trajectory: {selectedAlertWithLocation.locationHistory.length} location points recorded
-              </div>
-            )}
+            {selectedAlertWithLocation.locationHistory &&
+              selectedAlertWithLocation.locationHistory.length > 1 && (
+                <div className="mt-2 text-xs text-slate-500">
+                  <MapPin className="mr-1 inline h-3 w-3" />
+                  Trajectory: {
+                    selectedAlertWithLocation.locationHistory.length
+                  }{' '}
+                  location points recorded
+                </div>
+              )}
             {selectedAlertWithLocation.last_location_update && (
               <div className="mt-1 text-xs text-slate-500">
-                Last update: {new Date(selectedAlertWithLocation.last_location_update).toLocaleString('id-ID')}
+                Last update:{' '}
+                {new Date(
+                  selectedAlertWithLocation.last_location_update
+                ).toLocaleString('id-ID')}
               </div>
             )}
           </CardContent>

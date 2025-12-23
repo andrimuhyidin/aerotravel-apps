@@ -60,18 +60,14 @@ export async function proxy(request: NextRequest) {
   }
 
   // Public landing pages (accessible without login)
-  const publicLandingPages = [
-    '/guide',
-    '/partner',
-    '/corporate',
-    '/customer',
-  ];
+  const publicLandingPages = ['/guide', '/partner', '/corporate', '/customer'];
   const isPublicLanding =
     publicLandingPages.some(
       (path) =>
         pathWithoutLocale === path ||
         pathWithoutLocale.startsWith(`${path}/apply`)
-    ) || pathWithoutLocale.startsWith('/guide/apply') ||
+    ) ||
+    pathWithoutLocale.startsWith('/guide/apply') ||
     pathWithoutLocale.startsWith('/partner/apply') ||
     pathWithoutLocale.startsWith('/corporate/apply');
 
@@ -117,25 +113,30 @@ export async function proxy(request: NextRequest) {
       branch_id: string | null;
       is_contract_signed: boolean | null;
     } | null;
-    
+
     // Get active role (multi-role support)
     // Priority: activeRole from session > primary role from user_roles > users.role
     const activeRole = await getActiveRole(user.id);
     const userRole = activeRole || userProfile?.role; // Use active role, fallback to profile role
     const branchId = userProfile?.branch_id;
     const hasConsent = userProfile?.is_contract_signed;
-    
+
     // Debug logging for role detection
     if (pathWithoutLocale === '/' || pathWithoutLocale === '') {
       const { logger } = await import('@/lib/utils/logger');
-      logger.info('[PROXY] Home page access - Role detection', {
-        userId: user.id,
-        activeRole,
-        profileRole: userProfile?.role,
-        finalRole: userRole,
-        branchId,
-        hasConsent,
-      });
+      try {
+        logger.info('[PROXY] Home page access - Role detection', {
+          userId: user.id,
+          activeRole: String(activeRole || 'null'),
+          profileRole: String(userProfile?.role || 'null'),
+          finalRole: String(userRole || 'null'),
+          branchId: String(branchId || 'null'),
+          hasConsent: Boolean(hasConsent),
+        });
+      } catch (logError) {
+        // Ignore log errors
+        console.error('[PROXY] Logger error', logError);
+      }
     }
 
     // Check consent - redirect to legal sign if not agreed
@@ -177,7 +178,9 @@ export async function proxy(request: NextRequest) {
         pathWithoutLocale.startsWith('/partner/whitelabel')
       ) {
         if (userRole !== 'mitra') {
-          return NextResponse.redirect(new URL(`/${locale}/partner`, request.url));
+          return NextResponse.redirect(
+            new URL(`/${locale}/partner`, request.url)
+          );
         }
       }
 

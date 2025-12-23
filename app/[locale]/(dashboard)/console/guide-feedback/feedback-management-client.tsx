@@ -13,21 +13,21 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import queryKeys from '@/lib/queries/query-keys';
@@ -53,17 +53,44 @@ type FeedbackManagementClientProps = {
   locale: string;
 };
 
-const statusLabels: Record<string, { label: string; className: string; icon: typeof CheckCircle2 }> = {
-  pending: { label: 'Menunggu Review', className: 'bg-yellow-100 text-yellow-700', icon: Clock },
-  reviewed: { label: 'Sudah Direview', className: 'bg-blue-100 text-blue-700', icon: CheckCircle2 },
-  in_progress: { label: 'Sedang Diproses', className: 'bg-purple-100 text-purple-700', icon: Clock },
-  resolved: { label: 'Terselesaikan', className: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
-  closed: { label: 'Ditutup', className: 'bg-slate-100 text-slate-600', icon: CheckCircle2 },
+const statusLabels: Record<
+  string,
+  { label: string; className: string; icon: typeof CheckCircle2 }
+> = {
+  pending: {
+    label: 'Menunggu Review',
+    className: 'bg-yellow-100 text-yellow-700',
+    icon: Clock,
+  },
+  reviewed: {
+    label: 'Sudah Direview',
+    className: 'bg-blue-100 text-blue-700',
+    icon: CheckCircle2,
+  },
+  in_progress: {
+    label: 'Sedang Diproses',
+    className: 'bg-purple-100 text-purple-700',
+    icon: Clock,
+  },
+  resolved: {
+    label: 'Terselesaikan',
+    className: 'bg-emerald-100 text-emerald-700',
+    icon: CheckCircle2,
+  },
+  closed: {
+    label: 'Ditutup',
+    className: 'bg-slate-100 text-slate-600',
+    icon: CheckCircle2,
+  },
 };
 
-export function FeedbackManagementClient({ locale }: FeedbackManagementClientProps) {
+export function FeedbackManagementClient({
+  locale: _locale,
+}: FeedbackManagementClientProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
+  const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(
+    null
+  );
   const [responseText, setResponseText] = useState('');
   const [newStatus, setNewStatus] = useState<string>('');
 
@@ -101,7 +128,15 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
 
   // Update feedback mutation
   const updateFeedback = useMutation({
-    mutationFn: async ({ id, status, admin_response }: { id: string; status?: string; admin_response?: string }) => {
+    mutationFn: async ({
+      id,
+      status,
+      admin_response,
+    }: {
+      id: string;
+      status?: string;
+      admin_response?: string;
+    }) => {
       const res = await fetch(`/api/guide/feedback/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -117,7 +152,9 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-feedbacks'] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.guide.feedback.stats() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.feedback.stats(),
+      });
       toast.success('Feedback berhasil diupdate');
       setSelectedFeedback(null);
       setResponseText('');
@@ -161,7 +198,9 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Total Feedback</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-600">
+                Total Feedback
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.total}</div>
@@ -169,7 +208,9 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Pending</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-600">
+                Pending
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">
@@ -179,7 +220,9 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Avg Rating</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-600">
+                Avg Rating
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-amber-600">
@@ -189,7 +232,9 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">NPS Score</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-600">
+                NPS Score
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-emerald-600">
@@ -230,17 +275,26 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
       ) : (
         <div className="space-y-3">
           {feedbacks.map((feedback) => {
-            const statusInfo = statusLabels[feedback.status] || statusLabels.pending;
+            const statusInfo =
+              statusLabels[feedback.status] || statusLabels.pending;
             const StatusIcon = statusInfo?.icon || Clock;
 
             return (
-              <Card key={feedback.id} className="transition-shadow hover:shadow-md">
+              <Card
+                key={feedback.id}
+                className="transition-shadow hover:shadow-md"
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-base">{feedback.title}</CardTitle>
+                      <CardTitle className="text-base">
+                        {feedback.title}
+                      </CardTitle>
                       <p className="mt-1 text-xs text-slate-500">
-                        Dari: {feedback.guide?.full_name || feedback.guide?.email || 'Unknown'}
+                        Dari:{' '}
+                        {feedback.guide?.full_name ||
+                          feedback.guide?.email ||
+                          'Unknown'}
                       </p>
                     </div>
                     <span
@@ -255,7 +309,9 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="line-clamp-2 text-sm text-slate-600">{feedback.message}</p>
+                  <p className="line-clamp-2 text-sm text-slate-600">
+                    {feedback.message}
+                  </p>
                   {feedback.rating && (
                     <div className="mt-2 flex items-center gap-1">
                       <span className="text-sm font-medium text-amber-600">
@@ -265,8 +321,10 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
                   )}
                   {feedback.admin_response && (
                     <div className="mt-3 rounded-md bg-emerald-50 p-2">
-                      <p className="text-xs font-medium text-emerald-900">Response:</p>
-                      <p className="mt-1 text-xs text-emerald-700 line-clamp-2">
+                      <p className="text-xs font-medium text-emerald-900">
+                        Response:
+                      </p>
+                      <p className="mt-1 line-clamp-2 text-xs text-emerald-700">
                         {feedback.admin_response}
                       </p>
                     </div>
@@ -277,7 +335,9 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
                       variant="outline"
                       onClick={() => handleRespond(feedback)}
                     >
-                      {feedback.admin_response ? 'Edit Response' : 'Beri Response'}
+                      {feedback.admin_response
+                        ? 'Edit Response'
+                        : 'Beri Response'}
                     </Button>
                   </div>
                 </CardContent>
@@ -288,7 +348,10 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
       )}
 
       {/* Response Dialog */}
-      <Dialog open={!!selectedFeedback} onOpenChange={(open) => !open && setSelectedFeedback(null)}>
+      <Dialog
+        open={!!selectedFeedback}
+        onOpenChange={(open) => !open && setSelectedFeedback(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Response Feedback</DialogTitle>
@@ -301,11 +364,15 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-slate-700">Feedback:</p>
-                <p className="mt-1 text-sm text-slate-600">{selectedFeedback.message}</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {selectedFeedback.message}
+                </p>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-700">Status:</label>
+                <label className="text-sm font-medium text-slate-700">
+                  Status:
+                </label>
                 <Select value={newStatus} onValueChange={setNewStatus}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
@@ -321,7 +388,9 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-700">Response:</label>
+                <label className="text-sm font-medium text-slate-700">
+                  Response:
+                </label>
                 <Textarea
                   className="mt-1"
                   rows={4}
@@ -344,7 +413,10 @@ export function FeedbackManagementClient({ locale }: FeedbackManagementClientPro
             >
               Batal
             </Button>
-            <Button onClick={handleSubmitResponse} disabled={updateFeedback.isPending}>
+            <Button
+              onClick={handleSubmitResponse}
+              disabled={updateFeedback.isPending}
+            >
               {updateFeedback.isPending ? 'Menyimpan...' : 'Simpan Response'}
             </Button>
           </DialogFooter>

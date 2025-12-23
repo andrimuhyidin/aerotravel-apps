@@ -10,7 +10,6 @@ import { Target, Trophy } from 'lucide-react';
 import Link from 'next/link';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { EmptyState } from '@/components/ui/empty-state';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import queryKeys from '@/lib/queries/query-keys';
@@ -77,7 +76,9 @@ export function ChallengesWidget({ locale }: ChallengesWidgetProps) {
   }
 
   const challenges = data?.challenges || [];
-  const activeChallenges = challenges.filter((c) => c.status === 'active').slice(0, 2);
+  const activeChallenges = challenges
+    .filter((c) => c.status === 'active')
+    .slice(0, 2);
 
   // Show empty state if no active challenges
   if (activeChallenges.length === 0) {
@@ -96,7 +97,7 @@ export function ChallengesWidget({ locale }: ChallengesWidgetProps) {
         </div>
         <Card className="border-slate-200 bg-slate-50/50">
           <CardContent className="p-4 text-center">
-            <Target className="h-8 w-8 mx-auto text-slate-400 mb-2" />
+            <Target className="mx-auto mb-2 h-8 w-8 text-slate-400" />
             <p className="text-sm text-slate-600">
               Belum ada challenge aktif. Challenge akan muncul di sini.
             </p>
@@ -137,18 +138,34 @@ export function ChallengesWidget({ locale }: ChallengesWidgetProps) {
               <Card className="border-blue-200 bg-blue-50/50">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <Target className="h-4 w-4 flex-shrink-0 text-blue-600" />
-                        <span className="text-sm font-semibold text-slate-900 truncate">
-                          {challenge.title || challengeTypeLabels[challenge.challenge_type || challenge.type || ''] || challenge.challenge_type || challenge.type || 'Challenge'}
+                        <span className="truncate text-sm font-semibold text-slate-900">
+                          {challenge.title ||
+                            challengeTypeLabels[
+                              challenge.challenge_type || challenge.type || ''
+                            ] ||
+                            challenge.challenge_type ||
+                            challenge.type ||
+                            'Challenge'}
                         </span>
                       </div>
                       <div className="mt-1.5">
                         <Progress value={progress} className="h-1.5" />
                         <div className="mt-1 flex items-center justify-between text-xs text-slate-600">
                           <span>
-                            {(challenge.current ?? challenge.current_value ?? 0).toLocaleString('id-ID')} / {(challenge.target ?? challenge.target_value ?? 0).toLocaleString('id-ID')}
+                            {(
+                              challenge.current ??
+                              challenge.current_value ??
+                              0
+                            ).toLocaleString('id-ID')}{' '}
+                            /{' '}
+                            {(
+                              challenge.target ??
+                              challenge.target_value ??
+                              0
+                            ).toLocaleString('id-ID')}
                           </span>
                           <span>{Math.round(progress)}%</span>
                         </div>
@@ -158,7 +175,7 @@ export function ChallengesWidget({ locale }: ChallengesWidgetProps) {
                       <div className="flex items-center gap-1 text-xs font-medium text-emerald-600">
                         <Trophy className="h-3.5 w-3.5" />
                         <span>
-                          {challenge.reward_amount 
+                          {challenge.reward_amount
                             ? `Rp ${challenge.reward_amount.toLocaleString('id-ID')}`
                             : challenge.reward || 'Reward'}
                         </span>
@@ -174,4 +191,3 @@ export function ChallengesWidget({ locale }: ChallengesWidgetProps) {
     </div>
   );
 }
-

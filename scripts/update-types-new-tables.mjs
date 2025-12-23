@@ -4,7 +4,7 @@
  * Manually adds type definitions for new guide tables
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 

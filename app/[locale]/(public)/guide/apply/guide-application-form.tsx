@@ -86,7 +86,7 @@ export function GuideApplicationForm({ locale }: GuideApplicationFormProps) {
       setTimeout(() => {
         router.push(`/${locale}/guide`);
       }, 2000);
-    } catch (error) {
+    } catch (_error) {
       // Error is handled by the hook
       setIsSubmitting(false);
     } finally {
@@ -129,7 +129,11 @@ export function GuideApplicationForm({ locale }: GuideApplicationFormProps) {
             <FormField
               control={form.control}
               name="phone"
-              render={({ field }: { field: ControllerRenderProps<GuideApplicationFormData, 'phone'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<GuideApplicationFormData, 'phone'>;
+              }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
@@ -154,7 +158,11 @@ export function GuideApplicationForm({ locale }: GuideApplicationFormProps) {
             <FormField
               control={form.control}
               name="nik"
-              render={({ field }: { field: ControllerRenderProps<GuideApplicationFormData, 'nik'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<GuideApplicationFormData, 'nik'>;
+              }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
@@ -177,7 +185,14 @@ export function GuideApplicationForm({ locale }: GuideApplicationFormProps) {
             <FormField
               control={form.control}
               name="experience"
-              render={({ field }: { field: ControllerRenderProps<GuideApplicationFormData, 'experience'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  GuideApplicationFormData,
+                  'experience'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Briefcase className="h-4 w-4" />
@@ -202,7 +217,14 @@ export function GuideApplicationForm({ locale }: GuideApplicationFormProps) {
             <FormField
               control={form.control}
               name="message"
-              render={({ field }: { field: ControllerRenderProps<GuideApplicationFormData, 'message'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  GuideApplicationFormData,
+                  'message'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel>Pesan Tambahan (Opsional)</FormLabel>
                   <FormControl>
@@ -219,11 +241,7 @@ export function GuideApplicationForm({ locale }: GuideApplicationFormProps) {
             />
 
             <div className="flex gap-4">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1"
-              >
+              <Button type="submit" disabled={isSubmitting} className="flex-1">
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -248,4 +266,3 @@ export function GuideApplicationForm({ locale }: GuideApplicationFormProps) {
     </Card>
   );
 }
-

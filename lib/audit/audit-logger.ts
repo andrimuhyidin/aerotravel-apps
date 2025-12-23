@@ -7,7 +7,17 @@
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
-export type AuditAction = 'create' | 'read' | 'update' | 'delete' | 'login' | 'logout' | 'export' | 'unmask' | 'approve' | 'reject';
+export type AuditAction =
+  | 'create'
+  | 'read'
+  | 'update'
+  | 'delete'
+  | 'login'
+  | 'logout'
+  | 'export'
+  | 'unmask'
+  | 'approve'
+  | 'reject';
 
 export type AuditLogParams = {
   userId: string;
@@ -28,7 +38,7 @@ export type AuditLogParams = {
 export async function logAudit(params: AuditLogParams): Promise<string | null> {
   try {
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     // Call database function log_audit()
     const { data, error } = await client.rpc('log_audit', {
@@ -63,10 +73,13 @@ export async function logAudit(params: AuditLogParams): Promise<string | null> {
       if (updateError) {
         logger.warn('Failed to update audit log with IP/UA', {
           auditLogId: data,
-          error: updateError instanceof Error ? {
-            message: updateError.message,
-            stack: updateError.stack,
-          } : updateError,
+          error:
+            updateError instanceof Error
+              ? {
+                  message: updateError.message,
+                  stack: updateError.stack,
+                }
+              : updateError,
         });
       }
     }
@@ -108,4 +121,3 @@ export async function logProfileUpdate(
     newValues,
   });
 }
-

@@ -4,20 +4,19 @@
  */
 
 import {
-    BookOpen,
-    Clock,
-    HelpCircle,
-    Mail,
-    MessageCircle,
-    Phone,
-    Shield,
+  BookOpen,
+  Clock,
+  HelpCircle,
+  Mail,
+  MessageCircle,
+  Phone,
+  Shield,
 } from 'lucide-react';
 import { Metadata, Viewport } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 
 import { Container } from '@/components/layout/container';
-import { Section } from '@/components/layout/section';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { locales } from '@/i18n';
@@ -43,7 +42,9 @@ export const viewport: Viewport = {
   themeColor: '#000000',
 };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { locale } = await params;
   setRequestLocale(locale);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
@@ -64,8 +65,10 @@ export default async function HelpPage({ params }: PageProps) {
 
   // Check if user is guide to show incident form
   const user = await getCurrentUser();
-  const isGuide = user?.activeRole === 'guide' || (user?.profile as { role?: string } | null)?.role === 'guide';
-  
+  const isGuide =
+    user?.activeRole === 'guide' ||
+    (user?.profile as { role?: string } | null)?.role === 'guide';
+
   // Get current active trip for guide (if guide)
   let tripId: string | undefined;
   if (isGuide && user) {
@@ -165,248 +168,158 @@ export default async function HelpPage({ params }: PageProps) {
   ];
 
   return (
-    <>
+    <Container className="py-4">
       {/* Hero */}
-      <Section className="bg-gradient-to-br from-primary/5 via-background to-aero-teal/5">
-        <Container>
-          <div className="py-12 text-center">
-            <h1 className="mb-4 text-4xl font-bold">Bantuan</h1>
-            <p className="text-muted-foreground">
-              Pusat bantuan untuk Guide App. Temukan jawaban dan dapatkan dukungan.
-            </p>
-          </div>
-        </Container>
-      </Section>
+      <div className="mb-4 text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+          <HelpCircle className="h-6 w-6 text-primary" />
+        </div>
+        <h1 className="mb-2 text-xl font-bold">Bantuan</h1>
+        <p className="text-xs text-muted-foreground">
+          Pusat bantuan untuk Guide App
+        </p>
+      </div>
 
       {/* Help Sections */}
-      <Section>
-        <Container>
-          <div className="grid gap-4 py-8 md:grid-cols-3">
-            {helpSections.map((section, index) => {
-              const Icon = section.icon;
-              return (
-                <Link key={index} href={section.href}>
-                  <Card className="border-0 shadow-sm transition-shadow hover:shadow-md">
-                    <CardContent className="p-6 text-center">
-                      <div
-                        className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl ${section.color}`}
-                      >
-                        <Icon className="h-6 w-6 text-white" />
-                      </div>
-                      <h3 className="mb-2 font-semibold text-slate-900">{section.title}</h3>
-                      <p className="text-sm text-slate-600">{section.description}</p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        </Container>
-      </Section>
-
-      {/* Getting Started Section */}
-      <Section id="getting-started" className="bg-muted/30">
-        <Container>
-          <div className="py-12">
-            <div className="mb-8 text-center">
-              <h2 className="mb-2 text-xl sm:text-2xl md:text-3xl font-bold">Memulai dengan Guide App</h2>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Panduan lengkap untuk memulai menggunakan Guide App
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-4 sm:p-6">
-                  <h3 className="mb-3 text-lg sm:text-xl font-semibold text-slate-900">1. Login dan Setup Profil</h3>
-                  <p className="text-slate-700">
-                    Setelah login, lengkapi profil Anda di halaman Profile. Pastikan semua informasi
-                    dan dokumen sudah diunggah untuk memudahkan proses verifikasi.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-4 sm:p-6">
-                  <h3 className="mb-3 text-lg sm:text-xl font-semibold text-slate-900">2. Atur Status Ketersediaan</h3>
-                  <p className="text-slate-700">
-                    Atur status ketersediaan Anda di Dashboard atau halaman Status. Status yang
-                    tersedia: Standby (tersedia), On Trip (sedang memandu), atau Not Available
-                    (tidak tersedia).
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-4 sm:p-6">
-                  <h3 className="mb-3 text-lg sm:text-xl font-semibold text-slate-900">3. Konfirmasi Trip Assignment</h3>
-                  <p className="text-slate-700">
-                    Saat menerima assignment trip, pastikan untuk mengkonfirmasi sebelum deadline.
-                    Anda dapat melihat detail trip dan mengkonfirmasi dari halaman Trips.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-4 sm:p-6">
-                  <h3 className="mb-3 text-lg sm:text-xl font-semibold text-slate-900">4. Check-in Attendance</h3>
-                  <p className="text-slate-700">
-                    Sebelum trip dimulai, lakukan check-in attendance di halaman Attendance. Pastikan
-                    GPS aktif dan Anda berada dalam radius meeting point untuk check-in berhasil.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-4 sm:p-6">
-                  <h3 className="mb-3 text-lg sm:text-xl font-semibold text-slate-900">5. Kelola Manifest dan Trip</h3>
-                  <p className="text-slate-700">
-                    Selama trip, gunakan fitur Manifest untuk mengelola penumpang, dan fitur Chat
-                    untuk berkomunikasi dengan tim operasional. Semua data akan tersinkronisasi
-                    otomatis saat online.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </Container>
-      </Section>
-
-      {/* FAQ Section */}
-      <Section id="faq" className="bg-muted/30">
-        <Container>
-          <div className="py-12">
-            <div className="mb-8 text-center">
-              <h2 className="mb-2 text-xl sm:text-2xl md:text-3xl font-bold">Pertanyaan yang Sering Diajukan</h2>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Temukan jawaban untuk pertanyaan umum tentang Guide App
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {faqItems.map((item, index) => (
-                <Card key={index} className="border-0 shadow-sm">
-                  <CardContent className="p-4 sm:p-6">
-                    <h3 className="mb-3 flex items-start gap-2 text-lg sm:text-xl font-semibold text-slate-900">
-                      <HelpCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
-                      {item.question}
+      <div className="mb-6">
+        <h2 className="mb-3 text-sm font-semibold">Menu Bantuan</h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {helpSections.map((section, index) => {
+            const Icon = section.icon;
+            return (
+              <Link key={index} href={section.href}>
+                <Card className="border-none shadow-sm transition-shadow hover:shadow-md">
+                  <CardContent className="p-4 text-center">
+                    <div
+                      className={`mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${section.color}`}
+                    >
+                      <Icon className="h-5 w-5 text-white" />
+                    </div>
+                    <h3 className="mb-1 text-sm font-semibold">
+                      {section.title}
                     </h3>
-                    <p className="ml-7 text-slate-700">{item.answer}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {section.description}
+                    </p>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          </div>
-        </Container>
-      </Section>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* FAQ Section */}
+      <div id="faq" className="mb-6">
+        <h2 className="mb-3 text-sm font-semibold">Pertanyaan Umum (FAQ)</h2>
+        <div className="space-y-3">
+          {faqItems.map((item, index) => (
+            <Card key={index} className="border-none shadow-sm">
+              <CardContent className="p-4">
+                <h3 className="mb-2 flex items-start gap-2 text-sm font-semibold">
+                  <HelpCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                  {item.question}
+                </h3>
+                <p className="ml-6 text-xs text-muted-foreground">
+                  {item.answer}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
 
       {/* Contact Section */}
-      <Section>
-        <Container>
-          <div className="py-12">
-            <div className="mb-8 text-center">
-              <h2 className="mb-2 text-xl sm:text-2xl md:text-3xl font-bold">Hubungi Tim Support</h2>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Butuh bantuan lebih lanjut? Hubungi kami melalui channel berikut
-              </p>
-            </div>
+      <div className="mb-6">
+        <h2 className="mb-3 text-sm font-semibold">Hubungi Tim Support</h2>
+        <div className="space-y-2">
+          {contactOptions.map((option, index) => {
+            const Icon = option.icon;
+            return (
+              <a
+                key={index}
+                href={option.href}
+                target={option.href.startsWith('http') ? '_blank' : undefined}
+                rel={
+                  option.href.startsWith('http')
+                    ? 'noopener noreferrer'
+                    : undefined
+                }
+              >
+                <Card className="border-none shadow-sm transition-shadow hover:shadow-md">
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <Icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-semibold">{option.title}</h3>
+                      <p className="text-xs font-medium text-primary">
+                        {option.value}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {option.description}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </a>
+            );
+          })}
+        </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {contactOptions.map((option, index) => {
-                const Icon = option.icon;
-                return (
-                  <a
-                    key={index}
-                    href={option.href}
-                    target={option.href.startsWith('http') ? '_blank' : undefined}
-                    rel={option.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                  >
-                    <Card className="border-0 shadow-sm transition-shadow hover:shadow-md">
-                      <CardContent className="p-6 text-center">
-                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                          <Icon className="h-6 w-6 text-primary" />
-                        </div>
-                        <h3 className="mb-1 font-semibold text-slate-900">{option.title}</h3>
-                        <p className="mb-2 font-medium text-primary">{option.value}</p>
-                        <p className="text-xs text-slate-500">{option.description}</p>
-                      </CardContent>
-                    </Card>
-                  </a>
-                );
-              })}
-            </div>
-
-            {/* Quick Contact Button */}
-            <div className="mt-8 text-center">
-              <Link href={`/${locale}/contact`}>
-                <Button size="lg" className="h-12 px-8">
-                  <Mail className="mr-2 h-5 w-5" />
-                  Kirim Pesan ke Support
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </Container>
-      </Section>
+        {/* Quick Contact Button */}
+        <Link href={`/${locale}/contact`} className="mt-3 block">
+          <Button size="sm" className="w-full">
+            <Mail className="mr-2 h-4 w-4" />
+            Kirim Pesan ke Support
+          </Button>
+        </Link>
+      </div>
 
       {/* Incident Report Section (for guides only) */}
       {isGuide && user && (
-        <Section className="bg-muted/30">
-          <Container>
-            <div className="py-12">
-              <div className="mb-8 text-center">
-                <h2 className="mb-2 text-xl sm:text-2xl md:text-3xl font-bold">Laporan Insiden</h2>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  Laporkan kejadian insiden yang terjadi selama trip untuk keperluan dokumentasi
-                </p>
-              </div>
-              <div>
-                <IncidentFormWrapper guideId={user.id} tripId={tripId} />
-              </div>
-            </div>
-          </Container>
-        </Section>
+        <div className="mb-6">
+          <h2 className="mb-3 text-sm font-semibold">Laporan Insiden</h2>
+          <Card className="border-none shadow-sm">
+            <CardContent className="p-4">
+              <p className="mb-3 text-xs text-muted-foreground">
+                Laporkan kejadian insiden yang terjadi selama trip
+              </p>
+              <IncidentFormWrapper guideId={user.id} tripId={tripId} />
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Feedback & Saran Section (for guides only) */}
       {isGuide && user && (
-        <Section>
-          <Container>
-            <div className="py-12">
-              <div className="mb-8 text-center">
-                <h2 className="mb-2 text-xl sm:text-2xl md:text-3xl font-bold">Feedback & Saran</h2>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  Berikan feedback dan saran untuk perbaikan perusahaan dan layanan
-                </p>
-              </div>
-              <div>
-                <FeedbackSectionWrapper locale={locale} />
-              </div>
-            </div>
-          </Container>
-        </Section>
+        <div className="mb-6">
+          <h2 className="mb-3 text-sm font-semibold">Feedback & Saran</h2>
+          <Card className="border-none shadow-sm">
+            <CardContent className="p-4">
+              <p className="mb-3 text-xs text-muted-foreground">
+                Berikan feedback dan saran untuk perbaikan perusahaan
+              </p>
+              <FeedbackSectionWrapper locale={locale} />
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Operating Hours */}
-      <Section className="bg-muted/30">
-        <Container>
-          <div className="py-8">
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-center justify-center gap-3">
-                  <Clock className="h-5 w-5 text-primary" />
-                  <div className="text-center">
-                    <p className="font-semibold">Jam Layanan Support</p>
-                    <p className="text-sm text-muted-foreground">
-                      Senin - Minggu: 08:00 - 21:00 WIB
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      <Card className="border-none bg-primary/5 shadow-sm">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-sm font-semibold">Jam Layanan Support</p>
+              <p className="text-xs text-muted-foreground">
+                Senin - Minggu: 08:00 - 21:00 WIB
+              </p>
+            </div>
           </div>
-        </Container>
-      </Section>
-    </>
+        </CardContent>
+      </Card>
+    </Container>
   );
 }

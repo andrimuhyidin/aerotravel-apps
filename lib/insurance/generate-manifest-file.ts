@@ -32,7 +32,15 @@ export async function generateManifestCSV(
   }
 
   // CSV Headers
-  const headers = ['No', 'Nama', 'NIK', 'Tanggal Lahir', 'Jenis Kelamin', 'Telepon', 'Email'];
+  const headers = [
+    'No',
+    'Nama',
+    'NIK',
+    'Tanggal Lahir',
+    'Jenis Kelamin',
+    'Telepon',
+    'Email',
+  ];
   const rows: string[] = [headers.join(',')];
 
   // CSV Rows
@@ -127,7 +135,6 @@ export async function generateManifestPDF(
   };
 
   // Use React.createElement since this is a .ts file (JSX requires .tsx)
-  // eslint-disable-next-line react/react-in-jsx-scope
   const pdfDoc = React.createElement(ManifestPDF, { data: manifestData });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const buffer = await renderToBuffer(pdfDoc as any);
@@ -161,7 +168,8 @@ export async function generateManifestFile(
     case 'excel':
       buffer = await generateManifestExcel(passengers, tripDate);
       filename = `manifest-${dateStr}.xlsx`;
-      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      contentType =
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       break;
     case 'pdf':
       buffer = await generateManifestPDF(passengers, tripDate, tripInfo);
@@ -174,4 +182,3 @@ export async function generateManifestFile(
 
   return { buffer, filename, contentType };
 }
-

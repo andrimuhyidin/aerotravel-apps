@@ -7,7 +7,13 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowLeft, CheckCircle2, FileText, Loader2 } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  FileText,
+  Loader2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
@@ -17,20 +23,20 @@ import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card';
 import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -51,7 +57,11 @@ const applicationSchema = z.object({
   documents: z.object({
     ktp: z.string().url('URL KTP tidak valid').optional().or(z.literal('')),
     skck: z.string().url('URL SKCK tidak valid').optional().or(z.literal('')),
-    medical: z.string().url('URL Surat Kesehatan tidak valid').optional().or(z.literal('')),
+    medical: z
+      .string()
+      .url('URL Surat Kesehatan tidak valid')
+      .optional()
+      .or(z.literal('')),
     photo: z.string().url('URL Foto tidak valid').optional().or(z.literal('')),
     cv: z.string().url('URL CV tidak valid').optional().or(z.literal('')),
   }),
@@ -69,10 +79,14 @@ type LicenseApplicationFormClientProps = {
   locale: string;
 };
 
-export function LicenseApplicationFormClient({ locale }: LicenseApplicationFormClientProps) {
+export function LicenseApplicationFormClient({
+  locale,
+}: LicenseApplicationFormClientProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Hooks must be called before any early returns
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   // Check eligibility and get auto-fill data
   const { data: eligibilityData, isLoading: isLoadingEligibility } = useQuery({
@@ -153,7 +167,9 @@ export function LicenseApplicationFormClient({ locale }: LicenseApplicationFormC
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.guide.license.all() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.license.all(),
+      });
       toast.success('Aplikasi berhasil dikirim!');
       router.push(`/${locale}/guide/license/application`);
     },
@@ -178,7 +194,9 @@ export function LicenseApplicationFormClient({ locale }: LicenseApplicationFormC
         <CardContent className="py-12">
           <div className="text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-slate-400" />
-            <p className="mt-4 text-sm text-slate-500">Memeriksa kelayakan...</p>
+            <p className="mt-4 text-sm text-slate-500">
+              Memeriksa kelayakan...
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -188,15 +206,50 @@ export function LicenseApplicationFormClient({ locale }: LicenseApplicationFormC
   // If already has application, show status
   if (existingApp?.application) {
     const app = existingApp.application;
-    const statusConfig: Record<string, { label: string; className: string; icon: typeof CheckCircle2 }> = {
-      pending_review: { label: 'Menunggu Review', className: 'bg-yellow-100 text-yellow-700', icon: AlertCircle },
-      document_verified: { label: 'Dokumen Terverifikasi', className: 'bg-blue-100 text-blue-700', icon: CheckCircle2 },
-      assessment_passed: { label: 'Assessment Lulus', className: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
-      training_completed: { label: 'Training Selesai', className: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
-      pending_approval: { label: 'Menunggu Approval', className: 'bg-amber-100 text-amber-700', icon: AlertCircle },
-      approved: { label: 'Disetujui', className: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
-      license_issued: { label: 'License Terbit', className: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
-      rejected: { label: 'Ditolak', className: 'bg-red-100 text-red-700', icon: AlertCircle },
+    const statusConfig: Record<
+      string,
+      { label: string; className: string; icon: typeof CheckCircle2 }
+    > = {
+      pending_review: {
+        label: 'Menunggu Review',
+        className: 'bg-yellow-100 text-yellow-700',
+        icon: AlertCircle,
+      },
+      document_verified: {
+        label: 'Dokumen Terverifikasi',
+        className: 'bg-blue-100 text-blue-700',
+        icon: CheckCircle2,
+      },
+      assessment_passed: {
+        label: 'Assessment Lulus',
+        className: 'bg-emerald-100 text-emerald-700',
+        icon: CheckCircle2,
+      },
+      training_completed: {
+        label: 'Training Selesai',
+        className: 'bg-emerald-100 text-emerald-700',
+        icon: CheckCircle2,
+      },
+      pending_approval: {
+        label: 'Menunggu Approval',
+        className: 'bg-amber-100 text-amber-700',
+        icon: AlertCircle,
+      },
+      approved: {
+        label: 'Disetujui',
+        className: 'bg-emerald-100 text-emerald-700',
+        icon: CheckCircle2,
+      },
+      license_issued: {
+        label: 'License Terbit',
+        className: 'bg-emerald-100 text-emerald-700',
+        icon: CheckCircle2,
+      },
+      rejected: {
+        label: 'Ditolak',
+        className: 'bg-red-100 text-red-700',
+        icon: AlertCircle,
+      },
     };
 
     const status = statusConfig[app.status] || statusConfig.pending_review;
@@ -230,8 +283,12 @@ export function LicenseApplicationFormClient({ locale }: LicenseApplicationFormC
           </div>
           {app.rejection_reason && (
             <div className="rounded-lg bg-red-50 p-3">
-              <p className="text-sm font-medium text-red-900">Alasan Penolakan:</p>
-              <p className="mt-1 text-sm text-red-700">{app.rejection_reason}</p>
+              <p className="text-sm font-medium text-red-900">
+                Alasan Penolakan:
+              </p>
+              <p className="mt-1 text-sm text-red-700">
+                {app.rejection_reason}
+              </p>
             </div>
           )}
         </CardContent>
@@ -241,63 +298,81 @@ export function LicenseApplicationFormClient({ locale }: LicenseApplicationFormC
 
   // Show eligibility warning if not eligible
   const isEligible = eligibilityData?.eligible === true;
-  
+
   // If not eligible, don't show form (eligibility info already shown in LicenseEligibilityClient)
   if (!isEligible && eligibilityData) {
     return null;
   }
-
-  // If eligible, show simplified form (only for documents upload)
-  const formRef = React.useRef<HTMLFormElement>(null);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Ajukan Guide License</CardTitle>
         <CardDescription>
-          Data profil Anda sudah lengkap. Upload dokumen yang diperlukan untuk melengkapi aplikasi.
+          Data profil Anda sudah lengkap. Upload dokumen yang diperlukan untuk
+          melengkapi aplikasi.
         </CardDescription>
       </CardHeader>
       <CardContent>
         {/* Show auto-filled personal info (read-only) */}
         <div className="mb-6 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <h4 className="text-sm font-semibold text-slate-700">Data Profil (Auto-filled)</h4>
+          <h4 className="text-sm font-semibold text-slate-700">
+            Data Profil (Auto-filled)
+          </h4>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-slate-500">Nama</p>
-              <p className="font-medium text-slate-900">{form.watch('personal_info.full_name') || '-'}</p>
+              <p className="font-medium text-slate-900">
+                {form.watch('personal_info.full_name') || '-'}
+              </p>
             </div>
             <div>
               <p className="text-slate-500">NIK</p>
-              <p className="font-medium text-slate-900">{form.watch('personal_info.nik') || '-'}</p>
+              <p className="font-medium text-slate-900">
+                {form.watch('personal_info.nik') || '-'}
+              </p>
             </div>
             <div>
               <p className="text-slate-500">Phone</p>
-              <p className="font-medium text-slate-900">{form.watch('personal_info.phone') || '-'}</p>
+              <p className="font-medium text-slate-900">
+                {form.watch('personal_info.phone') || '-'}
+              </p>
             </div>
             <div>
               <p className="text-slate-500">Email</p>
-              <p className="font-medium text-slate-900">{form.watch('personal_info.email') || '-'}</p>
+              <p className="font-medium text-slate-900">
+                {form.watch('personal_info.email') || '-'}
+              </p>
             </div>
           </div>
           <p className="text-xs text-slate-500">
             Untuk mengubah data profil, silakan edit di{' '}
-            <Link href={`/${locale}/guide/profile/edit`} className="text-emerald-600 underline">
+            <Link
+              href={`/${locale}/guide/profile/edit`}
+              className="text-emerald-600 underline"
+            >
               halaman profil
             </Link>
           </p>
         </div>
 
         <Form {...form}>
-          <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-
+          <form
+            ref={formRef}
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6"
+          >
             {/* Documents */}
             <div className="space-y-4">
               <div>
                 <h3 className="text-lg font-semibold">Dokumen Wajib</h3>
                 <p className="text-sm text-slate-500">
-                  Upload dokumen yang diperlukan. Gunakan fitur upload di halaman{' '}
-                  <Link href={`/${locale}/guide/documents`} className="text-emerald-600 underline">
+                  Upload dokumen yang diperlukan. Gunakan fitur upload di
+                  halaman{' '}
+                  <Link
+                    href={`/${locale}/guide/documents`}
+                    className="text-emerald-600 underline"
+                  >
                     Documents
                   </Link>{' '}
                   atau masukkan URL jika sudah di-upload.
@@ -311,7 +386,11 @@ export function LicenseApplicationFormClient({ locale }: LicenseApplicationFormC
                   <FormItem>
                     <FormLabel>KTP (Wajib)</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://..." {...field} value={field.value || ''} />
+                      <Input
+                        placeholder="https://..."
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -325,7 +404,11 @@ export function LicenseApplicationFormClient({ locale }: LicenseApplicationFormC
                   <FormItem>
                     <FormLabel>SKCK (Wajib)</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://..." {...field} value={field.value || ''} />
+                      <Input
+                        placeholder="https://..."
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -339,7 +422,11 @@ export function LicenseApplicationFormClient({ locale }: LicenseApplicationFormC
                   <FormItem>
                     <FormLabel>Surat Kesehatan (Wajib)</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://..." {...field} value={field.value || ''} />
+                      <Input
+                        placeholder="https://..."
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -353,11 +440,17 @@ export function LicenseApplicationFormClient({ locale }: LicenseApplicationFormC
                   <FormItem>
                     <FormLabel>Foto Formal (Wajib)</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://..." {...field} value={field.value || ''} />
+                      <Input
+                        placeholder="https://..."
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormDescription>
                       {form.watch('documents.photo') ? (
-                        <span className="text-emerald-600">✓ Foto sudah diisi</span>
+                        <span className="text-emerald-600">
+                          ✓ Foto sudah diisi
+                        </span>
                       ) : (
                         <span className="text-amber-600">
                           Foto profil akan digunakan jika tidak diisi
@@ -376,7 +469,11 @@ export function LicenseApplicationFormClient({ locale }: LicenseApplicationFormC
                   <FormItem>
                     <FormLabel>CV/Resume (Opsional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://..." {...field} value={field.value || ''} />
+                      <Input
+                        placeholder="https://..."
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -386,9 +483,12 @@ export function LicenseApplicationFormClient({ locale }: LicenseApplicationFormC
 
             {/* Experience (Optional) */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Pengalaman & Keahlian (Opsional)</h3>
+              <h3 className="text-lg font-semibold">
+                Pengalaman & Keahlian (Opsional)
+              </h3>
               <p className="text-sm text-slate-500">
-                Informasi ini opsional dan dapat membantu mempercepat proses review aplikasi Anda.
+                Informasi ini opsional dan dapat membantu mempercepat proses
+                review aplikasi Anda.
               </p>
 
               <FormField
@@ -432,8 +532,9 @@ export function LicenseApplicationFormClient({ locale }: LicenseApplicationFormC
                 </Link>
               </Button>
             </div>
-            <p className="text-xs text-slate-500 text-center">
-              Data profil Anda akan otomatis digunakan untuk aplikasi ini. Pastikan semua dokumen sudah di-upload.
+            <p className="text-center text-xs text-slate-500">
+              Data profil Anda akan otomatis digunakan untuk aplikasi ini.
+              Pastikan semua dokumen sudah di-upload.
             </p>
           </form>
         </Form>

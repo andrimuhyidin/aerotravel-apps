@@ -44,9 +44,9 @@ export async function getBranchContext(userId: string): Promise<BranchContext> {
  * Super Admin (branchId = null) bisa lihat semua
  */
 export function withBranchFilter<T>(
-  query: any,
+  query: unknown,
   branchContext: BranchContext
-): any {
+): unknown {
   if (branchContext.isSuperAdmin || branchContext.branchId === null) {
     // Super Admin bisa lihat semua, tidak perlu filter
     return query;

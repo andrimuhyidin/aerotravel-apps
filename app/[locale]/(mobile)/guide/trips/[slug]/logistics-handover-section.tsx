@@ -6,7 +6,21 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowDown, ArrowUp, Camera, CheckCircle2, ChevronDown, ChevronUp, Clock, Package, QrCode, User, X, XCircle } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowDown,
+  ArrowUp,
+  Camera,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Package,
+  QrCode,
+  User,
+  X,
+  XCircle,
+} from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -14,19 +28,22 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingState } from '@/components/ui/loading-state';
 import { QRScanner } from '@/components/qr-code/qr-scanner';
-import { SignaturePad, type SignatureData } from '@/components/ui/signature-pad';
+import {
+  SignaturePad,
+  type SignatureData,
+} from '@/components/ui/signature-pad';
 import { mapFacilitiesToItems } from '@/lib/guide/facility-item-mapper';
 import type { FacilityDisplayItem } from '@/lib/guide/facilities';
 import queryKeys from '@/lib/queries/query-keys';
@@ -100,14 +117,25 @@ type Handover = {
   created_at: string;
 };
 
-export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsHandoverSectionProps) {
+export function LogisticsHandoverSection({
+  tripId,
+  locale: _locale,
+}: LogisticsHandoverSectionProps) {
   const [showDialog, setShowDialog] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
-  const [handoverType, setHandoverType] = useState<'outbound' | 'inbound'>('outbound');
-  const [items, setItems] = useState<HandoverItem[]>([{ ...DEFAULT_HANDOVER_ITEM }]);
+  const [handoverType, setHandoverType] = useState<'outbound' | 'inbound'>(
+    'outbound'
+  );
+  const [items, setItems] = useState<HandoverItem[]>([
+    { ...DEFAULT_HANDOVER_ITEM },
+  ]);
   const [signature, setSignature] = useState<SignatureData | null>(null);
-  const [uploadingPhotos, setUploadingPhotos] = useState<Record<number, boolean>>({});
-  const [expandedHandovers, setExpandedHandovers] = useState<Set<string>>(new Set());
+  const [uploadingPhotos, setUploadingPhotos] = useState<
+    Record<number, boolean>
+  >({});
+  const [expandedHandovers, setExpandedHandovers] = useState<Set<string>>(
+    new Set()
+  );
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const hasPopulatedItemsRef = useRef(false);
   const queryClient = useQueryClient();
@@ -125,7 +153,9 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
   };
 
   // Fetch handovers
-  const { data: handoversData, isLoading } = useQuery<{ handovers: Handover[] }>({
+  const { data: handoversData, isLoading } = useQuery<{
+    handovers: Handover[];
+  }>({
     queryKey: queryKeys.guide.logistics.handover({ tripId }),
     queryFn: async () => {
       const res = await fetch(`/api/guide/logistics/handover?tripId=${tripId}`);
@@ -135,7 +165,10 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
   });
 
   // Fetch warehouse user ID for inbound handovers
-  const { data: warehouseUserData } = useQuery<{ warehouseUserId: string | null; warehouseUserName: string | null }>({
+  const { data: warehouseUserData } = useQuery<{
+    warehouseUserId: string | null;
+    warehouseUserName: string | null;
+  }>({
     queryKey: ['guide', 'branch', 'warehouse-user'],
     queryFn: async () => {
       const res = await fetch('/api/guide/branch/warehouse-user');
@@ -146,7 +179,9 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
   });
 
   // Fetch trip info to get trip type for item suggestions (use separate query key to avoid cache conflict)
-  const { data: tripInfo } = useQuery<{ tripType?: 'boat_trip' | 'land_trip' | null }>({
+  const { data: tripInfo } = useQuery<{
+    tripType?: 'boat_trip' | 'land_trip' | null;
+  }>({
     queryKey: ['guide', 'trip', 'trip-type', tripId],
     queryFn: async () => {
       try {
@@ -156,7 +191,7 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
         }
         const data = await res.json();
         return { tripType: data.tripType || null };
-      } catch (error) {
+      } catch (_error) {
         return { tripType: null };
       }
     },
@@ -182,7 +217,7 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
             facilities: data.package?.facilities || [],
           },
         };
-      } catch (error) {
+      } catch (_error) {
         return { package: { facilities: [] } };
       }
     },
@@ -200,13 +235,14 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
         trip_id: tripId,
         handover_type: data.handover_type,
         // Only include to_user_id for inbound (outbound will use current user from API)
-        ...(data.handover_type === 'inbound' && warehouseUserData?.warehouseUserId
+        ...(data.handover_type === 'inbound' &&
+        warehouseUserData?.warehouseUserId
           ? { to_user_id: warehouseUserData.warehouseUserId }
           : {}),
         items: data.items,
         from_signature: data.signature,
       };
-      
+
       const res = await fetch(`/api/guide/logistics/handover`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -233,13 +269,23 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
   });
 
   // Memoize handovers to prevent reference changes on every render
-  const handovers = useMemo(() => handoversData?.handovers || [], [handoversData?.handovers]);
+  const handovers = useMemo(
+    () => handoversData?.handovers || [],
+    [handoversData?.handovers]
+  );
 
   // Get latest outbound handover for stable dependency
   const latestOutboundHandover = useMemo(() => {
-    return handovers
-      .filter((h) => h.handover_type === 'outbound' && h.status === 'completed')
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] || null;
+    return (
+      handovers
+        .filter(
+          (h) => h.handover_type === 'outbound' && h.status === 'completed'
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )[0] || null
+    );
   }, [handovers]);
 
   // Get stable reference to outbound handover items
@@ -251,7 +297,10 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
   const VARIANCE_THRESHOLD = 10;
 
   // Calculate variance percentage
-  const calculateVariance = (inboundQty: number, outboundQty: number): number => {
+  const calculateVariance = (
+    inboundQty: number,
+    outboundQty: number
+  ): number => {
     if (outboundQty === 0) {
       return inboundQty > 0 ? 100 : 0;
     }
@@ -266,19 +315,27 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
 
     const outboundHandover = handovers
       .filter((h) => h.handover_type === 'outbound' && h.status === 'completed')
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )[0];
 
     if (!outboundHandover?.items || outboundHandover.items.length === 0) {
       return { valid: true, warnings: [], missing: [], variances: [] };
     }
 
     const outboundItems = new Map(
-      outboundHandover.items.map((item) => [item.name, item]),
+      outboundHandover.items.map((item) => [item.name, item])
     );
 
     const warnings: string[] = [];
     const missing: string[] = [];
-    const variances: Array<{ itemName: string; variancePercent: number; inboundQty: number; outboundQty: number }> = [];
+    const variances: Array<{
+      itemName: string;
+      variancePercent: number;
+      inboundQty: number;
+      outboundQty: number;
+    }> = [];
 
     items.forEach((item) => {
       const outboundItem = outboundItems.get(item.name);
@@ -287,10 +344,10 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
       } else {
         const outboundQty = outboundItem.quantity || 0;
         const inboundQty = item.quantity || 0;
-        
+
         // Calculate variance
         const variancePercent = calculateVariance(inboundQty, outboundQty);
-        
+
         // Flag high variance (>10%)
         if (variancePercent > VARIANCE_THRESHOLD) {
           variances.push({
@@ -312,7 +369,8 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
     });
 
     return {
-      valid: missing.length === 0 && warnings.length === 0 && variances.length === 0,
+      valid:
+        missing.length === 0 && warnings.length === 0 && variances.length === 0,
       warnings,
       missing,
       variances,
@@ -329,7 +387,12 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
     }
 
     // Only populate once when dialog opens for inbound type
-    if (handoverType === 'inbound' && showDialog && latestOutboundHandoverItems.length > 0 && !hasPopulatedItemsRef.current) {
+    if (
+      handoverType === 'inbound' &&
+      showDialog &&
+      latestOutboundHandoverItems.length > 0 &&
+      !hasPopulatedItemsRef.current
+    ) {
       // Pre-populate items with expected_quantity from outbound
       const prePopulatedItems = latestOutboundHandoverItems.map((item) => ({
         ...item,
@@ -338,8 +401,15 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
       }));
       setItems(prePopulatedItems);
       hasPopulatedItemsRef.current = true;
-      toast.info('Items telah diisi dari outbound handover. Silakan isi quantity yang dikembalikan.');
-    } else if (handoverType === 'inbound' && showDialog && latestOutboundHandoverItems.length === 0 && !hasPopulatedItemsRef.current) {
+      toast.info(
+        'Items telah diisi dari outbound handover. Silakan isi quantity yang dikembalikan.'
+      );
+    } else if (
+      handoverType === 'inbound' &&
+      showDialog &&
+      latestOutboundHandoverItems.length === 0 &&
+      !hasPopulatedItemsRef.current
+    ) {
       // No outbound handover found, reset to default
       setItems([{ ...DEFAULT_HANDOVER_ITEM }]);
       hasPopulatedItemsRef.current = true;
@@ -350,28 +420,31 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
   const getSuggestedItems = (): HandoverItem[] => {
     const tripType = tripInfo?.tripType;
     const facilities = packageInfo?.package?.facilities || [];
-    
+
     // Get template items based on trip type
-    const templateItems: HandoverItem[] = tripType && (tripType === 'boat_trip' || tripType === 'land_trip')
-      ? HANDOVER_ITEM_TEMPLATES[tripType].map((item) => ({
-          name: item.name,
-          quantity: item.quantity,
-          unit: item.unit,
-        }))
-      : [];
-    
+    const templateItems: HandoverItem[] =
+      tripType && (tripType === 'boat_trip' || tripType === 'land_trip')
+        ? HANDOVER_ITEM_TEMPLATES[tripType].map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            unit: item.unit,
+          }))
+        : [];
+
     // Get items from package facilities
-    const facilityItems: HandoverItem[] = mapFacilitiesToItems(facilities).map((item) => ({
-      name: item.name,
-      quantity: item.quantity,
-      unit: item.unit,
-    }));
-    
+    const facilityItems: HandoverItem[] = mapFacilitiesToItems(facilities).map(
+      (item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+      })
+    );
+
     // Combine and deduplicate by name (case-insensitive)
     const allItems = [...templateItems, ...facilityItems];
     const seen = new Set<string>();
     const uniqueItems: HandoverItem[] = [];
-    
+
     allItems.forEach((item) => {
       const key = item.name.toLowerCase().trim();
       if (!seen.has(key) && item.name.trim()) {
@@ -379,7 +452,7 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
         uniqueItems.push(item);
       }
     });
-    
+
     return uniqueItems;
   };
 
@@ -390,11 +463,16 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
   const handleQRScan = (qrData: string) => {
     try {
       // Parse QR code data - expected format: JSON string with items array
-      const parsed = JSON.parse(qrData) as { items?: HandoverItem[]; handover_id?: string };
-      
+      const parsed = JSON.parse(qrData) as {
+        items?: HandoverItem[];
+        handover_id?: string;
+      };
+
       if (parsed.items && Array.isArray(parsed.items)) {
         setItems(parsed.items);
-        toast.success(`${parsed.items.length} item berhasil dimuat dari QR code`);
+        toast.success(
+          `${parsed.items.length} item berhasil dimuat dari QR code`
+        );
       } else if (parsed.handover_id) {
         // If QR contains handover ID, fetch that handover's items
         const handover = handovers.find((h) => h.id === parsed.handover_id);
@@ -414,10 +492,12 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
             unit: 'piece',
           };
         });
-        
+
         if (simpleItems.length > 0 && simpleItems[0]?.name) {
           setItems(simpleItems);
-          toast.success(`${simpleItems.length} item berhasil dimuat dari QR code`);
+          toast.success(
+            `${simpleItems.length} item berhasil dimuat dari QR code`
+          );
         } else {
           throw new Error('Format QR code tidak valid');
         }
@@ -434,18 +514,20 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
       toast.info('Tidak ada suggested items untuk trip type ini');
       return;
     }
-    
+
     // Filter out items that already exist (by name)
-    const existingNames = new Set(items.map((item) => item.name?.toLowerCase().trim() || ''));
-    const newItems = suggestedItems.filter(
-      (item) => item.name && !existingNames.has(item.name.toLowerCase().trim()),
+    const existingNames = new Set(
+      items.map((item) => item.name?.toLowerCase().trim() || '')
     );
-    
+    const newItems = suggestedItems.filter(
+      (item) => item.name && !existingNames.has(item.name.toLowerCase().trim())
+    );
+
     if (newItems.length === 0) {
       toast.info('Semua suggested items sudah ada di daftar');
       return;
     }
-    
+
     setItems([...items, ...newItems]);
     toast.success(`${newItems.length} item ditambahkan dari template`);
   };
@@ -527,7 +609,11 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
     return null;
   };
 
-  const handleItemChange = (index: number, field: keyof HandoverItem, value: string | number) => {
+  const handleItemChange = (
+    index: number,
+    field: keyof HandoverItem,
+    value: string | number
+  ) => {
     const updated = [...items];
     const currentItem = updated[index];
     if (!currentItem) return;
@@ -582,8 +668,12 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">Logistics Handover</h3>
-          <p className="text-sm text-slate-600">Serah terima barang (warehouse ↔ guide)</p>
+          <h3 className="text-lg font-semibold text-slate-900">
+            Logistics Handover
+          </h3>
+          <p className="text-sm text-slate-600">
+            Serah terima barang (warehouse ↔ guide)
+          </p>
         </div>
         <Button onClick={() => setShowDialog(true)} size="sm">
           <Package className="mr-2 h-4 w-4" />
@@ -599,7 +689,10 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
               <div>
                 <p className="text-xs text-slate-500">Outbound Status</p>
                 <p className="mt-1 text-sm font-semibold text-slate-900">
-                  {handovers.filter((h) => h.handover_type === 'outbound' && h.status === 'completed').length > 0
+                  {handovers.filter(
+                    (h) =>
+                      h.handover_type === 'outbound' && h.status === 'completed'
+                  ).length > 0
                     ? 'Completed'
                     : 'Pending'}
                 </p>
@@ -607,7 +700,10 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
               <div>
                 <p className="text-xs text-slate-500">Inbound Status</p>
                 <p className="mt-1 text-sm font-semibold text-slate-900">
-                  {handovers.filter((h) => h.handover_type === 'inbound' && h.status === 'completed').length > 0
+                  {handovers.filter(
+                    (h) =>
+                      h.handover_type === 'inbound' && h.status === 'completed'
+                  ).length > 0
                     ? 'Completed'
                     : 'Pending'}
                 </p>
@@ -625,16 +721,33 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                     .filter((h) => h.handover_type === 'inbound')
                     .reduce((count, h) => {
                       const outbound = handovers
-                        .filter((ho) => ho.handover_type === 'outbound' && ho.status === 'completed')
-                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+                        .filter(
+                          (ho) =>
+                            ho.handover_type === 'outbound' &&
+                            ho.status === 'completed'
+                        )
+                        .sort(
+                          (a, b) =>
+                            new Date(b.created_at).getTime() -
+                            new Date(a.created_at).getTime()
+                        )[0];
                       if (!outbound) return count;
-                      const outboundMap = new Map(outbound.items.map((item) => [item.name, item]));
-                      return count + h.items.filter((item) => {
-                        const outboundItem = outboundMap.get(item.name);
-                        if (!outboundItem) return false;
-                        const variance = Math.abs((item.quantity - outboundItem.quantity) / outboundItem.quantity) * 100;
-                        return variance > VARIANCE_THRESHOLD;
-                      }).length;
+                      const outboundMap = new Map(
+                        outbound.items.map((item) => [item.name, item])
+                      );
+                      return (
+                        count +
+                        h.items.filter((item) => {
+                          const outboundItem = outboundMap.get(item.name);
+                          if (!outboundItem) return false;
+                          const variance =
+                            Math.abs(
+                              (item.quantity - outboundItem.quantity) /
+                                outboundItem.quantity
+                            ) * 100;
+                          return variance > VARIANCE_THRESHOLD;
+                        }).length
+                      );
                     }, 0)}
                 </p>
               </div>
@@ -654,42 +767,52 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
           {handovers.map((handover, index) => {
             const isExpanded = expandedHandovers.has(handover.id);
             const isLast = index === handovers.length - 1;
-            
+
             return (
               <div key={handover.id} className="relative">
                 {/* Timeline Line */}
                 {!isLast && (
                   <div className="absolute left-5 top-12 h-full w-0.5 bg-slate-200" />
                 )}
-                
+
                 <Card className="border-0 shadow-sm">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       {/* Timeline Icon */}
-                      <div className={cn(
-                        'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full',
-                        handover.handover_type === 'outbound' ? 'bg-blue-100' : 'bg-emerald-100'
-                      )}>
+                      <div
+                        className={cn(
+                          'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full',
+                          handover.handover_type === 'outbound'
+                            ? 'bg-blue-100'
+                            : 'bg-emerald-100'
+                        )}
+                      >
                         {handover.handover_type === 'outbound' ? (
                           <ArrowDown className="h-5 w-5 text-blue-600" />
                         ) : (
                           <ArrowUp className="h-5 w-5 text-emerald-600" />
                         )}
                       </div>
-                      
+
                       {/* Content */}
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-slate-900">
-                              {handover.handover_type === 'outbound' ? 'Outbound' : 'Inbound'} Handover
+                              {handover.handover_type === 'outbound'
+                                ? 'Outbound'
+                                : 'Inbound'}{' '}
+                              Handover
                             </span>
                             <span
                               className={cn(
                                 'rounded-full px-2 py-1 text-xs font-medium',
-                                handover.status === 'completed' && 'bg-emerald-100 text-emerald-800',
-                                handover.status === 'pending' && 'bg-amber-100 text-amber-800',
-                                handover.status === 'disputed' && 'bg-red-100 text-red-800',
+                                handover.status === 'completed' &&
+                                  'bg-emerald-100 text-emerald-800',
+                                handover.status === 'pending' &&
+                                  'bg-amber-100 text-amber-800',
+                                handover.status === 'disputed' &&
+                                  'bg-red-100 text-red-800'
                               )}
                             >
                               {handover.status === 'completed' && 'Selesai'}
@@ -697,7 +820,7 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                               {handover.status === 'disputed' && 'Disputed'}
                             </span>
                           </div>
-                          
+
                           <Button
                             variant="ghost"
                             size="sm"
@@ -711,24 +834,29 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                             )}
                           </Button>
                         </div>
-                        
+
                         <div className="mt-2 flex items-center gap-4 text-xs text-slate-600">
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            <span>{new Date(handover.created_at).toLocaleDateString('id-ID', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}</span>
+                            <span>
+                              {new Date(handover.created_at).toLocaleDateString(
+                                'id-ID',
+                                {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                }
+                              )}
+                            </span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Package className="h-3 w-3" />
                             <span>{handover.items.length} item</span>
                           </div>
                         </div>
-                        
+
                         <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
                           {handover.verified_by_both ? (
                             <>
@@ -742,14 +870,19 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                             </>
                           )}
                         </div>
-                        
+
                         {/* Expanded Items List */}
                         {isExpanded && (
                           <div className="mt-4 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                            <p className="text-xs font-semibold text-slate-700">Detail Items:</p>
+                            <p className="text-xs font-semibold text-slate-700">
+                              Detail Items:
+                            </p>
                             <div className="space-y-2">
                               {handover.items.map((item, itemIndex) => (
-                                <div key={itemIndex} className="flex items-center justify-between rounded bg-white p-2 text-xs">
+                                <div
+                                  key={itemIndex}
+                                  className="flex items-center justify-between rounded bg-white p-2 text-xs"
+                                >
                                   <div className="flex items-center gap-2">
                                     {item.photo_url && (
                                       <div className="relative h-8 w-8 overflow-hidden rounded border border-slate-200">
@@ -762,21 +895,26 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                                       </div>
                                     )}
                                     <div>
-                                      <p className="font-medium text-slate-900">{item.name}</p>
+                                      <p className="font-medium text-slate-900">
+                                        {item.name}
+                                      </p>
                                       <p className="text-slate-500">
                                         {item.quantity} {item.unit}
-                                        {item.expected_quantity !== undefined && item.expected_quantity !== item.quantity && (
-                                          <span className="ml-1 text-amber-600">
-                                            (expected: {item.expected_quantity})
-                                          </span>
-                                        )}
+                                        {item.expected_quantity !== undefined &&
+                                          item.expected_quantity !==
+                                            item.quantity && (
+                                            <span className="ml-1 text-amber-600">
+                                              (expected:{' '}
+                                              {item.expected_quantity})
+                                            </span>
+                                          )}
                                       </p>
                                     </div>
                                   </div>
                                 </div>
                               ))}
                             </div>
-                            
+
                             {/* Signature Info */}
                             <div className="mt-3 border-t border-slate-200 pt-3 text-xs">
                               <div className="flex items-center gap-1 text-slate-600">
@@ -790,9 +928,10 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                                 {handover.to_signature_data && (
                                   <p>✓ To party signed</p>
                                 )}
-                                {!handover.from_signature_data && !handover.to_signature_data && (
-                                  <p>No signatures yet</p>
-                                )}
+                                {!handover.from_signature_data &&
+                                  !handover.to_signature_data && (
+                                    <p>No signatures yet</p>
+                                  )}
                               </div>
                             </div>
                           </div>
@@ -824,13 +963,15 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
             {handoverType === 'inbound' && !inboundValidation.valid && (
               <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                  <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" />
                   <div className="flex-1 space-y-2">
                     <p className="font-semibold text-red-900">Perhatian</p>
                     {inboundValidation.missing.length > 0 && (
                       <div>
-                        <p className="text-sm font-medium text-red-800">Item yang hilang dari outbound:</p>
-                        <ul className="list-disc list-inside text-xs text-red-700 mt-1">
+                        <p className="text-sm font-medium text-red-800">
+                          Item yang hilang dari outbound:
+                        </p>
+                        <ul className="mt-1 list-inside list-disc text-xs text-red-700">
                           {inboundValidation.missing.map((name) => (
                             <li key={name}>{name}</li>
                           ))}
@@ -839,8 +980,10 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                     )}
                     {inboundValidation.warnings.length > 0 && (
                       <div>
-                        <p className="text-sm font-medium text-red-800">Perbedaan quantity:</p>
-                        <ul className="list-disc list-inside text-xs text-red-700 mt-1">
+                        <p className="text-sm font-medium text-red-800">
+                          Perbedaan quantity:
+                        </p>
+                        <ul className="mt-1 list-inside list-disc text-xs text-red-700">
                           {inboundValidation.warnings.map((warning, idx) => (
                             <li key={idx}>{warning}</li>
                           ))}
@@ -849,11 +992,15 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                     )}
                     {inboundValidation.variances.length > 0 && (
                       <div>
-                        <p className="text-sm font-medium text-red-800">Variance tinggi (&gt;10%):</p>
-                        <ul className="list-disc list-inside text-xs text-red-700 mt-1">
+                        <p className="text-sm font-medium text-red-800">
+                          Variance tinggi (&gt;10%):
+                        </p>
+                        <ul className="mt-1 list-inside list-disc text-xs text-red-700">
                           {inboundValidation.variances.map((variance, idx) => (
                             <li key={idx}>
-                              {variance.itemName}: {variance.inboundQty} vs {variance.outboundQty} (variance: {variance.variancePercent.toFixed(1)}%)
+                              {variance.itemName}: {variance.inboundQty} vs{' '}
+                              {variance.outboundQty} (variance:{' '}
+                              {variance.variancePercent.toFixed(1)}%)
                             </li>
                           ))}
                         </ul>
@@ -919,122 +1066,155 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
               <div className="mt-2 space-y-3">
                 {items.map((item, index) => {
                   // Check if this item has high variance (for inbound handovers)
-                  const itemVariance = handoverType === 'inbound'
-                    ? inboundValidation.variances.find((v) => v.itemName === item.name)
-                    : null;
-                  const hasHighVariance = itemVariance && itemVariance.variancePercent > VARIANCE_THRESHOLD;
-                  
+                  const itemVariance =
+                    handoverType === 'inbound'
+                      ? inboundValidation.variances.find(
+                          (v) => v.itemName === item.name
+                        )
+                      : null;
+                  const hasHighVariance =
+                    itemVariance &&
+                    itemVariance.variancePercent > VARIANCE_THRESHOLD;
+
                   return (
-                    <div key={index} className={cn('rounded-lg border p-3', hasHighVariance && 'border-red-300 bg-red-50')}>
+                    <div
+                      key={index}
+                      className={cn(
+                        'rounded-lg border p-3',
+                        hasHighVariance && 'border-red-300 bg-red-50'
+                      )}
+                    >
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <Input
                             placeholder="Nama item"
                             value={item.name}
-                            onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                            onChange={(e) =>
+                              handleItemChange(index, 'name', e.target.value)
+                            }
                             className={hasHighVariance ? 'border-red-300' : ''}
                           />
                           {hasHighVariance && (
-                            <div className="flex-shrink-0 rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800" title={`Variance: ${itemVariance.variancePercent.toFixed(1)}%`}>
+                            <div
+                              className="flex-shrink-0 rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800"
+                              title={`Variance: ${itemVariance.variancePercent.toFixed(1)}%`}
+                            >
                               ⚠️ {itemVariance.variancePercent.toFixed(0)}%
                             </div>
                           )}
                         </div>
                         <div className="flex gap-2">
-                        <div className="flex-1">
-                          <Input
-                            type="number"
-                            placeholder="Jumlah"
-                            value={item.quantity || ''}
-                            onChange={(e) => {
-                              const value = item.unit === 'piece'
-                                ? parseInt(e.target.value) || 0
-                                : parseFloat(e.target.value) || 0;
-                              handleItemChange(index, 'quantity', value);
-                            }}
-                            step={item.unit === 'piece' ? '1' : '0.01'}
-                            min="0"
-                            className={validateItemQuantity(item) ? 'border-red-300' : ''}
-                          />
-                          {validateItemQuantity(item) && (
-                            <p className="mt-1 text-xs text-red-600">{validateItemQuantity(item)}</p>
-                          )}
-                        </div>
-                        <select
-                          value={item.unit}
-                          onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
-                          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-                        >
-                          <option value="piece">Pcs</option>
-                          <option value="box">Box</option>
-                          <option value="bottle">Botol</option>
-                          <option value="liter">Liter</option>
-                          <option value="kilogram">Kg</option>
-                        </select>
+                          <div className="flex-1">
+                            <Input
+                              type="number"
+                              placeholder="Jumlah"
+                              value={item.quantity || ''}
+                              onChange={(e) => {
+                                const value =
+                                  item.unit === 'piece'
+                                    ? parseInt(e.target.value) || 0
+                                    : parseFloat(e.target.value) || 0;
+                                handleItemChange(index, 'quantity', value);
+                              }}
+                              step={item.unit === 'piece' ? '1' : '0.01'}
+                              min="0"
+                              className={
+                                validateItemQuantity(item)
+                                  ? 'border-red-300'
+                                  : ''
+                              }
+                            />
+                            {validateItemQuantity(item) && (
+                              <p className="mt-1 text-xs text-red-600">
+                                {validateItemQuantity(item)}
+                              </p>
+                            )}
+                          </div>
+                          <select
+                            value={item.unit}
+                            onChange={(e) =>
+                              handleItemChange(index, 'unit', e.target.value)
+                            }
+                            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                          >
+                            <option value="piece">Pcs</option>
+                            <option value="box">Box</option>
+                            <option value="bottle">Botol</option>
+                            <option value="liter">Liter</option>
+                            <option value="kilogram">Kg</option>
+                          </select>
                         </div>
                         {handoverType === 'inbound' && (
-                        <Input
-                          type="number"
-                          placeholder="Expected quantity"
-                          value={item.expected_quantity || ''}
-                          onChange={(e) =>
-                            handleItemChange(index, 'expected_quantity', parseInt(e.target.value) || 0)
-                          }
-                        />
+                          <Input
+                            type="number"
+                            placeholder="Expected quantity"
+                            value={item.expected_quantity || ''}
+                            onChange={(e) =>
+                              handleItemChange(
+                                index,
+                                'expected_quantity',
+                                parseInt(e.target.value) || 0
+                              )
+                            }
+                          />
                         )}
-                        
+
                         {/* Photo Upload */}
                         <div className="space-y-2">
-                        <Label className="text-xs text-slate-600">Foto Item (opsional)</Label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          ref={(el) => {
-                            fileInputRefs.current[index] = el;
-                          }}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              void handlePhotoUpload(index, file);
-                            }
-                            // Reset input value so same file can be selected again
-                            e.target.value = '';
-                          }}
-                          className="hidden"
-                        />
-                        {item.photo_url ? (
-                          <div className="relative">
-                            <div className="relative h-20 w-20 overflow-hidden rounded-lg border border-slate-200">
-                              <Image
-                                src={item.photo_url}
-                                alt={item.name || 'Item photo'}
-                                fill
-                                className="object-cover"
-                              />
+                          <Label className="text-xs text-slate-600">
+                            Foto Item (opsional)
+                          </Label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            ref={(el) => {
+                              fileInputRefs.current[index] = el;
+                            }}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                void handlePhotoUpload(index, file);
+                              }
+                              // Reset input value so same file can be selected again
+                              e.target.value = '';
+                            }}
+                            className="hidden"
+                          />
+                          {item.photo_url ? (
+                            <div className="relative">
+                              <div className="relative h-20 w-20 overflow-hidden rounded-lg border border-slate-200">
+                                <Image
+                                  src={item.photo_url}
+                                  alt={item.name || 'Item photo'}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handlePhotoRemove(index)}
+                                className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-red-500 p-0 text-white hover:bg-red-600"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
                             </div>
+                          ) : (
                             <Button
                               type="button"
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              onClick={() => handlePhotoRemove(index)}
-                              className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-red-500 p-0 text-white hover:bg-red-600"
+                              onClick={() => handlePhotoClick(index)}
+                              disabled={uploadingPhotos[index]}
+                              className="w-full"
                             >
-                              <X className="h-3 w-3" />
+                              <Camera className="mr-2 h-4 w-4" />
+                              {uploadingPhotos[index]
+                                ? 'Uploading...'
+                                : 'Upload Foto'}
                             </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePhotoClick(index)}
-                            disabled={uploadingPhotos[index]}
-                            className="w-full"
-                          >
-                            <Camera className="mr-2 h-4 w-4" />
-                            {uploadingPhotos[index] ? 'Uploading...' : 'Upload Foto'}
-                          </Button>
-                        )}
+                          )}
                         </div>
                         {items.length > 1 && (
                           <div className="mt-2 flex justify-end">
@@ -1044,7 +1224,7 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                               onClick={() => handleRemoveItem(index)}
                               className="text-red-600"
                             >
-                              <XCircle className="h-4 w-4 mr-1" />
+                              <XCircle className="mr-1 h-4 w-4" />
                               Hapus
                             </Button>
                           </div>
@@ -1055,7 +1235,9 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
                 })}
                 <Button
                   variant="outline"
-                  onClick={() => setItems([...items, { ...DEFAULT_HANDOVER_ITEM }])}
+                  onClick={() =>
+                    setItems([...items, { ...DEFAULT_HANDOVER_ITEM }])
+                  }
                   className="w-full"
                 >
                   + Tambah Item
@@ -1081,7 +1263,10 @@ export function LogisticsHandoverSection({ tripId, locale: _locale }: LogisticsH
             <Button variant="outline" onClick={() => setShowDialog(false)}>
               Batal
             </Button>
-            <Button onClick={handleSubmit} disabled={createMutation.isPending || !signature}>
+            <Button
+              onClick={handleSubmit}
+              disabled={createMutation.isPending || !signature}
+            >
               {createMutation.isPending ? 'Menyimpan...' : 'Simpan Handover'}
             </Button>
           </DialogFooter>

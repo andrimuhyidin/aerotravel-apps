@@ -11,7 +11,13 @@ import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -67,7 +73,9 @@ type ComplianceReportData = {
   };
 };
 
-export function ComplianceReportClient({ locale }: ComplianceReportClientProps) {
+export function ComplianceReportClient({
+  locale: _locale,
+}: ComplianceReportClientProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -78,7 +86,9 @@ export function ComplianceReportClient({ locale }: ComplianceReportClientProps) 
       if (statusFilter !== 'all') {
         params.append('status', statusFilter);
       }
-      const res = await fetch(`/api/admin/reports/training-compliance?${params.toString()}`);
+      const res = await fetch(
+        `/api/admin/reports/training-compliance?${params.toString()}`
+      );
       if (!res.ok) throw new Error('Failed to fetch compliance report');
       return res.json();
     },
@@ -133,7 +143,9 @@ export function ComplianceReportClient({ locale }: ComplianceReportClientProps) 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Training Compliance Report</h1>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Training Compliance Report
+          </h1>
           <p className="text-slate-600">Training compliance status per guide</p>
         </div>
         <Button variant="outline" size="sm">
@@ -146,22 +158,33 @@ export function ComplianceReportClient({ locale }: ComplianceReportClientProps) 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Total Guides</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Total Guides
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">{summary.total_guides}</div>
+            <div className="text-2xl font-bold text-slate-900">
+              {summary.total_guides}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Compliant</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Compliant
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{summary.compliant_count}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {summary.compliant_count}
+            </div>
             <div className="text-xs text-slate-500">
               {summary.total_guides > 0
-                ? ((summary.compliant_count / summary.total_guides) * 100).toFixed(1)
+                ? (
+                    (summary.compliant_count / summary.total_guides) *
+                    100
+                  ).toFixed(1)
                 : 0}
               % of total
             </div>
@@ -170,13 +193,20 @@ export function ComplianceReportClient({ locale }: ComplianceReportClientProps) 
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Non-Compliant</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Non-Compliant
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{summary.non_compliant_count}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {summary.non_compliant_count}
+            </div>
             <div className="text-xs text-slate-500">
               {summary.total_guides > 0
-                ? ((summary.non_compliant_count / summary.total_guides) * 100).toFixed(1)
+                ? (
+                    (summary.non_compliant_count / summary.total_guides) *
+                    100
+                  ).toFixed(1)
                 : 0}
               % of total
             </div>
@@ -185,7 +215,9 @@ export function ComplianceReportClient({ locale }: ComplianceReportClientProps) 
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Avg Compliance</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Avg Compliance
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">
@@ -218,7 +250,9 @@ export function ComplianceReportClient({ locale }: ComplianceReportClientProps) 
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="compliant">Compliant Only</SelectItem>
-                <SelectItem value="non-compliant">Non-Compliant Only</SelectItem>
+                <SelectItem value="non-compliant">
+                  Non-Compliant Only
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -230,7 +264,8 @@ export function ComplianceReportClient({ locale }: ComplianceReportClientProps) 
         <CardHeader>
           <CardTitle>Guide Compliance Details</CardTitle>
           <CardDescription>
-            {filteredGuides.length} guide{filteredGuides.length !== 1 ? 's' : ''} found
+            {filteredGuides.length} guide
+            {filteredGuides.length !== 1 ? 's' : ''} found
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -249,7 +284,10 @@ export function ComplianceReportClient({ locale }: ComplianceReportClientProps) 
               <TableBody>
                 {filteredGuides.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-slate-500">
+                    <TableCell
+                      colSpan={6}
+                      className="text-center text-slate-500"
+                    >
                       No guides found
                     </TableCell>
                   </TableRow>
@@ -259,27 +297,40 @@ export function ComplianceReportClient({ locale }: ComplianceReportClientProps) 
                       <TableCell>
                         <div>
                           <div className="font-medium">{guide.guide_name}</div>
-                          <div className="text-xs text-slate-500">{guide.guide_email}</div>
+                          <div className="text-xs text-slate-500">
+                            {guide.guide_email}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className={`font-semibold ${getComplianceColor(guide.compliance_percentage)}`}>
+                        <span
+                          className={`font-semibold ${getComplianceColor(guide.compliance_percentage)}`}
+                        >
                           {guide.compliance_percentage.toFixed(1)}%
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="bg-green-50 text-green-700">
+                        <Badge
+                          variant="outline"
+                          className="bg-green-50 text-green-700"
+                        >
                           {guide.completed_count}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
+                        <Badge
+                          variant="outline"
+                          className="bg-yellow-50 text-yellow-700"
+                        >
                           {guide.pending_count}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         {guide.overdue_count > 0 ? (
-                          <Badge variant="outline" className="bg-red-50 text-red-700">
+                          <Badge
+                            variant="outline"
+                            className="bg-red-50 text-red-700"
+                          >
                             {guide.overdue_count}
                           </Badge>
                         ) : (
@@ -298,4 +349,3 @@ export function ComplianceReportClient({ locale }: ComplianceReportClientProps) 
     </div>
   );
 }
-

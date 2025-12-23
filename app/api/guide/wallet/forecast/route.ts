@@ -3,7 +3,7 @@
  * GET /api/guide/wallet/forecast - Forecast next month earnings based on scheduled trips
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
@@ -28,10 +28,18 @@ export const GET = withErrorHandler(async () => {
     // Get next month date range
     const now = new Date();
     const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const nextMonthEnd = new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59);
+    const nextMonthEnd = new Date(
+      now.getFullYear(),
+      now.getMonth() + 2,
+      0,
+      23,
+      59,
+      59
+    );
 
     // Get scheduled trips for next month
-    let scheduledTripsQuery = client.from('trip_guides')
+    let scheduledTripsQuery = client
+      .from('trip_guides')
       .select('trip_id, fee_amount')
       .eq('guide_id', user.id);
 
@@ -81,9 +89,17 @@ export const GET = withErrorHandler(async () => {
     if (!scheduledTrips || scheduledTrips.length === 0) {
       // Fallback: Use historical average
       const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+      const lastMonthEnd = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        0,
+        23,
+        59,
+        59
+      );
 
-      let historicalTripsQuery = client.from('trip_guides')
+      let historicalTripsQuery = client
+        .from('trip_guides')
         .select('trip_id, fee_amount')
         .eq('guide_id', user.id)
         .gte('check_in_at', lastMonthStart.toISOString())
@@ -122,10 +138,12 @@ export const GET = withErrorHandler(async () => {
         });
       }
 
-      const avgFee = historicalTrips.reduce(
-        (sum: number, t: { fee_amount: number }) => sum + (Number(t.fee_amount) || 0),
-        0,
-      ) / historicalTrips.length;
+      const avgFee =
+        historicalTrips.reduce(
+          (sum: number, t: { fee_amount: number }) =>
+            sum + (Number(t.fee_amount) || 0),
+          0
+        ) / historicalTrips.length;
 
       // Estimate 8 trips for next month (average)
       const estimatedTrips = 8;
@@ -141,13 +159,17 @@ export const GET = withErrorHandler(async () => {
 
     // Calculate forecast based on scheduled trips
     const totalFee = scheduledTrips.reduce(
-      (sum: number, t: { fee_amount: number }) => sum + (Number(t.fee_amount) || 0),
-      0,
+      (sum: number, t: { fee_amount: number }) =>
+        sum + (Number(t.fee_amount) || 0),
+      0
     );
 
     // Add estimated bonuses (15% average)
     const forecast = Math.round(totalFee * 1.15);
-    const averagePerTrip = scheduledTrips.length > 0 ? Math.round(totalFee / scheduledTrips.length) : 0;
+    const averagePerTrip =
+      scheduledTrips.length > 0
+        ? Math.round(totalFee / scheduledTrips.length)
+        : 0;
 
     return NextResponse.json({
       forecast,
@@ -157,7 +179,9 @@ export const GET = withErrorHandler(async () => {
     });
   } catch (error) {
     logger.error('Failed to fetch forecast', error, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to fetch forecast' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch forecast' },
+      { status: 500 }
+    );
   }
 });
-

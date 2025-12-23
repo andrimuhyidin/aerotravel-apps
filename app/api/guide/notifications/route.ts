@@ -7,7 +7,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { parsePaginationParams, createPaginationMeta } from '@/lib/api/pagination';
+import {
+  parsePaginationParams,
+  createPaginationMeta,
+} from '@/lib/api/pagination';
 import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -32,8 +35,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   try {
     // Get system notifications
-    let systemNotifications: any[] = [];
-    let systemError: any = null;
+    let systemNotifications: unknown[] = [];
+    let systemError: unknown = null;
 
     if (!type || type === 'all' || type === 'system') {
       try {
@@ -65,17 +68,21 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     }
 
     // Get broadcasts
-    let broadcasts: any[] = [];
-    let broadcastError: any = null;
+    let broadcasts: unknown[] = [];
+    let broadcastError: unknown = null;
 
-    if ((!type || type === 'all' || type === 'broadcast') && branchContext.branchId) {
+    if (
+      (!type || type === 'all' || type === 'broadcast') &&
+      branchContext.branchId
+    ) {
       try {
         const now = new Date().toISOString();
 
         // Query broadcasts for all guides
         const allResult = await client
           .from('ops_broadcasts')
-          .select(`
+          .select(
+            `
             id,
             broadcast_type,
             title,
@@ -86,7 +93,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
             scheduled_at,
             created_by,
             target_guides
-          `)
+          `
+          )
           .eq('branch_id', branchContext.branchId)
           .eq('is_active', true)
           .is('target_guides', null)
@@ -95,7 +103,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         // Query broadcasts for specific guide
         const guideResult = await client
           .from('ops_broadcasts')
-          .select(`
+          .select(
+            `
             id,
             broadcast_type,
             title,
@@ -106,7 +115,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
             scheduled_at,
             created_by,
             target_guides
-          `)
+          `
+          )
           .eq('branch_id', branchContext.branchId)
           .eq('is_active', true)
           .contains('target_guides', [user.id])
@@ -119,10 +129,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
         // Deduplicate and filter
         const uniqueBroadcasts = Array.from(
-          new Map(allBroadcasts.map((b: any) => [b.id, b])).values(),
+          new Map(allBroadcasts.map((b: any) => [b.id, b])).values()
         ).filter((b: any) => {
-          const isNotExpired = !b.expires_at || new Date(b.expires_at) > new Date(now);
-          const isScheduled = !b.scheduled_at || new Date(b.scheduled_at) <= new Date(now);
+          const isNotExpired =
+            !b.expires_at || new Date(b.expires_at) > new Date(now);
+          const isScheduled =
+            !b.scheduled_at || new Date(b.scheduled_at) <= new Date(now);
           return isNotExpired && isScheduled;
         });
 
@@ -142,12 +154,16 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
               acc[r.broadcast_id] = true;
               return acc;
             },
-            {} as Record<string, boolean>,
+            {} as Record<string, boolean>
           );
         }
 
         // Get creator names
-        const creatorIds = [...new Set(uniqueBroadcasts.map((b: any) => b.created_by).filter(Boolean))];
+        const creatorIds = [
+          ...new Set(
+            uniqueBroadcasts.map((b: any) => b.created_by).filter(Boolean)
+          ),
+        ];
         let creatorNames: Record<string, string> = {};
 
         if (creatorIds.length > 0) {
@@ -158,11 +174,14 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
           if (creators) {
             creatorNames = creators.reduce(
-              (acc: Record<string, string>, u: { id: string; full_name: string | null }) => {
+              (
+                acc: Record<string, string>,
+                u: { id: string; full_name: string | null }
+              ) => {
                 if (u.full_name) acc[u.id] = u.full_name;
                 return acc;
               },
-              {},
+              {}
             );
           }
         }
@@ -184,7 +203,10 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         broadcastError = allResult.error || guideResult.error;
       } catch (err) {
         const error = err as { code?: string; message?: string };
-        if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+        if (
+          error.code === 'PGRST205' ||
+          error.message?.includes('Could not find the table')
+        ) {
           // Table doesn't exist, continue with empty array
           broadcastError = null;
         } else {
@@ -194,16 +216,27 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     }
 
     // Combine and sort (promos removed - they have dedicated page)
-    const allNotifications = [...systemNotifications, ...broadcasts].sort((a, b) => {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+    const allNotifications = [...systemNotifications, ...broadcasts].sort(
+      (a, b) => {
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      }
+    );
 
     // Apply pagination
-    const paginatedNotifications = allNotifications.slice(offset, offset + limit);
+    const paginatedNotifications = allNotifications.slice(
+      offset,
+      offset + limit
+    );
 
     // Count unread by type
-    const systemUnread = allNotifications.filter((n) => n.type === 'system' && n.status !== 'read' && !n.readAt).length;
-    const broadcastUnread = allNotifications.filter((n) => n.type === 'broadcast' && !n.isRead).length;
+    const systemUnread = allNotifications.filter(
+      (n) => n.type === 'system' && n.status !== 'read' && !n.readAt
+    ).length;
+    const broadcastUnread = allNotifications.filter(
+      (n) => n.type === 'broadcast' && !n.isRead
+    ).length;
     const totalUnread = allNotifications.filter((n) => {
       if (n.type === 'system') {
         return n.status !== 'read' && !n.readAt;
@@ -225,7 +258,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       pagination: createPaginationMeta(total, page, limit),
     });
   } catch (error) {
-    logger.error('Failed to fetch unified notifications', error, { userId: user.id });
-    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
+    logger.error('Failed to fetch unified notifications', error, {
+      userId: user.id,
+    });
+    return NextResponse.json(
+      { error: 'Failed to fetch notifications' },
+      { status: 500 }
+    );
   }
 });

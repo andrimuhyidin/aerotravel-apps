@@ -33,7 +33,9 @@ export function trackWebVitals(options: WebVitalsOptions = {}) {
       window.gtag('event', metric.name, {
         event_category: 'Web Vitals',
         event_label: metric.id,
-        value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
+        value: Math.round(
+          metric.name === 'CLS' ? metric.value * 1000 : metric.value
+        ),
         non_interaction: true,
         // Custom dimensions
         metric_id: metric.id,
@@ -68,12 +70,19 @@ export function trackWebVitals(options: WebVitalsOptions = {}) {
         .then((Sentry) => {
           // Sentry metrics API may vary by version
           try {
-            if (Sentry.metrics && typeof Sentry.metrics.distribution === 'function') {
-              Sentry.metrics.distribution(`web_vital.${metric.name}`, metric.value, {
-                unit: metric.name === 'CLS' ? 'ratio' : 'millisecond',
-              });
+            if (
+              Sentry.metrics &&
+              typeof Sentry.metrics.distribution === 'function'
+            ) {
+              Sentry.metrics.distribution(
+                `web_vital.${metric.name}`,
+                metric.value,
+                {
+                  unit: metric.name === 'CLS' ? 'ratio' : 'millisecond',
+                }
+              );
             }
-          } catch (error) {
+          } catch (_error) {
             // Sentry metrics not available or API changed, skip silently
           }
         })
@@ -102,7 +111,8 @@ export function trackPageLoadPerformance() {
   if (perfData && perfData.timing) {
     const timing = perfData.timing;
     const tti = timing.domInteractive - timing.navigationStart;
-    const domContentLoaded = timing.domContentLoadedEventEnd - timing.navigationStart;
+    const domContentLoaded =
+      timing.domContentLoadedEventEnd - timing.navigationStart;
     const loadComplete = timing.loadEventEnd - timing.navigationStart;
 
     // Send to analytics
@@ -119,12 +129,19 @@ export function trackPageLoadPerformance() {
 
   // Track Resource Timing
   if (perfData && perfData.getEntriesByType) {
-    const resources = perfData.getEntriesByType('resource') as PerformanceResourceTiming[];
+    const resources = perfData.getEntriesByType(
+      'resource'
+    ) as PerformanceResourceTiming[];
     const apiCalls = resources.filter((r) => r.name.includes('/api/'));
-    
+
     if (apiCalls.length > 0) {
-      const avgApiTime = apiCalls.reduce((sum, r) => sum + (r.responseEnd - r.requestStart), 0) / apiCalls.length;
-      const totalApiTime = apiCalls.reduce((sum, r) => sum + (r.responseEnd - r.requestStart), 0);
+      const avgApiTime =
+        apiCalls.reduce((sum, r) => sum + (r.responseEnd - r.requestStart), 0) /
+        apiCalls.length;
+      const totalApiTime = apiCalls.reduce(
+        (sum, r) => sum + (r.responseEnd - r.requestStart),
+        0
+      );
 
       if (window.gtag) {
         window.gtag('event', 'api_performance', {
@@ -138,4 +155,3 @@ export function trackPageLoadPerformance() {
     }
   }
 }
-

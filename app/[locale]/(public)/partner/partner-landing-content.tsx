@@ -11,11 +11,9 @@ import {
   Building2,
   CheckCircle,
   CreditCard,
-  DollarSign,
   HeadphonesIcon,
   Percent,
   TrendingUp,
-  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -36,7 +34,8 @@ export function PartnerLandingContent({
     {
       icon: Percent,
       title: 'Komisi Menarik',
-      description: 'Dapatkan komisi hingga 15% dari setiap booking yang berhasil',
+      description:
+        'Dapatkan komisi hingga 15% dari setiap booking yang berhasil',
     },
     {
       icon: CreditCard,
@@ -78,42 +77,47 @@ export function PartnerLandingContent({
     <div className="flex min-h-[100vh] flex-col bg-background">
       <main className="flex-1 pb-24">
         {/* Hero Section */}
-        <Section className="bg-gradient-to-br from-primary/10 via-primary/5 to-teal-50" spacing="lg">
+        <Section
+          className="bg-gradient-to-br from-primary/10 via-primary/5 to-teal-50"
+          spacing="lg"
+        >
           <Container>
             <div className="text-center">
-              <h1 className="mb-4 text-2xl sm:text-3xl font-bold text-foreground">
+              <h1 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl">
                 Program Mitra B2B
               </h1>
-              <p className="mb-6 text-sm sm:text-base text-muted-foreground">
+              <p className="mb-6 text-sm text-muted-foreground sm:text-base">
                 Tingkatkan bisnis travel Anda dengan menjadi mitra Aero Travel.
                 Dapatkan komisi menarik dan akses ke sistem booking terintegrasi
               </p>
               <div className="flex flex-col gap-2">
-              {hasMitraRole ? (
-                <Button asChild size="lg" className="w-full">
-                  <Link href={`/${locale}/partner/dashboard`}>
-                    Buka Dashboard Mitra
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              ) : (
-                <>
+                {hasMitraRole ? (
                   <Button asChild size="lg" className="w-full">
-                    <Link href={`/${locale}/partner/apply`}>
-                      Daftar sebagai Mitra
+                    <Link href={`/${locale}/partner/dashboard`}>
+                      Buka Dashboard Mitra
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-full justify-center text-xs text-muted-foreground"
-                  >
-                    <Link href={`/${locale}/login`}>Sudah terdaftar? Login</Link>
-                  </Button>
-                </>
-              )}
+                ) : (
+                  <>
+                    <Button asChild size="lg" className="w-full">
+                      <Link href={`/${locale}/partner/apply`}>
+                        Daftar sebagai Mitra
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-full justify-center text-xs text-muted-foreground"
+                    >
+                      <Link href={`/${locale}/login`}>
+                        Sudah terdaftar? Login
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </Container>
@@ -126,11 +130,12 @@ export function PartnerLandingContent({
               <p className="text-xs font-medium uppercase tracking-wide text-primary">
                 Untuk biro & agent
               </p>
-              <h2 className="mt-1 text-xl sm:text-2xl font-bold text-foreground">
+              <h2 className="mt-1 text-xl font-bold text-foreground sm:text-2xl">
                 Keuntungan Menjadi Mitra
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Satu dashboard terintegrasi untuk mengelola penjualan produk Aero Travel.
+                Satu dashboard terintegrasi untuk mengelola penjualan produk
+                Aero Travel.
               </p>
             </div>
             <div className="space-y-3">
@@ -163,7 +168,7 @@ export function PartnerLandingContent({
         <Section className="bg-muted/50" spacing="lg">
           <Container>
             <div className="mb-4 text-left">
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+              <h2 className="text-xl font-bold text-foreground sm:text-2xl">
                 Fitur & Layanan
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -189,33 +194,33 @@ export function PartnerLandingContent({
       <div className="sticky bottom-0 z-20 border-t border-primary/20 bg-gradient-to-r from-primary to-primary/90 px-4 pb-4 pt-3">
         <Container>
           <div className="flex flex-col gap-2 text-center">
-          <div className="space-y-1">
-            <h2 className="text-base font-semibold text-primary-foreground">
-              Siap scale bisnis travel Anda?
-            </h2>
-            <p className="text-xs text-primary-foreground/90">
-              Mitra mendapatkan akses dashboard, support, dan komisi yang kompetitif.
-            </p>
-          </div>
-          {!hasMitraRole ? (
-            <Button asChild size="lg" variant="secondary" className="w-full">
-              <Link href={`/${locale}/partner/apply`}>
-                Daftar sebagai Mitra
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          ) : (
-            <Button asChild size="lg" variant="secondary" className="w-full">
-              <Link href={`/${locale}/partner/dashboard`}>
-                Buka Dashboard Mitra
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          )}
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold text-primary-foreground">
+                Siap scale bisnis travel Anda?
+              </h2>
+              <p className="text-xs text-primary-foreground/90">
+                Mitra mendapatkan akses dashboard, support, dan komisi yang
+                kompetitif.
+              </p>
+            </div>
+            {!hasMitraRole ? (
+              <Button asChild size="lg" variant="secondary" className="w-full">
+                <Link href={`/${locale}/partner/apply`}>
+                  Daftar sebagai Mitra
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Button asChild size="lg" variant="secondary" className="w-full">
+                <Link href={`/${locale}/partner/dashboard`}>
+                  Buka Dashboard Mitra
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
           </div>
         </Container>
       </div>
     </div>
   );
 }
-

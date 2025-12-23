@@ -6,11 +6,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
+import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
-type PenaltyReason = 'late_check_in' | 'missing_documentation' | 'complaint' | 'damage' | 'other';
+type PenaltyReason =
+  | 'late_check_in'
+  | 'missing_documentation'
+  | 'complaint'
+  | 'damage'
+  | 'other';
 
 type PenaltyTip = {
   reason: PenaltyReason;
@@ -100,21 +105,27 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   try {
     // Get penalty history
-    let penaltiesQuery = client.from('salary_deductions')
+    let penaltiesQuery = client
+      .from('salary_deductions')
       .select('id, amount, reason, description, created_at, trip_id')
       .eq('guide_id', user.id);
-    
+
     if (!branchContext.isSuperAdmin && branchContext.branchId) {
       penaltiesQuery = penaltiesQuery.eq('branch_id', branchContext.branchId);
     }
-    
+
     const { data: penalties, error: penaltiesError } = await penaltiesQuery
       .order('created_at', { ascending: false })
       .limit(limit);
 
     if (penaltiesError) {
-      logger.error('Failed to fetch penalties', penaltiesError, { guideId: user.id });
-      return NextResponse.json({ error: 'Failed to fetch penalties' }, { status: 500 });
+      logger.error('Failed to fetch penalties', penaltiesError, {
+        guideId: user.id,
+      });
+      return NextResponse.json(
+        { error: 'Failed to fetch penalties' },
+        { status: 500 }
+      );
     }
 
     // Map penalties with tips
@@ -138,7 +149,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       totalCount: penaltiesWithTips.length,
     });
   } catch (error) {
-    logger.error('Failed to fetch penalty history', error, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to fetch penalty history' }, { status: 500 });
+    logger.error('Failed to fetch penalty history', error, {
+      guideId: user.id,
+    });
+    return NextResponse.json(
+      { error: 'Failed to fetch penalty history' },
+      { status: 500 }
+    );
   }
 });

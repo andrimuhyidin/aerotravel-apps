@@ -12,17 +12,8 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Skeleton } from '@/components/ui/skeleton';
 import queryKeys from '@/lib/queries/query-keys';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -32,7 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { SignaturePad, type SignatureData } from '@/components/ui/signature-pad';
+import {
+  SignaturePad,
+  type SignatureData,
+} from '@/components/ui/signature-pad';
 import { Textarea } from '@/components/ui/textarea';
 import { extractEXIFFromFile } from '@/lib/utils/exif-extractor';
 import { logger } from '@/lib/utils/logger';
@@ -61,13 +55,33 @@ type EquipmentItem = {
 
 // Fallback default items (used only if templates API fails)
 const defaultEquipmentItems: EquipmentItem[] = [
-  { id: 'life_jacket', name: 'Life Jacket (sesuai jumlah peserta)', checked: false },
-  { id: 'snorkeling_gear', name: 'Alat Snorkeling (mask, fin, snorkel)', checked: false },
+  {
+    id: 'life_jacket',
+    name: 'Life Jacket (sesuai jumlah peserta)',
+    checked: false,
+  },
+  {
+    id: 'snorkeling_gear',
+    name: 'Alat Snorkeling (mask, fin, snorkel)',
+    checked: false,
+  },
   { id: 'first_aid_kit', name: 'First Aid Kit lengkap', checked: false },
-  { id: 'communication_device', name: 'Alat Komunikasi (HP/Radio)', checked: false },
-  { id: 'safety_equipment', name: 'Peralatan Safety (whistle, flashlight)', checked: false },
+  {
+    id: 'communication_device',
+    name: 'Alat Komunikasi (HP/Radio)',
+    checked: false,
+  },
+  {
+    id: 'safety_equipment',
+    name: 'Peralatan Safety (whistle, flashlight)',
+    checked: false,
+  },
   { id: 'water_supply', name: 'Persediaan Air Minum', checked: false },
-  { id: 'navigation_tools', name: 'Alat Navigasi (kompas, GPS)', checked: false },
+  {
+    id: 'navigation_tools',
+    name: 'Alat Navigasi (kompas, GPS)',
+    checked: false,
+  },
 ];
 
 type EquipmentAlert = {
@@ -80,7 +94,7 @@ type EquipmentAlert = {
 };
 
 // Expiry Alerts Component
-function ExpiryAlerts({ tripId }: { tripId: string }) {
+function ExpiryAlerts({ tripId: _tripId }: { tripId: string }) {
   const { data: alerts } = useQuery<{ alerts: EquipmentAlert[] }>({
     queryKey: ['equipment-expiry-alerts'],
     queryFn: async () => {
@@ -104,18 +118,20 @@ function ExpiryAlerts({ tripId }: { tripId: string }) {
   return (
     <Card className="border-0 bg-red-50 shadow-sm">
       <CardContent className="p-4">
-        <p className="text-sm font-semibold text-red-900 mb-2">
+        <p className="mb-2 text-sm font-semibold text-red-900">
           ⚠️ Peringatan Sertifikat Peralatan
         </p>
         <div className="space-y-1 text-xs">
           {expiredAlerts.map((alert) => (
             <p key={alert.equipmentId} className="text-red-700">
-              🔴 {alert.equipmentName} - {alert.certificateType} expired {Math.abs(alert.daysUntilExpiry)} hari lalu
+              🔴 {alert.equipmentName} - {alert.certificateType} expired{' '}
+              {Math.abs(alert.daysUntilExpiry)} hari lalu
             </p>
           ))}
           {warningAlerts.map((alert) => (
             <p key={alert.equipmentId} className="text-amber-700">
-              ⚠️ {alert.equipmentName} - {alert.certificateType} expires dalam {alert.daysUntilExpiry} hari
+              ⚠️ {alert.equipmentName} - {alert.certificateType} expires dalam{' '}
+              {alert.daysUntilExpiry} hari
             </p>
           ))}
         </div>
@@ -133,40 +149,51 @@ export function EquipmentChecklistClient({
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [gpsLocation, setGpsLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [gpsLocation, setGpsLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [signature, setSignature] = useState<SignatureData | null>(null);
   const [totalPassengers, setTotalPassengers] = useState<number | null>(null);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
 
   // Fetch equipment checklist templates
-  const { data: templatesData, isLoading: templatesLoading } = useQuery<{ data: { templates: Array<{ id: string; name: string; description?: string }> } }>({
+  const { data: templatesData, isLoading: templatesLoading } = useQuery<{
+    data: {
+      templates: Array<{ id: string; name: string; description?: string }>;
+    };
+  }>({
     queryKey: queryKeys.guide.equipment.checklistTemplates(),
     queryFn: async () => {
       const res = await fetch('/api/guide/equipment/checklist/templates');
-      if (!res.ok) throw new Error('Failed to fetch equipment checklist templates');
+      if (!res.ok)
+        throw new Error('Failed to fetch equipment checklist templates');
       return res.json();
     },
     staleTime: 300000, // Cache for 5 minutes
   });
 
   // Fetch existing checklist for this trip
-  const { data: existingChecklistData, isLoading: checklistLoading } = useQuery<{ checklist: { equipment_items?: EquipmentItem[] } | null }>({
-    queryKey: ['guide', 'equipment', 'checklist', tripId],
-    queryFn: async () => {
-      const res = await fetch(`/api/guide/equipment/checklist?tripId=${tripId}`);
-      if (!res.ok) return { checklist: null };
-      return res.json();
-    },
-    enabled: !!tripId,
-    staleTime: 60000, // Cache for 1 minute
-  });
+  const { data: existingChecklistData, isLoading: checklistLoading } =
+    useQuery<{ checklist: { equipment_items?: EquipmentItem[] } | null }>({
+      queryKey: ['guide', 'equipment', 'checklist', tripId],
+      queryFn: async () => {
+        const res = await fetch(
+          `/api/guide/equipment/checklist?tripId=${tripId}`
+        );
+        if (!res.ok) return { checklist: null };
+        return res.json();
+      },
+      enabled: !!tripId,
+      staleTime: 60000, // Cache for 1 minute
+    });
 
   // Initialize items from templates and merge with existing checklist
   useEffect(() => {
     if (templatesLoading || checklistLoading) return;
 
     const templates = templatesData?.data?.templates || [];
-    
+
     // If we have templates, use them as base
     if (templates.length > 0) {
       const templateItems: EquipmentItem[] = templates.map((t) => ({
@@ -177,9 +204,15 @@ export function EquipmentChecklistClient({
 
       // If we have existing checklist, merge with it (preserve checked state, photos, etc.)
       const existingItems = existingChecklistData?.checklist?.equipment_items;
-      if (existingItems && Array.isArray(existingItems) && existingItems.length > 0) {
+      if (
+        existingItems &&
+        Array.isArray(existingItems) &&
+        existingItems.length > 0
+      ) {
         // Merge: use existing items data, fill in missing templates
-        const existingMap = new Map(existingItems.map((item) => [item.id, item]));
+        const existingMap = new Map(
+          existingItems.map((item) => [item.id, item])
+        );
         const mergedItems: EquipmentItem[] = templateItems.map((template) => {
           const existing = existingMap.get(template.id);
           if (existing) {
@@ -187,7 +220,7 @@ export function EquipmentChecklistClient({
           }
           return template; // Use template as default
         });
-        
+
         // Add any existing items that aren't in templates (backwards compatibility)
         existingItems.forEach((item) => {
           if (!templateItems.find((t) => t.id === item.id)) {
@@ -203,23 +236,34 @@ export function EquipmentChecklistClient({
     } else {
       // No templates available, use hardcoded defaults
       const existingItems = existingChecklistData?.checklist?.equipment_items;
-      if (existingItems && Array.isArray(existingItems) && existingItems.length > 0) {
+      if (
+        existingItems &&
+        Array.isArray(existingItems) &&
+        existingItems.length > 0
+      ) {
         setItems(existingItems);
       } else {
         setItems(defaultEquipmentItems);
       }
     }
-  }, [templatesData, existingChecklistData, templatesLoading, checklistLoading]);
+  }, [
+    templatesData,
+    existingChecklistData,
+    templatesLoading,
+    checklistLoading,
+  ]);
 
   const toggleItem = (id: string) => {
     setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, checked: !item.checked } : item)),
+      prev.map((item) =>
+        item.id === id ? { ...item, checked: !item.checked } : item
+      )
     );
   };
 
   const updateItem = (id: string, updates: Partial<EquipmentItem>) => {
     setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
     );
   };
 
@@ -238,7 +282,7 @@ export function EquipmentChecklistClient({
                   return { ...item, quantity: data.totalPax };
                 }
                 return item;
-              }),
+              })
             );
           }
         })
@@ -259,9 +303,12 @@ export function EquipmentChecklistClient({
           });
         },
         (error) => {
-          logger.warn('GPS capture failed', { error: error.message, code: error.code });
+          logger.warn('GPS capture failed', {
+            error: error.message,
+            code: error.code,
+          });
         },
-        { enableHighAccuracy: true, timeout: 5000 },
+        { enableHighAccuracy: true, timeout: 5000 }
       );
     }
   }, []);
@@ -324,7 +371,10 @@ export function EquipmentChecklistClient({
         formData.append('latitude', exifGps.latitude.toString());
         formData.append('longitude', exifGps.longitude.toString());
       }
-      formData.append('timestamp', exifData?.timestamp || new Date().toISOString());
+      formData.append(
+        'timestamp',
+        exifData?.timestamp || new Date().toISOString()
+      );
 
       const res = await fetch('/api/guide/photos/upload', {
         method: 'POST',
@@ -337,7 +387,7 @@ export function EquipmentChecklistClient({
 
       const data = (await res.json()) as { url: string; photoUrl: string };
       const photoUrl = data.url || data.photoUrl;
-      
+
       updateItem(itemId, {
         photo_url: photoUrl,
         photo_gps: exifGps || undefined,
@@ -385,21 +435,28 @@ export function EquipmentChecklistClient({
           equipmentItems: items,
           latitude: gpsLocation?.latitude,
           longitude: gpsLocation?.longitude,
-          signature: signature ? {
-            method: signature.method,
-            data: signature.data,
-          } : undefined,
+          signature: signature
+            ? {
+                method: signature.method,
+                data: signature.data,
+              }
+            : undefined,
         }),
       });
 
       if (!res.ok) {
-        const errorData = (await res.json().catch(() => ({}))) as { error?: string };
+        const errorData = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
         setError(errorData.error || 'Gagal menyimpan checklist');
         return;
       }
 
       // Success
-      logger.info('Equipment checklist saved', { tripId, itemsCount: items.length });
+      logger.info('Equipment checklist saved', {
+        tripId,
+        itemsCount: items.length,
+      });
       toast.success('Checklist berhasil disimpan');
     } catch (err) {
       logger.error('Failed to save equipment checklist', err, { tripId });
@@ -427,7 +484,10 @@ export function EquipmentChecklistClient({
         }),
       });
     } catch (err) {
-      logger.error('Failed to report equipment issue', err, { tripId, itemId: item.id });
+      logger.error('Failed to report equipment issue', err, {
+        tripId,
+        itemId: item.id,
+      });
     }
   };
 
@@ -450,16 +510,18 @@ export function EquipmentChecklistClient({
       {/* Info: Inventory Ops (untuk admin/ops) */}
       <Card className="border-0 bg-blue-50 shadow-sm">
         <CardContent className="flex items-center gap-3 p-4">
-          <Package className="h-5 w-5 text-blue-600 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-blue-900">Sistem Inventory Ops</p>
-            <p className="text-xs text-blue-700 mt-0.5">
-              Untuk informasi stok dan ketersediaan peralatan, silakan hubungi tim operasional
+          <Package className="h-5 w-5 flex-shrink-0 text-blue-600" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-blue-900">
+              Sistem Inventory Ops
+            </p>
+            <p className="mt-0.5 text-xs text-blue-700">
+              Untuk informasi stok dan ketersediaan peralatan, silakan hubungi
+              tim operasional
             </p>
           </div>
         </CardContent>
       </Card>
-
 
       {/* Equipment Items */}
       <div className="space-y-3">
@@ -467,7 +529,7 @@ export function EquipmentChecklistClient({
           <Card
             key={item.id}
             className={`border-0 shadow-sm transition-colors ${
-              item.checked ? 'bg-emerald-50 border-emerald-200' : 'bg-white'
+              item.checked ? 'border-emerald-200 bg-emerald-50' : 'bg-white'
             }`}
           >
             <CardContent className="p-4">
@@ -483,7 +545,7 @@ export function EquipmentChecklistClient({
                 >
                   {item.checked && <CheckCircle2 className="h-4 w-4" />}
                 </button>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <Label
                     htmlFor={item.id}
                     className={`cursor-pointer text-sm font-medium ${
@@ -497,7 +559,10 @@ export function EquipmentChecklistClient({
                   {item.id === 'life_jacket' && item.checked && (
                     <div className="mt-2">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor={`qty-${item.id}`} className="text-xs font-medium text-slate-700 whitespace-nowrap">
+                        <Label
+                          htmlFor={`qty-${item.id}`}
+                          className="whitespace-nowrap text-xs font-medium text-slate-700"
+                        >
                           Jumlah:
                         </Label>
                         <Input
@@ -517,16 +582,19 @@ export function EquipmentChecklistClient({
                           </span>
                         )}
                       </div>
-                      {totalPassengers !== null && (item.quantity || 0) < totalPassengers && (
-                        <p className="mt-1 text-xs text-amber-600 font-medium">
-                          ⚠️ Lifejacket tidak mencukupi. Diperlukan: {totalPassengers}, Tersedia: {item.quantity || 0}
-                        </p>
-                      )}
-                      {totalPassengers !== null && (item.quantity || 0) >= totalPassengers && (
-                        <p className="mt-1 text-xs text-emerald-600">
-                          ✅ Lifejacket mencukupi
-                        </p>
-                      )}
+                      {totalPassengers !== null &&
+                        (item.quantity || 0) < totalPassengers && (
+                          <p className="mt-1 text-xs font-medium text-amber-600">
+                            ⚠️ Lifejacket tidak mencukupi. Diperlukan:{' '}
+                            {totalPassengers}, Tersedia: {item.quantity || 0}
+                          </p>
+                        )}
+                      {totalPassengers !== null &&
+                        (item.quantity || 0) >= totalPassengers && (
+                          <p className="mt-1 text-xs text-emerald-600">
+                            ✅ Lifejacket mencukupi
+                          </p>
+                        )}
                     </div>
                   )}
 
@@ -544,7 +612,13 @@ export function EquipmentChecklistClient({
                             size="sm"
                             variant="destructive"
                             className="absolute right-2 top-2 h-6 w-6 p-0"
-                            onClick={() => updateItem(item.id, { photo_url: undefined, photo_gps: undefined, photo_timestamp: undefined })}
+                            onClick={() =>
+                              updateItem(item.id, {
+                                photo_url: undefined,
+                                photo_gps: undefined,
+                                photo_timestamp: undefined,
+                              })
+                            }
                           >
                             <X className="h-3 w-3" />
                           </Button>
@@ -552,18 +626,24 @@ export function EquipmentChecklistClient({
                             <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded bg-black/50 px-2 py-1 text-xs text-white">
                               <MapPin className="h-3 w-3" />
                               <span>
-                                {item.photo_location_name || `${item.photo_gps.latitude.toFixed(4)}, ${item.photo_gps.longitude.toFixed(4)}`}
+                                {item.photo_location_name ||
+                                  `${item.photo_gps.latitude.toFixed(4)}, ${item.photo_gps.longitude.toFixed(4)}`}
                               </span>
                             </div>
                           )}
                           {item.photo_timestamp && (
-                            <div className="absolute top-2 left-2 rounded bg-black/50 px-2 py-1 text-xs text-white">
-                              {new Date(item.photo_timestamp).toLocaleString('id-ID')}
+                            <div className="absolute left-2 top-2 rounded bg-black/50 px-2 py-1 text-xs text-white">
+                              {new Date(item.photo_timestamp).toLocaleString(
+                                'id-ID'
+                              )}
                             </div>
                           )}
                         </div>
                       ) : (
-                        <Label htmlFor={`photo-${item.id}`} className="cursor-pointer">
+                        <Label
+                          htmlFor={`photo-${item.id}`}
+                          className="cursor-pointer"
+                        >
                           <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 p-3 text-slate-400 hover:bg-slate-50">
                             <Camera className="h-4 w-4" />
                             <span className="text-xs">Foto Bukti</span>
@@ -586,20 +666,29 @@ export function EquipmentChecklistClient({
                   {/* Condition Rating */}
                   {item.checked && (
                     <div className="mt-2">
-                      <Label htmlFor={`condition-${item.id}`} className="text-xs font-medium text-slate-700">
+                      <Label
+                        htmlFor={`condition-${item.id}`}
+                        className="text-xs font-medium text-slate-700"
+                      >
                         Kondisi:
                       </Label>
                       <Select
                         value={item.condition || 'good'}
-                        onValueChange={(value: EquipmentCondition) => updateItem(item.id, { condition: value })}
+                        onValueChange={(value: EquipmentCondition) =>
+                          updateItem(item.id, { condition: value })
+                        }
                       >
-                        <SelectTrigger id={`condition-${item.id}`} className="h-8 text-xs mt-1">
+                        <SelectTrigger
+                          id={`condition-${item.id}`}
+                          className="mt-1 h-8 text-xs"
+                        >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="excellent">
                             <span className="flex items-center gap-2">
-                              <span className="text-green-600">✅</span> Excellent
+                              <span className="text-green-600">✅</span>{' '}
+                              Excellent
                             </span>
                           </SelectItem>
                           <SelectItem value="good">
@@ -629,7 +718,9 @@ export function EquipmentChecklistClient({
                         placeholder="Catatan (opsional)"
                         className="text-xs"
                         value={item.notes || ''}
-                        onChange={(e) => updateItem(item.id, { notes: e.target.value })}
+                        onChange={(e) =>
+                          updateItem(item.id, { notes: e.target.value })
+                        }
                         rows={2}
                       />
                       <div className="flex items-center gap-2">
@@ -638,7 +729,9 @@ export function EquipmentChecklistClient({
                           id={`repair-${item.id}`}
                           checked={item.needs_repair || false}
                           onChange={(e) =>
-                            updateItem(item.id, { needs_repair: e.target.checked })
+                            updateItem(item.id, {
+                              needs_repair: e.target.checked,
+                            })
                           }
                           className="h-4 w-4 rounded border-slate-300"
                         />
@@ -675,7 +768,9 @@ export function EquipmentChecklistClient({
       {/* Signature Section */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Tanda Tangan</CardTitle>
+          <CardTitle className="text-base font-semibold">
+            Tanda Tangan
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <SignaturePad
@@ -693,7 +788,8 @@ export function EquipmentChecklistClient({
         <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
           <MapPin className="h-4 w-4" />
           <span>
-            Lokasi: {gpsLocation.latitude.toFixed(6)}, {gpsLocation.longitude.toFixed(6)}
+            Lokasi: {gpsLocation.latitude.toFixed(6)},{' '}
+            {gpsLocation.longitude.toFixed(6)}
           </span>
         </div>
       )}
@@ -705,16 +801,20 @@ export function EquipmentChecklistClient({
           onClick={handleSubmit}
           disabled={submitting || !allChecked || !signature}
         >
-          {submitting ? 'Menyimpan...' : allChecked && signature ? 'Simpan Checklist' : 'Lengkapi Semua'}
+          {submitting
+            ? 'Menyimpan...'
+            : allChecked && signature
+              ? 'Simpan Checklist'
+              : 'Lengkapi Semua'}
         </Button>
-        {error && <p className="text-xs text-red-500 text-center">{error}</p>}
+        {error && <p className="text-center text-xs text-red-500">{error}</p>}
         {!allChecked && (
-          <p className="text-xs text-slate-500 text-center">
+          <p className="text-center text-xs text-slate-500">
             Pastikan semua item sudah dicentang sebelum menyimpan
           </p>
         )}
         {!signature && (
-          <p className="text-xs text-amber-600 text-center">
+          <p className="text-center text-xs text-amber-600">
             Mohon berikan tanda tangan sebelum menyimpan
           </p>
         )}
@@ -722,4 +822,3 @@ export function EquipmentChecklistClient({
     </div>
   );
 }
-

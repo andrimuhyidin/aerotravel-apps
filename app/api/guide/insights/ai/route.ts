@@ -1,11 +1,14 @@
 /**
  * API: AI-Powered Insights & Recommendations
  * GET /api/guide/insights/ai
- * 
+ *
  * Uses Google Gemini AI to provide:
  * - Income predictions
  * - Performance recommendations
  * - Trip suggestions
+ *
+ * @deprecated This endpoint is deprecated. Use /api/guide/ai/insights/unified instead.
+ * This endpoint will be removed in a future version.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -38,21 +41,25 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
       .single();
 
     if (userError) {
-      logger.error('Failed to fetch user data for AI insights', userError, { guideId: user.id });
+      logger.error('Failed to fetch user data for AI insights', userError, {
+        guideId: user.id,
+      });
       throw new Error('Failed to fetch user data');
     }
 
     // Get trips separately
     const { data: tripsData } = await supabase
       .from('trip_guides')
-      .select(`
+      .select(
+        `
         trip:trips(
           id,
           trip_date,
           status,
           total_pax
         )
-      `)
+      `
+      )
       .eq('guide_id', user.id);
 
     // Get reviews separately
@@ -77,11 +84,11 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
       wallet: walletData || null,
     };
 
-
     // Get recent trips
     const { data: recentTrips, error: tripsError } = await supabase
       .from('trip_guides')
-      .select(`
+      .select(
+        `
         trip:trips(
           trip_code,
           trip_date,
@@ -89,13 +96,17 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
           total_pax
         ),
         fee_amount
-      `)
+      `
+      )
       .eq('guide_id', user.id)
       .order('created_at', { ascending: false })
       .limit(10);
 
     if (tripsError) {
-      logger.warn('Failed to fetch recent trips for AI insights', { guideId: user.id, error: tripsError });
+      logger.warn('Failed to fetch recent trips for AI insights', {
+        guideId: user.id,
+        error: tripsError,
+      });
     }
 
     // Get wallet transactions
@@ -106,10 +117,17 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
       .maybeSingle();
 
     if (walletError) {
-      logger.warn('Failed to fetch wallet for AI insights', { guideId: user.id, error: walletError });
+      logger.warn('Failed to fetch wallet for AI insights', {
+        guideId: user.id,
+        error: walletError,
+      });
     }
 
-    let transactions: Array<{ amount: number; transaction_type: string; created_at: string }> = [];
+    let transactions: Array<{
+      amount: number;
+      transaction_type: string;
+      created_at: string;
+    }> = [];
     if (wallet) {
       const { data: txData, error: txError } = await supabase
         .from('guide_wallet_transactions')
@@ -117,11 +135,19 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
         .eq('wallet_id', wallet.id)
         .order('created_at', { ascending: false })
         .limit(20);
-      
+
       if (txError) {
-        logger.warn('Failed to fetch wallet transactions for AI insights', { guideId: user.id, walletId: wallet.id, error: txError });
+        logger.warn('Failed to fetch wallet transactions for AI insights', {
+          guideId: user.id,
+          walletId: wallet.id,
+          error: txError,
+        });
       } else {
-        transactions = (txData || []) as Array<{ amount: number; transaction_type: string; created_at: string }>;
+        transactions = (txData || []) as Array<{
+          amount: number;
+          transaction_type: string;
+          created_at: string;
+        }>;
       }
     }
 
@@ -134,10 +160,17 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
       .filter((t) => t.amount > 0)
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-    const reviews = (stats?.reviews || []) as Array<{ guide_rating?: number | null }>;
-    const avgRating = reviews.length > 0
-      ? reviews.reduce((sum: number, r: { guide_rating?: number | null }) => sum + (r.guide_rating || 0), 0) / reviews.length
-      : 0;
+    const reviews = (stats?.reviews || []) as Array<{
+      guide_rating?: number | null;
+    }>;
+    const avgRating =
+      reviews.length > 0
+        ? reviews.reduce(
+            (sum: number, r: { guide_rating?: number | null }) =>
+              sum + (r.guide_rating || 0),
+            0
+          ) / reviews.length
+        : 0;
 
     // Build context for AI
     const context = {
@@ -145,7 +178,9 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
       completedTrips,
       totalEarnings: Math.round(totalEarnings),
       averageRating: Math.round(avgRating * 10) / 10,
-      currentBalance: Math.round(Number(walletData?.balance || wallet?.balance || 0)),
+      currentBalance: Math.round(
+        Number(walletData?.balance || wallet?.balance || 0)
+      ),
       recentTripsCount: recentTrips?.length || 0,
     };
 
@@ -195,7 +230,9 @@ Return ONLY the JSON object, no additional text.`;
     try {
       aiResponse = await generateContent(prompt);
     } catch (aiError) {
-      logger.error('Failed to generate AI content', aiError, { guideId: user.id });
+      logger.error('Failed to generate AI content', aiError, {
+        guideId: user.id,
+      });
       // Return fallback insights if AI generation fails
       const fallbackInsights = {
         income_prediction: {
@@ -223,13 +260,13 @@ Return ONLY the JSON object, no additional text.`;
     try {
       const cleaned = aiResponse.replace(/```json\n?|\n?```/g, '').trim();
       insights = JSON.parse(cleaned);
-      
+
       // Validate insights structure
       if (!insights || typeof insights !== 'object') {
         throw new Error('Invalid AI response structure');
       }
     } catch (parseError) {
-      logger.error('Failed to parse AI insights', parseError, { 
+      logger.error('Failed to parse AI insights', parseError, {
         guideId: user.id,
         aiResponse: aiResponse.substring(0, 200), // Log first 200 chars for debugging
       });
@@ -263,4 +300,3 @@ Return ONLY the JSON object, no additional text.`;
     );
   }
 });
-

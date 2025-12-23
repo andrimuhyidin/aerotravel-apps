@@ -9,11 +9,11 @@ import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
 import { cacheKeys, cacheTTL, getCached } from '@/lib/cache/redis-cache';
 import {
-    calculateBadges,
-    calculateLevel,
-    calculateLevelProgress,
-    getTripsNeededForNextLevel,
-    type GuideStats
+  calculateBadges,
+  calculateLevel,
+  calculateLevelProgress,
+  getTripsNeededForNextLevel,
+  type GuideStats,
 } from '@/lib/guide/gamification';
 import {
   awardPoints,
@@ -77,7 +77,9 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
           .not('check_out_at', 'is', null);
 
         if (guideTrips && guideTrips.length > 0) {
-          const tripIds = guideTrips.map((gt: { trip_id: string }) => gt.trip_id);
+          const tripIds = guideTrips.map(
+            (gt: { trip_id: string }) => gt.trip_id
+          );
 
           // Step 2: Get booking IDs for these trips via trip_bookings
           const { data: tripBookings } = await client
@@ -86,7 +88,9 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
             .in('trip_id', tripIds);
 
           if (tripBookings && tripBookings.length > 0) {
-            const bookingIds = tripBookings.map((tb: { booking_id: string }) => tb.booking_id);
+            const bookingIds = tripBookings.map(
+              (tb: { booking_id: string }) => tb.booking_id
+            );
 
             // Step 3: Get reviews for these bookings with guide_rating
             const { data: reviewsData, error: reviewsQueryError } = await client
@@ -109,13 +113,16 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
               totalRatings = ratings.length;
               if (ratings.length > 0) {
-                averageRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+                averageRating =
+                  ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
               }
             }
           }
         }
       } catch (reviewsError) {
-        logger.error('Failed to fetch reviews', reviewsError, { guideId: user.id });
+        logger.error('Failed to fetch reviews', reviewsError, {
+          guideId: user.id,
+        });
         // Continue with default values (0 rating)
       }
 
@@ -131,7 +138,9 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         .gte('created_at', thirtyDaysAgo.toISOString());
 
       if (complaintsError) {
-        logger.error('Failed to count complaints', complaintsError, { guideId: user.id });
+        logger.error('Failed to count complaints', complaintsError, {
+          guideId: user.id,
+        });
       }
 
       // Get penalties count (from salary_deductions)
@@ -145,14 +154,22 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         .gte('created_at', threeMonthsAgo.toISOString());
 
       if (penaltiesError) {
-        logger.error('Failed to count penalties', penaltiesError, { guideId: user.id });
+        logger.error('Failed to count penalties', penaltiesError, {
+          guideId: user.id,
+        });
       }
 
       // Calculate level and badges
       const totalTripsCount = totalTrips || 0;
       const calculatedLevel = calculateLevel(totalTripsCount);
-      const levelProgress = calculateLevelProgress(totalTripsCount, calculatedLevel);
-      const nextLevelTripsRequired = getTripsNeededForNextLevel(totalTripsCount, calculatedLevel);
+      const levelProgress = calculateLevelProgress(
+        totalTripsCount,
+        calculatedLevel
+      );
+      const nextLevelTripsRequired = getTripsNeededForNextLevel(
+        totalTripsCount,
+        calculatedLevel
+      );
       const badges = calculateBadges({
         totalTrips: totalTripsCount,
         averageRating,
@@ -186,7 +203,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
             user.id,
             points,
             'badge',
-            badge.id,
+            undefined, // Don't pass badge.id as source_id (it's a string, not UUID)
             `Badge earned: ${badge.name}`,
             { badge_id: badge.id, badge_name: badge.name }
           );
@@ -237,7 +254,9 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         currentLevelProgress: levelProgress,
         nextLevelTripsRequired,
         badges: badges.filter((b) => b.earned), // Only return earned badges
-        joinDate: (userProfile as { created_at?: string } | null)?.created_at || undefined,
+        joinDate:
+          (userProfile as { created_at?: string } | null)?.created_at ||
+          undefined,
       };
 
       return stats;

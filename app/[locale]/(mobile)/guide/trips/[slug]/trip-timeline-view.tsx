@@ -11,20 +11,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import {
-    AlertCircle,
-    Calendar,
-    CheckCircle2,
-    ClipboardList,
-    FileText,
-    Info,
-    MapPin,
-    MessageSquare,
-    Package,
-    Play,
-    Receipt,
-    ShieldCheck,
-    Trash2,
-    Users
+  AlertCircle,
+  Calendar,
+  CheckCircle2,
+  ClipboardList,
+  FileText,
+  Info,
+  MapPin,
+  Play,
+  Receipt,
+  ShieldCheck,
+  Users,
 } from 'lucide-react';
 import * as React from 'react';
 
@@ -40,7 +37,10 @@ import { ManifestSection } from './manifest-section';
 import { PassengerConsentSection } from './passenger-consent-section';
 import { PaymentSplitSection } from './payment-split-section';
 import { PhaseSectionHeader } from './phase-section-header';
-import { EquipmentChecklistSection, RiskAssessmentSection } from './pre-trip-sections';
+import {
+  EquipmentChecklistSection,
+  RiskAssessmentSection,
+} from './pre-trip-sections';
 import { StartTripWidget } from './start-trip-widget';
 import { TippingSection } from './tipping-section';
 import { TripInfoSection } from './trip-info-section';
@@ -52,11 +52,11 @@ import { TripTasks } from './trip-tasks';
 import { WasteLogButton } from './waste-log-button';
 import { VideoBriefingPlayer } from '@/components/guide/video-briefing-player';
 
-type TripPhase = 
-  | 'pre_trip'           // Konfirmasi, persiapan
-  | 'before_departure'   // Check-in, manifest, equipment
-  | 'during_trip'        // Start trip, itinerary, guest management
-  | 'post_trip';         // Return, completion, documentation
+type TripPhase =
+  | 'pre_trip' // Konfirmasi, persiapan
+  | 'before_departure' // Check-in, manifest, equipment
+  | 'during_trip' // Start trip, itinerary, guest management
+  | 'post_trip'; // Return, completion, documentation
 
 type Passenger = {
   id: string;
@@ -119,26 +119,45 @@ export function TripTimelineView({
     return phaseMap[phase] || 'pre_trip';
   };
 
-  const [activeTab, setActiveTab] = React.useState<string>(getDefaultTab(currentPhase));
+  const [activeTab, setActiveTab] = React.useState<string>(
+    getDefaultTab(currentPhase)
+  );
 
   const phases: Record<TripPhase, PhaseConfig> = {
     pre_trip: {
       title: 'Persiapan Trip',
       description: 'Konfirmasi assignment, review info trip, dan persiapan',
       icon: Calendar,
-      status: currentPhase === 'pre_trip' ? 'active' : currentPhase === 'before_departure' || currentPhase === 'during_trip' || currentPhase === 'post_trip' ? 'completed' : 'upcoming',
+      status:
+        currentPhase === 'pre_trip'
+          ? 'active'
+          : currentPhase === 'before_departure' ||
+              currentPhase === 'during_trip' ||
+              currentPhase === 'post_trip'
+            ? 'completed'
+            : 'upcoming',
     },
     before_departure: {
       title: 'Sebelum Keberangkatan',
       description: 'Check-in, manifest tamu, dan cek perlengkapan',
       icon: MapPin,
-      status: currentPhase === 'before_departure' ? 'active' : currentPhase === 'during_trip' || currentPhase === 'post_trip' ? 'completed' : 'upcoming',
+      status:
+        currentPhase === 'before_departure'
+          ? 'active'
+          : currentPhase === 'during_trip' || currentPhase === 'post_trip'
+            ? 'completed'
+            : 'upcoming',
     },
     during_trip: {
       title: 'Selama Trip',
       description: 'Itinerary, manajemen tamu, dan aktivitas trip',
       icon: Users,
-      status: currentPhase === 'during_trip' ? 'active' : currentPhase === 'post_trip' ? 'completed' : 'upcoming',
+      status:
+        currentPhase === 'during_trip'
+          ? 'active'
+          : currentPhase === 'post_trip'
+            ? 'completed'
+            : 'upcoming',
     },
     post_trip: {
       title: 'Selesai Trip',
@@ -149,107 +168,133 @@ export function TripTimelineView({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {/* Tab-based Phase Navigation - Premium Design */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-50 to-slate-100 p-1.5 h-auto rounded-xl shadow-sm border border-slate-200/50 gap-1">
+        <TabsList className="grid h-auto w-full grid-cols-4 gap-1 rounded-xl border border-slate-200/50 bg-gradient-to-r from-slate-50 to-slate-100 p-1.5 shadow-sm">
           <TabsTrigger
             value="pre_trip"
             className={cn(
-              'flex flex-col items-center justify-center gap-1 py-2 px-1.5 text-[10px] font-semibold transition-all rounded-lg min-h-[60px]',
+              'flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-[10px] font-semibold transition-all',
               activeTab === 'pre_trip'
                 ? phases.pre_trip.status === 'completed'
                   ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-200/50'
                   : phases.pre_trip.status === 'active'
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md shadow-blue-200/50'
-                  : 'bg-white text-slate-900 shadow-sm'
+                    ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md shadow-blue-200/50 ring-2 ring-blue-300 ring-offset-2'
+                    : 'bg-white text-slate-900 shadow-sm'
                 : phases.pre_trip.status === 'completed'
-                ? 'text-emerald-600 hover:bg-emerald-50/50'
-                : phases.pre_trip.status === 'active'
-                ? 'text-blue-600 hover:bg-blue-50/50'
-                : 'text-slate-500 hover:bg-white/50'
+                  ? 'text-emerald-600 hover:bg-emerald-50/50'
+                  : phases.pre_trip.status === 'active'
+                    ? 'text-blue-600 ring-2 ring-blue-200 hover:bg-blue-50/50'
+                    : 'text-slate-500 hover:bg-white/50'
             )}
           >
-            <phases.pre_trip.icon className={cn(
-              'h-3.5 w-3.5 transition-transform flex-shrink-0',
-              activeTab === 'pre_trip' && phases.pre_trip.status !== 'completed' && phases.pre_trip.status !== 'active' && 'scale-110'
-            )} />
-            <span className="text-center leading-tight whitespace-nowrap">Persiapan</span>
+            <phases.pre_trip.icon
+              className={cn(
+                'h-3.5 w-3.5 flex-shrink-0 transition-transform',
+                activeTab === 'pre_trip' &&
+                  phases.pre_trip.status !== 'completed' &&
+                  phases.pre_trip.status !== 'active' &&
+                  'scale-110'
+              )}
+            />
+            <span className="whitespace-nowrap text-center leading-tight">
+              Persiapan
+            </span>
           </TabsTrigger>
-          
+
           <TabsTrigger
             value="before_departure"
             className={cn(
-              'flex flex-col items-center justify-center gap-1 py-2 px-1.5 text-[10px] font-semibold transition-all rounded-lg min-h-[60px]',
+              'flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-[10px] font-semibold transition-all',
               activeTab === 'before_departure'
                 ? phases.before_departure.status === 'completed'
                   ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-200/50'
                   : phases.before_departure.status === 'active'
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md shadow-blue-200/50'
-                  : 'bg-white text-slate-900 shadow-sm'
+                    ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md shadow-blue-200/50 ring-2 ring-blue-300 ring-offset-2'
+                    : 'bg-white text-slate-900 shadow-sm'
                 : phases.before_departure.status === 'completed'
-                ? 'text-emerald-600 hover:bg-emerald-50/50'
-                : phases.before_departure.status === 'active'
-                ? 'text-blue-600 hover:bg-blue-50/50'
-                : 'text-slate-500 hover:bg-white/50'
+                  ? 'text-emerald-600 hover:bg-emerald-50/50'
+                  : phases.before_departure.status === 'active'
+                    ? 'text-blue-600 ring-2 ring-blue-200 hover:bg-blue-50/50'
+                    : 'text-slate-500 hover:bg-white/50'
             )}
           >
-            <phases.before_departure.icon className={cn(
-              'h-3.5 w-3.5 transition-transform flex-shrink-0',
-              activeTab === 'before_departure' && phases.before_departure.status !== 'completed' && phases.before_departure.status !== 'active' && 'scale-110'
-            )} />
-            <span className="text-center leading-[1.2] px-0.5">
+            <phases.before_departure.icon
+              className={cn(
+                'h-3.5 w-3.5 flex-shrink-0 transition-transform',
+                activeTab === 'before_departure' &&
+                  phases.before_departure.status !== 'completed' &&
+                  phases.before_departure.status !== 'active' &&
+                  'scale-110'
+              )}
+            />
+            <span className="px-0.5 text-center leading-[1.2]">
               <span className="block">Sebelum</span>
               <span className="block">Berangkat</span>
             </span>
           </TabsTrigger>
-          
+
           <TabsTrigger
             value="during_trip"
             className={cn(
-              'flex flex-col items-center justify-center gap-1 py-2 px-1.5 text-[10px] font-semibold transition-all rounded-lg min-h-[60px]',
+              'flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-[10px] font-semibold transition-all',
               activeTab === 'during_trip'
                 ? phases.during_trip.status === 'completed'
                   ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-200/50'
                   : phases.during_trip.status === 'active'
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md shadow-blue-200/50'
-                  : 'bg-white text-slate-900 shadow-sm'
+                    ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md shadow-blue-200/50 ring-2 ring-blue-300 ring-offset-2'
+                    : 'bg-white text-slate-900 shadow-sm'
                 : phases.during_trip.status === 'completed'
-                ? 'text-emerald-600 hover:bg-emerald-50/50'
-                : phases.during_trip.status === 'active'
-                ? 'text-blue-600 hover:bg-blue-50/50'
-                : 'text-slate-500 hover:bg-white/50'
+                  ? 'text-emerald-600 hover:bg-emerald-50/50'
+                  : phases.during_trip.status === 'active'
+                    ? 'text-blue-600 ring-2 ring-blue-200 hover:bg-blue-50/50'
+                    : 'text-slate-500 hover:bg-white/50'
             )}
           >
-            <phases.during_trip.icon className={cn(
-              'h-3.5 w-3.5 transition-transform flex-shrink-0',
-              activeTab === 'during_trip' && phases.during_trip.status !== 'completed' && phases.during_trip.status !== 'active' && 'scale-110'
-            )} />
-            <span className="text-center leading-tight whitespace-nowrap">Selama Trip</span>
+            <phases.during_trip.icon
+              className={cn(
+                'h-3.5 w-3.5 flex-shrink-0 transition-transform',
+                activeTab === 'during_trip' &&
+                  phases.during_trip.status !== 'completed' &&
+                  phases.during_trip.status !== 'active' &&
+                  'scale-110'
+              )}
+            />
+            <span className="whitespace-nowrap text-center leading-tight">
+              Selama Trip
+            </span>
           </TabsTrigger>
-          
+
           <TabsTrigger
             value="post_trip"
             className={cn(
-              'flex flex-col items-center justify-center gap-1 py-2 px-1.5 text-[10px] font-semibold transition-all rounded-lg min-h-[60px]',
+              'flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-[10px] font-semibold transition-all',
               activeTab === 'post_trip'
                 ? phases.post_trip.status === 'completed'
                   ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-200/50'
                   : phases.post_trip.status === 'active'
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md shadow-blue-200/50'
-                  : 'bg-white text-slate-900 shadow-sm'
+                    ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md shadow-blue-200/50 ring-2 ring-blue-300 ring-offset-2'
+                    : 'bg-white text-slate-900 shadow-sm'
                 : phases.post_trip.status === 'completed'
-                ? 'text-emerald-600 hover:bg-emerald-50/50'
-                : phases.post_trip.status === 'active'
-                ? 'text-blue-600 hover:bg-blue-50/50'
-                : 'text-slate-500 hover:bg-white/50'
+                  ? 'text-emerald-600 hover:bg-emerald-50/50'
+                  : phases.post_trip.status === 'active'
+                    ? 'text-blue-600 ring-2 ring-blue-200 hover:bg-blue-50/50'
+                    : 'text-slate-500 hover:bg-white/50'
             )}
           >
-            <phases.post_trip.icon className={cn(
-              'h-3.5 w-3.5 transition-transform flex-shrink-0',
-              activeTab === 'post_trip' && phases.post_trip.status !== 'completed' && phases.post_trip.status !== 'active' && 'scale-110'
-            )} />
-            <span className="text-center leading-tight whitespace-nowrap">Selesai</span>
+            <phases.post_trip.icon
+              className={cn(
+                'h-3.5 w-3.5 flex-shrink-0 transition-transform',
+                activeTab === 'post_trip' &&
+                  phases.post_trip.status !== 'completed' &&
+                  phases.post_trip.status !== 'active' &&
+                  'scale-110'
+              )}
+            />
+            <span className="whitespace-nowrap text-center leading-tight">
+              Selesai
+            </span>
           </TabsTrigger>
         </TabsList>
 
@@ -350,10 +395,15 @@ function PhaseContent({
             <Card className="border-amber-200 bg-amber-50">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
                   <div className="flex-1">
-                    <p className="font-semibold text-amber-900">Perlu Konfirmasi</p>
-                    <p className="mt-1 text-sm text-amber-800">Silakan konfirmasi apakah Anda bisa mengambil trip ini sebelum deadline.</p>
+                    <p className="font-semibold text-amber-900">
+                      Perlu Konfirmasi
+                    </p>
+                    <p className="mt-1 text-sm text-amber-800">
+                      Silakan konfirmasi apakah Anda bisa mengambil trip ini
+                      sebelum deadline.
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -393,7 +443,11 @@ function PhaseContent({
           />
           <div className="space-y-4">
             {/* Risk Assessment FIRST (risk evaluation before equipment) */}
-            <RiskAssessmentSection tripId={tripId} locale={locale} isLeadGuide={isLeadGuide} />
+            <RiskAssessmentSection
+              tripId={tripId}
+              locale={locale}
+              isLeadGuide={isLeadGuide}
+            />
             {/* Equipment Checklist AFTER risk assessment */}
             <EquipmentChecklistSection tripId={tripId} locale={locale} />
           </div>
@@ -404,11 +458,14 @@ function PhaseContent({
             description="Tonton video briefing keselamatan sebelum memulai trip"
             icon={Play}
           />
-          <VideoBriefingPlayer tripId={tripId} language={locale === 'en' ? 'en' : 'id'} />
+          <VideoBriefingPlayer
+            tripId={tripId}
+            language={locale === 'en' ? 'en' : 'id'}
+          />
 
           {/* Section D: Readiness Status (summary - LAST) */}
           {isLeadGuide && (
-            <div className="pt-4 border-t border-slate-200">
+            <div className="border-t border-slate-200 pt-4">
               <TripReadinessWidget
                 tripId={tripId}
                 locale={locale}
@@ -434,9 +491,9 @@ function PhaseContent({
             <PassengerConsentSection tripId={tripId} locale={locale} />
             {/* Manifest AFTER consent */}
             <div id="manifest-section">
-              <ManifestSection 
-                tripId={tripId} 
-                locale={locale} 
+              <ManifestSection
+                tripId={tripId}
+                locale={locale}
                 crewRole={crewRole}
                 isLeadGuide={isLeadGuide}
               />
@@ -509,11 +566,14 @@ function PhaseContent({
                   onClick={() => {
                     // Scroll to manifest section
                     const element = document.querySelector('#manifest-section');
-                    element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    element?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'center',
+                    });
                   }}
                   className="h-12"
                 >
-                  <Users className="h-4 w-4 mr-2" />
+                  <Users className="mr-2 h-4 w-4" />
                   Update Manifest
                 </Button>
                 <Button
@@ -521,7 +581,7 @@ function PhaseContent({
                   onClick={onEndTrip}
                   className="h-12 border-amber-200 text-amber-700 hover:bg-amber-50"
                 >
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
                   End Trip
                 </Button>
               </div>
@@ -554,10 +614,12 @@ function PhaseContent({
           />
           <div className="space-y-4">
             <div id="documentation-section">
-              <DocumentationSection 
-                tripId={tripId} 
+              <DocumentationSection
+                tripId={tripId}
                 locale={locale}
-                tripCode={(manifest as { tripCode?: string }).tripCode || tripId}
+                tripCode={
+                  (manifest as { tripCode?: string }).tripCode || tripId
+                }
                 isLeadGuide={isLeadGuide}
               />
             </div>

@@ -14,18 +14,6 @@ import { cacheKeys, cacheTTL, getCached } from '@/lib/cache/redis-cache';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
-import {
-  calculateBadges,
-  calculateLevel,
-  calculateLevelProgress,
-  getTripsNeededForNextLevel,
-} from '@/lib/guide/gamification';
-import {
-  awardPoints,
-  calculateBadgePoints,
-  calculateLevelUpPoints,
-} from '@/lib/guide/reward-points';
-
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
 
@@ -50,284 +38,320 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       const client = supabase as unknown as any;
 
       // Fetch all data in parallel
-      const [
-        statusResult,
-        tripsResult,
-        statsResult,
-        notificationsResult,
-      ] = await Promise.all([
-        // 1. Fetch status
-        (async () => {
-          let statusQuery = client
-            .from('guide_status')
-            .select('guide_id, current_status, note, updated_at')
-            .eq('guide_id', user.id);
-          if (!branchContext.isSuperAdmin && branchContext.branchId) {
-            statusQuery = statusQuery.eq('branch_id', branchContext.branchId);
-          }
-          const { data: statusRow } = await statusQuery.maybeSingle();
+      const [statusResult, tripsResult, statsResult, notificationsResult] =
+        await Promise.all([
+          // 1. Fetch status
+          (async () => {
+            let statusQuery = client
+              .from('guide_status')
+              .select('guide_id, current_status, note, updated_at')
+              .eq('guide_id', user.id);
+            if (!branchContext.isSuperAdmin && branchContext.branchId) {
+              statusQuery = statusQuery.eq('branch_id', branchContext.branchId);
+            }
+            const { data: statusRow } = await statusQuery.maybeSingle();
 
-          let availabilityQuery = client
-            .from('guide_availability')
-            .select('id, available_from, available_until, status, reason')
-            .eq('guide_id', user.id)
-            .gte('available_until', new Date().toISOString())
-            .order('available_from', { ascending: true })
-            .limit(3);
-          if (!branchContext.isSuperAdmin && branchContext.branchId) {
-            availabilityQuery = availabilityQuery.eq('branch_id', branchContext.branchId);
-          }
-          const { data: upcoming } = await availabilityQuery;
+            let availabilityQuery = client
+              .from('guide_availability')
+              .select('id, available_from, available_until, status, reason')
+              .eq('guide_id', user.id)
+              .gte('available_until', new Date().toISOString())
+              .order('available_from', { ascending: true })
+              .limit(3);
+            if (!branchContext.isSuperAdmin && branchContext.branchId) {
+              availabilityQuery = availabilityQuery.eq(
+                'branch_id',
+                branchContext.branchId
+              );
+            }
+            const { data: upcoming } = await availabilityQuery;
 
-          return {
-            status: statusRow ?? {
-              guide_id: user.id,
-              current_status: 'standby',
-              note: null,
-              updated_at: null,
-            },
-            upcoming: upcoming ?? [],
-          };
-        })(),
+            return {
+              status: statusRow ?? {
+                guide_id: user.id,
+                current_status: 'standby',
+                note: null,
+                updated_at: null,
+              },
+              upcoming: upcoming ?? [],
+            };
+          })(),
 
-        // 2. Fetch trips (limited)
-        (async () => {
-          // Get assignments from both trip_crews (new) and trip_guides (legacy)
-          const tripCrewsQuery = client
-            .from('trip_crews')
-            .select('trip_id, role, status, assigned_at, confirmed_at')
-            .eq('guide_id', user.id)
-            .in('status', ['assigned', 'confirmed']);
+          // 2. Fetch trips (limited)
+          (async () => {
+            // Get assignments from both trip_crews (new) and trip_guides (legacy)
+            const tripCrewsQuery = client
+              .from('trip_crews')
+              .select('trip_id, role, status, assigned_at, confirmed_at')
+              .eq('guide_id', user.id)
+              .in('status', ['assigned', 'confirmed']);
 
-          const { data: tripCrewsData, error: tripCrewsError } = await tripCrewsQuery;
+            const { data: tripCrewsData, error: tripCrewsError } =
+              await tripCrewsQuery;
 
-          if (tripCrewsError) {
-            logger.error('Failed to load trip_crews', tripCrewsError, { guideId: user.id });
-          }
-
-          const tripGuidesQuery = client
-            .from('trip_guides')
-            .select('trip_id, assignment_status, confirmation_deadline, confirmed_at, rejected_at, fee_amount')
-            .eq('guide_id', user.id)
-            .in('assignment_status', ['confirmed', 'pending_confirmation']);
-
-          const { data: tripGuidesData, error: tripGuidesError } = await tripGuidesQuery;
-
-          if (tripGuidesError) {
-            logger.error('Failed to load trip_guides', tripGuidesError, { guideId: user.id });
-          }
-
-          // Create map of trip_id -> assignment info
-          type AssignmentInfo = {
-            assignment_status: string;
-            confirmation_deadline: string | null;
-            confirmed_at: string | null;
-            rejected_at: string | null;
-            fee_amount: number | null;
-            role?: 'lead' | 'support' | null;
-          };
-
-          const assignmentMap = new Map<string, AssignmentInfo>();
-
-          (tripCrewsData ?? []).forEach(
-            (tc: {
-              trip_id: string;
-              role: 'lead' | 'support';
-              status: string;
-              assigned_at: string;
-              confirmed_at: string | null;
-            }) => {
-              assignmentMap.set(tc.trip_id, {
-                assignment_status: tc.status === 'confirmed' ? 'confirmed' : 'pending_confirmation',
-                confirmation_deadline: null,
-                confirmed_at: tc.confirmed_at,
-                rejected_at: null,
-                fee_amount: null,
-                role: tc.role,
+            if (tripCrewsError) {
+              logger.error('Failed to load trip_crews', tripCrewsError, {
+                guideId: user.id,
               });
             }
-          );
 
-          (tripGuidesData ?? []).forEach(
-            (tg: {
-              trip_id: string;
+            const tripGuidesQuery = client
+              .from('trip_guides')
+              .select(
+                'trip_id, assignment_status, confirmation_deadline, confirmed_at, rejected_at, fee_amount'
+              )
+              .eq('guide_id', user.id)
+              .in('assignment_status', ['confirmed', 'pending_confirmation']);
+
+            const { data: tripGuidesData, error: tripGuidesError } =
+              await tripGuidesQuery;
+
+            if (tripGuidesError) {
+              logger.error('Failed to load trip_guides', tripGuidesError, {
+                guideId: user.id,
+              });
+            }
+
+            // Create map of trip_id -> assignment info
+            type AssignmentInfo = {
               assignment_status: string;
               confirmation_deadline: string | null;
               confirmed_at: string | null;
               rejected_at: string | null;
               fee_amount: number | null;
-            }) => {
-              if (!assignmentMap.has(tg.trip_id)) {
-                assignmentMap.set(tg.trip_id, {
-                  assignment_status: tg.assignment_status,
-                  confirmation_deadline: tg.confirmation_deadline,
-                  confirmed_at: tg.confirmed_at,
-                  rejected_at: tg.rejected_at,
-                  fee_amount: tg.fee_amount,
+              role?: 'lead' | 'support' | null;
+            };
+
+            const assignmentMap = new Map<string, AssignmentInfo>();
+
+            (tripCrewsData ?? []).forEach(
+              (tc: {
+                trip_id: string;
+                role: 'lead' | 'support';
+                status: string;
+                assigned_at: string;
+                confirmed_at: string | null;
+              }) => {
+                assignmentMap.set(tc.trip_id, {
+                  assignment_status:
+                    tc.status === 'confirmed'
+                      ? 'confirmed'
+                      : 'pending_confirmation',
+                  confirmation_deadline: null,
+                  confirmed_at: tc.confirmed_at,
+                  rejected_at: null,
+                  fee_amount: null,
+                  role: tc.role,
                 });
               }
+            );
+
+            (tripGuidesData ?? []).forEach(
+              (tg: {
+                trip_id: string;
+                assignment_status: string;
+                confirmation_deadline: string | null;
+                confirmed_at: string | null;
+                rejected_at: string | null;
+                fee_amount: number | null;
+              }) => {
+                if (!assignmentMap.has(tg.trip_id)) {
+                  assignmentMap.set(tg.trip_id, {
+                    assignment_status: tg.assignment_status,
+                    confirmation_deadline: tg.confirmation_deadline,
+                    confirmed_at: tg.confirmed_at,
+                    rejected_at: tg.rejected_at,
+                    fee_amount: tg.fee_amount,
+                  });
+                }
+              }
+            );
+
+            const tripIds = Array.from(assignmentMap.keys());
+
+            if (tripIds.length === 0) {
+              return { trips: [] };
             }
-          );
 
-          const tripIds = Array.from(assignmentMap.keys());
+            let tripsQuery = client
+              .from('trips')
+              .select(
+                'id, code, name, date, status, destination, duration, meeting_point, guests, created_at, updated_at'
+              )
+              .in('id', tripIds)
+              .order('date', { ascending: false })
+              .limit(tripsLimit);
 
-          if (tripIds.length === 0) {
-            return { trips: [] };
-          }
+            if (!branchContext.isSuperAdmin && branchContext.branchId) {
+              tripsQuery = tripsQuery.eq('branch_id', branchContext.branchId);
+            }
 
-          let tripsQuery = client
-            .from('trips')
-            .select('id, code, name, date, status, destination, duration, meeting_point, guests, created_at, updated_at')
-            .in('id', tripIds)
-            .order('date', { ascending: false })
-            .limit(tripsLimit);
+            const { data: tripsData, error: tripsError } = await tripsQuery;
 
-          if (!branchContext.isSuperAdmin && branchContext.branchId) {
-            tripsQuery = tripsQuery.eq('branch_id', branchContext.branchId);
-          }
+            if (tripsError) {
+              logger.error('Failed to load trips', tripsError, {
+                guideId: user.id,
+              });
+              return { trips: [] };
+            }
 
-          const { data: tripsData, error: tripsError } = await tripsQuery;
+            const trips = (tripsData ?? []).map((trip: any) => {
+              const assignment = assignmentMap.get(trip.id) ?? {
+                assignment_status: 'confirmed',
+                confirmation_deadline: null,
+                confirmed_at: null,
+                rejected_at: null,
+                fee_amount: null,
+              };
 
-          if (tripsError) {
-            logger.error('Failed to load trips', tripsError, { guideId: user.id });
-            return { trips: [] };
-          }
+              return {
+                ...trip,
+                trip_code: trip.code,
+                assignment_status: assignment.assignment_status,
+                confirmation_deadline: assignment.confirmation_deadline,
+                confirmed_at: assignment.confirmed_at,
+                rejected_at: assignment.rejected_at,
+                fee_amount: assignment.fee_amount,
+              };
+            });
 
-          const trips = (tripsData ?? []).map((trip: any) => {
-            const assignment = assignmentMap.get(trip.id) ?? {
-              assignment_status: 'confirmed',
-              confirmation_deadline: null,
-              confirmed_at: null,
-              rejected_at: null,
-              fee_amount: null,
-            };
+            return { trips };
+          })(),
 
-            return {
-              ...trip,
-              trip_code: trip.code,
-              assignment_status: assignment.assignment_status,
-              confirmation_deadline: assignment.confirmation_deadline,
-              confirmed_at: assignment.confirmed_at,
-              rejected_at: assignment.rejected_at,
-              fee_amount: assignment.fee_amount,
-            };
-          });
+          // 3. Fetch stats
+          (async () => {
+            // Get user join date
+            const { data: userProfile } = await client
+              .from('users')
+              .select('created_at')
+              .eq('id', user.id)
+              .single();
 
-          return { trips };
-        })(),
-
-        // 3. Fetch stats
-        (async () => {
-          // Get user join date
-          const { data: userProfile } = await client
-            .from('users')
-            .select('created_at')
-            .eq('id', user.id)
-            .single();
-
-          // Get total completed trips
-          const { count: totalTrips, error: tripsError } = await client
-            .from('trip_guides')
-            .select('*', { count: 'exact', head: true })
-            .eq('guide_id', user.id)
-            .not('check_in_at', 'is', null)
-            .not('check_out_at', 'is', null);
-
-          if (tripsError) {
-            logger.error('Failed to count trips', tripsError, { guideId: user.id });
-          }
-
-          // Get average rating
-          let averageRating = 0;
-          let totalRatings = 0;
-
-          try {
-            const { data: guideTrips } = await client
+            // Get total completed trips
+            const { count: totalTrips, error: tripsError } = await client
               .from('trip_guides')
-              .select('trip_id')
+              .select('*', { count: 'exact', head: true })
               .eq('guide_id', user.id)
               .not('check_in_at', 'is', null)
               .not('check_out_at', 'is', null);
 
-            if (guideTrips && guideTrips.length > 0) {
-              const tripIds = guideTrips.map((gt: { trip_id: string }) => gt.trip_id);
+            if (tripsError) {
+              logger.error('Failed to count trips', tripsError, {
+                guideId: user.id,
+              });
+            }
 
-              const { data: tripBookings } = await client
-                .from('trip_bookings')
-                .select('booking_id')
-                .in('trip_id', tripIds);
+            // Get average rating
+            let averageRating = 0;
+            let totalRatings = 0;
 
-              if (tripBookings && tripBookings.length > 0) {
-                const bookingIds = tripBookings.map((tb: { booking_id: string }) => tb.booking_id);
+            try {
+              const { data: guideTrips } = await client
+                .from('trip_guides')
+                .select('trip_id')
+                .eq('guide_id', user.id)
+                .not('check_in_at', 'is', null)
+                .not('check_out_at', 'is', null);
 
-                const { data: reviewsData } = await client
-                  .from('reviews')
-                  .select('guide_rating')
-                  .in('booking_id', bookingIds)
-                  .not('guide_rating', 'is', null);
+              if (guideTrips && guideTrips.length > 0) {
+                const tripIds = guideTrips.map(
+                  (gt: { trip_id: string }) => gt.trip_id
+                );
 
-                if (reviewsData && reviewsData.length > 0) {
-                  const ratings = reviewsData
-                    .map((r: { guide_rating: number | null }) => r.guide_rating)
-                    .filter((r: number | null): r is number => r !== null);
+                const { data: tripBookings } = await client
+                  .from('trip_bookings')
+                  .select('booking_id')
+                  .in('trip_id', tripIds);
 
-                  if (ratings.length > 0) {
-                    totalRatings = ratings.length;
-                    averageRating = ratings.reduce((sum: number, rating: number) => sum + rating, 0) / ratings.length;
+                if (tripBookings && tripBookings.length > 0) {
+                  const bookingIds = tripBookings.map(
+                    (tb: { booking_id: string }) => tb.booking_id
+                  );
+
+                  const { data: reviewsData } = await client
+                    .from('reviews')
+                    .select('guide_rating')
+                    .in('booking_id', bookingIds)
+                    .not('guide_rating', 'is', null);
+
+                  if (reviewsData && reviewsData.length > 0) {
+                    const ratings = reviewsData
+                      .map(
+                        (r: { guide_rating: number | null }) => r.guide_rating
+                      )
+                      .filter((r: number | null): r is number => r !== null);
+
+                    if (ratings.length > 0) {
+                      totalRatings = ratings.length;
+                      averageRating =
+                        ratings.reduce(
+                          (sum: number, rating: number) => sum + rating,
+                          0
+                        ) / ratings.length;
+                    }
                   }
                 }
               }
+            } catch (error) {
+              logger.warn('Error calculating average rating', {
+                guideId: user.id,
+                error,
+              });
             }
-          } catch (error) {
-            logger.warn('Error calculating average rating', { guideId: user.id, error });
-          }
 
-          // Calculate completed trips this month
-          const now = new Date();
-          const yearMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            // Calculate completed trips this month
+            const now = new Date();
+            const yearMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-          const { data: completedTrips } = await client
-            .from('trip_guides')
-            .select('trip_id, check_out_at')
-            .eq('guide_id', user.id)
-            .not('check_in_at', 'is', null)
-            .not('check_out_at', 'is', null);
+            const { data: completedTrips } = await client
+              .from('trip_guides')
+              .select('trip_id, check_out_at')
+              .eq('guide_id', user.id)
+              .not('check_in_at', 'is', null)
+              .not('check_out_at', 'is', null);
 
-          const completedThisMonth =
-            completedTrips?.filter((trip: { check_out_at: string | null }) => {
-              if (!trip.check_out_at) return false;
-              const key = trip.check_out_at.slice(0, 7);
-              return key === yearMonthKey;
-            }).length ?? 0;
+            const completedThisMonth =
+              completedTrips?.filter(
+                (trip: { check_out_at: string | null }) => {
+                  if (!trip.check_out_at) return false;
+                  const key = trip.check_out_at.slice(0, 7);
+                  return key === yearMonthKey;
+                }
+              ).length ?? 0;
 
-          return {
-            averageRating,
-            totalRatings,
-            totalTrips: totalTrips ?? 0,
-            completedThisMonth,
-            joinDate: userProfile?.created_at,
-          };
-        })(),
+            return {
+              averageRating,
+              totalRatings,
+              totalTrips: totalTrips ?? 0,
+              completedThisMonth,
+              joinDate: userProfile?.created_at,
+            };
+          })(),
 
-        // 4. Fetch urgent notifications only
-        (async () => {
-          try {
-            const { data: notifications } = await client
-              .from('notifications')
-              .select('id, type, title, message, created_at, read, is_urgent')
-              .eq('user_id', user.id)
-              .eq('read', false)
-              .or('is_urgent.eq.true,type.eq.trip_assignment,type.eq.deadline')
-              .order('created_at', { ascending: false })
-              .limit(10);
+          // 4. Fetch urgent notifications only
+          (async () => {
+            try {
+              const { data: notifications } = await client
+                .from('notifications')
+                .select('id, type, title, message, created_at, read, is_urgent')
+                .eq('user_id', user.id)
+                .eq('read', false)
+                .or(
+                  'is_urgent.eq.true,type.eq.trip_assignment,type.eq.deadline'
+                )
+                .order('created_at', { ascending: false })
+                .limit(10);
 
-            return notifications ?? [];
-          } catch (error) {
-            logger.warn('Failed to fetch notifications', { guideId: user.id, error });
-            return [];
-          }
-        })(),
-      ]);
+              return notifications ?? [];
+            } catch (error) {
+              logger.warn('Failed to fetch notifications', {
+                guideId: user.id,
+                error,
+              });
+              return [];
+            }
+          })(),
+        ]);
 
       return {
         status: statusResult,
@@ -340,4 +364,3 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   return NextResponse.json(dashboardData);
 });
-

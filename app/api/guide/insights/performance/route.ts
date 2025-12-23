@@ -1,12 +1,18 @@
 /**
  * API: Guide Performance Metrics
  * GET /api/guide/insights/performance - Get performance metrics (on-time rate, rating trend, etc.)
+ *
+ * @deprecated This endpoint is deprecated. Use /api/guide/metrics/unified instead.
+ * This endpoint will be removed in a future version.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
+import {
+  getBranchContext,
+  withBranchFilter,
+} from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -37,7 +43,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     // Get all completed trips in period
     const { data: tripGuides } = await withBranchFilter(
       client.from('trip_guides'),
-      branchContext,
+      branchContext
     )
       .select('trip_id, check_in_at, is_late, trip:trips(trip_date)')
       .eq('guide_id', user.id)
@@ -45,11 +51,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       .not('check_in_at', 'is', null)
       .not('check_out_at', 'is', null);
 
-    const tripIds = tripGuides?.map((tg: { trip_id: string }) => tg.trip_id) || [];
+    const tripIds =
+      tripGuides?.map((tg: { trip_id: string }) => tg.trip_id) || [];
 
     // Calculate on-time rate
     const totalTrips = tripGuides?.length || 0;
-    const onTimeTrips = tripGuides?.filter((tg: { is_late: boolean }) => !tg.is_late).length || 0;
+    const onTimeTrips =
+      tripGuides?.filter((tg: { is_late: boolean }) => !tg.is_late).length || 0;
     const onTimeRate = totalTrips > 0 ? (onTimeTrips / totalTrips) * 100 : 0;
 
     // Get rating trend (last 5 trips)
@@ -57,13 +65,15 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     if (tripIds.length > 0) {
       const { data: tripBookings } = await withBranchFilter(
         client.from('trip_bookings'),
-        branchContext,
+        branchContext
       )
         .select('booking_id, trip_id')
         .in('trip_id', tripIds.slice(-5)); // Last 5 trips
 
       if (tripBookings && tripBookings.length > 0) {
-        const bookingIds = tripBookings.map((tb: { booking_id: string }) => tb.booking_id);
+        const bookingIds = tripBookings.map(
+          (tb: { booking_id: string }) => tb.booking_id
+        );
 
         const { data: reviews } = await client
           .from('reviews')
@@ -91,7 +101,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     // Get comparison with other guides (anonymized percentile)
     const { data: allGuides } = await withBranchFilter(
       client.from('trip_guides'),
-      branchContext,
+      branchContext
     )
       .select('guide_id, is_late')
       .gte('check_in_at', startDate.toISOString())
@@ -125,14 +135,17 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       onTimeRates.sort((a, b) => a - b);
 
       const userOnTimeRate = onTimeRate;
-      const betterCount = onTimeRates.filter((rate) => rate < userOnTimeRate).length;
-      percentile = onTimeRates.length > 0 ? (betterCount / onTimeRates.length) * 100 : 50;
+      const betterCount = onTimeRates.filter(
+        (rate) => rate < userOnTimeRate
+      ).length;
+      percentile =
+        onTimeRates.length > 0 ? (betterCount / onTimeRates.length) * 100 : 50;
     }
 
     // Get earnings breakdown
     const { data: wallet } = await withBranchFilter(
       client.from('guide_wallets'),
-      branchContext,
+      branchContext
     )
       .select('id')
       .eq('guide_id', user.id)
@@ -164,8 +177,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       earningsByTrip,
     });
   } catch (error) {
-    logger.error('Failed to fetch performance metrics', error, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to fetch performance metrics' }, { status: 500 });
+    logger.error('Failed to fetch performance metrics', error, {
+      guideId: user.id,
+    });
+    return NextResponse.json(
+      { error: 'Failed to fetch performance metrics' },
+      { status: 500 }
+    );
   }
 });
-

@@ -15,13 +15,7 @@ import {
   calculateLevel,
   calculateLevelProgress,
   getTripsNeededForNextLevel,
-  type GuideStats,
 } from './gamification';
-import {
-  awardPoints,
-  calculateBadgePoints,
-  calculateLevelUpPoints,
-} from './reward-points';
 
 /**
  * Fetch guide status data
@@ -30,7 +24,7 @@ export async function fetchGuideStatus(userId: string) {
   try {
     const supabase = await createClient();
     const branchContext = await getBranchContext(userId);
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     let statusQuery = client
       .from('guide_status')
@@ -49,7 +43,10 @@ export async function fetchGuideStatus(userId: string) {
       .order('available_from', { ascending: true })
       .limit(3);
     if (!branchContext.isSuperAdmin && branchContext.branchId) {
-      availabilityQuery = availabilityQuery.eq('branch_id', branchContext.branchId);
+      availabilityQuery = availabilityQuery.eq(
+        'branch_id',
+        branchContext.branchId
+      );
     }
     const { data: upcoming } = await availabilityQuery;
 
@@ -79,108 +76,114 @@ export async function fetchGuideStatus(userId: string) {
 /**
  * Fetch guide trips data (limited for dashboard)
  */
-export async function fetchGuideTrips(userId: string, limit = 20) {
+export async function fetchGuideTrips(userId: string, _limit = 20) {
   try {
     const cacheKey = cacheKeys.guide.trips(userId);
-    const trips = await getCached(
-      cacheKey,
-      cacheTTL.trips,
-      async () => {
-        const supabase = await createClient();
-        const branchContext = await getBranchContext(userId);
-        const client = supabase as unknown as any;
+    const trips = await getCached(cacheKey, cacheTTL.trips, async () => {
+      const supabase = await createClient();
+      const branchContext = await getBranchContext(userId);
+      const client = supabase as unknown as unknown;
 
-        // Get assignments from both trip_crews (new) and trip_guides (legacy)
-        const tripCrewsQuery = client
-          .from('trip_crews')
-          .select('trip_id, role, status, assigned_at, confirmed_at')
-          .eq('guide_id', userId)
-          .in('status', ['assigned', 'confirmed']);
+      // Get assignments from both trip_crews (new) and trip_guides (legacy)
+      const tripCrewsQuery = client
+        .from('trip_crews')
+        .select('trip_id, role, status, assigned_at, confirmed_at')
+        .eq('guide_id', userId)
+        .in('status', ['assigned', 'confirmed']);
 
-        const { data: tripCrewsData, error: tripCrewsError } = await tripCrewsQuery;
+      const { data: tripCrewsData, error: tripCrewsError } =
+        await tripCrewsQuery;
 
-        if (tripCrewsError) {
-          logger.error('Failed to load trip_crews', tripCrewsError, { guideId: userId });
+      if (tripCrewsError) {
+        logger.error('Failed to load trip_crews', tripCrewsError, {
+          guideId: userId,
+        });
+      }
+
+      // trip_guides (legacy single-guide system)
+      const tripGuidesQuery = client
+        .from('trip_guides')
+        .select(
+          'trip_id, assignment_status, confirmation_deadline, confirmed_at, rejected_at, fee_amount'
+        )
+        .eq('guide_id', userId)
+        .in('assignment_status', ['confirmed', 'pending_confirmation']);
+
+      const { data: tripGuidesData, error: tripGuidesError } =
+        await tripGuidesQuery;
+
+      if (tripGuidesError) {
+        logger.error('Failed to load trip_guides', tripGuidesError, {
+          guideId: userId,
+        });
+      }
+
+      // Create map of trip_id -> assignment info
+      type AssignmentInfo = {
+        assignment_status: string;
+        confirmation_deadline: string | null;
+        confirmed_at: string | null;
+        rejected_at: string | null;
+        fee_amount: number | null;
+        role?: 'lead' | 'support' | null;
+      };
+
+      const assignmentMap = new Map<string, AssignmentInfo>();
+
+      // Add trip_crews assignments
+      (tripCrewsData ?? []).forEach(
+        (tc: {
+          trip_id: string;
+          role: 'lead' | 'support';
+          status: string;
+          assigned_at: string;
+          confirmed_at: string | null;
+        }) => {
+          assignmentMap.set(tc.trip_id, {
+            assignment_status:
+              tc.status === 'confirmed' ? 'confirmed' : 'pending_confirmation',
+            confirmation_deadline: null,
+            confirmed_at: tc.confirmed_at,
+            rejected_at: null,
+            fee_amount: null,
+            role: tc.role,
+          });
         }
+      );
 
-        // trip_guides (legacy single-guide system)
-        const tripGuidesQuery = client
-          .from('trip_guides')
-          .select('trip_id, assignment_status, confirmation_deadline, confirmed_at, rejected_at, fee_amount')
-          .eq('guide_id', userId)
-          .in('assignment_status', ['confirmed', 'pending_confirmation']);
-
-        const { data: tripGuidesData, error: tripGuidesError } = await tripGuidesQuery;
-
-        if (tripGuidesError) {
-          logger.error('Failed to load trip_guides', tripGuidesError, { guideId: userId });
-        }
-
-        // Create map of trip_id -> assignment info
-        type AssignmentInfo = {
+      // Add trip_guides assignments (legacy, don't override if already in map)
+      (tripGuidesData ?? []).forEach(
+        (tg: {
+          trip_id: string;
           assignment_status: string;
           confirmation_deadline: string | null;
           confirmed_at: string | null;
           rejected_at: string | null;
           fee_amount: number | null;
-          role?: 'lead' | 'support' | null;
-        };
-
-        const assignmentMap = new Map<string, AssignmentInfo>();
-
-        // Add trip_crews assignments
-        (tripCrewsData ?? []).forEach(
-          (tc: {
-            trip_id: string;
-            role: 'lead' | 'support';
-            status: string;
-            assigned_at: string;
-            confirmed_at: string | null;
-          }) => {
-            assignmentMap.set(tc.trip_id, {
-              assignment_status: tc.status === 'confirmed' ? 'confirmed' : 'pending_confirmation',
-              confirmation_deadline: null,
-              confirmed_at: tc.confirmed_at,
-              rejected_at: null,
-              fee_amount: null,
-              role: tc.role,
+        }) => {
+          if (!assignmentMap.has(tg.trip_id)) {
+            assignmentMap.set(tg.trip_id, {
+              assignment_status: tg.assignment_status,
+              confirmation_deadline: tg.confirmation_deadline,
+              confirmed_at: tg.confirmed_at,
+              rejected_at: tg.rejected_at,
+              fee_amount: tg.fee_amount,
             });
           }
-        );
-
-        // Add trip_guides assignments (legacy, don't override if already in map)
-        (tripGuidesData ?? []).forEach(
-          (tg: {
-            trip_id: string;
-            assignment_status: string;
-            confirmation_deadline: string | null;
-            confirmed_at: string | null;
-            rejected_at: string | null;
-            fee_amount: number | null;
-          }) => {
-            if (!assignmentMap.has(tg.trip_id)) {
-              assignmentMap.set(tg.trip_id, {
-                assignment_status: tg.assignment_status,
-                confirmation_deadline: tg.confirmation_deadline,
-                confirmed_at: tg.confirmed_at,
-                rejected_at: tg.rejected_at,
-                fee_amount: tg.fee_amount,
-              });
-            }
-          }
-        );
-
-        const tripIds = Array.from(assignmentMap.keys());
-
-        if (tripIds.length === 0) {
-          return [];
         }
+      );
 
-        // Get trips with branch filter - use nested select with packages like working API route
-        let tripsQuery = client
-          .from('trips')
-          .select(
-            `
+      const tripIds = Array.from(assignmentMap.keys());
+
+      if (tripIds.length === 0) {
+        return [];
+      }
+
+      // Get trips with branch filter - use nested select with packages like working API route
+      let tripsQuery = client
+        .from('trips')
+        .select(
+          `
             id,
             trip_code,
             trip_date,
@@ -194,25 +197,29 @@ export async function fetchGuideTrips(userId: string, limit = 20) {
               duration_days,
               meeting_point
             )
-          `,
-          )
-          .in('id', tripIds);
+          `
+        )
+        .in('id', tripIds);
 
-        if (!branchContext.isSuperAdmin && branchContext.branchId) {
-          tripsQuery = tripsQuery.eq('branch_id', branchContext.branchId);
-        }
+      if (!branchContext.isSuperAdmin && branchContext.branchId) {
+        tripsQuery = tripsQuery.eq('branch_id', branchContext.branchId);
+      }
 
-        const { data: tripsData, error: tripsError } = await tripsQuery.order('trip_date', { ascending: true });
+      const { data: tripsData, error: tripsError } = await tripsQuery.order(
+        'trip_date',
+        { ascending: true }
+      );
 
-        if (tripsError) {
-          logger.error('Failed to load trips', tripsError, { guideId: userId });
-          return [];
-        }
+      if (tripsError) {
+        logger.error('Failed to load trips', tripsError, { guideId: userId });
+        return [];
+      }
 
-        // Map trips data to match component expectations (same structure as working API route)
-        const nowDate = new Date().toISOString().slice(0, 10);
-        
-        const mappedTrips = (tripsData ?? []).map((trip: {
+      // Map trips data to match component expectations (same structure as working API route)
+      const nowDate = new Date().toISOString().slice(0, 10);
+
+      const mappedTrips = (tripsData ?? []).map(
+        (trip: {
           id: string;
           trip_code: string | null;
           trip_date: string | null;
@@ -231,8 +238,13 @@ export async function fetchGuideTrips(userId: string, limit = 20) {
           const statusRaw = trip.status ?? 'scheduled';
 
           // Determine UI status
-          let uiStatus: 'ongoing' | 'upcoming' | 'completed' | 'cancelled' = 'upcoming';
-          if (statusRaw === 'on_trip' || statusRaw === 'on_the_way' || statusRaw === 'preparing') {
+          let uiStatus: 'ongoing' | 'upcoming' | 'completed' | 'cancelled' =
+            'upcoming';
+          if (
+            statusRaw === 'on_trip' ||
+            statusRaw === 'on_the_way' ||
+            statusRaw === 'preparing'
+          ) {
             uiStatus = 'ongoing';
           } else if (statusRaw === 'completed') {
             uiStatus = 'completed';
@@ -245,7 +257,7 @@ export async function fetchGuideTrips(userId: string, limit = 20) {
 
           const assignment = assignmentMap.get(trip.id) || null;
           const crewRole = assignment?.role ?? null;
-          
+
           const packageData = trip.package;
 
           return {
@@ -268,11 +280,11 @@ export async function fetchGuideTrips(userId: string, limit = 20) {
             // Keep trip_code for compatibility
             trip_code: trip.trip_code ?? '',
           };
-        });
-        
-        return mappedTrips;
-      }
-    );
+        }
+      );
+
+      return mappedTrips;
+    });
 
     return { trips };
   } catch (error) {
@@ -291,8 +303,8 @@ export async function fetchGuideStats(userId: string) {
       cacheTTL.stats,
       async () => {
         const supabase = await createClient();
-        const branchContext = await getBranchContext(userId);
-        const client = supabase as unknown as any;
+        const _branchContext = await getBranchContext(userId);
+        const client = supabase as unknown as unknown;
 
         // Get user join date from users table
         const { data: userProfile } = await client
@@ -310,7 +322,9 @@ export async function fetchGuideStats(userId: string) {
           .not('check_out_at', 'is', null);
 
         if (tripsError) {
-          logger.error('Failed to count trips', tripsError, { guideId: userId });
+          logger.error('Failed to count trips', tripsError, {
+            guideId: userId,
+          });
         }
 
         // Get average rating from reviews
@@ -327,7 +341,9 @@ export async function fetchGuideStats(userId: string) {
             .not('check_out_at', 'is', null);
 
           if (guideTrips && guideTrips.length > 0) {
-            const tripIds = guideTrips.map((gt: { trip_id: string }) => gt.trip_id);
+            const tripIds = guideTrips.map(
+              (gt: { trip_id: string }) => gt.trip_id
+            );
 
             // Step 2: Get booking IDs for these trips via trip_bookings
             const { data: tripBookings } = await client
@@ -336,14 +352,17 @@ export async function fetchGuideStats(userId: string) {
               .in('trip_id', tripIds);
 
             if (tripBookings && tripBookings.length > 0) {
-              const bookingIds = tripBookings.map((tb: { booking_id: string }) => tb.booking_id);
+              const bookingIds = tripBookings.map(
+                (tb: { booking_id: string }) => tb.booking_id
+              );
 
               // Step 3: Get reviews for these bookings with guide_rating
-              const { data: reviewsData, error: reviewsQueryError } = await client
-                .from('reviews')
-                .select('guide_rating')
-                .in('booking_id', bookingIds)
-                .not('guide_rating', 'is', null);
+              const { data: reviewsData, error: reviewsQueryError } =
+                await client
+                  .from('reviews')
+                  .select('guide_rating')
+                  .in('booking_id', bookingIds)
+                  .not('guide_rating', 'is', null);
 
               if (reviewsQueryError) {
                 logger.warn('Failed to fetch reviews for stats', {
@@ -357,13 +376,20 @@ export async function fetchGuideStats(userId: string) {
 
                 if (ratings.length > 0) {
                   totalRatings = ratings.length;
-                  averageRating = ratings.reduce((sum: number, rating: number) => sum + rating, 0) / ratings.length;
+                  averageRating =
+                    ratings.reduce(
+                      (sum: number, rating: number) => sum + rating,
+                      0
+                    ) / ratings.length;
                 }
               }
             }
           }
         } catch (error) {
-          logger.warn('Error calculating average rating', { guideId: userId, error });
+          logger.warn('Error calculating average rating', {
+            guideId: userId,
+            error,
+          });
         }
 
         // Calculate completed trips this month
@@ -394,7 +420,10 @@ export async function fetchGuideStats(userId: string) {
           penalties: 0, // TODO: Calculate from penalties table
         });
         const levelProgress = calculateLevelProgress(totalTrips ?? 0, level);
-        const tripsNeededForNextLevel = getTripsNeededForNextLevel(totalTrips ?? 0, level);
+        const tripsNeededForNextLevel = getTripsNeededForNextLevel(
+          totalTrips ?? 0,
+          level
+        );
 
         // Return stats (points calculation is done separately via API)
         return {
@@ -474,4 +503,3 @@ export async function fetchGuideDashboardData(userId: string) {
     };
   }
 }
-

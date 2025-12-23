@@ -1,12 +1,12 @@
 /**
  * Timezone Utility Functions
  * Sesuai PRD 2.9.B - Global Localization Strategy
- * 
+ *
  * Semua waktu di database disimpan UTC (ISO 8601)
  * Konversi ke waktu lokal dilakukan di frontend berdasarkan branch
  */
 
-import { format, formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { id } from 'date-fns/locale';
 
 export type Timezone = 'Asia/Jakarta' | 'Asia/Makassar' | 'Asia/Jayapura';
@@ -68,14 +68,10 @@ export function formatBranchTime(
 /**
  * Convert local time ke UTC untuk disimpan ke database
  */
-export function toUTC(
-  localDate: Date,
-  branchId: string | null
-): Date {
+export function toUTC(localDate: Date, branchId: string | null): Date {
   const timezone = getBranchTimezone(branchId);
   // Get UTC offset
   const zonedDate = toZonedTime(localDate, timezone);
   const offset = localDate.getTime() - zonedDate.getTime();
   return new Date(localDate.getTime() - offset);
 }
-

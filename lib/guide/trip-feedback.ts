@@ -30,15 +30,20 @@ export async function sendFeedbackRequests(tripId: string) {
     // Get bookings for this trip through trip_bookings
     const { data: tripBookings, error: tripBookingsError } = await supabase
       .from('trip_bookings')
-      .select('booking_id, booking:bookings(id, booking_code, customer_email, customer_phone, customer_name)')
+      .select(
+        'booking_id, booking:bookings(id, booking_code, customer_email, customer_phone, customer_name)'
+      )
       .eq('trip_id', tripId);
 
     if (tripBookingsError) {
-      logger.error('Failed to fetch trip bookings', tripBookingsError, { tripId });
+      logger.error('Failed to fetch trip bookings', tripBookingsError, {
+        tripId,
+      });
       return { success: false, error: 'Failed to fetch bookings' };
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
     const locale = 'id'; // Default to Indonesian
 
     // Collect unique customers (booking level)
@@ -53,7 +58,7 @@ export async function sendFeedbackRequests(tripId: string) {
 
     if (tripBookings && tripBookings.length > 0) {
       for (const tb of tripBookings) {
-        const booking = (tb as any).booking;
+        const booking = (tb as unknown).booking;
         if (booking) {
           const ratingToken = await generateRatingToken(booking.id);
           const ratingLink = `${baseUrl}/${locale}/review/${ratingToken}`;
@@ -95,15 +100,27 @@ export async function sendFeedbackRequests(tripId: string) {
               <p>Best regards,<br>Aero Travel Team</p>
             `,
           });
-          results.push({ bookingId: customer.bookingId, method: 'email', success: true });
-          logger.info('Feedback email sent', { tripId, bookingId: customer.bookingId, email: customer.email });
+          results.push({
+            bookingId: customer.bookingId,
+            method: 'email',
+            success: true,
+          });
+          logger.info('Feedback email sent', {
+            tripId,
+            bookingId: customer.bookingId,
+            email: customer.email,
+          });
         } catch (emailError) {
           logger.error('Failed to send feedback email', emailError, {
             tripId,
             bookingId: customer.bookingId,
             email: customer.email,
           });
-          results.push({ bookingId: customer.bookingId, method: 'email', success: false });
+          results.push({
+            bookingId: customer.bookingId,
+            method: 'email',
+            success: false,
+          });
         }
       }
 
@@ -118,7 +135,11 @@ ${customer.ratingLink}
 Feedback Anda sangat berarti untuk kami. Terima kasih! 🙏`;
 
           await sendTextMessage(customer.phone.replace(/^0/, '+62'), message);
-          results.push({ bookingId: customer.bookingId, method: 'whatsapp', success: true });
+          results.push({
+            bookingId: customer.bookingId,
+            method: 'whatsapp',
+            success: true,
+          });
           logger.info('Feedback WhatsApp sent', {
             tripId,
             bookingId: customer.bookingId,
@@ -130,12 +151,20 @@ Feedback Anda sangat berarti untuk kami. Terima kasih! 🙏`;
             bookingId: customer.bookingId,
             phone: customer.phone,
           });
-          results.push({ bookingId: customer.bookingId, method: 'whatsapp', success: false });
+          results.push({
+            bookingId: customer.bookingId,
+            method: 'whatsapp',
+            success: false,
+          });
         }
       }
     }
 
-    return { success: true, results, sentCount: results.filter((r) => r.success).length };
+    return {
+      success: true,
+      results,
+      sentCount: results.filter((r) => r.success).length,
+    };
   } catch (error) {
     logger.error('Failed to send feedback requests', error, { tripId });
     return { success: false, error: 'Failed to send feedback requests' };

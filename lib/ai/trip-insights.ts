@@ -78,7 +78,11 @@ Return JSON array:
 
 Return ONLY the JSON array, no additional text.`;
 
-    const response = await generateContent(prompt, undefined, 'gemini-1.5-pro');
+    const response = await generateContent(
+      prompt,
+      undefined,
+      'gemini-1.5-flash'
+    );
 
     try {
       const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
@@ -111,12 +115,14 @@ Return ONLY the JSON array, no additional text.`;
  */
 export async function getResourcePlanningSuggestions(
   context: TripInsightContext
-): Promise<Array<{
-  item: string;
-  quantity: number;
-  reason: string;
-  priority: 'high' | 'medium' | 'low';
-}>> {
+): Promise<
+  Array<{
+    item: string;
+    quantity: number;
+    reason: string;
+    priority: 'high' | 'medium' | 'low';
+  }>
+> {
   try {
     const prompt = `Based on this trip information, suggest resource planning:
 
@@ -144,7 +150,11 @@ Return JSON array:
 
 Return ONLY the JSON array, no additional text.`;
 
-    const response = await generateContent(prompt, undefined, 'gemini-1.5-flash');
+    const response = await generateContent(
+      prompt,
+      undefined,
+      'gemini-1.5-flash'
+    );
 
     try {
       const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();

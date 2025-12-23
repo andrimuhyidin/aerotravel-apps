@@ -7,15 +7,15 @@
 
 import { useQuery } from '@tanstack/react-query';
 import {
-    Calendar,
-    CheckCircle,
-    Clock,
-    Info,
-    Loader2,
-    Pause,
-    Play,
-    Save,
-    XCircle,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Info,
+  Loader2,
+  Pause,
+  Play,
+  Save,
+  XCircle,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -62,7 +62,9 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
   const [date, setDate] = useState('');
   const [fromTime, setFromTime] = useState('');
   const [untilTime, setUntilTime] = useState('');
-  const [scheduleStatus, setScheduleStatus] = useState<'available' | 'not_available'>('available');
+  const [scheduleStatus, setScheduleStatus] = useState<
+    'available' | 'not_available'
+  >('available');
   const [reason, setReason] = useState('');
   const [savingSchedule, setSavingSchedule] = useState(false);
 
@@ -108,13 +110,15 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
       });
 
       if (!res.ok) {
-        const errorData = (await res.json().catch(() => ({}))) as { error?: string };
+        const errorData = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
         setStatusMessage(errorData.error || 'Gagal memperbarui status.');
       } else {
         setStatusMessage('Status berhasil diperbarui.');
         void refetch();
       }
-    } catch (error) {
+    } catch (_error) {
       setStatusMessage('Gagal memperbarui status. Periksa koneksi internet.');
     } finally {
       setUpdatingStatus(false);
@@ -146,7 +150,9 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
       });
 
       if (!res.ok) {
-        const errorData = (await res.json().catch(() => ({}))) as { error?: string };
+        const errorData = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
         setScheduleMessage(errorData.error || 'Gagal menyimpan jadwal.');
       } else {
         setScheduleMessage('Jadwal ketersediaan tersimpan.');
@@ -157,7 +163,7 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
         setReason('');
         void refetch();
       }
-    } catch (error) {
+    } catch (_error) {
       setScheduleMessage('Gagal menyimpan jadwal. Periksa koneksi internet.');
     } finally {
       setSavingSchedule(false);
@@ -208,7 +214,8 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
       weekday: 'short',
       day: 'numeric',
       month: 'short',
-      year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+      year:
+        date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -243,20 +250,27 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
     );
   }
 
-  const currentStatusData = (data?.status?.current_status || 'standby') as CurrentStatus;
-  const currentStatusOption = statusOptions.find((opt) => opt.value === currentStatusData);
+  const currentStatusData = (data?.status?.current_status ||
+    'standby') as CurrentStatus;
+  const currentStatusOption = statusOptions.find(
+    (opt) => opt.value === currentStatusData
+  );
   const upcomingSchedules = data?.upcoming || [];
   const lastUpdated = formatRelativeTime(data?.status?.updated_at || null);
-  
+
   // Filter out invalid schedules
-  const validSchedules = upcomingSchedules.filter((s) => s && s.id && s.available_from && s.available_until);
+  const validSchedules = upcomingSchedules.filter(
+    (s) => s && s.id && s.available_from && s.available_until
+  );
 
   return (
     <div className="space-y-6 pb-6">
       {/* Current Status Display Card */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold text-slate-900">Status Saat Ini</CardTitle>
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Status Saat Ini
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Current Status Badge */}
@@ -265,21 +279,35 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
               className={cn(
                 'flex items-center gap-3 rounded-lg border-2 p-4',
                 currentStatusOption.bgColor,
-                currentStatusOption.borderColor,
+                currentStatusOption.borderColor
               )}
             >
-              <div className={cn('flex h-12 w-12 items-center justify-center rounded-full', currentStatusOption.iconBg)}>
+              <div
+                className={cn(
+                  'flex h-12 w-12 items-center justify-center rounded-full',
+                  currentStatusOption.iconBg
+                )}
+              >
                 <currentStatusOption.icon className="h-6 w-6 text-white" />
               </div>
               <div className="flex-1">
-                <p className={cn('text-sm font-semibold', currentStatusOption.textColor)}>
+                <p
+                  className={cn(
+                    'text-sm font-semibold',
+                    currentStatusOption.textColor
+                  )}
+                >
                   {currentStatusOption.label}
                 </p>
                 {lastUpdated && (
-                  <p className="mt-0.5 text-xs text-slate-500">Diperbarui {lastUpdated}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Diperbarui {lastUpdated}
+                  </p>
                 )}
                 {data?.status?.note && (
-                  <p className="mt-1 text-xs text-slate-600">{data.status.note}</p>
+                  <p className="mt-1 text-xs text-slate-600">
+                    {data.status.note}
+                  </p>
                 )}
               </div>
             </div>
@@ -287,7 +315,9 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
 
           {/* Status Selection */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-700">Ubah Status</Label>
+            <Label className="text-sm font-medium text-slate-700">
+              Ubah Status
+            </Label>
             <div className="grid grid-cols-3 gap-2">
               {statusOptions.map((option) => {
                 const Icon = option.icon;
@@ -298,7 +328,10 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
                     type="button"
                     onClick={() => {
                       // Show safety checklist if trying to set status to "on_trip"
-                      if (option.value === 'on_trip' && currentStatusData !== 'on_trip') {
+                      if (
+                        option.value === 'on_trip' &&
+                        currentStatusData !== 'on_trip'
+                      ) {
                         setShowSafetyChecklist(true);
                       } else {
                         setCurrentStatus(option.value);
@@ -308,13 +341,15 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
                       'flex min-h-[80px] flex-col items-center justify-center gap-2 rounded-xl border-2 p-3 transition-all active:scale-95',
                       isActive
                         ? `${option.borderColor} ${option.bgColor}`
-                        : 'border-slate-200 bg-white hover:border-slate-300',
+                        : 'border-slate-200 bg-white hover:border-slate-300'
                     )}
                   >
                     <div
                       className={cn(
                         'flex h-10 w-10 items-center justify-center rounded-full',
-                        isActive ? option.iconBg + ' text-white' : 'bg-slate-100 text-slate-600',
+                        isActive
+                          ? option.iconBg + ' text-white'
+                          : 'bg-slate-100 text-slate-600'
                       )}
                     >
                       <Icon className="h-5 w-5" />
@@ -322,7 +357,7 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
                     <span
                       className={cn(
                         'text-xs font-medium',
-                        isActive ? option.textColor : 'text-slate-600',
+                        isActive ? option.textColor : 'text-slate-600'
                       )}
                     >
                       {option.label}
@@ -335,7 +370,10 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
 
           {/* Status Note */}
           <div className="space-y-2">
-            <Label htmlFor="status-note" className="text-sm font-medium text-slate-700">
+            <Label
+              htmlFor="status-note"
+              className="text-sm font-medium text-slate-700"
+            >
               Catatan (opsional)
             </Label>
             <Textarea
@@ -358,7 +396,7 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
                 'rounded-lg p-3 text-sm',
                 statusMessage.includes('berhasil')
                   ? 'bg-emerald-50 text-emerald-700'
-                  : 'bg-red-50 text-red-700',
+                  : 'bg-red-50 text-red-700'
               )}
             >
               {statusMessage}
@@ -389,7 +427,9 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
       {/* Upcoming Schedules */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold text-slate-900">Jadwal Ketersediaan</CardTitle>
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Jadwal Ketersediaan
+          </CardTitle>
           {validSchedules.length > 0 && (
             <p className="mt-1 text-xs text-slate-500">
               {validSchedules.length} jadwal aktif
@@ -419,7 +459,9 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
                     <div
                       className={cn(
                         'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl',
-                        scheduleStatus === 'available' ? 'bg-emerald-500' : 'bg-slate-500',
+                        scheduleStatus === 'available'
+                          ? 'bg-emerald-500'
+                          : 'bg-slate-500'
                       )}
                     >
                       <Calendar className="h-5 w-5 text-white" />
@@ -429,10 +471,14 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
                         <span
                           className={cn(
                             'text-xs font-semibold uppercase',
-                            scheduleStatus === 'available' ? 'text-emerald-700' : 'text-slate-700',
+                            scheduleStatus === 'available'
+                              ? 'text-emerald-700'
+                              : 'text-slate-700'
                           )}
                         >
-                          {scheduleStatus === 'available' ? 'Tersedia' : 'Tidak Tersedia'}
+                          {scheduleStatus === 'available'
+                            ? 'Tersedia'
+                            : 'Tidak Tersedia'}
                         </span>
                       </div>
                       <p className="mt-1 text-sm font-medium text-slate-900">
@@ -444,7 +490,9 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
                       {schedule.reason && (
                         <div className="mt-2 flex items-start gap-1.5 rounded bg-white p-2">
                           <Info className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
-                          <p className="text-xs text-slate-600">{schedule.reason}</p>
+                          <p className="text-xs text-slate-600">
+                            {schedule.reason}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -456,9 +504,12 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
           ) : (
             <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 p-6 text-center">
               <Calendar className="mx-auto mb-2 h-8 w-8 text-slate-400" />
-              <p className="text-sm font-medium text-slate-700">Belum ada jadwal</p>
+              <p className="text-sm font-medium text-slate-700">
+                Belum ada jadwal
+              </p>
               <p className="mt-1 text-xs text-slate-500">
-                Tambahkan jadwal ketersediaan untuk membantu tim operasional merencanakan trip
+                Tambahkan jadwal ketersediaan untuk membantu tim operasional
+                merencanakan trip
               </p>
             </div>
           )}
@@ -468,14 +519,19 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
       {/* Add New Schedule Card */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold text-slate-900">Tambah Jadwal Ketersediaan</CardTitle>
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Tambah Jadwal Ketersediaan
+          </CardTitle>
           <p className="mt-1 text-xs text-slate-500">
             Atur jadwal ketersediaan Anda di masa depan
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="schedule-date" className="text-sm font-medium text-slate-700">
+            <Label
+              htmlFor="schedule-date"
+              className="text-sm font-medium text-slate-700"
+            >
               Tanggal <span className="text-red-500">*</span>
             </Label>
             <div className="relative">
@@ -493,7 +549,10 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="from-time" className="text-sm font-medium text-slate-700">
+              <Label
+                htmlFor="from-time"
+                className="text-sm font-medium text-slate-700"
+              >
                 Dari Jam <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
@@ -508,7 +567,10 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="until-time" className="text-sm font-medium text-slate-700">
+              <Label
+                htmlFor="until-time"
+                className="text-sm font-medium text-slate-700"
+              >
                 Sampai Jam <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
@@ -525,7 +587,9 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-700">Status pada rentang waktu ini</Label>
+            <Label className="text-sm font-medium text-slate-700">
+              Status pada rentang waktu ini
+            </Label>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -534,7 +598,7 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
                   'flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-medium transition-all active:scale-95',
                   scheduleStatus === 'available'
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                 )}
               >
                 Tersedia
@@ -546,7 +610,7 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
                   'flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-medium transition-all active:scale-95',
                   scheduleStatus === 'not_available'
                     ? 'border-slate-500 bg-slate-50 text-slate-700'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                 )}
               >
                 Tidak Tersedia
@@ -555,7 +619,10 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="schedule-reason" className="text-sm font-medium text-slate-700">
+            <Label
+              htmlFor="schedule-reason"
+              className="text-sm font-medium text-slate-700"
+            >
               Catatan (opsional)
             </Label>
             <Textarea
@@ -578,7 +645,7 @@ export function StatusClient({ locale: _locale, tripId }: StatusClientProps) {
                 'rounded-lg p-3 text-sm',
                 scheduleMessage.includes('tersimpan')
                   ? 'bg-emerald-50 text-emerald-700'
-                  : 'bg-red-50 text-red-700',
+                  : 'bg-red-50 text-red-700'
               )}
             >
               {scheduleMessage}

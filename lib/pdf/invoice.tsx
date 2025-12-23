@@ -1,12 +1,12 @@
 /**
  * Invoice PDF Template
  * Sesuai PRD 4.3.B - Whitelabel Invoice
- * 
+ *
  * Generate PDF invoice with whitelabel support (Mitra branding)
  */
 
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 // Register fonts (if custom fonts needed)
 // Font.register({
@@ -140,7 +140,9 @@ export function InvoicePDF({ data }: { data: InvoiceData }) {
             <Text style={styles.companyAddress}>Tel: {data.companyPhone}</Text>
           )}
           {data.companyEmail && (
-            <Text style={styles.companyAddress}>Email: {data.companyEmail}</Text>
+            <Text style={styles.companyAddress}>
+              Email: {data.companyEmail}
+            </Text>
           )}
         </View>
 
@@ -184,7 +186,9 @@ export function InvoicePDF({ data }: { data: InvoiceData }) {
           </View>
           {data.items.map((item, index) => (
             <View key={index} style={styles.tableRow}>
-              <Text style={[styles.tableCol, { flex: 2 }]}>{item.description}</Text>
+              <Text style={[styles.tableCol, { flex: 2 }]}>
+                {item.description}
+              </Text>
               <Text style={styles.tableCol}>{item.quantity}</Text>
               <Text style={styles.tableCol}>
                 Rp {item.unitPrice.toLocaleString('id-ID')}
@@ -199,7 +203,9 @@ export function InvoicePDF({ data }: { data: InvoiceData }) {
         {/* Totals */}
         <View style={styles.section}>
           <View style={styles.row}>
-            <Text style={[styles.label, { textAlign: 'right' }]}>Subtotal:</Text>
+            <Text style={[styles.label, { textAlign: 'right' }]}>
+              Subtotal:
+            </Text>
             <Text style={[styles.value, { textAlign: 'right' }]}>
               Rp {data.subtotal.toLocaleString('id-ID')}
             </Text>
@@ -215,10 +221,20 @@ export function InvoicePDF({ data }: { data: InvoiceData }) {
             </View>
           )}
           <View style={styles.row}>
-            <Text style={[styles.label, { textAlign: 'right', fontSize: 14, fontWeight: 'bold' }]}>
+            <Text
+              style={[
+                styles.label,
+                { textAlign: 'right', fontSize: 14, fontWeight: 'bold' },
+              ]}
+            >
               Total:
             </Text>
-            <Text style={[styles.value, { textAlign: 'right', fontSize: 14, fontWeight: 'bold' }]}>
+            <Text
+              style={[
+                styles.value,
+                { textAlign: 'right', fontSize: 14, fontWeight: 'bold' },
+              ]}
+            >
               Rp {data.total.toLocaleString('id-ID')}
             </Text>
           </View>
@@ -230,7 +246,9 @@ export function InvoicePDF({ data }: { data: InvoiceData }) {
             <Text style={{ fontWeight: 'bold' }}>
               Status: {data.paymentStatus.toUpperCase()}
             </Text>
-            {data.paymentMethod && <Text>Payment Method: {data.paymentMethod}</Text>}
+            {data.paymentMethod && (
+              <Text>Payment Method: {data.paymentMethod}</Text>
+            )}
           </View>
         )}
 
@@ -251,4 +269,3 @@ export function InvoicePDF({ data }: { data: InvoiceData }) {
     </Document>
   );
 }
-

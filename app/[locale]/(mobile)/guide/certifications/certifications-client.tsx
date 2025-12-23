@@ -7,14 +7,14 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-    AlertCircle,
-    AlertTriangle,
-    CheckCircle2,
-    Clock,
-    FileText,
-    Loader2,
-    Plus,
-    XCircle
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Loader2,
+  Plus,
+  XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -22,12 +22,12 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -35,13 +35,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingState } from '@/components/ui/loading-state';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Container } from '@/components/layout/container';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
@@ -85,7 +86,9 @@ const STATUS_ICONS = {
   rejected: AlertCircle,
 };
 
-export function CertificationsClient({ locale: _locale }: CertificationsClientProps) {
+export function CertificationsClient({
+  locale: _locale,
+}: CertificationsClientProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [uploading, setUploading] = useState(false);
   const queryClient = useQueryClient();
@@ -106,9 +109,15 @@ export function CertificationsClient({ locale: _locale }: CertificationsClientPr
 
   const { data: validityData } = useQuery<{
     is_valid: boolean;
-    expiring_soon: Array<{ certification_type: string; days_until_expiry: number }>;
+    expiring_soon: Array<{
+      certification_type: string;
+      days_until_expiry: number;
+    }>;
   }>({
-    queryKey: queryKeys.guide.certifications?.validity() || ['certifications', 'validity'],
+    queryKey: queryKeys.guide.certifications?.validity() || [
+      'certifications',
+      'validity',
+    ],
     queryFn: async () => {
       const res = await fetch('/api/guide/certifications/check-validity');
       if (!res.ok) {
@@ -128,7 +137,10 @@ export function CertificationsClient({ locale: _locale }: CertificationsClientPr
     }>;
     count: number;
   }>({
-    queryKey: queryKeys.guide.certifications?.expiring() || ['certifications', 'expiring'],
+    queryKey: queryKeys.guide.certifications?.expiring() || [
+      'certifications',
+      'expiring',
+    ],
     queryFn: async () => {
       const res = await fetch('/api/guide/certifications/expiring');
       if (!res.ok) {
@@ -140,11 +152,16 @@ export function CertificationsClient({ locale: _locale }: CertificationsClientPr
 
   const certifications = data?.certifications || [];
   const isValid = validityData?.is_valid ?? false;
-  const expiringSoon = expiringData?.expiring || validityData?.expiring_soon || [];
-  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  const expiringSoon =
+    expiringData?.expiring || validityData?.expiring_soon || [];
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(
+    new Set()
+  );
 
   // Filter out invalid certifications
-  const validCertifications = certifications.filter((c) => c && c.id && c.certification_name);
+  const validCertifications = certifications.filter(
+    (c) => c && c.id && c.certification_name
+  );
 
   // Add certification form state
   const [formData, setFormData] = useState({
@@ -195,8 +212,12 @@ export function CertificationsClient({ locale: _locale }: CertificationsClientPr
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.guide.certifications?.all() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.guide.certifications?.validity() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.certifications?.all(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.certifications?.validity(),
+      });
       setShowAddDialog(false);
       setFormData({
         certification_type: '',
@@ -213,7 +234,11 @@ export function CertificationsClient({ locale: _locale }: CertificationsClientPr
     },
     onError: (error) => {
       logger.error('Failed to add certification', error);
-      toast.error(error instanceof Error ? error.message : 'Gagal menambahkan certification');
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Gagal menambahkan certification'
+      );
     },
   });
 
@@ -236,7 +261,12 @@ export function CertificationsClient({ locale: _locale }: CertificationsClientPr
   };
 
   const handleSubmit = () => {
-    if (!formData.certification_type || !formData.certification_name || !formData.issued_date || !formData.expiry_date) {
+    if (
+      !formData.certification_type ||
+      !formData.certification_name ||
+      !formData.issued_date ||
+      !formData.expiry_date
+    ) {
       toast.error('Mohon lengkapi semua field yang wajib');
       return;
     }
@@ -257,362 +287,471 @@ export function CertificationsClient({ locale: _locale }: CertificationsClientPr
   }
 
   if (error) {
-    return <ErrorState message="Gagal memuat certifications" onRetry={() => void refetch()} />;
+    return (
+      <ErrorState
+        message="Gagal memuat certifications"
+        onRetry={() => void refetch()}
+      />
+    );
   }
 
   return (
-    <div className="space-y-4 pb-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold leading-tight text-slate-900">My Certifications</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Kelola sertifikat Anda (SIM Kapal, First Aid, ALIN)
-        </p>
-      </div>
+    <Container className="py-4">
+      <div className="space-y-4">
+        {/* Header */}
+        <div>
+          <h1 className="text-xl font-bold leading-tight text-slate-900">
+            My Certifications
+          </h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Kelola sertifikat Anda (SIM Kapal, First Aid, ALIN)
+          </p>
+        </div>
 
-      {/* Validity Status */}
-      <Card className={cn('border-0 shadow-sm', isValid ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200')}>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            {isValid ? (
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-            ) : (
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
-            )}
-            <div className="flex-1">
-              <p className="text-sm font-semibold">
-                {isValid ? 'Semua sertifikat valid' : 'Sertifikat belum lengkap atau expired'}
-              </p>
-              {!isValid && (
-                <p className="text-xs text-amber-700 mt-1">
-                  Anda tidak dapat memulai trip hingga semua sertifikat valid
-                </p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Expiring Soon Alert - Dismissible */}
-      {expiringSoon.length > 0 && expiringSoon.filter((cert: any) => cert && !dismissedAlerts.has(cert.id || cert.certification_type || '')).length > 0 && (
-        <Card className="border-0 bg-amber-50 shadow-sm border-amber-200">
+        {/* Validity Status */}
+        <Card
+          className={cn(
+            'border-0 shadow-sm',
+            isValid
+              ? 'border-emerald-200 bg-emerald-50'
+              : 'border-amber-200 bg-amber-50'
+          )}
+        >
           <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-amber-900">Peringatan: Sertifikat Akan Berakhir</p>
-                    <p className="text-xs text-amber-700 mt-1">
-                      {expiringSoon.filter((cert: any) => cert && !dismissedAlerts.has(cert.id || cert.certification_type || '')).length} sertifikat akan berakhir dalam 30 hari ke depan
-                    </p>
-                    <ul className="mt-2 space-y-1">
-                      {expiringSoon
-                        .filter((cert: any) => cert && !dismissedAlerts.has(cert.id || cert.certification_type || ''))
-                        .map((cert: any) => {
-                          if (!cert) return null;
-                          const certId = cert.id || cert.certification_type || '';
-                          const certName = cert.certification_name || cert.certification_type || 'Certification';
-                          const daysUntil = cert.days_until_expiry ?? 0;
-                          let expiryDateStr = '';
-                          try {
-                            if (cert.expiry_date) {
-                              expiryDateStr = new Date(cert.expiry_date).toLocaleDateString('id-ID');
-                            }
-                          } catch {
-                            // Invalid date
-                          }
-                          return (
-                            <li key={certId} className="text-xs text-amber-700">
-                              <span className="font-medium">{certName}:</span> {daysUntil} hari lagi
-                              {expiryDateStr && (
-                                <span className="text-amber-600"> (berakhir: {expiryDateStr})</span>
-                              )}
-                            </li>
-                          );
-                        })}
-                    </ul>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-100"
-                    onClick={() => {
-                      const newDismissed = new Set(dismissedAlerts);
-                      expiringSoon.forEach((cert: any) => {
-                        if (cert) {
-                          newDismissed.add(cert.id || cert.certification_type || '');
-                        }
-                      });
-                      setDismissedAlerts(newDismissed);
-                    }}
-                    aria-label="Tutup peringatan"
-                  >
-                    <XCircle className="h-4 w-4" />
-                  </Button>
-                </div>
+            <div className="flex items-center gap-3">
+              {isValid ? (
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              ) : (
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              )}
+              <div className="flex-1">
+                <p className="text-sm font-semibold">
+                  {isValid
+                    ? 'Semua sertifikat valid'
+                    : 'Sertifikat belum lengkap atau expired'}
+                </p>
+                {!isValid && (
+                  <p className="mt-1 text-xs text-amber-700">
+                    Anda tidak dapat memulai trip hingga semua sertifikat valid
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Add Button */}
-      <Button
-        onClick={() => setShowAddDialog(true)}
-        className="w-full bg-emerald-600 hover:bg-emerald-700"
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        Tambah Sertifikat
-      </Button>
-
-      {/* Certifications List */}
-      {validCertifications.length === 0 ? (
-        <EmptyState
-          icon={FileText}
-          title="Belum ada sertifikat"
-          description="Tambahkan sertifikat Anda untuk memulai"
-        />
-      ) : (
-        <div className="space-y-3">
-          {validCertifications.map((cert) => {
-            if (!cert || !cert.id) return null;
-            const certName = cert.certification_name || 'Certification';
-            const certStatus = cert.status || 'pending';
-            const StatusIcon = STATUS_ICONS[certStatus] || STATUS_ICONS.pending;
-            const issuedDate = cert.issued_date || new Date().toISOString();
-            const expiryDate = cert.expiry_date || new Date().toISOString();
-            const daysUntilExpiry = getDaysUntilExpiry(expiryDate);
-            const isExpiringSoon = daysUntilExpiry <= 30 && daysUntilExpiry > 0;
-            const isExpired = daysUntilExpiry < 0;
-
-            let formattedIssuedDate = 'Tanggal tidak tersedia';
-            let formattedExpiryDate = 'Tanggal tidak tersedia';
-            try {
-              formattedIssuedDate = new Date(issuedDate).toLocaleDateString('id-ID');
-              formattedExpiryDate = new Date(expiryDate).toLocaleDateString('id-ID');
-            } catch {
-              // Invalid date, use default
-            }
-
-            return (
-              <Card key={cert.id} className="border-0 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold text-slate-900">{certName}</h3>
-                        <span
-                          className={cn(
-                            'px-2 py-0.5 rounded-full text-xs font-medium border',
-                            STATUS_COLORS[certStatus] || STATUS_COLORS.pending,
-                          )}
-                        >
-                          <StatusIcon className="inline h-3 w-3 mr-1" />
-                          {certStatus === 'pending' && 'Menunggu Verifikasi'}
-                          {certStatus === 'verified' && 'Terverifikasi'}
-                          {certStatus === 'expired' && 'Expired'}
-                          {certStatus === 'rejected' && 'Ditolak'}
-                        </span>
-                      </div>
-
-                      <div className="space-y-1 text-sm text-slate-600">
-                        {cert.certificate_number && (
-                          <p>
-                            <span className="font-medium">No. Sertifikat:</span> {cert.certificate_number}
-                          </p>
-                        )}
-                        {cert.issuing_authority && (
-                          <p>
-                            <span className="font-medium">Dikeluarkan oleh:</span> {cert.issuing_authority}
-                          </p>
-                        )}
-                        <p>
-                          <span className="font-medium">Diterbitkan:</span> {formattedIssuedDate}
+        {/* Expiring Soon Alert - Dismissible */}
+        {expiringSoon.length > 0 &&
+          expiringSoon.filter(
+            (cert: any) =>
+              cert &&
+              !dismissedAlerts.has(cert.id || cert.certification_type || '')
+          ).length > 0 && (
+            <Card className="border-0 border-amber-200 bg-amber-50 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-amber-900">
+                          Peringatan: Sertifikat Akan Berakhir
                         </p>
-                        <p>
-                          <span className="font-medium">Berlaku hingga:</span>{' '}
-                          <span className={cn(isExpired && 'text-red-600 font-semibold', isExpiringSoon && 'text-amber-600 font-semibold')}>
-                            {formattedExpiryDate}
-                            {isExpired && ' (Expired)'}
-                            {isExpiringSoon && ` (${daysUntilExpiry} hari lagi)`}
-                          </span>
+                        <p className="mt-1 text-xs text-amber-700">
+                          {
+                            expiringSoon.filter(
+                              (cert: any) =>
+                                cert &&
+                                !dismissedAlerts.has(
+                                  cert.id || cert.certification_type || ''
+                                )
+                            ).length
+                          }{' '}
+                          sertifikat akan berakhir dalam 30 hari ke depan
                         </p>
+                        <ul className="mt-2 space-y-1">
+                          {expiringSoon
+                            .filter(
+                              (cert: any) =>
+                                cert &&
+                                !dismissedAlerts.has(
+                                  cert.id || cert.certification_type || ''
+                                )
+                            )
+                            .map((cert: any) => {
+                              if (!cert) return null;
+                              const certId =
+                                cert.id || cert.certification_type || '';
+                              const certName =
+                                cert.certification_name ||
+                                cert.certification_type ||
+                                'Certification';
+                              const daysUntil = cert.days_until_expiry ?? 0;
+                              let expiryDateStr = '';
+                              try {
+                                if (cert.expiry_date) {
+                                  expiryDateStr = new Date(
+                                    cert.expiry_date
+                                  ).toLocaleDateString('id-ID');
+                                }
+                              } catch {
+                                // Invalid date
+                              }
+                              return (
+                                <li
+                                  key={certId}
+                                  className="text-xs text-amber-700"
+                                >
+                                  <span className="font-medium">
+                                    {certName}:
+                                  </span>{' '}
+                                  {daysUntil} hari lagi
+                                  {expiryDateStr && (
+                                    <span className="text-amber-600">
+                                      {' '}
+                                      (berakhir: {expiryDateStr})
+                                    </span>
+                                  )}
+                                </li>
+                              );
+                            })}
+                        </ul>
                       </div>
-
-                      {cert.document_url && (
-                        <div className="mt-3">
-                          <a
-                            href={cert.document_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-emerald-600 hover:underline flex items-center gap-1"
-                          >
-                            <FileText className="h-3 w-3" />
-                            Lihat Dokumen
-                          </a>
-                        </div>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-amber-600 hover:bg-amber-100 hover:text-amber-700"
+                        onClick={() => {
+                          const newDismissed = new Set(dismissedAlerts);
+                          expiringSoon.forEach((cert: any) => {
+                            if (cert) {
+                              newDismissed.add(
+                                cert.id || cert.certification_type || ''
+                              );
+                            }
+                          });
+                          setDismissedAlerts(newDismissed);
+                        }}
+                        aria-label="Tutup peringatan"
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Add Certification Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Tambah Sertifikat</DialogTitle>
-            <DialogDescription>
-              Upload sertifikat Anda (SIM Kapal, First Aid, atau ALIN)
-            </DialogDescription>
-          </DialogHeader>
+        {/* Add Button */}
+        <Button
+          onClick={() => setShowAddDialog(true)}
+          className="w-full bg-emerald-600 hover:bg-emerald-700"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Tambah Sertifikat
+        </Button>
 
-          <div className="space-y-4 py-4">
-            {/* Certification Type */}
-            <div className="space-y-2">
-              <Label>
-                Jenis Sertifikat <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={formData.certification_type}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, certification_type: value as typeof formData.certification_type }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih jenis sertifikat" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CERTIFICATION_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Certifications List */}
+        {validCertifications.length === 0 ? (
+          <EmptyState
+            icon={FileText}
+            title="Belum ada sertifikat"
+            description="Tambahkan sertifikat Anda untuk memulai"
+          />
+        ) : (
+          <div className="space-y-3">
+            {validCertifications.map((cert) => {
+              if (!cert || !cert.id) return null;
+              const certName = cert.certification_name || 'Certification';
+              const certStatus = cert.status || 'pending';
+              const StatusIcon =
+                STATUS_ICONS[certStatus] || STATUS_ICONS.pending;
+              const issuedDate = cert.issued_date || new Date().toISOString();
+              const expiryDate = cert.expiry_date || new Date().toISOString();
+              const daysUntilExpiry = getDaysUntilExpiry(expiryDate);
+              const isExpiringSoon =
+                daysUntilExpiry <= 30 && daysUntilExpiry > 0;
+              const isExpired = daysUntilExpiry < 0;
 
-            {/* Certification Name */}
-            <div className="space-y-2">
-              <Label>
-                Nama Sertifikat <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                value={formData.certification_name}
-                onChange={(e) => setFormData((prev) => ({ ...prev, certification_name: e.target.value }))}
-                placeholder="Contoh: SIM Kapal Kelas I"
-              />
-            </div>
+              let formattedIssuedDate = 'Tanggal tidak tersedia';
+              let formattedExpiryDate = 'Tanggal tidak tersedia';
+              try {
+                formattedIssuedDate = new Date(issuedDate).toLocaleDateString(
+                  'id-ID'
+                );
+                formattedExpiryDate = new Date(expiryDate).toLocaleDateString(
+                  'id-ID'
+                );
+              } catch {
+                // Invalid date, use default
+              }
 
-            {/* Certificate Number */}
-            <div className="space-y-2">
-              <Label>Nomor Sertifikat</Label>
-              <Input
-                value={formData.certificate_number}
-                onChange={(e) => setFormData((prev) => ({ ...prev, certificate_number: e.target.value }))}
-                placeholder="Nomor sertifikat (opsional)"
-              />
-            </div>
+              return (
+                <Card key={cert.id} className="border-0 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-2 flex items-center gap-2">
+                          <h3 className="font-semibold text-slate-900">
+                            {certName}
+                          </h3>
+                          <span
+                            className={cn(
+                              'rounded-full border px-2 py-0.5 text-xs font-medium',
+                              STATUS_COLORS[certStatus] || STATUS_COLORS.pending
+                            )}
+                          >
+                            <StatusIcon className="mr-1 inline h-3 w-3" />
+                            {certStatus === 'pending' && 'Menunggu Verifikasi'}
+                            {certStatus === 'verified' && 'Terverifikasi'}
+                            {certStatus === 'expired' && 'Expired'}
+                            {certStatus === 'rejected' && 'Ditolak'}
+                          </span>
+                        </div>
 
-            {/* Issuing Authority */}
-            <div className="space-y-2">
-              <Label>Dikeluarkan oleh</Label>
-              <Input
-                value={formData.issuing_authority}
-                onChange={(e) => setFormData((prev) => ({ ...prev, issuing_authority: e.target.value }))}
-                placeholder="Nama lembaga (opsional)"
-              />
-            </div>
+                        <div className="space-y-1 text-sm text-slate-600">
+                          {cert.certificate_number && (
+                            <p>
+                              <span className="font-medium">
+                                No. Sertifikat:
+                              </span>{' '}
+                              {cert.certificate_number}
+                            </p>
+                          )}
+                          {cert.issuing_authority && (
+                            <p>
+                              <span className="font-medium">
+                                Dikeluarkan oleh:
+                              </span>{' '}
+                              {cert.issuing_authority}
+                            </p>
+                          )}
+                          <p>
+                            <span className="font-medium">Diterbitkan:</span>{' '}
+                            {formattedIssuedDate}
+                          </p>
+                          <p>
+                            <span className="font-medium">Berlaku hingga:</span>{' '}
+                            <span
+                              className={cn(
+                                isExpired && 'font-semibold text-red-600',
+                                isExpiringSoon && 'font-semibold text-amber-600'
+                              )}
+                            >
+                              {formattedExpiryDate}
+                              {isExpired && ' (Expired)'}
+                              {isExpiringSoon &&
+                                ` (${daysUntilExpiry} hari lagi)`}
+                            </span>
+                          </p>
+                        </div>
 
-            {/* Issued Date */}
-            <div className="space-y-2">
-              <Label>
-                Tanggal Diterbitkan <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="date"
-                value={formData.issued_date}
-                onChange={(e) => setFormData((prev) => ({ ...prev, issued_date: e.target.value }))}
-              />
-            </div>
-
-            {/* Expiry Date */}
-            <div className="space-y-2">
-              <Label>
-                Tanggal Expiry <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="date"
-                value={formData.expiry_date}
-                onChange={(e) => setFormData((prev) => ({ ...prev, expiry_date: e.target.value }))}
-              />
-            </div>
-
-            {/* Document Upload */}
-            <div className="space-y-2">
-              <Label>Upload Dokumen Sertifikat</Label>
-              <input
-                type="file"
-                accept="image/*,.pdf"
-                onChange={handleFileSelect}
-                disabled={uploading}
-                className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-              />
-              {uploading && (
-                <p className="text-xs text-slate-500 flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Mengupload...
-                </p>
-              )}
-              {formData.document_url && !uploading && (
-                <p className="text-xs text-emerald-600 flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Dokumen berhasil diupload
-                </p>
-              )}
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label>Catatan</Label>
-              <Textarea
-                value={formData.notes}
-                onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-                placeholder="Catatan tambahan (opsional)"
-                rows={3}
-              />
-            </div>
+                        {cert.document_url && (
+                          <div className="mt-3">
+                            <a
+                              href={cert.document_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-xs text-emerald-600 hover:underline"
+                            >
+                              <FileText className="h-3 w-3" />
+                              Lihat Dokumen
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
+        )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-              Batal
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={addMutation.isPending || uploading}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              {addMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Simpan
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        {/* Add Certification Dialog */}
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Tambah Sertifikat</DialogTitle>
+              <DialogDescription>
+                Upload sertifikat Anda (SIM Kapal, First Aid, atau ALIN)
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              {/* Certification Type */}
+              <div className="space-y-2">
+                <Label>
+                  Jenis Sertifikat <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.certification_type}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      certification_type:
+                        value as typeof formData.certification_type,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih jenis sertifikat" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CERTIFICATION_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Certification Name */}
+              <div className="space-y-2">
+                <Label>
+                  Nama Sertifikat <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  value={formData.certification_name}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      certification_name: e.target.value,
+                    }))
+                  }
+                  placeholder="Contoh: SIM Kapal Kelas I"
+                />
+              </div>
+
+              {/* Certificate Number */}
+              <div className="space-y-2">
+                <Label>Nomor Sertifikat</Label>
+                <Input
+                  value={formData.certificate_number}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      certificate_number: e.target.value,
+                    }))
+                  }
+                  placeholder="Nomor sertifikat (opsional)"
+                />
+              </div>
+
+              {/* Issuing Authority */}
+              <div className="space-y-2">
+                <Label>Dikeluarkan oleh</Label>
+                <Input
+                  value={formData.issuing_authority}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      issuing_authority: e.target.value,
+                    }))
+                  }
+                  placeholder="Nama lembaga (opsional)"
+                />
+              </div>
+
+              {/* Issued Date */}
+              <div className="space-y-2">
+                <Label>
+                  Tanggal Diterbitkan <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="date"
+                  value={formData.issued_date}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      issued_date: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              {/* Expiry Date */}
+              <div className="space-y-2">
+                <Label>
+                  Tanggal Expiry <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="date"
+                  value={formData.expiry_date}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      expiry_date: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              {/* Document Upload */}
+              <div className="space-y-2">
+                <Label>Upload Dokumen Sertifikat</Label>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleFileSelect}
+                  disabled={uploading}
+                  className="w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100"
+                />
+                {uploading && (
+                  <p className="flex items-center gap-1 text-xs text-slate-500">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Mengupload...
+                  </p>
+                )}
+                {formData.document_url && !uploading && (
+                  <p className="flex items-center gap-1 text-xs text-emerald-600">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Dokumen berhasil diupload
+                  </p>
+                )}
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label>Catatan</Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, notes: e.target.value }))
+                  }
+                  placeholder="Catatan tambahan (opsional)"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                Batal
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={addMutation.isPending || uploading}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                {addMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Simpan
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </Container>
   );
 }

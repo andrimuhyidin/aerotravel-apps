@@ -55,7 +55,12 @@ export type BriefingPoints = {
  */
 function analyzePassengerProfile(passengers: BriefingContext['passengers']): {
   targetAudience: BriefingPoints['targetAudience'];
-  ageDistribution: { elderly: number; adult: number; young: number; children: number };
+  ageDistribution: {
+    elderly: number;
+    adult: number;
+    young: number;
+    children: number;
+  };
   hasSpecialNeeds: boolean;
   specialNeedsSummary: string[];
 } {
@@ -81,8 +86,10 @@ function analyzePassengerProfile(passengers: BriefingContext['passengers']): {
     }
 
     if (p.allergy) specialNeeds.push(`Alergi: ${p.allergy}`);
-    if (p.medicalCondition) specialNeeds.push(`Kondisi medis: ${p.medicalCondition}`);
-    if (p.specialRequest) specialNeeds.push(`Request khusus: ${p.specialRequest}`);
+    if (p.medicalCondition)
+      specialNeeds.push(`Kondisi medis: ${p.medicalCondition}`);
+    if (p.specialRequest)
+      specialNeeds.push(`Request khusus: ${p.specialRequest}`);
   });
 
   // Determine target audience
@@ -91,7 +98,10 @@ function analyzePassengerProfile(passengers: BriefingContext['passengers']): {
 
   if (ageDistribution.elderly / total > 0.4) {
     targetAudience = 'elderly';
-  } else if (ageDistribution.young / total > 0.4 || (ageDistribution.young + ageDistribution.adult) / total > 0.6) {
+  } else if (
+    ageDistribution.young / total > 0.4 ||
+    (ageDistribution.young + ageDistribution.adult) / total > 0.6
+  ) {
     targetAudience = 'young';
   } else if (ageDistribution.children / total > 0.3) {
     targetAudience = 'families';
@@ -126,7 +136,12 @@ export async function generateBriefingPoints(
       .join('\n');
 
     const itineraryStr = context.itinerary
-      ? context.itinerary.map((i) => `${i.time} - ${i.activity}${i.location ? ` @ ${i.location}` : ''}`).join('\n')
+      ? context.itinerary
+          .map(
+            (i) =>
+              `${i.time} - ${i.activity}${i.location ? ` @ ${i.location}` : ''}`
+          )
+          .join('\n')
       : 'Tidak ada itinerary detail';
 
     const weatherStr = context.weather
@@ -135,13 +150,19 @@ export async function generateBriefingPoints(
 
     // Language-specific prompts
     const language = context.language || 'id';
-    const languagePrompts: Record<string, { intro: string; instructions: string }> = {
+    const languagePrompts: Record<
+      string,
+      { intro: string; instructions: string }
+    > = {
       id: {
-        intro: 'Anda adalah asisten AI untuk tour guide. Generate poin-poin briefing yang dipersonalisasi untuk rombongan ini.',
-        instructions: 'Return JSON format dengan semua teks dalam Bahasa Indonesia.',
+        intro:
+          'Anda adalah asisten AI untuk tour guide. Generate poin-poin briefing yang dipersonalisasi untuk rombongan ini.',
+        instructions:
+          'Return JSON format dengan semua teks dalam Bahasa Indonesia.',
       },
       en: {
-        intro: 'You are an AI assistant for tour guides. Generate personalized briefing points for this group.',
+        intro:
+          'You are an AI assistant for tour guides. Generate personalized briefing points for this group.',
         instructions: 'Return JSON format with all text in English.',
       },
       zh: {
@@ -149,7 +170,8 @@ export async function generateBriefingPoints(
         instructions: 'Return JSON format with all text in Simplified Chinese.',
       },
       ja: {
-        intro: 'あなたはツアーガイドのAIアシスタントです。このグループに合わせたパーソナライズされたブリーフィングポイントを生成してください。',
+        intro:
+          'あなたはツアーガイドのAIアシスタントです。このグループに合わせたパーソナライズされたブリーフィングポイントを生成してください。',
         instructions: 'Return JSON format with all text in Japanese.',
       },
     };
@@ -215,7 +237,11 @@ ${finalLangPrompt.instructions}
 
 Return ONLY the JSON object, no additional text.`;
 
-    const response = await generateContent(prompt, undefined, 'gemini-1.5-pro');
+    const response = await generateContent(
+      prompt,
+      undefined,
+      'gemini-1.5-flash'
+    );
 
     try {
       const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
@@ -234,7 +260,10 @@ Return ONLY the JSON object, no additional text.`;
     logger.error('Failed to generate briefing points', error, {
       tripId: context.tripId,
     });
-    return getFallbackBriefing(context, analyzePassengerProfile(context.passengers));
+    return getFallbackBriefing(
+      context,
+      analyzePassengerProfile(context.passengers)
+    );
   }
 }
 
@@ -250,7 +279,9 @@ function enhanceBriefingPoints(
   const existingTitles = briefing.sections.map((s) => s.title.toLowerCase());
 
   requiredSections.forEach((required) => {
-    if (!existingTitles.some((title) => title.includes(required.toLowerCase()))) {
+    if (
+      !existingTitles.some((title) => title.includes(required.toLowerCase()))
+    ) {
       briefing.sections.push({
         title: required,
         points: [`Poin ${required} akan ditambahkan`],
@@ -260,7 +291,10 @@ function enhanceBriefingPoints(
   });
 
   // Add special needs section if needed
-  if (profile.hasSpecialNeeds && !existingTitles.some((title) => title.includes('kebutuhan'))) {
+  if (
+    profile.hasSpecialNeeds &&
+    !existingTitles.some((title) => title.includes('kebutuhan'))
+  ) {
     briefing.sections.push({
       title: 'Kebutuhan Khusus',
       points: profile.specialNeedsSummary,

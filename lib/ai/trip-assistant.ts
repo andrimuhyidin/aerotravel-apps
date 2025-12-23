@@ -91,20 +91,32 @@ export async function chatTripAssistant(
 
     // Retrieve SOP documents using RAG if question seems to be about procedures/safety
     let sopContext = '';
-    const isSOPQuestion = /(prosedur|sop|safety|keselamatan|darurat|emergency|penanganan|handle|bagaimana|gimana|cara)/i.test(question);
-    
+    const isSOPQuestion =
+      /(prosedur|sop|safety|keselamatan|darurat|emergency|penanganan|handle|bagaimana|gimana|cara)/i.test(
+        question
+      );
+
     if (isSOPQuestion) {
       try {
-        const ragContext = await retrieveContextWithVector(question, branchId, 0.7, 3);
+        const ragContext = await retrieveContextWithVector(
+          question,
+          branchId,
+          0.7,
+          3
+        );
         if (ragContext.documents && ragContext.documents.length > 0) {
           sopContext = '\n\nRELEVANT SOP/SAFETY DOCUMENTS:\n';
-          ragContext.documents.forEach((doc: any, idx: number) => {
+          ragContext.documents.forEach((doc: unknown, idx: number) => {
             sopContext += `${idx + 1}. ${doc.title || 'Document'} (${doc.document_type || 'sop'}):\n`;
             sopContext += `${doc.content?.slice(0, 500) || ''}${doc.content && doc.content.length > 500 ? '...' : ''}\n\n`;
           });
         }
       } catch (ragError) {
-        logger.warn('RAG retrieval failed, continuing without SOP context', { error: ragError, question, branchId });
+        logger.warn('RAG retrieval failed, continuing without SOP context', {
+          error: ragError,
+          question,
+          branchId,
+        });
       }
     }
 
@@ -231,7 +243,9 @@ ${context.weather.hasAlert ? '⚠️ Weather Alert: Conditions may affect trip' 
 /**
  * Get quick suggestions based on trip context
  */
-export async function getTripSuggestions(context: TripContext): Promise<string[]> {
+export async function getTripSuggestions(
+  context: TripContext
+): Promise<string[]> {
   try {
     const contextString = buildContextString(context);
 

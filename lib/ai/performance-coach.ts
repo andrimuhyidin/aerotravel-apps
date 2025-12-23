@@ -3,7 +3,7 @@
  * Personalized coaching, skill gap analysis, learning path
  */
 
-import { generateContent } from '@/lib/gemini';
+import { generateContentWithFallback } from '@/lib/gemini';
 import { logger } from '@/lib/utils/logger';
 
 export type PerformanceData = {
@@ -110,7 +110,11 @@ Return JSON:
 
 Return ONLY the JSON object, no additional text.`;
 
-    const response = await generateContent(prompt, undefined, 'gemini-1.5-pro');
+    const response = await generateContentWithFallback(
+      prompt,
+      undefined,
+      'gemini-1.5-flash'
+    );
 
     try {
       const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
@@ -118,11 +122,18 @@ Return ONLY the JSON object, no additional text.`;
 
       // Validate and enhance plan
       return enhanceCoachingPlan(plan, performance);
-    } catch {
+    } catch (parseError) {
+      logger.warn('Failed to parse AI coaching plan response, using fallback', {
+        error:
+          parseError instanceof Error ? parseError.message : String(parseError),
+      });
       return getFallbackCoachingPlan(performance);
     }
   } catch (error) {
-    logger.error('Failed to generate coaching plan', error);
+    // AI generation failed, use fallback - this is expected behavior
+    logger.warn('AI coaching plan generation failed, using fallback', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return getFallbackCoachingPlan(performance);
   }
 }
@@ -157,14 +168,19 @@ ATTENDANCE:
   return str;
 }
 
-function enhanceCoachingPlan(plan: CoachingPlan, performance: PerformanceData): CoachingPlan {
+function enhanceCoachingPlan(
+  plan: CoachingPlan,
+  _performance: PerformanceData
+): CoachingPlan {
   // Ensure action plan has 4 weeks
   if (plan.actionPlan.length < 4) {
     const weeks = plan.actionPlan.length;
     for (let i = weeks; i < 4; i++) {
       plan.actionPlan.push({
         week: i + 1,
-        goals: [`Continue working on ${plan.weaknesses[0] || 'performance improvement'}`],
+        goals: [
+          `Continue working on ${plan.weaknesses[0] || 'performance improvement'}`,
+        ],
         focus: plan.weaknesses[0] || 'General improvement',
       });
     }
@@ -199,7 +215,8 @@ function getFallbackCoachingPlan(performance: PerformanceData): CoachingPlan {
 
   return {
     strengths: strengths.length > 0 ? strengths : ['Consistent performance'],
-    weaknesses: weaknesses.length > 0 ? weaknesses : ['Continue skill development'],
+    weaknesses:
+      weaknesses.length > 0 ? weaknesses : ['Continue skill development'],
     skillGaps: [],
     recommendations: [
       {

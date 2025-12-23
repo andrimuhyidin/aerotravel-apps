@@ -1,6 +1,9 @@
 /**
  * API: Performance Metrics
  * GET /api/guide/performance/metrics?period=monthly&start=2025-01-01&end=2025-01-31
+ *
+ * @deprecated This endpoint is deprecated. Use /api/guide/metrics/unified instead.
+ * This endpoint will be removed in a future version.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -27,8 +30,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   // Default to current month if not provided
   const now = new Date();
-  const periodStart = start ? new Date(start) : new Date(now.getFullYear(), now.getMonth(), 1);
-  const periodEnd = end ? new Date(end) : new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const periodStart = start
+    ? new Date(start)
+    : new Date(now.getFullYear(), now.getMonth(), 1);
+  const periodEnd = end
+    ? new Date(end)
+    : new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
   try {
     // Check if metrics already calculated
@@ -50,14 +57,16 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     // Calculate metrics
     const { data: trips } = await (supabase as any)
       .from('trip_guides')
-      .select(`
+      .select(
+        `
         trip:trips(
           trip_date,
           status,
           total_pax
         ),
         fee_amount
-      `)
+      `
+      )
       .eq('guide_id', user.id)
       .gte('created_at', periodStart.toISOString())
       .lte('created_at', periodEnd.toISOString());
@@ -71,19 +80,51 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
     // Calculate metrics
     const totalTrips = trips?.length || 0;
-    const completedTrips = trips?.filter((t: { trip?: { status?: string }; fee_amount?: number | string }) => t.trip && typeof t.trip === 'object' && 'status' in t.trip && t.trip.status === 'completed').length || 0;
-    const cancelledTrips = trips?.filter((t: { trip?: { status?: string }; fee_amount?: number | string }) => t.trip && typeof t.trip === 'object' && 'status' in t.trip && t.trip.status === 'cancelled').length || 0;
-    
-    const ratings = (reviews || []).map((r: { guide_rating?: number | null }) => r.guide_rating).filter((r: number | null | undefined): r is number => r !== null && r !== undefined);
-    const averageRating = ratings.length > 0
-      ? ratings.reduce((sum: number, r: number) => sum + r, 0) / ratings.length
-      : null;
+    const completedTrips =
+      trips?.filter(
+        (t: { trip?: { status?: string }; fee_amount?: number | string }) =>
+          t.trip &&
+          typeof t.trip === 'object' &&
+          'status' in t.trip &&
+          t.trip.status === 'completed'
+      ).length || 0;
+    const cancelledTrips =
+      trips?.filter(
+        (t: { trip?: { status?: string }; fee_amount?: number | string }) =>
+          t.trip &&
+          typeof t.trip === 'object' &&
+          'status' in t.trip &&
+          t.trip.status === 'cancelled'
+      ).length || 0;
+
+    const ratings = (reviews || [])
+      .map((r: { guide_rating?: number | null }) => r.guide_rating)
+      .filter(
+        (r: number | null | undefined): r is number =>
+          r !== null && r !== undefined
+      );
+    const averageRating =
+      ratings.length > 0
+        ? ratings.reduce((sum: number, r: number) => sum + r, 0) /
+          ratings.length
+        : null;
 
     const totalEarnings = (trips || [])
-      .filter((t: { trip?: { status?: string }; fee_amount?: number | string }) => t.trip && typeof t.trip === 'object' && 'status' in t.trip && t.trip.status === 'completed')
-      .reduce((sum: number, t: { fee_amount?: number | string }) => sum + Number(t.fee_amount || 0), 0);
+      .filter(
+        (t: { trip?: { status?: string }; fee_amount?: number | string }) =>
+          t.trip &&
+          typeof t.trip === 'object' &&
+          'status' in t.trip &&
+          t.trip.status === 'completed'
+      )
+      .reduce(
+        (sum: number, t: { fee_amount?: number | string }) =>
+          sum + Number(t.fee_amount || 0),
+        0
+      );
 
-    const averagePerTrip = completedTrips > 0 ? totalEarnings / completedTrips : 0;
+    const averagePerTrip =
+      completedTrips > 0 ? totalEarnings / completedTrips : 0;
 
     // Calculate overall score (simplified)
     const ratingScore = averageRating ? (averageRating / 5) * 40 : 0;
@@ -109,7 +150,9 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       average_rating: averageRating ? Number(averageRating.toFixed(2)) : null,
       total_ratings: ratings.length,
       on_time_rate: 95.0, // TODO: Calculate from actual data
-      customer_satisfaction_score: averageRating ? Number(averageRating.toFixed(2)) : null,
+      customer_satisfaction_score: averageRating
+        ? Number(averageRating.toFixed(2))
+        : null,
       skills_improved: 0, // TODO: Calculate from skills data
       assessments_completed: 0, // TODO: Calculate from assessments
       total_earnings: Number(totalEarnings.toFixed(2)),
@@ -127,15 +170,25 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       .single();
 
     if (metricsError) {
-      logger.error('Failed to calculate metrics', metricsError, { guideId: user.id });
-      return NextResponse.json({ error: 'Failed to calculate metrics' }, { status: 500 });
+      logger.error('Failed to calculate metrics', metricsError, {
+        guideId: user.id,
+      });
+      return NextResponse.json(
+        { error: 'Failed to calculate metrics' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
       metrics,
     });
   } catch (error) {
-    logger.error('Failed to fetch performance metrics', error, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to fetch metrics' }, { status: 500 });
+    logger.error('Failed to fetch performance metrics', error, {
+      guideId: user.id,
+    });
+    return NextResponse.json(
+      { error: 'Failed to fetch metrics' },
+      { status: 500 }
+    );
   }
 });

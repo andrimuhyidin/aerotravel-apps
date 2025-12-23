@@ -8,7 +8,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
-import { logger } from '@/lib/utils/logger';
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
@@ -82,7 +81,10 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         userReviews.data.length
       : 0;
   const userIncomeAmount =
-    userIncome.data?.reduce((sum, t) => sum + (parseFloat(String(t.amount)) || 0), 0) ?? 0;
+    userIncome.data?.reduce(
+      (sum, t) => sum + (parseFloat(String(t.amount)) || 0),
+      0
+    ) ?? 0;
 
   // Get team stats (simplified - in production, use aggregation)
   const teamStats = await Promise.all(
@@ -117,9 +119,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
               reviews.data.length
             : 0,
         income:
-          income.data?.reduce((sum, t) => sum + (parseFloat(String(t.amount)) || 0), 0) ?? 0,
+          income.data?.reduce(
+            (sum, t) => sum + (parseFloat(String(t.amount)) || 0),
+            0
+          ) ?? 0,
       };
-    }),
+    })
   );
 
   // Calculate averages and percentile
@@ -128,8 +133,10 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const incomeList = teamStats.map((s) => s.income).sort((a, b) => a - b);
 
   const avgTrips = tripsList.reduce((sum, v) => sum + v, 0) / tripsList.length;
-  const avgRating = ratingsList.reduce((sum, v) => sum + v, 0) / ratingsList.length;
-  const avgIncome = incomeList.reduce((sum, v) => sum + v, 0) / incomeList.length;
+  const avgRating =
+    ratingsList.reduce((sum, v) => sum + v, 0) / ratingsList.length;
+  const avgIncome =
+    incomeList.reduce((sum, v) => sum + v, 0) / incomeList.length;
 
   const tripsPercentile =
     tripsList.filter((v) => v <= userTripsCount).length / tripsList.length;
@@ -158,4 +165,3 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     },
   });
 });
-

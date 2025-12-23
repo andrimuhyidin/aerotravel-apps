@@ -6,7 +6,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
+import {
+  getBranchContext,
+  withBranchFilter,
+} from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -29,8 +32,14 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     .eq('id', user.id)
     .single();
 
-  if (userProfile?.role !== 'super_admin' && userProfile?.role !== 'ops_admin') {
-    return NextResponse.json({ error: 'Forbidden - Admin only' }, { status: 403 });
+  if (
+    userProfile?.role !== 'super_admin' &&
+    userProfile?.role !== 'ops_admin'
+  ) {
+    return NextResponse.json(
+      { error: 'Forbidden - Admin only' },
+      { status: 403 }
+    );
   }
 
   const branchContext = await getBranchContext(user.id);
@@ -46,7 +55,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     // Get fuel logs for trend
     const { data: fuelLogs, error: fuelLogsError } = await withBranchFilter(
       client.from('trip_fuel_logs'),
-      branchContext,
+      branchContext
     )
       .select('logged_at, co2_emissions_kg, fuel_liters')
       .gte('logged_at', startDate.toISOString())
@@ -54,13 +63,16 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
     if (fuelLogsError) {
       logger.error('Failed to fetch fuel logs for trends', fuelLogsError);
-      return NextResponse.json({ error: 'Failed to fetch fuel logs' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch fuel logs' },
+        { status: 500 }
+      );
     }
 
     // Get waste logs for trend
     const { data: wasteLogs, error: wasteLogsError } = await withBranchFilter(
       client.from('waste_logs'),
-      branchContext,
+      branchContext
     )
       .select('logged_at, quantity, unit')
       .gte('logged_at', startDate.toISOString())
@@ -68,12 +80,15 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
     if (wasteLogsError) {
       logger.error('Failed to fetch waste logs for trends', wasteLogsError);
-      return NextResponse.json({ error: 'Failed to fetch waste logs' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch waste logs' },
+        { status: 500 }
+      );
     }
 
     // Aggregate by period
     const aggregateByPeriod = (
-      data: any[],
+      data: unknown[],
       dateField: string,
       valueField: string,
       periodType: string
@@ -103,11 +118,18 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         }
       });
 
-      return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date));
+      return Object.values(grouped).sort((a, b) =>
+        a.date.localeCompare(b.date)
+      );
     };
 
     // Calculate CO2 trends
-    const co2Trends = aggregateByPeriod(fuelLogs || [], 'logged_at', 'co2_emissions_kg', period);
+    const co2Trends = aggregateByPeriod(
+      fuelLogs || [],
+      'logged_at',
+      'co2_emissions_kg',
+      period
+    );
 
     // Calculate waste trends (convert all to kg)
     const wasteData = (wasteLogs || []).map((log: any) => {
@@ -122,7 +144,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       };
     });
 
-    const wasteTrends = aggregateByPeriod(wasteData, 'logged_at', 'quantity_kg', period);
+    const wasteTrends = aggregateByPeriod(
+      wasteData,
+      'logged_at',
+      'quantity_kg',
+      period
+    );
 
     // Get goals for the period
     const { data: goals } = await client
@@ -137,28 +164,48 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const co2TrendsWithGoals = co2Trends.map((trend) => {
       const goal = goals?.find((g: any) => {
         const goalStart = new Date(g.period_start);
-        const trendDate = new Date(trend.date + (period === 'monthly' ? '-01' : ''));
-        return goalStart.getTime() <= trendDate.getTime() && new Date(g.period_end).getTime() >= trendDate.getTime();
+        const trendDate = new Date(
+          trend.date + (period === 'monthly' ? '-01' : '')
+        );
+        return (
+          goalStart.getTime() <= trendDate.getTime() &&
+          new Date(g.period_end).getTime() >= trendDate.getTime()
+        );
       });
 
       return {
         ...trend,
         goal: goal ? Number(goal.target_co2_kg || 0) : null,
-        status: goal && goal.target_co2_kg ? (trend.value <= goal.target_co2_kg ? 'on_target' : 'exceeded') : null,
+        status:
+          goal && goal.target_co2_kg
+            ? trend.value <= goal.target_co2_kg
+              ? 'on_target'
+              : 'exceeded'
+            : null,
       };
     });
 
     const wasteTrendsWithGoals = wasteTrends.map((trend) => {
       const goal = goals?.find((g: any) => {
         const goalStart = new Date(g.period_start);
-        const trendDate = new Date(trend.date + (period === 'monthly' ? '-01' : ''));
-        return goalStart.getTime() <= trendDate.getTime() && new Date(g.period_end).getTime() >= trendDate.getTime();
+        const trendDate = new Date(
+          trend.date + (period === 'monthly' ? '-01' : '')
+        );
+        return (
+          goalStart.getTime() <= trendDate.getTime() &&
+          new Date(g.period_end).getTime() >= trendDate.getTime()
+        );
       });
 
       return {
         ...trend,
         goal: goal ? Number(goal.target_waste_kg || 0) : null,
-        status: goal && goal.target_waste_kg ? (trend.value <= goal.target_waste_kg ? 'on_target' : 'exceeded') : null,
+        status:
+          goal && goal.target_waste_kg
+            ? trend.value <= goal.target_waste_kg
+              ? 'on_target'
+              : 'exceeded'
+            : null,
       };
     });
 
@@ -170,13 +217,22 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       summary: {
         total_co2_kg: co2Trends.reduce((sum, t) => sum + t.value, 0),
         total_waste_kg: wasteTrends.reduce((sum, t) => sum + t.value, 0),
-        avg_co2_per_period: co2Trends.length > 0 ? co2Trends.reduce((sum, t) => sum + t.value, 0) / co2Trends.length : 0,
-        avg_waste_per_period: wasteTrends.length > 0 ? wasteTrends.reduce((sum, t) => sum + t.value, 0) / wasteTrends.length : 0,
+        avg_co2_per_period:
+          co2Trends.length > 0
+            ? co2Trends.reduce((sum, t) => sum + t.value, 0) / co2Trends.length
+            : 0,
+        avg_waste_per_period:
+          wasteTrends.length > 0
+            ? wasteTrends.reduce((sum, t) => sum + t.value, 0) /
+              wasteTrends.length
+            : 0,
       },
     });
   } catch (error) {
     logger.error('Failed to generate sustainability trends', error);
-    return NextResponse.json({ error: 'Failed to generate trends' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to generate trends' },
+      { status: 500 }
+    );
   }
 });
-

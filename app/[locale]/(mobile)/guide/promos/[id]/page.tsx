@@ -5,7 +5,7 @@
 
 import { Metadata, Viewport } from 'next';
 import { setRequestLocale } from 'next-intl/server';
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
 import { Container } from '@/components/layout/container';
 import { getCurrentUser } from '@/lib/supabase/server';
@@ -24,7 +24,9 @@ export const viewport: Viewport = {
   themeColor: '#000000',
 };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { locale, id } = await params;
   setRequestLocale(locale);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
@@ -43,7 +45,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         if (data.promo?.title) {
           return {
             title: `${data.promo.title} - Promo & Update`,
-            description: data.promo.subtitle || data.promo.description || 'Detail promo dan update',
+            description:
+              data.promo.subtitle ||
+              data.promo.description ||
+              'Detail promo dan update',
             alternates: {
               canonical: `${baseUrl}/${locale}/guide/promos/${id}`,
             },
@@ -79,4 +84,3 @@ export default async function GuidePromoDetailPage({ params }: PageProps) {
     </Container>
   );
 }
-

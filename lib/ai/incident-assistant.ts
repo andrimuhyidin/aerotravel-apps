@@ -33,7 +33,11 @@ export async function generateIncidentReport(
       try {
         const analysis = await analyzeImage(
           images[0]!.base64,
-          images[0]!.mimeType as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif',
+          images[0]!.mimeType as
+            | 'image/png'
+            | 'image/jpeg'
+            | 'image/webp'
+            | 'image/gif',
           'Describe what you see in this image. Focus on any incidents, damage, or safety concerns.'
         );
         imageAnalysis = `\nImage Analysis: ${analysis}`;
@@ -63,7 +67,11 @@ Extract and organize information into JSON format:
 
 Return ONLY the JSON object, no additional text.`;
 
-    const response = await generateContent(prompt, undefined, 'gemini-1.5-pro');
+    const response = await generateContent(
+      prompt,
+      undefined,
+      'gemini-1.5-flash'
+    );
 
     try {
       const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
@@ -116,7 +124,11 @@ Return JSON:
 
 Return ONLY the JSON object, no additional text.`;
 
-    const response = await generateContent(prompt, undefined, 'gemini-1.5-flash');
+    const response = await generateContent(
+      prompt,
+      undefined,
+      'gemini-1.5-flash'
+    );
 
     try {
       const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
@@ -144,19 +156,34 @@ function getFallbackReport(description: string): IncidentReport {
   let category: IncidentReport['category'] = 'other';
 
   // Simple keyword detection
-  if (text.includes('safety') || text.includes('keselamatan') || text.includes('accident')) {
+  if (
+    text.includes('safety') ||
+    text.includes('keselamatan') ||
+    text.includes('accident')
+  ) {
     severity = 'high';
     category = 'safety';
-  } else if (text.includes('equipment') || text.includes('alat') || text.includes('broken')) {
+  } else if (
+    text.includes('equipment') ||
+    text.includes('alat') ||
+    text.includes('broken')
+  ) {
     category = 'equipment';
-  } else if (text.includes('customer') || text.includes('tamu') || text.includes('guest')) {
+  } else if (
+    text.includes('customer') ||
+    text.includes('tamu') ||
+    text.includes('guest')
+  ) {
     category = 'customer';
   } else if (text.includes('weather') || text.includes('cuaca')) {
     category = 'weather';
   }
 
   return {
-    summary: description.length > 150 ? `${description.substring(0, 150)}...` : description,
+    summary:
+      description.length > 150
+        ? `${description.substring(0, 150)}...`
+        : description,
     what: description,
     when: new Date().toISOString(),
     where: 'Location not specified',

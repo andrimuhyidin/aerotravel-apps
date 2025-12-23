@@ -7,33 +7,38 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-    AlertCircle,
-    ArrowDownCircle,
-    ArrowUpCircle,
-    Award,
-    BarChart3,
-    Building2,
-    Calendar,
-    CreditCard,
-    Download,
-    Edit,
-    Lightbulb,
-    Plus,
-    QrCode,
-    Receipt,
-    Search,
-    Target,
-    Trash2,
-    TrendingDown,
-    TrendingUp,
-    Wallet,
-    X,
+  AlertCircle,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Award,
+  BarChart3,
+  Building2,
+  Calendar,
+  CreditCard,
+  Download,
+  Edit,
+  Lightbulb,
+  Plus,
+  QrCode,
+  Receipt,
+  Search,
+  Target,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { QRCode } from '@/components/qr-code/qr-code';
 import { Loader2 } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -41,7 +46,13 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingState } from '@/components/ui/loading-state';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import queryKeys from '@/lib/queries/query-keys';
 import Link from 'next/link';
@@ -156,7 +167,9 @@ type WalletClientProps = {
 
 export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'transactions' | 'goals'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'analytics' | 'transactions' | 'goals'
+  >('overview');
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [selectedBankAccount, setSelectedBankAccount] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
@@ -169,7 +182,9 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
   const [transactionFilter, setTransactionFilter] = useState<string>('all');
   const [transactionSearch, setTransactionSearch] = useState('');
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
-  const [editingGoal, setEditingGoal] = useState<GoalsResponse['goals'][0] | null>(null);
+  const [editingGoal, setEditingGoal] = useState<
+    GoalsResponse['goals'][0] | null
+  >(null);
   const [goalForm, setGoalForm] = useState<{
     name: string;
     targetAmount: string;
@@ -185,7 +200,12 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
   });
 
   // Main wallet data
-  const { data: walletData, isLoading: walletLoading, error: walletError, refetch: refetchWallet } = useQuery<WalletResponse>({
+  const {
+    data: walletData,
+    isLoading: walletLoading,
+    error: walletError,
+    refetch: refetchWallet,
+  } = useQuery<WalletResponse>({
     queryKey: queryKeys.guide.wallet.balance(),
     queryFn: async () => {
       const res = await fetch('/api/guide/wallet');
@@ -194,12 +214,13 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
     },
   });
 
-
   // Analytics
   const { data: analyticsData } = useQuery<AnalyticsResponse>({
     queryKey: queryKeys.guide.wallet.analytics('monthly'),
     queryFn: async () => {
-      const res = await fetch('/api/guide/wallet/analytics?period=monthly&months=6');
+      const res = await fetch(
+        '/api/guide/wallet/analytics?period=monthly&months=6'
+      );
       if (!res.ok) throw new Error('Gagal memuat analytics');
       return (await res.json()) as AnalyticsResponse;
     },
@@ -277,20 +298,38 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
 
   // Transactions with filters
   const { data: transactionsData } = useQuery({
-    queryKey: queryKeys.guide.wallet.transactions({ type: transactionFilter, search: transactionSearch }),
+    queryKey: queryKeys.guide.wallet.transactions({
+      type: transactionFilter,
+      search: transactionSearch,
+    }),
     queryFn: async () => {
       const params = new URLSearchParams();
       if (transactionFilter !== 'all') params.append('type', transactionFilter);
       if (transactionSearch) params.append('search', transactionSearch);
-      const res = await fetch(`/api/guide/wallet/transactions?${params.toString()}`);
+      const res = await fetch(
+        `/api/guide/wallet/transactions?${params.toString()}`
+      );
       if (!res.ok) throw new Error('Gagal memuat transaksi');
-      return (await res.json()) as { transactions: WalletTransaction[]; total: number; grouped: Record<string, WalletTransaction[]> };
+      return (await res.json()) as {
+        transactions: WalletTransaction[];
+        total: number;
+        grouped: Record<string, WalletTransaction[]>;
+      };
     },
     enabled: activeTab === 'transactions',
   });
 
   // Fetch bank accounts
-  const { data: bankAccountsData } = useQuery<{ accounts: Array<{ id: string; bank_name: string; account_number: string; account_holder_name: string; status: string; is_default: boolean }> }>({
+  const { data: bankAccountsData } = useQuery<{
+    accounts: Array<{
+      id: string;
+      bank_name: string;
+      account_number: string;
+      account_holder_name: string;
+      status: string;
+      is_default: boolean;
+    }>;
+  }>({
     queryKey: queryKeys.guide.wallet.bankAccounts(),
     queryFn: async () => {
       const res = await fetch('/api/guide/bank-accounts');
@@ -299,17 +338,26 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
     },
   });
 
-  const approvedBankAccounts = bankAccountsData?.accounts.filter((a) => a.status === 'approved') || [];
-  const defaultBankAccount = approvedBankAccounts.find((a) => a.is_default) || approvedBankAccounts[0];
+  const approvedBankAccounts =
+    bankAccountsData?.accounts.filter((a) => a.status === 'approved') || [];
+  const defaultBankAccount =
+    approvedBankAccounts.find((a) => a.is_default) || approvedBankAccounts[0];
 
   // Set default bank account on load
   useEffect(() => {
-    if (defaultBankAccount && !selectedBankAccount && approvedBankAccounts.length > 0) {
+    if (
+      defaultBankAccount &&
+      !selectedBankAccount &&
+      approvedBankAccounts.length > 0
+    ) {
       setSelectedBankAccount(defaultBankAccount.id);
     }
   }, [defaultBankAccount, selectedBankAccount, approvedBankAccounts.length]);
 
-  const handleWithdraw = async (quickAction?: 'all' | 'half' | 'preset', presetAmount?: number) => {
+  const handleWithdraw = async (
+    quickAction?: 'all' | 'half' | 'preset',
+    presetAmount?: number
+  ) => {
     const balance = walletData?.balance ?? 0;
     let amount = 0;
 
@@ -357,7 +405,9 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
       } else {
         setMessage('Permintaan tarik dana terkirim. Menunggu persetujuan.');
         setWithdrawAmount('');
-        await queryClient.invalidateQueries({ queryKey: queryKeys.guide.wallet.all });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.guide.wallet.all,
+        });
       }
     } catch {
       setMessage('Gagal mengajukan tarik dana. Periksa koneksi internet.');
@@ -372,7 +422,9 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
       if (transactionFilter !== 'all') params.append('type', transactionFilter);
       if (transactionSearch) params.append('search', transactionSearch);
       params.append('export', 'csv');
-      const res = await fetch(`/api/guide/wallet/transactions?${params.toString()}`);
+      const res = await fetch(
+        `/api/guide/wallet/transactions?${params.toString()}`
+      );
       if (!res.ok) throw new Error('Gagal export');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -390,22 +442,37 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
 
   // Goal mutations
   const createGoalMutation = useMutation({
-    mutationFn: async (data: { name: string; targetAmount: number; autoSavePercent?: number; autoSaveEnabled?: boolean }) => {
+    mutationFn: async (data: {
+      name: string;
+      targetAmount: number;
+      autoSavePercent?: number;
+      autoSaveEnabled?: boolean;
+    }) => {
       const res = await fetch('/api/guide/wallet/goals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        const error = (await res.json().catch(() => ({}))) as { error?: string };
+        const error = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(error.error || 'Gagal membuat goal');
       }
       return (await res.json()) as { goal: GoalsResponse['goals'][0] };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.guide.wallet.goals() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.wallet.goals(),
+      });
       setGoalDialogOpen(false);
-      setGoalForm({ name: '', targetAmount: '', currentAmount: undefined, autoSavePercent: '0', autoSaveEnabled: false });
+      setGoalForm({
+        name: '',
+        targetAmount: '',
+        currentAmount: undefined,
+        autoSavePercent: '0',
+        autoSaveEnabled: false,
+      });
       setEditingGoal(null);
       setMessage('Goal berhasil dibuat');
     },
@@ -415,22 +482,44 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
   });
 
   const updateGoalMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<{ name: string; targetAmount: number; currentAmount: number; autoSavePercent: number; autoSaveEnabled: boolean }> }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<{
+        name: string;
+        targetAmount: number;
+        currentAmount: number;
+        autoSavePercent: number;
+        autoSaveEnabled: boolean;
+      }>;
+    }) => {
       const res = await fetch(`/api/guide/wallet/goals/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        const error = (await res.json().catch(() => ({}))) as { error?: string };
+        const error = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(error.error || 'Gagal mengupdate goal');
       }
       return (await res.json()) as { goal: GoalsResponse['goals'][0] };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.guide.wallet.goals() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.wallet.goals(),
+      });
       setGoalDialogOpen(false);
-      setGoalForm({ name: '', targetAmount: '', currentAmount: undefined, autoSavePercent: '0', autoSaveEnabled: false });
+      setGoalForm({
+        name: '',
+        targetAmount: '',
+        currentAmount: undefined,
+        autoSavePercent: '0',
+        autoSaveEnabled: false,
+      });
       setEditingGoal(null);
       setMessage('Goal berhasil diupdate');
     },
@@ -445,13 +534,17 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
         method: 'DELETE',
       });
       if (!res.ok) {
-        const error = (await res.json().catch(() => ({}))) as { error?: string };
+        const error = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(error.error || 'Gagal menghapus goal');
       }
       return (await res.json()) as { success: boolean };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.guide.wallet.goals() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.wallet.goals(),
+      });
       setMessage('Goal berhasil dihapus');
     },
     onError: (error: Error) => {
@@ -470,7 +563,13 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
       });
     } else {
       setEditingGoal(null);
-      setGoalForm({ name: '', targetAmount: '', currentAmount: undefined, autoSavePercent: '0', autoSaveEnabled: false });
+      setGoalForm({
+        name: '',
+        targetAmount: '',
+        currentAmount: undefined,
+        autoSavePercent: '0',
+        autoSaveEnabled: false,
+      });
     }
     setGoalDialogOpen(true);
   };
@@ -478,7 +577,9 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
   const handleSubmitGoal = () => {
     const targetAmount = Number(goalForm.targetAmount.replace(/[^0-9]/g, ''));
     const autoSavePercent = Number(goalForm.autoSavePercent);
-    const currentAmount = goalForm.currentAmount ? Number(goalForm.currentAmount.replace(/[^0-9]/g, '')) : undefined;
+    const currentAmount = goalForm.currentAmount
+      ? Number(goalForm.currentAmount.replace(/[^0-9]/g, ''))
+      : undefined;
 
     if (!goalForm.name.trim() || !targetAmount || targetAmount <= 0) {
       setMessage('Nama dan target amount harus diisi');
@@ -516,13 +617,19 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
   };
 
   if (walletLoading && !walletData) {
-    return <LoadingState variant="skeleton-card" message="Memuat data dompet..." />;
+    return (
+      <LoadingState variant="skeleton-card" message="Memuat data dompet..." />
+    );
   }
 
   if (walletError) {
     return (
       <ErrorState
-        message={walletError instanceof Error ? walletError.message : 'Gagal memuat data dompet'}
+        message={
+          walletError instanceof Error
+            ? walletError.message
+            : 'Gagal memuat data dompet'
+        }
         onRetry={() => void refetchWallet()}
         variant="card"
       />
@@ -536,7 +643,7 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
       {/* Balance Card */}
       <Card className="border-0 bg-emerald-600 text-white shadow-sm">
         <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="mb-3 flex items-center justify-between">
             <div>
               <p className="text-xs opacity-80">Saldo Dompet</p>
               <p className="text-2xl font-bold">
@@ -552,9 +659,9 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
               variant="outline"
               size="sm"
               onClick={() => setQrisDialogOpen(true)}
-              className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20"
+              className="flex-1 border-white/20 bg-white/10 text-white hover:bg-white/20"
             >
-              <QrCode className="h-4 w-4 mr-2" />
+              <QrCode className="mr-2 h-4 w-4" />
               QRIS Tips
             </Button>
           </div>
@@ -609,129 +716,161 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
       {activeTab === 'overview' && (
         <div className="space-y-4">
           {/* Earnings Summary */}
-          {analyticsData && analyticsData.today && analyticsData.thisWeek && analyticsData.thisMonth && (
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Ringkasan Pemasukan
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
-                  <div>
-                    <p className="text-xs text-slate-500">Hari Ini</p>
-                    <p className="font-semibold">
-                      Rp {(analyticsData.today.amount ?? 0).toLocaleString('id-ID')}
-                    </p>
-                  </div>
-                  {analyticsData.today.growth !== undefined && analyticsData.today.growth !== 0 && (
-                    <div className={`flex items-center gap-1 ${analyticsData.today.growth > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {analyticsData.today.growth > 0 ? (
-                        <TrendingUp className="h-4 w-4" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4" />
-                      )}
-                      <span className="text-xs">
-                        {analyticsData.today.growth > 0 ? '+' : ''}
-                        {analyticsData.today.growth.toFixed(1)}%
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
-                  <div>
-                    <p className="text-xs text-slate-500">Minggu Ini</p>
-                    <p className="font-semibold">
-                      Rp {(analyticsData.thisWeek.amount ?? 0).toLocaleString('id-ID')}
-                    </p>
-                  </div>
-                  {analyticsData.thisWeek.growth !== undefined && analyticsData.thisWeek.growth !== 0 && (
-                    <div className={`flex items-center gap-1 ${analyticsData.thisWeek.growth > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {analyticsData.thisWeek.growth > 0 ? (
-                        <TrendingUp className="h-4 w-4" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4" />
-                      )}
-                      <span className="text-xs">
-                        {analyticsData.thisWeek.growth > 0 ? '+' : ''}
-                        {analyticsData.thisWeek.growth.toFixed(1)}%
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
-                  <div>
-                    <p className="text-xs text-slate-500">Bulan Ini</p>
-                    <p className="font-semibold">
-                      Rp {(analyticsData.thisMonth.amount ?? 0).toLocaleString('id-ID')}
-                    </p>
-                  </div>
-                  {analyticsData.thisMonth.growth !== undefined && analyticsData.thisMonth.growth !== 0 && (
-                    <div className={`flex items-center gap-1 ${analyticsData.thisMonth.growth > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {analyticsData.thisMonth.growth > 0 ? (
-                        <TrendingUp className="h-4 w-4" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4" />
-                      )}
-                      <span className="text-xs">
-                        {analyticsData.thisMonth.growth > 0 ? '+' : ''}
-                        {analyticsData.thisMonth.growth.toFixed(1)}%
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Pending Earnings */}
-          {pendingData && pendingData.total !== undefined && pendingData.total > 0 && (
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Pemasukan Tertunda
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-xs">
-                <p className="text-slate-600 font-medium">
-                  Total: Rp {(pendingData.total ?? 0).toLocaleString('id-ID')}
-                </p>
-                {pendingData.pending && Array.isArray(pendingData.pending) && pendingData.pending.slice(0, 3).map((p) => {
-                  if (!p || !p.tripId) return null;
-                  return (
-                    <div
-                      key={p.tripId}
-                      className="flex items-center justify-between rounded-lg bg-slate-50 p-2"
-                    >
-                      <div>
-                        <p className="font-medium">{p.tripCode ?? p.tripId}</p>
-                        <p className="text-[11px] text-slate-500">{p.tripDate ?? '-'}</p>
-                      </div>
-                      <p className="font-semibold text-emerald-600">
-                        +Rp {(p.amount ?? 0).toLocaleString('id-ID')}
+          {analyticsData &&
+            analyticsData.today &&
+            analyticsData.thisWeek &&
+            analyticsData.thisMonth && (
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <BarChart3 className="h-4 w-4" />
+                    Ringkasan Pemasukan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                    <div>
+                      <p className="text-xs text-slate-500">Hari Ini</p>
+                      <p className="font-semibold">
+                        Rp{' '}
+                        {(analyticsData.today.amount ?? 0).toLocaleString(
+                          'id-ID'
+                        )}
                       </p>
                     </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          )}
+                    {analyticsData.today.growth !== undefined &&
+                      analyticsData.today.growth !== 0 && (
+                        <div
+                          className={`flex items-center gap-1 ${analyticsData.today.growth > 0 ? 'text-emerald-600' : 'text-red-600'}`}
+                        >
+                          {analyticsData.today.growth > 0 ? (
+                            <TrendingUp className="h-4 w-4" />
+                          ) : (
+                            <TrendingDown className="h-4 w-4" />
+                          )}
+                          <span className="text-xs">
+                            {analyticsData.today.growth > 0 ? '+' : ''}
+                            {analyticsData.today.growth.toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                    <div>
+                      <p className="text-xs text-slate-500">Minggu Ini</p>
+                      <p className="font-semibold">
+                        Rp{' '}
+                        {(analyticsData.thisWeek.amount ?? 0).toLocaleString(
+                          'id-ID'
+                        )}
+                      </p>
+                    </div>
+                    {analyticsData.thisWeek.growth !== undefined &&
+                      analyticsData.thisWeek.growth !== 0 && (
+                        <div
+                          className={`flex items-center gap-1 ${analyticsData.thisWeek.growth > 0 ? 'text-emerald-600' : 'text-red-600'}`}
+                        >
+                          {analyticsData.thisWeek.growth > 0 ? (
+                            <TrendingUp className="h-4 w-4" />
+                          ) : (
+                            <TrendingDown className="h-4 w-4" />
+                          )}
+                          <span className="text-xs">
+                            {analyticsData.thisWeek.growth > 0 ? '+' : ''}
+                            {analyticsData.thisWeek.growth.toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                    <div>
+                      <p className="text-xs text-slate-500">Bulan Ini</p>
+                      <p className="font-semibold">
+                        Rp{' '}
+                        {(analyticsData.thisMonth.amount ?? 0).toLocaleString(
+                          'id-ID'
+                        )}
+                      </p>
+                    </div>
+                    {analyticsData.thisMonth.growth !== undefined &&
+                      analyticsData.thisMonth.growth !== 0 && (
+                        <div
+                          className={`flex items-center gap-1 ${analyticsData.thisMonth.growth > 0 ? 'text-emerald-600' : 'text-red-600'}`}
+                        >
+                          {analyticsData.thisMonth.growth > 0 ? (
+                            <TrendingUp className="h-4 w-4" />
+                          ) : (
+                            <TrendingDown className="h-4 w-4" />
+                          )}
+                          <span className="text-xs">
+                            {analyticsData.thisMonth.growth > 0 ? '+' : ''}
+                            {analyticsData.thisMonth.growth.toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+          {/* Pending Earnings */}
+          {pendingData &&
+            pendingData.total !== undefined &&
+            pendingData.total > 0 && (
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Calendar className="h-4 w-4" />
+                    Pemasukan Tertunda
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-xs">
+                  <p className="font-medium text-slate-600">
+                    Total: Rp {(pendingData.total ?? 0).toLocaleString('id-ID')}
+                  </p>
+                  {pendingData.pending &&
+                    Array.isArray(pendingData.pending) &&
+                    pendingData.pending.slice(0, 3).map((p) => {
+                      if (!p || !p.tripId) return null;
+                      return (
+                        <div
+                          key={p.tripId}
+                          className="flex items-center justify-between rounded-lg bg-slate-50 p-2"
+                        >
+                          <div>
+                            <p className="font-medium">
+                              {p.tripCode ?? p.tripId}
+                            </p>
+                            <p className="text-[11px] text-slate-500">
+                              {p.tripDate ?? '-'}
+                            </p>
+                          </div>
+                          <p className="font-semibold text-emerald-600">
+                            +Rp {(p.amount ?? 0).toLocaleString('id-ID')}
+                          </p>
+                        </div>
+                      );
+                    })}
+                </CardContent>
+              </Card>
+            )}
 
           {/* Forecast */}
           {forecastData && (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Forecast Bulan Depan</CardTitle>
+                <CardTitle className="text-base">
+                  Forecast Bulan Depan
+                </CardTitle>
               </CardHeader>
               <CardContent className="text-sm">
                 <p className="text-2xl font-bold text-emerald-600">
                   Rp {forecastData.forecast.toLocaleString('id-ID')}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="mt-1 text-xs text-slate-500">
                   Berdasarkan {forecastData.tripCount} trip terjadwal
-                  {forecastData.basedOn === 'historical_average' && ' (estimasi dari rata-rata historis)'}
+                  {forecastData.basedOn === 'historical_average' &&
+                    ' (estimasi dari rata-rata historis)'}
                 </p>
               </CardContent>
             </Card>
@@ -741,7 +880,7 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
           {insightsData && (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base">
                   <Lightbulb className="h-4 w-4" />
                   Insights & Rekomendasi
                 </CardTitle>
@@ -749,19 +888,30 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
               <CardContent className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-600">Performance:</span>
-                  <span className={`font-semibold ${
-                    insightsData.performance === 'top' ? 'text-emerald-600' :
-                    insightsData.performance === 'above' ? 'text-blue-600' :
-                    insightsData.performance === 'below' ? 'text-red-600' : 'text-slate-600'
-                  }`}>
+                  <span
+                    className={`font-semibold ${
+                      insightsData.performance === 'top'
+                        ? 'text-emerald-600'
+                        : insightsData.performance === 'above'
+                          ? 'text-blue-600'
+                          : insightsData.performance === 'below'
+                            ? 'text-red-600'
+                            : 'text-slate-600'
+                    }`}
+                  >
                     Top {insightsData.percentile}%
                   </span>
                 </div>
                 {insightsData.recommendations.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-slate-600">Rekomendasi:</p>
+                    <p className="text-xs font-medium text-slate-600">
+                      Rekomendasi:
+                    </p>
                     {insightsData.recommendations.map((rec, idx) => (
-                      <div key={idx} className="rounded-lg bg-blue-50 p-2 text-xs">
+                      <div
+                        key={idx}
+                        className="rounded-lg bg-blue-50 p-2 text-xs"
+                      >
                         <p className="font-medium">{rec.title}</p>
                         <p className="text-slate-600">{rec.description}</p>
                       </div>
@@ -776,7 +926,7 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
           {milestonesData && milestonesData.milestones.length > 0 && (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base">
                   <Award className="h-4 w-4" />
                   Pencapaian
                 </CardTitle>
@@ -838,9 +988,12 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                           <div className="flex items-center gap-2">
                             <Building2 className="h-4 w-4" />
                             <div>
-                              <div className="font-medium">{account.bank_name}</div>
+                              <div className="font-medium">
+                                {account.bank_name}
+                              </div>
                               <div className="text-xs text-slate-500">
-                                {account.account_number} • {account.account_holder_name}
+                                {account.account_number} •{' '}
+                                {account.account_holder_name}
                                 {account.is_default && ' (Utama)'}
                               </div>
                             </div>
@@ -853,13 +1006,14 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
               ) : (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                    <AlertCircle className="mt-0.5 h-4 w-4 text-amber-600" />
                     <div className="flex-1">
                       <p className="text-xs font-medium text-amber-900">
                         Belum ada rekening bank yang disetujui
                       </p>
                       <p className="mt-1 text-xs text-amber-700">
-                        Tambahkan rekening bank terlebih dahulu untuk melakukan penarikan dana.
+                        Tambahkan rekening bank terlebih dahulu untuk melakukan
+                        penarikan dana.
                       </p>
                       <Link
                         href={`/${_locale}/guide/wallet/bank-accounts`}
@@ -874,7 +1028,7 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                   </div>
                 </div>
               )}
-              
+
               {/* Quick Actions */}
               <div className="grid grid-cols-2 gap-2">
                 <Button
@@ -929,7 +1083,9 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
               </div>
 
               {message && (
-                <p className={`text-xs ${message.includes('Gagal') ? 'text-red-600' : 'text-slate-600'}`}>
+                <p
+                  className={`text-xs ${message.includes('Gagal') ? 'text-red-600' : 'text-slate-600'}`}
+                >
                   {message}
                 </p>
               )}
@@ -949,7 +1105,9 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
             <CardContent className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-slate-600">Base Fee:</span>
-                <span className="font-semibold">Rp {analyticsData.breakdown.baseFee.toLocaleString('id-ID')}</span>
+                <span className="font-semibold">
+                  Rp {analyticsData.breakdown.baseFee.toLocaleString('id-ID')}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-600">Bonus:</span>
@@ -960,13 +1118,19 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
               <div className="flex items-center justify-between">
                 <span className="text-slate-600">Penalty:</span>
                 <span className="font-semibold text-red-600">
-                  -Rp {analyticsData.breakdown.deductions.toLocaleString('id-ID')}
+                  -Rp{' '}
+                  {analyticsData.breakdown.deductions.toLocaleString('id-ID')}
                 </span>
               </div>
-              <div className="border-t pt-2 flex items-center justify-between">
+              <div className="flex items-center justify-between border-t pt-2">
                 <span className="font-medium">Total:</span>
-                <span className="font-bold text-lg">
-                  Rp {(analyticsData.breakdown.baseFee + analyticsData.breakdown.bonus - analyticsData.breakdown.deductions).toLocaleString('id-ID')}
+                <span className="text-lg font-bold">
+                  Rp{' '}
+                  {(
+                    analyticsData.breakdown.baseFee +
+                    analyticsData.breakdown.bonus -
+                    analyticsData.breakdown.deductions
+                  ).toLocaleString('id-ID')}
                 </span>
               </div>
             </CardContent>
@@ -980,12 +1144,11 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
               </CardHeader>
               <CardContent className="space-y-2 text-xs">
                 {analyticsData.tripBreakdown.map((trip) => (
-                  <div
-                    key={trip.tripId}
-                    className="rounded-lg bg-slate-50 p-3"
-                  >
+                  <div key={trip.tripId} className="rounded-lg bg-slate-50 p-3">
                     <p className="font-medium">{trip.tripCode}</p>
-                    <p className="text-[11px] text-slate-500 mb-2">{trip.tripDate}</p>
+                    <p className="mb-2 text-[11px] text-slate-500">
+                      {trip.tripDate}
+                    </p>
                     <div className="space-y-1">
                       <div className="flex justify-between">
                         <span>Base:</span>
@@ -1000,10 +1163,12 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                       {trip.penalty > 0 && (
                         <div className="flex justify-between text-red-600">
                           <span>Penalty:</span>
-                          <span>-Rp {trip.penalty.toLocaleString('id-ID')}</span>
+                          <span>
+                            -Rp {trip.penalty.toLocaleString('id-ID')}
+                          </span>
                         </div>
                       )}
-                      <div className="flex justify-between font-semibold border-t pt-1">
+                      <div className="flex justify-between border-t pt-1 font-semibold">
                         <span>Net:</span>
                         <span>Rp {trip.net.toLocaleString('id-ID')}</span>
                       </div>
@@ -1021,9 +1186,12 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
         <div className="space-y-4">
           {/* Filters */}
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-3 space-y-2">
+            <CardContent className="space-y-2 p-3">
               <div className="flex gap-2">
-                <Select value={transactionFilter} onValueChange={setTransactionFilter}>
+                <Select
+                  value={transactionFilter}
+                  onValueChange={setTransactionFilter}
+                >
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Filter" />
                   </SelectTrigger>
@@ -1034,7 +1202,11 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                     <SelectItem value="adjustment">Adjustment</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="sm" onClick={handleExportTransactions}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportTransactions}
+                >
                   <Download className="h-4 w-4" />
                 </Button>
               </div>
@@ -1057,54 +1229,69 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                 <CardTitle className="text-base">Riwayat Transaksi</CardTitle>
               </CardHeader>
               <CardContent className="space-y-1 text-xs">
-                {Object.entries(transactionsData.grouped || {}).map(([date, transactions]) => (
-                  <div key={date}>
-                    <p className="text-[11px] font-medium text-slate-500 mb-1">
-                      {new Date(date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    </p>
-                    {transactions.map((t) => {
-                      const isCredit = t.transaction_type === 'earning';
-                      const Icon = isCredit ? ArrowUpCircle : ArrowDownCircle;
-                      const sign = isCredit ? '+' : '-';
-                      return (
-                        <div
-                          key={t.id}
-                          className="flex items-center justify-between rounded-lg bg-slate-50 p-2 mb-1"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Icon
-                              className={
-                                isCredit
-                                  ? 'h-4 w-4 text-emerald-600'
-                                  : 'h-4 w-4 text-slate-500'
-                              }
-                            />
-                            <div>
-                              <p className="font-medium">
-                                {t.transaction_type === 'earning'
-                                  ? 'Pendapatan'
-                                  : t.transaction_type === 'withdraw_request'
-                                    ? 'Permintaan Tarik'
-                                    : 'Transaksi Dompet'}
+                {Object.entries(transactionsData.grouped || {}).map(
+                  ([date, transactions]) => (
+                    <div key={date}>
+                      <p className="mb-1 text-[11px] font-medium text-slate-500">
+                        {new Date(date).toLocaleDateString('id-ID', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </p>
+                      {transactions.map((t) => {
+                        const isCredit = t.transaction_type === 'earning';
+                        const Icon = isCredit ? ArrowUpCircle : ArrowDownCircle;
+                        const sign = isCredit ? '+' : '-';
+                        return (
+                          <div
+                            key={t.id}
+                            className="mb-1 flex items-center justify-between rounded-lg bg-slate-50 p-2"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Icon
+                                className={
+                                  isCredit
+                                    ? 'h-4 w-4 text-emerald-600'
+                                    : 'h-4 w-4 text-slate-500'
+                                }
+                              />
+                              <div>
+                                <p className="font-medium">
+                                  {t.transaction_type === 'earning'
+                                    ? 'Pendapatan'
+                                    : t.transaction_type === 'withdraw_request'
+                                      ? 'Permintaan Tarik'
+                                      : 'Transaksi Dompet'}
+                                </p>
+                                <p className="text-[11px] text-slate-500">
+                                  {new Date(t.created_at).toLocaleTimeString(
+                                    'id-ID',
+                                    { hour: '2-digit', minute: '2-digit' }
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p
+                                className={`font-semibold ${isCredit ? 'text-emerald-600' : 'text-slate-600'}`}
+                              >
+                                {sign} Rp{' '}
+                                {Number(t.amount ?? 0).toLocaleString('id-ID')}
                               </p>
-                              <p className="text-[11px] text-slate-500">
-                                {new Date(t.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                              </p>
+                              {t.status && (
+                                <p className="text-[11px] text-slate-500">
+                                  Status: {t.status}
+                                </p>
+                              )}
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className={`font-semibold ${isCredit ? 'text-emerald-600' : 'text-slate-600'}`}>
-                              {sign} Rp {Number(t.amount ?? 0).toLocaleString('id-ID')}
-                            </p>
-                            {t.status && (
-                              <p className="text-[11px] text-slate-500">Status: {t.status}</p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                        );
+                      })}
+                    </div>
+                  )
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -1145,7 +1332,9 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                     id="goal-name"
                     placeholder="Contoh: Liburan ke Bali"
                     value={goalForm.name}
-                    onChange={(e) => setGoalForm({ ...goalForm, name: e.target.value })}
+                    onChange={(e) =>
+                      setGoalForm({ ...goalForm, name: e.target.value })
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -1155,7 +1344,9 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                     type="text"
                     placeholder="Contoh: 5000000"
                     value={goalForm.targetAmount}
-                    onChange={(e) => setGoalForm({ ...goalForm, targetAmount: e.target.value })}
+                    onChange={(e) =>
+                      setGoalForm({ ...goalForm, targetAmount: e.target.value })
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -1167,10 +1358,16 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                     max="100"
                     placeholder="0"
                     value={goalForm.autoSavePercent}
-                    onChange={(e) => setGoalForm({ ...goalForm, autoSavePercent: e.target.value })}
+                    onChange={(e) =>
+                      setGoalForm({
+                        ...goalForm,
+                        autoSavePercent: e.target.value,
+                      })
+                    }
                   />
                   <p className="text-xs text-slate-500">
-                    Persentase dari setiap earning yang akan otomatis disimpan ke goal ini
+                    Persentase dari setiap earning yang akan otomatis disimpan
+                    ke goal ini
                   </p>
                 </div>
                 <div className="flex items-center justify-between">
@@ -1178,12 +1375,16 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                   <Switch
                     id="goal-enabled"
                     checked={goalForm.autoSaveEnabled}
-                    onCheckedChange={(checked) => setGoalForm({ ...goalForm, autoSaveEnabled: checked })}
+                    onCheckedChange={(checked) =>
+                      setGoalForm({ ...goalForm, autoSaveEnabled: checked })
+                    }
                   />
                 </div>
                 {editingGoal && (
                   <div className="space-y-2">
-                    <Label htmlFor="goal-current">Current Amount (Rp) - Optional</Label>
+                    <Label htmlFor="goal-current">
+                      Current Amount (Rp) - Optional
+                    </Label>
                     <Input
                       id="goal-current"
                       type="text"
@@ -1203,9 +1404,13 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                   <Button
                     className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                     onClick={handleSubmitGoal}
-                    disabled={createGoalMutation.isPending || updateGoalMutation.isPending}
+                    disabled={
+                      createGoalMutation.isPending ||
+                      updateGoalMutation.isPending
+                    }
                   >
-                    {createGoalMutation.isPending || updateGoalMutation.isPending
+                    {createGoalMutation.isPending ||
+                    updateGoalMutation.isPending
                       ? 'Menyimpan...'
                       : editingGoal
                         ? 'Update Goal'
@@ -1216,7 +1421,13 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                     onClick={() => {
                       setGoalDialogOpen(false);
                       setEditingGoal(null);
-                      setGoalForm({ name: '', targetAmount: '', currentAmount: undefined, autoSavePercent: '0', autoSaveEnabled: false });
+                      setGoalForm({
+                        name: '',
+                        targetAmount: '',
+                        currentAmount: undefined,
+                        autoSavePercent: '0',
+                        autoSaveEnabled: false,
+                      });
                     }}
                   >
                     Batal
@@ -1232,7 +1443,7 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
               <Card key={goal.id} className="border-0 shadow-sm">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
                       <Target className="h-4 w-4" />
                       {goal.name}
                     </CardTitle>
@@ -1248,7 +1459,11 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          if (confirm(`Yakin ingin menghapus goal "${goal.name}"?`)) {
+                          if (
+                            confirm(
+                              `Yakin ingin menghapus goal "${goal.name}"?`
+                            )
+                          ) {
                             deleteGoalMutation.mutate(goal.id);
                           }
                         }}
@@ -1260,15 +1475,18 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <div className="flex items-center justify-between text-sm mb-1">
+                    <div className="mb-1 flex items-center justify-between text-sm">
                       <span className="text-slate-600">
-                        Rp {goal.currentAmount.toLocaleString('id-ID')} / Rp {goal.targetAmount.toLocaleString('id-ID')}
+                        Rp {goal.currentAmount.toLocaleString('id-ID')} / Rp{' '}
+                        {goal.targetAmount.toLocaleString('id-ID')}
                       </span>
-                      <span className="font-semibold">{goal.progress.toFixed(1)}%</span>
+                      <span className="font-semibold">
+                        {goal.progress.toFixed(1)}%
+                      </span>
                     </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2">
+                    <div className="h-2 w-full rounded-full bg-slate-200">
                       <div
-                        className="bg-emerald-600 h-2 rounded-full transition-all"
+                        className="h-2 rounded-full bg-emerald-600 transition-all"
                         style={{ width: `${Math.min(goal.progress, 100)}%` }}
                       />
                     </div>
@@ -1279,8 +1497,11 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                     </p>
                   )}
                   {goal.isCompleted && (
-                    <p className="text-xs text-emerald-600 font-medium">
-                      ✅ Tercapai pada {goal.completedAt ? new Date(goal.completedAt).toLocaleDateString('id-ID') : ''}
+                    <p className="text-xs font-medium text-emerald-600">
+                      ✅ Tercapai pada{' '}
+                      {goal.completedAt
+                        ? new Date(goal.completedAt).toLocaleDateString('id-ID')
+                        : ''}
                     </p>
                   )}
                 </CardContent>
@@ -1320,14 +1541,17 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                     }}
                   />
                   <p className="text-xs text-slate-500">
-                    Kosongkan untuk menggunakan preset (Rp 50.000). Tamu bisa ubah saat scan.
+                    Kosongkan untuk menggunakan preset (Rp 50.000). Tamu bisa
+                    ubah saat scan.
                   </p>
                 </div>
                 <Button
                   onClick={async () => {
                     setQrisLoading(true);
                     try {
-                      const amount = qrisAmount ? Number(qrisAmount) : undefined;
+                      const amount = qrisAmount
+                        ? Number(qrisAmount)
+                        : undefined;
                       const res = await fetch('/api/guide/wallet/qris', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1344,9 +1568,15 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                       };
                       setQrisCode(data.qris_code || data.qris_url);
                       setQrisUrl(data.qris_url);
-                      setMessage('QRIS berhasil dibuat. Scan dengan aplikasi pembayaran Anda.');
+                      setMessage(
+                        'QRIS berhasil dibuat. Scan dengan aplikasi pembayaran Anda.'
+                      );
                     } catch (error) {
-                      setMessage(error instanceof Error ? error.message : 'Gagal membuat QRIS');
+                      setMessage(
+                        error instanceof Error
+                          ? error.message
+                          : 'Gagal membuat QRIS'
+                      );
                     } finally {
                       setQrisLoading(false);
                     }
@@ -1379,12 +1609,14 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
                 </div>
                 {qrisUrl && (
                   <div className="text-center">
-                    <p className="text-xs text-slate-600 mb-2">Atau buka link berikut:</p>
+                    <p className="mb-2 text-xs text-slate-600">
+                      Atau buka link berikut:
+                    </p>
                     <a
                       href={qrisUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-emerald-600 hover:underline break-all"
+                      className="break-all text-xs text-emerald-600 hover:underline"
                     >
                       {qrisUrl}
                     </a>
@@ -1409,4 +1641,3 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
     </div>
   );
 }
-

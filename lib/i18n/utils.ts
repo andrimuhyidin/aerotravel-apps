@@ -3,7 +3,7 @@
  * Helper functions for i18n operations
  */
 
-import { getLocale, getTranslations } from 'next-intl/server';
+import { getLocale } from 'next-intl/server';
 import { createTranslator } from 'next-intl';
 
 /**
@@ -15,7 +15,7 @@ export async function getCurrentLocale(): Promise<string> {
 
 /**
  * Get translations in server component
- * 
+ *
  * @example
  * const t = await getServerTranslations('Booking');
  * const text = t('submit_btn');
@@ -29,7 +29,7 @@ export async function getServerTranslations(namespace?: string) {
 /**
  * Get locale-aware URL
  * Adds locale prefix to path
- * 
+ *
  * @example
  * const url = getLocalizedUrl('/book', 'id'); // '/id/book'
  */
@@ -41,7 +41,7 @@ export function getLocalizedUrl(path: string, locale: string): string {
 
 /**
  * Remove locale from pathname
- * 
+ *
  * @example
  * const path = removeLocale('/id/book'); // '/book'
  */
@@ -52,4 +52,3 @@ export function removeLocale(pathname: string, locales: string[]): string {
   }
   return pathname;
 }
-

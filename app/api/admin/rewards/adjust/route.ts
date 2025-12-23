@@ -8,7 +8,6 @@ import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { hasRole } from '@/lib/supabase/server';
-import { createClient } from '@/lib/supabase/server';
 import { awardPoints, redeemPoints } from '@/lib/guide/reward-points';
 import { logger } from '@/lib/utils/logger';
 
@@ -21,7 +20,11 @@ const adjustSchema = z.object({
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
   // Check admin role
-  const isAdmin = await hasRole(['super_admin', 'ops_admin', 'finance_manager']);
+  const isAdmin = await hasRole([
+    'super_admin',
+    'ops_admin',
+    'finance_manager',
+  ]);
   if (!isAdmin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -77,4 +80,3 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     message: `Successfully ${validated.points > 0 ? 'added' : 'deducted'} ${Math.abs(validated.points)} points`,
   });
 });
-

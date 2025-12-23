@@ -3,7 +3,7 @@
  * GET /api/guide/wallet/insights - Get financial insights, trends, and recommendations
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
@@ -62,20 +62,26 @@ export const GET = withErrorHandler(async () => {
     let trendPercent = 0;
 
     if (recentEarnings && recentEarnings.length >= 2) {
-      const firstHalf = recentEarnings.slice(0, Math.floor(recentEarnings.length / 2));
-      const secondHalf = recentEarnings.slice(Math.floor(recentEarnings.length / 2));
+      const firstHalf = recentEarnings.slice(
+        0,
+        Math.floor(recentEarnings.length / 2)
+      );
+      const secondHalf = recentEarnings.slice(
+        Math.floor(recentEarnings.length / 2)
+      );
 
       const firstHalfTotal = firstHalf.reduce(
         (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),
-        0,
+        0
       );
       const secondHalfTotal = secondHalf.reduce(
         (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),
-        0,
+        0
       );
 
       if (firstHalfTotal > 0) {
-        trendPercent = ((secondHalfTotal - firstHalfTotal) / firstHalfTotal) * 100;
+        trendPercent =
+          ((secondHalfTotal - firstHalfTotal) / firstHalfTotal) * 100;
         if (trendPercent > 5) {
           trend = 'up';
         } else if (trendPercent < -5) {
@@ -89,7 +95,14 @@ export const GET = withErrorHandler(async () => {
     let userMonthlyAverage = 0;
 
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const monthEnd = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59
+    );
 
     // User's monthly average - filter by check_out_at for date consistency
     // First get trip IDs with check_out_at in this month
@@ -101,7 +114,8 @@ export const GET = withErrorHandler(async () => {
       .gte('check_out_at', monthStart.toISOString())
       .lte('check_out_at', monthEnd.toISOString());
 
-    const userMonthTripIds = userMonthTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
+    const userMonthTripIds =
+      userMonthTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
 
     const { data: userEarnings } =
       userMonthTripIds.length > 0
@@ -116,55 +130,68 @@ export const GET = withErrorHandler(async () => {
 
     userMonthlyAverage = (userEarnings || []).reduce(
       (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),
-      0,
+      0
     );
 
     // Branch average (anonymized - aggregate from all guides in branch)
     if (!branchContext.isSuperAdmin && branchContext.branchId) {
-      // Get all guide wallets in branch
-      const { data: branchWallets } = await client
-        .from('guide_wallets')
-        .select('id, guide_id')
-        .in('guide_id', 
-          client.from('users')
-            .select('id')
-            .eq('branch_id', branchContext.branchId)
-            .eq('role', 'guide')
-        );
+      // First get all guide IDs in branch
+      const { data: branchGuides } = await client
+        .from('users')
+        .select('id')
+        .eq('branch_id', branchContext.branchId)
+        .eq('role', 'guide');
 
-      if (branchWallets && branchWallets.length > 0) {
-        const walletIds = branchWallets.map((w: { id: string }) => w.id);
-        const branchGuideIds = branchWallets.map((w: { guide_id: string }) => w.guide_id);
+      const branchGuideIds = (branchGuides || []).map(
+        (g: { id: string }) => g.id
+      );
 
-        // Get branch earnings - filter by check_out_at
-        // First get all trip IDs with check_out_at in this month for branch guides
-        const { data: branchMonthTrips } = await client
-          .from('trip_guides')
-          .select('trip_id')
-          .in('guide_id', branchGuideIds)
-          .not('check_out_at', 'is', null)
-          .gte('check_out_at', monthStart.toISOString())
-          .lte('check_out_at', monthEnd.toISOString());
+      if (branchGuideIds.length > 0) {
+        // Get all guide wallets in branch
+        const { data: branchWallets } = await client
+          .from('guide_wallets')
+          .select('id, guide_id')
+          .in('guide_id', branchGuideIds);
 
-        const branchMonthTripIds = branchMonthTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
+        if (branchWallets && branchWallets.length > 0) {
+          const walletIds = branchWallets.map((w: { id: string }) => w.id);
+          const branchWalletGuideIds = branchWallets.map(
+            (w: { guide_id: string }) => w.guide_id
+          );
 
-        const { data: branchEarnings } =
-          branchMonthTripIds.length > 0
-            ? await client
-                .from('guide_wallet_transactions')
-                .select('amount')
-                .in('wallet_id', walletIds)
-                .eq('transaction_type', 'earning')
-                .eq('reference_type', 'trip')
-                .in('reference_id', branchMonthTripIds)
-            : { data: [] };
+          // Get branch earnings - filter by check_out_at
+          // First get all trip IDs with check_out_at in this month for branch guides
+          const { data: branchMonthTrips } = await client
+            .from('trip_guides')
+            .select('trip_id')
+            .in('guide_id', branchWalletGuideIds)
+            .not('check_out_at', 'is', null)
+            .gte('check_out_at', monthStart.toISOString())
+            .lte('check_out_at', monthEnd.toISOString());
 
-        const branchTotal = (branchEarnings || []).reduce(
-          (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),
-          0,
-        );
+          const branchMonthTripIds =
+            branchMonthTrips?.map((t: { trip_id: string }) => t.trip_id) || [];
 
-        branchAverage = branchWallets.length > 0 ? branchTotal / branchWallets.length : 0;
+          const { data: branchEarnings } =
+            branchMonthTripIds.length > 0
+              ? await client
+                  .from('guide_wallet_transactions')
+                  .select('amount')
+                  .in('wallet_id', walletIds)
+                  .eq('transaction_type', 'earning')
+                  .eq('reference_type', 'trip')
+                  .in('reference_id', branchMonthTripIds)
+              : { data: [] };
+
+          const branchTotal = (branchEarnings || []).reduce(
+            (sum: number, e: { amount: number }) =>
+              sum + (Number(e.amount) || 0),
+            0
+          );
+
+          branchAverage =
+            branchWallets.length > 0 ? branchTotal / branchWallets.length : 0;
+        }
       }
     }
 
@@ -190,10 +217,15 @@ export const GET = withErrorHandler(async () => {
     }
 
     // Generate recommendations
-    const recommendations: Array<{ type: string; title: string; description: string }> = [];
+    const recommendations: Array<{
+      type: string;
+      title: string;
+      description: string;
+    }> = [];
 
     // Check documentation bonus opportunity
-    let tripGuidesQuery = client.from('trip_guides')
+    let tripGuidesQuery = client
+      .from('trip_guides')
       .select('documentation_uploaded')
       .eq('guide_id', user.id)
       .gte('check_in_at', monthStart.toISOString())
@@ -217,7 +249,7 @@ export const GET = withErrorHandler(async () => {
     const { data: tripGuides } = await tripGuidesQuery;
 
     const incompleteDocs = (tripGuides || []).filter(
-      (tg: { documentation_uploaded: boolean }) => !tg.documentation_uploaded,
+      (tg: { documentation_uploaded: boolean }) => !tg.documentation_uploaded
     ).length;
 
     if (incompleteDocs > 0) {
@@ -230,7 +262,7 @@ export const GET = withErrorHandler(async () => {
 
     // Check on-time bonus
     const lateTrips = (tripGuides || []).filter(
-      (tg: { is_late: boolean }) => tg.is_late,
+      (tg: { is_late: boolean }) => tg.is_late
     ).length;
 
     if (lateTrips > 0) {
@@ -246,7 +278,8 @@ export const GET = withErrorHandler(async () => {
       recommendations.push({
         type: 'performance',
         title: 'Tingkatkan Rating',
-        description: 'Fokus pada pelayanan yang lebih baik untuk mendapatkan rating tinggi dan bonus lebih besar.',
+        description:
+          'Fokus pada pelayanan yang lebih baik untuk mendapatkan rating tinggi dan bonus lebih besar.',
       });
     }
 
@@ -265,7 +298,9 @@ export const GET = withErrorHandler(async () => {
     });
   } catch (error) {
     logger.error('Failed to fetch insights', error, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to fetch insights' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch insights' },
+      { status: 500 }
+    );
   }
 });
-

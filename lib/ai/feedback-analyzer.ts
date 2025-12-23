@@ -52,7 +52,11 @@ Provide analysis in JSON format:
 
 Return ONLY the JSON object, no additional text.`;
 
-    const response = await generateContent(prompt, undefined, 'gemini-1.5-flash');
+    const response = await generateContent(
+      prompt,
+      undefined,
+      'gemini-1.5-flash'
+    );
 
     try {
       const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
@@ -89,12 +93,19 @@ export async function analyzeFeedbackTrends(
   overallSentiment: 'positive' | 'neutral' | 'negative';
   averageSentimentScore: number;
   commonThemes: Array<{ theme: string; frequency: number; examples: string[] }>;
-  topActionItems: Array<{ item: string; priority: 'high' | 'medium' | 'low'; count: number }>;
+  topActionItems: Array<{
+    item: string;
+    priority: 'high' | 'medium' | 'low';
+    count: number;
+  }>;
   trendDirection: 'improving' | 'stable' | 'declining';
 }> {
   try {
     const feedbackList = feedbacks
-      .map((f, idx) => `${idx + 1}. Rating: ${f.rating || 'N/A'}/5\n   Feedback: "${f.text}"`)
+      .map(
+        (f, idx) =>
+          `${idx + 1}. Rating: ${f.rating || 'N/A'}/5\n   Feedback: "${f.text}"`
+      )
       .join('\n\n');
 
     const prompt = `Analyze these customer feedbacks for trends:
@@ -125,20 +136,28 @@ Provide trend analysis in JSON format:
 
 Return ONLY the JSON object, no additional text.`;
 
-    const response = await generateContent(prompt, undefined, 'gemini-1.5-pro');
+    const response = await generateContent(
+      prompt,
+      undefined,
+      'gemini-1.5-flash'
+    );
 
     try {
       const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
       return JSON.parse(cleaned);
     } catch {
       // Fallback
-      const ratings = feedbacks.map((f) => f.rating || 3).filter((r) => r !== undefined);
-      const avgRating = ratings.length > 0
-        ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
-        : 3;
+      const ratings = feedbacks
+        .map((f) => f.rating || 3)
+        .filter((r) => r !== undefined);
+      const avgRating =
+        ratings.length > 0
+          ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
+          : 3;
 
       return {
-        overallSentiment: avgRating >= 4 ? 'positive' : avgRating <= 2 ? 'negative' : 'neutral',
+        overallSentiment:
+          avgRating >= 4 ? 'positive' : avgRating <= 2 ? 'negative' : 'neutral',
         averageSentimentScore: avgRating / 5,
         commonThemes: [],
         topActionItems: [],
@@ -157,14 +176,34 @@ Return ONLY the JSON object, no additional text.`;
   }
 }
 
-function getFallbackAnalysis(feedbackText: string, rating?: number): FeedbackAnalysis {
+function getFallbackAnalysis(
+  feedbackText: string,
+  rating?: number
+): FeedbackAnalysis {
   const text = feedbackText.toLowerCase();
   let sentiment: 'positive' | 'neutral' | 'negative' = 'neutral';
   let sentimentScore = 0.5;
 
   // Simple keyword-based sentiment
-  const positiveWords = ['bagus', 'puas', 'senang', 'mantap', 'recommend', 'good', 'great', 'excellent'];
-  const negativeWords = ['buruk', 'tidak puas', 'kecewa', 'jelek', 'bad', 'poor', 'terrible'];
+  const positiveWords = [
+    'bagus',
+    'puas',
+    'senang',
+    'mantap',
+    'recommend',
+    'good',
+    'great',
+    'excellent',
+  ];
+  const negativeWords = [
+    'buruk',
+    'tidak puas',
+    'kecewa',
+    'jelek',
+    'bad',
+    'poor',
+    'terrible',
+  ];
 
   const positiveCount = positiveWords.filter((w) => text.includes(w)).length;
   const negativeCount = negativeWords.filter((w) => text.includes(w)).length;
@@ -181,7 +220,10 @@ function getFallbackAnalysis(feedbackText: string, rating?: number): FeedbackAna
   }
 
   return {
-    summary: feedbackText.length > 100 ? `${feedbackText.substring(0, 100)}...` : feedbackText,
+    summary:
+      feedbackText.length > 100
+        ? `${feedbackText.substring(0, 100)}...`
+        : feedbackText,
     sentiment,
     sentimentScore,
     keyPoints: [],

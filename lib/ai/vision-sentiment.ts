@@ -6,7 +6,12 @@
 import { logger } from '@/lib/utils/logger';
 
 export type SentimentResult = {
-  sentiment: 'very_positive' | 'positive' | 'neutral' | 'negative' | 'very_negative';
+  sentiment:
+    | 'very_positive'
+    | 'positive'
+    | 'neutral'
+    | 'negative'
+    | 'very_negative';
   confidence: number; // 0-1
   detectedEmotions?: string[];
 };
@@ -17,22 +22,24 @@ export type SentimentResult = {
  * - DeepSeek Vision API with prompt for sentiment detection
  * - Or a dedicated emotion recognition model
  */
-export async function analyzeImageSentiment(base64Image: string): Promise<SentimentResult> {
+export async function analyzeImageSentiment(
+  _base64Image: string
+): Promise<SentimentResult> {
   try {
     // For now, we'll use a simple heuristic-based approach
     // In production, integrate with DeepSeek Vision or similar AI service
-    
+
     // TODO: Integrate with actual AI vision service
     // For now, return neutral sentiment as placeholder
     // This should be replaced with actual AI vision API call
-    
+
     logger.info('[Vision] Analyzing image sentiment (placeholder)');
-    
+
     // Placeholder: return neutral sentiment
     // In production, call DeepSeek Vision API with prompt like:
     // "Analyze this image and determine the overall sentiment/happiness level (1-5 scale).
     // Consider facial expressions, environment, lighting, and overall mood."
-    
+
     return {
       sentiment: 'neutral',
       confidence: 0.5,

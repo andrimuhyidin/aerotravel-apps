@@ -5,7 +5,7 @@
  * This script provides instructions and tries alternative methods
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { execSync } from 'child_process';

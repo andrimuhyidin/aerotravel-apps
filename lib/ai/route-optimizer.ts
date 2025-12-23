@@ -100,7 +100,11 @@ Return JSON:
 
 Return ONLY the JSON object, no additional text.`;
 
-    const response = await generateContent(prompt, undefined, 'gemini-1.5-pro');
+    const response = await generateContent(
+      prompt,
+      undefined,
+      'gemini-1.5-flash'
+    );
 
     try {
       const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
@@ -118,7 +122,8 @@ Return ONLY the JSON object, no additional text.`;
         optimization.optimizedDuration = optimization.originalDuration;
       }
 
-      optimization.timeSaved = optimization.originalDuration - optimization.optimizedDuration;
+      optimization.timeSaved =
+        optimization.originalDuration - optimization.optimizedDuration;
 
       return optimization;
     } catch {
@@ -130,7 +135,9 @@ Return ONLY the JSON object, no additional text.`;
   }
 }
 
-function getFallbackOptimization(itinerary: ItineraryItem[]): RouteOptimization {
+function getFallbackOptimization(
+  itinerary: ItineraryItem[]
+): RouteOptimization {
   const totalDuration = itinerary.reduce(
     (sum, item) => sum + (item.duration || item.estimatedDuration || 60),
     0

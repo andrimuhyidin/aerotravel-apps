@@ -28,21 +28,24 @@ export async function extractEXIFData(
 ): Promise<EXIFData | null> {
   try {
     // Convert Buffer to ArrayBuffer if needed
-    const buffer = fileBuffer instanceof Buffer ? fileBuffer.buffer : fileBuffer;
+    const buffer =
+      fileBuffer instanceof Buffer ? fileBuffer.buffer : fileBuffer;
 
     // Extract EXIF data
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const exifData = await exifr.parse(buffer, {
-      gps: true,
-      exif: true,
-      ifd0: true,
-      ifd1: true,
-      translateKeys: false,
-      translateValues: false,
-      reviveValues: true,
-      sanitize: true,
-      mergeOutput: true,
-    } as any);
+    const exifData = await exifr.parse(
+      buffer as any,
+      {
+        gps: true,
+        exif: true,
+        ifd0: true,
+        ifd1: true,
+        translateKeys: false,
+        translateValues: false,
+        reviveValues: true,
+        sanitize: true,
+        mergeOutput: true,
+      } as unknown
+    );
 
     if (!exifData) {
       return null;
@@ -103,7 +106,9 @@ export async function extractEXIFData(
  * @param file - File object from input
  * @returns EXIF data including GPS coordinates and timestamp
  */
-export async function extractEXIFFromFile(file: File): Promise<EXIFData | null> {
+export async function extractEXIFFromFile(
+  file: File
+): Promise<EXIFData | null> {
   try {
     const arrayBuffer = await file.arrayBuffer();
     return await extractEXIFData(arrayBuffer);
@@ -112,4 +117,3 @@ export async function extractEXIFFromFile(file: File): Promise<EXIFData | null> 
     return null;
   }
 }
-

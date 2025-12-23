@@ -16,20 +16,20 @@ import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card';
 import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -92,7 +92,7 @@ export function CorporateApplicationForm({
       setTimeout(() => {
         router.push(`/${locale}/corporate`);
       }, 2000);
-    } catch (error) {
+    } catch (_error) {
       // Error is handled by the hook
       setIsSubmitting(false);
     } finally {
@@ -115,7 +115,14 @@ export function CorporateApplicationForm({
             <FormField
               control={form.control}
               name="companyName"
-              render={({ field }: { field: ControllerRenderProps<CorporateApplicationFormData, 'companyName'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  CorporateApplicationFormData,
+                  'companyName'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Building2 className="h-4 w-4" />
@@ -136,7 +143,14 @@ export function CorporateApplicationForm({
             <FormField
               control={form.control}
               name="companySize"
-              render={({ field }: { field: ControllerRenderProps<CorporateApplicationFormData, 'companySize'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  CorporateApplicationFormData,
+                  'companySize'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
@@ -160,7 +174,14 @@ export function CorporateApplicationForm({
             <FormField
               control={form.control}
               name="industry"
-              render={({ field }: { field: ControllerRenderProps<CorporateApplicationFormData, 'industry'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  CorporateApplicationFormData,
+                  'industry'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel>Industri</FormLabel>
                   <FormControl>
@@ -178,7 +199,14 @@ export function CorporateApplicationForm({
             <FormField
               control={form.control}
               name="contactPerson"
-              render={({ field }: { field: ControllerRenderProps<CorporateApplicationFormData, 'contactPerson'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  CorporateApplicationFormData,
+                  'contactPerson'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel>Nama Kontak Person</FormLabel>
                   <FormControl>
@@ -196,7 +224,14 @@ export function CorporateApplicationForm({
             <FormField
               control={form.control}
               name="email"
-              render={({ field }: { field: ControllerRenderProps<CorporateApplicationFormData, 'email'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  CorporateApplicationFormData,
+                  'email'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel>Email Perusahaan</FormLabel>
                   <FormControl>
@@ -215,7 +250,14 @@ export function CorporateApplicationForm({
             <FormField
               control={form.control}
               name="phone"
-              render={({ field }: { field: ControllerRenderProps<CorporateApplicationFormData, 'phone'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  CorporateApplicationFormData,
+                  'phone'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Phone className="h-4 w-4" />
@@ -237,7 +279,14 @@ export function CorporateApplicationForm({
             <FormField
               control={form.control}
               name="estimatedTrips"
-              render={({ field }: { field: ControllerRenderProps<CorporateApplicationFormData, 'estimatedTrips'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  CorporateApplicationFormData,
+                  'estimatedTrips'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
@@ -262,7 +311,14 @@ export function CorporateApplicationForm({
             <FormField
               control={form.control}
               name="message"
-              render={({ field }: { field: ControllerRenderProps<CorporateApplicationFormData, 'message'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  CorporateApplicationFormData,
+                  'message'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel>Pesan Tambahan (Opsional)</FormLabel>
                   <FormControl>
@@ -279,11 +335,7 @@ export function CorporateApplicationForm({
             />
 
             <div className="flex gap-4">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1"
-              >
+              <Button type="submit" disabled={isSubmitting} className="flex-1">
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -308,4 +360,3 @@ export function CorporateApplicationForm({
     </Card>
   );
 }
-

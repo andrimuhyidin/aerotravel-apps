@@ -23,8 +23,12 @@ const calculateMoonPhase = (date: Date): number => {
   const day = date.getDate();
 
   // Julian day calculation
-  let jd = 367 * year - Math.floor(7 * (year + Math.floor((month + 9) / 12)) / 4) +
-    Math.floor(275 * month / 9) + day + 1721013.5;
+  const jd =
+    367 * year -
+    Math.floor((7 * (year + Math.floor((month + 9) / 12))) / 4) +
+    Math.floor((275 * month) / 9) +
+    day +
+    1721013.5;
 
   // Days since last new moon (approximate, 29.53 day cycle)
   const daysSinceNewMoon = (jd - 2451549.5) % 29.53058867;
@@ -60,15 +64,18 @@ const getNextFullMoon = (date: Date): Date => {
 };
 
 // Simple estimation for moonrise/moonset (not accurate, but gives approximate times)
-const estimateMoonTimes = (date: Date, lat: number): { moonrise: string; moonset: string } => {
+const estimateMoonTimes = (
+  date: Date,
+  lat: number
+): { moonrise: string; moonset: string } => {
   // Very simplified estimation - in real app, use astronomical library
   const hour = date.getHours();
   const phase = calculateMoonPhase(date);
 
   // Rough estimation: moonrise around 6-12 hours after sunrise, moonset around 6-12 hours after sunset
   // This is a placeholder - real calculation requires complex astronomical formulas
-  let moonriseHour = 18 + (phase * 12); // 18:00 to 06:00 next day
-  let moonsetHour = 6 + (phase * 12); // 06:00 to 18:00
+  let moonriseHour = 18 + phase * 12; // 18:00 to 06:00 next day
+  let moonsetHour = 6 + phase * 12; // 06:00 to 18:00
 
   if (moonriseHour >= 24) moonriseHour -= 24;
   if (moonsetHour >= 24) moonsetHour -= 24;
@@ -80,21 +87,32 @@ const estimateMoonTimes = (date: Date, lat: number): { moonrise: string; moonset
   moonset.setHours(Math.floor(moonsetHour), (moonsetHour % 1) * 60, 0);
 
   return {
-    moonrise: moonrise.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-    moonset: moonset.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+    moonrise: moonrise.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    moonset: moonset.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
   };
 };
 
-export function MoonPhases({ lat, lng, currentDate = new Date() }: MoonPhasesProps) {
+export function MoonPhases({
+  lat,
+  lng,
+  currentDate = new Date(),
+}: MoonPhasesProps) {
   const phase = calculateMoonPhase(currentDate);
   const phaseName = getMoonPhaseName(phase);
   const nextFullMoon = getNextFullMoon(currentDate);
   const moonTimes = estimateMoonTimes(currentDate, lat);
 
   // Visual representation of moon phase
-  const moonFill = phase < 0.5 
-    ? (phase * 2) * 100 // 0% to 100% (new to full)
-    : (1 - (phase - 0.5) * 2) * 100; // 100% to 0% (full to new)
+  const moonFill =
+    phase < 0.5
+      ? phase * 2 * 100 // 0% to 100% (new to full)
+      : (1 - (phase - 0.5) * 2) * 100; // 100% to 0% (full to new)
 
   return (
     <Card className="border-0 shadow-sm">
@@ -110,10 +128,14 @@ export function MoonPhases({ lat, lng, currentDate = new Date() }: MoonPhasesPro
       <CardContent className="space-y-4">
         {/* Current Phase */}
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="mb-3 flex items-center justify-between">
             <div>
-              <div className="text-xs font-medium text-slate-600">Fase Saat Ini</div>
-              <div className="mt-1 text-lg font-bold text-slate-900">{phaseName}</div>
+              <div className="text-xs font-medium text-slate-600">
+                Fase Saat Ini
+              </div>
+              <div className="mt-1 text-lg font-bold text-slate-900">
+                {phaseName}
+              </div>
             </div>
             <div className="relative h-16 w-16 rounded-full border-2 border-slate-300 bg-slate-100">
               {/* Moon visualization */}
@@ -125,9 +147,10 @@ export function MoonPhases({ lat, lng, currentDate = new Date() }: MoonPhasesPro
                     : 'bg-slate-300' // Waning (right side)
                 )}
                 style={{
-                  clipPath: phase < 0.5
-                    ? `inset(0 ${100 - moonFill}% 0 0)` // Left to right fill
-                    : `inset(0 0 0 ${100 - moonFill}%)`, // Right to left fill
+                  clipPath:
+                    phase < 0.5
+                      ? `inset(0 ${100 - moonFill}% 0 0)` // Left to right fill
+                      : `inset(0 0 0 ${100 - moonFill}%)`, // Right to left fill
                 }}
               />
             </div>
@@ -137,7 +160,7 @@ export function MoonPhases({ lat, lng, currentDate = new Date() }: MoonPhasesPro
         {/* Moon Times */}
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-slate-200 bg-white p-3">
-            <div className="flex items-center gap-2 text-slate-600 mb-1">
+            <div className="mb-1 flex items-center gap-2 text-slate-600">
               <Sunrise className="h-4 w-4" />
               <span className="text-xs font-medium">Moonrise</span>
             </div>
@@ -146,7 +169,7 @@ export function MoonPhases({ lat, lng, currentDate = new Date() }: MoonPhasesPro
             </div>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-3">
-            <div className="flex items-center gap-2 text-slate-600 mb-1">
+            <div className="mb-1 flex items-center gap-2 text-slate-600">
               <Sunset className="h-4 w-4" />
               <span className="text-xs font-medium">Moonset</span>
             </div>
@@ -158,7 +181,9 @@ export function MoonPhases({ lat, lng, currentDate = new Date() }: MoonPhasesPro
 
         {/* Next Full Moon */}
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <div className="text-xs font-medium text-amber-700 mb-1">Next Full Moon</div>
+          <div className="mb-1 text-xs font-medium text-amber-700">
+            Next Full Moon
+          </div>
           <div className="text-sm font-semibold text-amber-900">
             {nextFullMoon.toLocaleDateString('id-ID', {
               weekday: 'long',
@@ -168,11 +193,14 @@ export function MoonPhases({ lat, lng, currentDate = new Date() }: MoonPhasesPro
             })}
           </div>
           <div className="mt-1 text-xs text-amber-600">
-            {Math.ceil((nextFullMoon.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))} hari lagi
+            {Math.ceil(
+              (nextFullMoon.getTime() - currentDate.getTime()) /
+                (1000 * 60 * 60 * 24)
+            )}{' '}
+            hari lagi
           </div>
         </div>
       </CardContent>
     </Card>
   );
 }
-

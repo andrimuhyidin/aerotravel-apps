@@ -23,7 +23,14 @@ export type QuickAction = {
   color: string;
   description?: string;
   priority: 'primary' | 'secondary' | 'tertiary';
-  contexts: Array<'always' | 'active_trip' | 'upcoming_trip' | 'completed_trip' | 'standby' | 'on_trip'>;
+  contexts: Array<
+    | 'always'
+    | 'active_trip'
+    | 'upcoming_trip'
+    | 'completed_trip'
+    | 'standby'
+    | 'on_trip'
+  >;
   timeBasedBoost?: number; // 0-1, boosts priority based on time
   tripBasedBoost?: number; // 0-1, boosts priority based on trip context
 };
@@ -34,9 +41,9 @@ export type QuickAction = {
 function getTimeBasedPriority(
   timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night',
   href: string,
-  nextTripTime?: string,
+  nextTripTime?: string
 ): number {
-  const hour = new Date().getHours();
+  const _hour = new Date().getHours();
   let boost = 0;
 
   // Time-based boosts
@@ -48,7 +55,8 @@ function getTimeBasedPriority(
       }
       if (nextTripTime) {
         const tripTime = new Date(nextTripTime);
-        const hoursUntilTrip = (tripTime.getTime() - Date.now()) / (1000 * 60 * 60);
+        const hoursUntilTrip =
+          (tripTime.getTime() - Date.now()) / (1000 * 60 * 60);
         if (hoursUntilTrip <= 2 && hoursUntilTrip > 0) {
           // Trip in next 2 hours - boost attendance/check-in
           if (href === '/guide/attendance' || href === '/guide/status') {
@@ -83,10 +91,7 @@ function getTimeBasedPriority(
 /**
  * Calculate trip-based priority boost
  */
-function getTripBasedPriority(
-  context: GuideContext,
-  href: string,
-): number {
+function getTripBasedPriority(context: GuideContext, href: string): number {
   let boost = 0;
 
   // Active trip boosts
@@ -122,7 +127,7 @@ function getTripBasedPriority(
 function calculatePriority(
   action: QuickAction,
   timeBoost: number,
-  tripBoost: number,
+  tripBoost: number
 ): 'primary' | 'secondary' {
   const basePriority = action.priority;
   const totalBoost = timeBoost + tripBoost;
@@ -159,7 +164,7 @@ export function getContextualActions(
     color: string;
     description?: string;
   }>,
-  context: GuideContext,
+  context: GuideContext
 ): {
   primary: typeof allActions;
   secondary: typeof allActions;
@@ -186,7 +191,17 @@ export function getContextualActions(
 
   // Context mapping - determines when actions should be shown
   // NOTE: Actions in bottom nav are filtered out before this function
-  const contextMap: Record<string, Array<'always' | 'active_trip' | 'upcoming_trip' | 'completed_trip' | 'standby' | 'on_trip'>> = {
+  const contextMap: Record<
+    string,
+    Array<
+      | 'always'
+      | 'active_trip'
+      | 'upcoming_trip'
+      | 'completed_trip'
+      | 'standby'
+      | 'on_trip'
+    >
+  > = {
     '/guide/sos': ['always'], // Emergency - always available
     '/guide/insights': ['always'], // Performance - always available
     '/guide/wallet': ['always'], // Financial - always available
@@ -203,14 +218,18 @@ export function getContextualActions(
     const contexts = contextMap[action.href] || ['always'];
 
     // Calculate boosts
-    const timeBoost = getTimeBasedPriority(context.timeOfDay, action.href, context.nextTripTime);
+    const timeBoost = getTimeBasedPriority(
+      context.timeOfDay,
+      action.href,
+      context.nextTripTime
+    );
     const tripBoost = getTripBasedPriority(context, action.href);
 
     // Calculate final priority
     const finalPriority = calculatePriority(
       { ...action, priority: basePriority, contexts },
       timeBoost,
-      tripBoost,
+      tripBoost
     );
 
     actionMap.set(action.href, {
@@ -227,13 +246,15 @@ export function getContextualActions(
     logger.debug('[ContextualActions] Enhanced Debug', {
       allActionsCount: allActions.length,
       context,
-      actionMapEntries: Array.from(actionMap.entries()).map(([href, action]) => ({
-        href,
-        priority: action.priority,
-        contexts: action.contexts,
-        timeBoost: action.timeBasedBoost,
-        tripBoost: action.tripBasedBoost,
-      })),
+      actionMapEntries: Array.from(actionMap.entries()).map(
+        ([href, action]) => ({
+          href,
+          priority: action.priority,
+          contexts: action.contexts,
+          timeBoost: action.timeBasedBoost,
+          tripBoost: action.tripBasedBoost,
+        })
+      ),
     });
   }
 
@@ -251,13 +272,22 @@ export function getContextualActions(
     if (context.hasUpcomingTrip && action.contexts.includes('upcoming_trip')) {
       return true;
     }
-    if (context.hasCompletedTripToday && action.contexts.includes('completed_trip')) {
+    if (
+      context.hasCompletedTripToday &&
+      action.contexts.includes('completed_trip')
+    ) {
       return true;
     }
-    if (context.currentStatus === 'standby' && action.contexts.includes('standby')) {
+    if (
+      context.currentStatus === 'standby' &&
+      action.contexts.includes('standby')
+    ) {
       return true;
     }
-    if (context.currentStatus === 'on_trip' && action.contexts.includes('on_trip')) {
+    if (
+      context.currentStatus === 'on_trip' &&
+      action.contexts.includes('on_trip')
+    ) {
       return true;
     }
 
@@ -294,13 +324,15 @@ export function getContextualActions(
   primary.sort((a, b) => {
     const aAction = actionMap.get(a.href);
     const bAction = actionMap.get(b.href);
-    const aBoost = (aAction?.timeBasedBoost || 0) + (aAction?.tripBasedBoost || 0);
-    const bBoost = (bAction?.timeBasedBoost || 0) + (bAction?.tripBasedBoost || 0);
-    
+    const aBoost =
+      (aAction?.timeBasedBoost || 0) + (aAction?.tripBasedBoost || 0);
+    const bBoost =
+      (bAction?.timeBasedBoost || 0) + (bAction?.tripBasedBoost || 0);
+
     // SOS always first
     if (a.href === '/guide/sos') return -1;
     if (b.href === '/guide/sos') return 1;
-    
+
     // Then by boost
     return bBoost - aBoost;
   });

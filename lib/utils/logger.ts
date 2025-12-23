@@ -1,7 +1,7 @@
 /**
  * Structured Logging Helper
  * Wrapper untuk console.log dengan log levels dan structured format
- * 
+ *
  * Usage:
  * import { logger } from '@/lib/utils/logger';
  * logger.info('User logged in', { userId: '123' });
@@ -19,11 +19,37 @@ class Logger {
   private isProduction = process.env.NODE_ENV === 'production';
 
   /**
+   * Safe JSON stringify with circular reference handling
+   */
+  private safeStringify(obj: unknown): string {
+    try {
+      const seen = new WeakSet();
+      return JSON.stringify(obj, (_key, value) => {
+        // Handle circular references
+        if (value !== null && typeof value === 'object') {
+          // Check for circular reference
+          if (seen.has(value)) {
+            return '[Circular]';
+          }
+          seen.add(value);
+        }
+        return value;
+      });
+    } catch (error) {
+      return '[Unstringifiable]';
+    }
+  }
+
+  /**
    * Format log message dengan context
    */
-  private formatMessage(level: LogLevel, message: string, context?: LogContext): string {
+  private formatMessage(
+    level: LogLevel,
+    message: string,
+    context?: LogContext
+  ): string {
     const timestamp = new Date().toISOString();
-    const contextStr = context ? ` ${JSON.stringify(context)}` : '';
+    const contextStr = context ? ` ${this.safeStringify(context)}` : '';
     return `[${timestamp}] [${level.toUpperCase()}] ${message}${contextStr}`;
   }
 
@@ -54,7 +80,7 @@ class Logger {
    */
   warn(message: string, context?: LogContext): void {
     console.warn(this.formatMessage('warn', message, context));
-    
+
     // In production, send warnings to monitoring
     if (this.isProduction && typeof window !== 'undefined' && window.Sentry) {
       window.Sentry.captureMessage(message, {
@@ -70,11 +96,14 @@ class Logger {
   error(message: string, error?: Error | unknown, context?: LogContext): void {
     const errorContext = {
       ...context,
-      error: error instanceof Error ? {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      } : error,
+      error:
+        error instanceof Error
+          ? {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+            }
+          : error,
     };
 
     console.error(this.formatMessage('error', message, errorContext));
@@ -128,24 +157,23 @@ export { Logger };
 
 /**
  * Usage examples:
- * 
+ *
  * import { logger } from '@/lib/utils/logger';
- * 
+ *
  * // Debug (dev only)
  * logger.debug('Component rendered', { componentName: 'BookingForm' });
- * 
+ *
  * // Info
  * logger.info('User logged in', { userId: '123', email: 'user@example.com' });
- * 
+ *
  * // Warning
  * logger.warn('Rate limit approaching', { remaining: 5 });
- * 
+ *
  * // Error (auto-sent to Sentry)
  * logger.error('Payment failed', error, { bookingId: '456' });
- * 
+ *
  * // Performance
  * const start = performance.now();
  * await processPayment();
  * logger.performance('processPayment', start, { bookingId: '456' });
  */
-

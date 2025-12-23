@@ -1,7 +1,7 @@
 /**
  * Partner Booking Service
  * Sesuai PRD 4.3.B - Partner Portal NTA Booking
- * 
+ *
  * Features:
  * - Get packages with NTA pricing
  * - Create booking with wallet payment
@@ -57,12 +57,13 @@ export type CreateBookingData = {
 /**
  * Get packages with NTA pricing for mitra
  */
-export async function getNTAPackages(mitraId: string): Promise<NTAPackage[]> {
+export async function getNTAPackages(_mitraId: string): Promise<NTAPackage[]> {
   const supabase = createClient();
 
   const { data, error } = await supabase
     .from('packages')
-    .select(`
+    .select(
+      `
       id,
       name,
       destination,
@@ -74,7 +75,8 @@ export async function getNTAPackages(mitraId: string): Promise<NTAPackage[]> {
         price_publish,
         price_nta
       )
-    `)
+    `
+    )
     .eq('is_active', true)
     .eq('show_to_mitra', true);
 
@@ -85,10 +87,11 @@ export async function getNTAPackages(mitraId: string): Promise<NTAPackage[]> {
 
   return data.map((pkg) => {
     // Get base price tier (2 pax default)
-    const baseTier = pkg.prices?.find(
-      (p: { min_pax: number; max_pax: number }) => 
-        p.min_pax <= 2 && p.max_pax >= 2
-    ) || pkg.prices?.[0];
+    const baseTier =
+      pkg.prices?.find(
+        (p: { min_pax: number; max_pax: number }) =>
+          p.min_pax <= 2 && p.max_pax >= 2
+      ) || pkg.prices?.[0];
 
     const publishPrice = Number(baseTier?.price_publish || 0);
     const ntaPrice = Number(baseTier?.price_nta || 0);
@@ -120,7 +123,8 @@ export async function getMitraBookings(
 
   const { data, error } = await supabase
     .from('bookings')
-    .select(`
+    .select(
+      `
       id,
       booking_code,
       trip_date,
@@ -133,7 +137,8 @@ export async function getMitraBookings(
       customer_name,
       created_at,
       package:packages(name)
-    `)
+    `
+    )
     .eq('mitra_id', mitraId)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -170,7 +175,8 @@ export async function createMitraBooking(
     // Get package pricing
     const { data: pkg } = await supabase
       .from('packages')
-      .select(`
+      .select(
+        `
         id,
         branch_id,
         prices:package_prices(
@@ -180,7 +186,8 @@ export async function createMitraBooking(
           price_nta,
           price_child_percent
         )
-      `)
+      `
+      )
       .eq('id', data.packageId)
       .single();
 
@@ -190,18 +197,24 @@ export async function createMitraBooking(
 
     // Calculate pricing
     const totalAdult = data.adultPax;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const priceTier = (pkg.prices as any[])?.find(
-      (p: { min_pax: number; max_pax: number }) => 
-        p.min_pax <= totalAdult && p.max_pax >= totalAdult
-    ) || (pkg.prices as any[])?.[0];
+
+    const priceTier =
+      (pkg.prices as unknown[])?.find(
+        (p: { min_pax: number; max_pax: number }) =>
+          p.min_pax <= totalAdult && p.max_pax >= totalAdult
+      ) || (pkg.prices as unknown[])?.[0];
 
     if (!priceTier) {
-      return { success: false, message: 'Harga tidak tersedia untuk jumlah pax ini.' };
+      return {
+        success: false,
+        message: 'Harga tidak tersedia untuk jumlah pax ini.',
+      };
     }
 
     const pricePerAdult = Number(priceTier?.price_publish || 0);
-    const ntaPricePerAdult = Number(priceTier?.price_nta || 0);
+    const ntaPricePerAdult = Number(
+      (priceTier as { price_nta?: number })?.price_nta || 0
+    );
     // Child discount - default 50%
     const childPercent = 0.5;
 
@@ -213,7 +226,9 @@ export async function createMitraBooking(
       data.childPax * ntaPricePerAdult * childPercent;
 
     // Generate booking code
-    const { data: bookingCodeData } = await supabase.rpc('generate_booking_code');
+    const { data: bookingCodeData } = await supabase.rpc(
+      'generate_booking_code'
+    );
     const bookingCode = bookingCodeData || `BK-${Date.now()}`;
 
     // Create booking
@@ -286,7 +301,8 @@ export async function getMitraBookingDetail(
 
   const { data, error } = await supabase
     .from('bookings')
-    .select(`
+    .select(
+      `
       id,
       booking_code,
       trip_date,
@@ -299,7 +315,8 @@ export async function getMitraBookingDetail(
       customer_name,
       created_at,
       package:packages(name)
-    `)
+    `
+    )
     .eq('id', bookingId)
     .eq('mitra_id', mitraId)
     .single();

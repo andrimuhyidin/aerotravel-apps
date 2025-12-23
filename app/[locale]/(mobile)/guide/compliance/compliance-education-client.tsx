@@ -19,13 +19,23 @@ import {
 import Link from 'next/link';
 import { useState } from 'react';
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { logger } from '@/lib/utils/logger';
-import { toast } from 'sonner';
 
 type ComplianceEducationClientProps = {
   locale: string;
@@ -61,7 +71,11 @@ const STANDARDS: ComplianceStandard[] = [
     icon: Users,
     color: 'bg-green-500',
     features: ['SOS System', 'Incident Reporting', 'Training Records'],
-    benefits: ['Melindungi guide dari risiko kerja', 'Memastikan lingkungan kerja aman', 'Career development'],
+    benefits: [
+      'Melindungi guide dari risiko kerja',
+      'Memastikan lingkungan kerja aman',
+      'Career development',
+    ],
   },
   {
     id: 'iso-14001',
@@ -71,7 +85,11 @@ const STANDARDS: ComplianceStandard[] = [
     icon: TreePine,
     color: 'bg-emerald-500',
     features: ['Waste Tracking', 'Carbon Footprint'],
-    benefits: ['Melindungi lingkungan laut', 'Sustainability untuk masa depan', 'Ecosystem protection'],
+    benefits: [
+      'Melindungi lingkungan laut',
+      'Sustainability untuk masa depan',
+      'Ecosystem protection',
+    ],
   },
   {
     id: 'chse',
@@ -91,7 +109,11 @@ const STANDARDS: ComplianceStandard[] = [
     icon: FileText,
     color: 'bg-purple-500',
     features: ['Data Masking', 'Consent Management', 'Auto-Deletion'],
-    benefits: ['Legal compliance', 'Kepercayaan penumpang', 'Privacy protection'],
+    benefits: [
+      'Legal compliance',
+      'Kepercayaan penumpang',
+      'Privacy protection',
+    ],
   },
 ];
 
@@ -123,7 +145,9 @@ const FEATURE_MAPPING = [
   },
 ];
 
-export function ComplianceEducationClient({ locale }: ComplianceEducationClientProps) {
+export function ComplianceEducationClient({
+  locale,
+}: ComplianceEducationClientProps) {
   const [readSections, setReadSections] = useState<Set<string>>(new Set());
   const [engagementScore, setEngagementScore] = useState(0);
 
@@ -163,9 +187,12 @@ export function ComplianceEducationClient({ locale }: ComplianceEducationClientP
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Compliance Education</h1>
-        <p className="text-sm sm:text-base text-slate-600">
-          Pelajari mengapa aplikasi ini memiliki banyak prosedur compliance dan standar yang diikuti
+        <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
+          Compliance Education
+        </h1>
+        <p className="text-sm text-slate-600 sm:text-base">
+          Pelajari mengapa aplikasi ini memiliki banyak prosedur compliance dan
+          standar yang diikuti
         </p>
       </div>
 
@@ -175,8 +202,12 @@ export function ComplianceEducationClient({ locale }: ComplianceEducationClientP
           <CardContent className="p-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-slate-700">Progress Pembacaan</span>
-                <span className="text-slate-600">{Math.round(engagementScore)}%</span>
+                <span className="font-medium text-slate-700">
+                  Progress Pembacaan
+                </span>
+                <span className="text-slate-600">
+                  {Math.round(engagementScore)}%
+                </span>
               </div>
               <Progress value={engagementScore} className="h-2" />
             </div>
@@ -201,9 +232,10 @@ export function ComplianceEducationClient({ locale }: ComplianceEducationClientP
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-slate-700">
-            Aplikasi ini dirancang dengan standar compliance yang ketat untuk memastikan keselamatan,
-            keamanan, dan kualitas layanan. Setiap prosedur yang harus Anda ikuti memiliki alasan yang
-            jelas dan manfaat untuk semua pihak.
+            Aplikasi ini dirancang dengan standar compliance yang ketat untuk
+            memastikan keselamatan, keamanan, dan kualitas layanan. Setiap
+            prosedur yang harus Anda ikuti memiliki alasan yang jelas dan
+            manfaat untuk semua pihak.
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg bg-white p-3 text-center">
@@ -227,10 +259,7 @@ export function ComplianceEducationClient({ locale }: ComplianceEducationClientP
       </Card>
 
       {/* Standards Overview */}
-      <Card
-        id="standards"
-        onMouseEnter={() => handleSectionRead('standards')}
-      >
+      <Card id="standards" onMouseEnter={() => handleSectionRead('standards')}>
         <CardHeader>
           <CardTitle>Compliance Standards Overview</CardTitle>
           <CardDescription>
@@ -245,19 +274,28 @@ export function ComplianceEducationClient({ locale }: ComplianceEducationClientP
                 <AccordionItem key={standard.id} value={standard.id}>
                   <AccordionTrigger value={standard.id}>
                     <div className="flex items-center gap-3">
-                      <div className={`${standard.color} rounded-lg p-2 text-white`}>
+                      <div
+                        className={`${standard.color} rounded-lg p-2 text-white`}
+                      >
                         <Icon className="h-5 w-5" />
                       </div>
                       <div className="text-left">
                         <div className="font-semibold">{standard.name}</div>
-                        <div className="text-xs text-slate-500">{standard.code}</div>
+                        <div className="text-xs text-slate-500">
+                          {standard.code}
+                        </div>
                       </div>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent value={standard.id} className="space-y-4 pt-4">
+                  <AccordionContent
+                    value={standard.id}
+                    className="space-y-4 pt-4"
+                  >
                     <p className="text-slate-700">{standard.description}</p>
                     <div>
-                      <p className="mb-2 text-sm font-medium text-slate-700">Fitur Terkait:</p>
+                      <p className="mb-2 text-sm font-medium text-slate-700">
+                        Fitur Terkait:
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         {standard.features.map((feature) => (
                           <Badge key={feature} variant="outline">
@@ -267,7 +305,9 @@ export function ComplianceEducationClient({ locale }: ComplianceEducationClientP
                       </div>
                     </div>
                     <div>
-                      <p className="mb-2 text-sm font-medium text-slate-700">Manfaat:</p>
+                      <p className="mb-2 text-sm font-medium text-slate-700">
+                        Manfaat:
+                      </p>
                       <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
                         {standard.benefits.map((benefit, idx) => (
                           <li key={idx}>{benefit}</li>
@@ -300,7 +340,9 @@ export function ComplianceEducationClient({ locale }: ComplianceEducationClientP
                 key={idx}
                 className="rounded-lg border border-slate-200 bg-slate-50 p-3"
               >
-                <div className="mb-2 font-medium text-slate-900">{mapping.feature}</div>
+                <div className="mb-2 font-medium text-slate-900">
+                  {mapping.feature}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {mapping.standards.map((standard) => (
                     <Badge key={standard} variant="secondary">
@@ -315,10 +357,7 @@ export function ComplianceEducationClient({ locale }: ComplianceEducationClientP
       </Card>
 
       {/* Benefits for All Parties */}
-      <Card
-        id="benefits"
-        onMouseEnter={() => handleSectionRead('benefits')}
-      >
+      <Card id="benefits" onMouseEnter={() => handleSectionRead('benefits')}>
         <CardHeader>
           <CardTitle>Benefits for All Parties</CardTitle>
         </CardHeader>
@@ -336,7 +375,9 @@ export function ComplianceEducationClient({ locale }: ComplianceEducationClientP
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="passenger">
-              <AccordionTrigger value="passenger">Untuk Passenger</AccordionTrigger>
+              <AccordionTrigger value="passenger">
+                Untuk Passenger
+              </AccordionTrigger>
               <AccordionContent value="passenger" className="space-y-2 pt-4">
                 <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
                   <li>Keamanan selama trip</li>
@@ -358,7 +399,9 @@ export function ComplianceEducationClient({ locale }: ComplianceEducationClientP
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="environment">
-              <AccordionTrigger value="environment">Untuk Environment</AccordionTrigger>
+              <AccordionTrigger value="environment">
+                Untuk Environment
+              </AccordionTrigger>
               <AccordionContent value="environment" className="space-y-2 pt-4">
                 <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
                   <li>Sustainable tourism</li>
@@ -415,4 +458,3 @@ export function ComplianceEducationClient({ locale }: ComplianceEducationClientP
     </div>
   );
 }
-

@@ -3,11 +3,11 @@
  * Route: /[locale]/legal/privacy
  */
 
+import { Shield } from 'lucide-react';
 import { Metadata, Viewport } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 
 import { Container } from '@/components/layout/container';
-import { Section } from '@/components/layout/section';
 import { Card, CardContent } from '@/components/ui/card';
 import { locales } from '@/i18n';
 
@@ -27,7 +27,9 @@ export const viewport: Viewport = {
   themeColor: '#000000',
 };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { locale } = await params;
   setRequestLocale(locale);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
@@ -109,36 +111,38 @@ export default async function PrivacyPolicyPage({ params }: PageProps) {
   ];
 
   return (
-    <>
+    <Container className="py-4">
       {/* Hero */}
-      <Section className="bg-gradient-to-br from-primary/5 via-background to-aero-teal/5">
-        <Container>
-          <div className="py-6 sm:py-8 md:py-12 text-center">
-            <h1 className="mb-3 sm:mb-4 text-xl sm:text-2xl md:text-3xl font-bold">Kebijakan Privasi</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Terakhir diperbarui: {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
-          </div>
-        </Container>
-      </Section>
+      <div className="mb-4 text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+          <Shield className="h-6 w-6 text-primary" />
+        </div>
+        <h1 className="mb-2 text-xl font-bold">Kebijakan Privasi</h1>
+        <p className="text-xs text-muted-foreground">
+          Terakhir diperbarui:{' '}
+          {new Date().toLocaleDateString('id-ID', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })}
+        </p>
+      </div>
 
       {/* Content */}
-      <Section>
-        <Container className="py-4">
-          <div className="space-y-3 sm:space-y-4">
-            {sections.map((section, index) => (
-              <Card key={index} className="border-0 shadow-sm">
-                <CardContent className="p-4 sm:p-6">
-                  <h2 className="mb-2 sm:mb-3 text-base sm:text-lg font-bold text-slate-900">{section.title}</h2>
-                  <div className="prose prose-sm max-w-none text-slate-700">
-                    <p className="whitespace-pre-line leading-relaxed text-xs sm:text-sm">{section.content}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </Container>
-      </Section>
-    </>
+      <div className="space-y-4">
+        {sections.map((section, index) => (
+          <Card key={index} className="border-none shadow-sm">
+            <CardContent className="p-4">
+              <h2 className="mb-2 text-sm font-semibold">{section.title}</h2>
+              <div className="prose prose-sm max-w-none">
+                <p className="whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
+                  {section.content}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </Container>
   );
 }

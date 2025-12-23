@@ -29,14 +29,17 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { locale } = await params;
   setRequestLocale(locale);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
 
   return {
-    title: 'Performance - Guide App',
-    description: 'Lihat performa dan analytics untuk meningkatkan kualitas sebagai guide',
+    title: 'Performance & Insights - Guide App',
+    description:
+      'Analisis performa, insights bulanan, challenges, dan rekomendasi AI untuk meningkatkan kualitas sebagai guide',
     alternates: {
       canonical: `${baseUrl}/${locale}/guide/performance`,
     },
@@ -55,9 +58,12 @@ export default async function PerformancePage({ params }: PageProps) {
   return (
     <Container className="py-4">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold leading-tight text-slate-900">Performance</h1>
+        <h1 className="text-2xl font-bold leading-tight text-slate-900">
+          Performance & Insights
+        </h1>
         <p className="mt-1.5 text-sm text-slate-600">
-          Analisis performa dan track progress untuk meningkatkan kualitas sebagai guide
+          Analisis performa, insights bulanan, challenges, dan rekomendasi AI
+          dalam satu tempat
         </p>
       </div>
       <PerformanceClient locale={locale} />

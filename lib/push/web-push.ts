@@ -38,16 +38,18 @@ export async function sendPushNotification(
 ): Promise<boolean> {
   try {
     const { privateKey } = getVAPIDKeys();
-    
+
     if (!privateKey) {
       logger.warn('VAPID keys not configured, push notifications disabled');
       return false;
     }
 
     // Dynamic import web-push (optional dependency)
-     
-    const webpush = await import('web-push').catch(() => null) as typeof import('web-push') | null;
-    
+
+    const webpush = (await import('web-push').catch(() => null)) as
+      | typeof import('web-push')
+      | null;
+
     if (!webpush) {
       logger.warn('web-push package not installed');
       return false;
@@ -101,7 +103,7 @@ export async function sendPushToGuide(
 ): Promise<number> {
   const { createClient } = await import('@/lib/supabase/server');
   const supabase = await createClient();
-  const client = supabase as unknown as any;
+  const client = supabase as any;
 
   try {
     const { data: subscriptions } = await client
@@ -134,4 +136,3 @@ export async function sendPushToGuide(
     return 0;
   }
 }
-

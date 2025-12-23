@@ -15,7 +15,13 @@ const createModuleSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().optional(),
   content: z.string().min(1),
-  category: z.enum(['safety', 'customer_service', 'navigation', 'first_aid', 'other']),
+  category: z.enum([
+    'safety',
+    'customer_service',
+    'navigation',
+    'first_aid',
+    'other',
+  ]),
   duration_minutes: z.number().int().positive(),
   is_required: z.boolean().default(false),
 });
@@ -34,13 +40,14 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
   const client = supabase as unknown as any;
 
   // Check if training_modules table exists
-  let modules: any[] = [];
-  let error: any = null;
+  let modules: unknown[] = [];
+  let error: unknown = null;
 
   try {
     const result = await client
       .from('guide_training_modules')
-      .select(`
+      .select(
+        `
         id,
         title,
         description,
@@ -53,20 +60,27 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
           completed_at,
           score
         )
-      `)
+      `
+      )
       .eq('is_active', true)
       .order('is_required', { ascending: false })
       .order('created_at', { ascending: false });
-    
+
     modules = result.data || [];
     error = result.error;
   } catch (err) {
     const catchError = err as { code?: string; message?: string };
     // Check if table doesn't exist
-    if (catchError.code === 'PGRST205' || catchError.message?.includes('Could not find the table')) {
-      logger.info('guide_training_modules table not found, returning mock data', {
-        userId: user.id,
-      });
+    if (
+      catchError.code === 'PGRST205' ||
+      catchError.message?.includes('Could not find the table')
+    ) {
+      logger.info(
+        'guide_training_modules table not found, returning mock data',
+        {
+          userId: user.id,
+        }
+      );
       // Return mock data if table doesn't exist
       return NextResponse.json({
         modules: [
@@ -95,7 +109,9 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
   }
 
   if (error) {
-    logger.error('Failed to fetch training modules', error, { userId: user.id });
+    logger.error('Failed to fetch training modules', error, {
+      userId: user.id,
+    });
     // Return empty array instead of error for better UX
     return NextResponse.json({ modules: [] });
   }
@@ -124,14 +140,17 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     data: { role: string } | null;
   };
 
-  if (userProfile?.role !== 'super_admin' && userProfile?.role !== 'ops_admin') {
+  if (
+    userProfile?.role !== 'super_admin' &&
+    userProfile?.role !== 'ops_admin'
+  ) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const client = supabase as unknown as any;
 
-  let module: any = null;
-  let error: any = null;
+  let module: unknown = null;
+  let error: unknown = null;
 
   try {
     const result = await client
@@ -147,12 +166,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       })
       .select()
       .single();
-    
+
     module = result.data;
     error = result.error;
   } catch (err) {
     const catchError = err as { code?: string; message?: string };
-    if (catchError.code === 'PGRST205' || catchError.message?.includes('Could not find the table')) {
+    if (
+      catchError.code === 'PGRST205' ||
+      catchError.message?.includes('Could not find the table')
+    ) {
       error = { message: 'Training modules table not created yet' };
     } else {
       error = catchError;
@@ -160,10 +182,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   if (error) {
-    logger.error('Failed to create training module', error, { userId: user.id });
-    return NextResponse.json({ error: 'Failed to create module' }, { status: 500 });
+    logger.error('Failed to create training module', error, {
+      userId: user.id,
+    });
+    return NextResponse.json(
+      { error: 'Failed to create module' },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ module });
 });
-

@@ -6,7 +6,14 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, BookOpen, CheckCircle2, Clock, GraduationCap, Play } from 'lucide-react';
+import {
+  ArrowLeft,
+  BookOpen,
+  CheckCircle2,
+  Clock,
+  GraduationCap,
+  Play,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -46,7 +53,9 @@ export function TrainingModuleDetailClient({
   moduleId,
 }: TrainingModuleDetailClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'content' | 'quiz' | 'feedback'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'quiz' | 'feedback'>(
+    'content'
+  );
 
   // Fetch all modules to find the one we need
   const { data, isLoading, error } = useQuery<{ modules: TrainingModule[] }>({
@@ -71,14 +80,20 @@ export function TrainingModuleDetailClient({
   });
 
   if (isLoading) {
-    return <LoadingState variant="skeleton-card" lines={5} message="Memuat modul training..." />;
+    return (
+      <LoadingState
+        variant="skeleton-card"
+        lines={5}
+        message="Memuat modul training..."
+      />
+    );
   }
 
   if (error) {
     return (
       <ErrorState
         message="Gagal memuat modul training"
-        onRetry={() => router.push(`/${locale}/guide/training`)}
+        onRetry={() => router.push(`/${locale}/guide/learning`)}
         variant="card"
       />
     );
@@ -89,10 +104,10 @@ export function TrainingModuleDetailClient({
   if (!module || !module.id) {
     return (
       <div className="space-y-4">
-        <Link href={`/${locale}/guide/training`}>
+        <Link href={`/${locale}/guide/learning`}>
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Kembali ke Training
+            Kembali ke Learning Hub
           </Button>
         </Link>
         <EmptyState
@@ -117,10 +132,10 @@ export function TrainingModuleDetailClient({
   return (
     <div className="space-y-4">
       {/* Back Button */}
-      <Link href={`/${locale}/guide/training`}>
+      <Link href={`/${locale}/guide/learning`}>
         <Button variant="ghost" size="sm">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Kembali ke Training
+          Kembali ke Learning Hub
         </Button>
       </Link>
 
@@ -131,7 +146,9 @@ export function TrainingModuleDetailClient({
             <div className="flex-1">
               <CardTitle className="text-xl">{moduleTitle}</CardTitle>
               {moduleDescription && (
-                <p className="mt-2 text-sm text-slate-600">{moduleDescription}</p>
+                <p className="mt-2 text-sm text-slate-600">
+                  {moduleDescription}
+                </p>
               )}
             </div>
             {isCompleted && (
@@ -167,12 +184,16 @@ export function TrainingModuleDetailClient({
                 ) : isInProgress ? (
                   <>
                     <Play className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm text-blue-600">Sedang dikerjakan</span>
+                    <span className="text-sm text-blue-600">
+                      Sedang dikerjakan
+                    </span>
                   </>
                 ) : (
                   <>
                     <BookOpen className="h-4 w-4 text-slate-400" />
-                    <span className="text-sm text-slate-600">Belum dimulai</span>
+                    <span className="text-sm text-slate-600">
+                      Belum dimulai
+                    </span>
                   </>
                 )}
               </div>
@@ -180,12 +201,19 @@ export function TrainingModuleDetailClient({
           )}
 
           {/* Tabs for Content, Quiz, and Feedback */}
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="mt-4">
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+            className="mt-4"
+          >
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="content">Konten</TabsTrigger>
-              <TabsTrigger 
-                value="quiz" 
-                className={cn("flex items-center gap-2", !quizData?.quizId && "opacity-50 pointer-events-none")}
+              <TabsTrigger
+                value="quiz"
+                className={cn(
+                  'flex items-center gap-2',
+                  !quizData?.quizId && 'pointer-events-none opacity-50'
+                )}
               >
                 <GraduationCap className="h-4 w-4" />
                 <span>Quiz</span>
@@ -197,7 +225,9 @@ export function TrainingModuleDetailClient({
               {/* Content */}
               {moduleContent ? (
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <h3 className="mb-2 font-semibold text-slate-900">Konten Training</h3>
+                  <h3 className="mb-2 font-semibold text-slate-900">
+                    Konten Training
+                  </h3>
                   <div
                     className="prose prose-sm max-w-none text-slate-700"
                     dangerouslySetInnerHTML={{ __html: moduleContent }}
@@ -206,7 +236,8 @@ export function TrainingModuleDetailClient({
               ) : (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
                   <p className="text-sm text-amber-800">
-                    Konten training sedang dalam pengembangan. Silakan kembali lagi nanti.
+                    Konten training sedang dalam pengembangan. Silakan kembali
+                    lagi nanti.
                   </p>
                 </div>
               )}
@@ -229,8 +260,8 @@ export function TrainingModuleDetailClient({
 
             <TabsContent value="quiz" className="mt-4">
               {quizData?.quizId ? (
-                <CompetencyQuiz 
-                  quizId={quizData.quizId} 
+                <CompetencyQuiz
+                  quizId={quizData.quizId}
                   onComplete={(passed, score) => {
                     if (passed) {
                       toast.success(`Quiz passed! Score: ${score}%`);
@@ -250,7 +281,7 @@ export function TrainingModuleDetailClient({
             </TabsContent>
 
             <TabsContent value="feedback" className="mt-4">
-              <TrainerFeedbackForm 
+              <TrainerFeedbackForm
                 trainingId={moduleId}
                 onComplete={() => {
                   toast.success('Feedback berhasil dikirim');
@@ -263,4 +294,3 @@ export function TrainingModuleDetailClient({
     </div>
   );
 }
-

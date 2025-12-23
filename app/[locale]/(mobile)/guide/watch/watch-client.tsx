@@ -7,7 +7,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Activity, Clock, MapPin, ThermometerSun, TrendingUp, Users } from 'lucide-react';
+import { Activity, Clock, MapPin, TrendingUp, Users } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,11 @@ export function WatchClient({ locale: _locale }: WatchClientProps) {
   const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
 
   // Get current trip (if any)
-  const { data: tripData, isLoading: tripLoading, error: tripError } = useQuery({
+  const {
+    data: tripData,
+    isLoading: tripLoading,
+    error: tripError,
+  } = useQuery({
     queryKey: ['guide', 'trips', 'current', 'watch'],
     queryFn: async () => {
       const res = await fetch('/api/guide/trips?status=ongoing&limit=1');
@@ -85,7 +89,9 @@ export function WatchClient({ locale: _locale }: WatchClientProps) {
       {/* Header - Large, minimal */}
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold">{tripData.code || 'Trip'}</h1>
-        <p className="text-slate-400">{tripData.name || tripData.destination || 'Active Trip'}</p>
+        <p className="text-slate-400">
+          {tripData.name || tripData.destination || 'Active Trip'}
+        </p>
       </div>
 
       {/* Quick Stats Grid - Large touch targets */}
@@ -170,4 +176,3 @@ export function WatchClient({ locale: _locale }: WatchClientProps) {
     </div>
   );
 }
-

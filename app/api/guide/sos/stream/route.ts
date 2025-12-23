@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -111,7 +110,10 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const alertId = searchParams.get('alert_id');
 
   if (!alertId) {
-    return NextResponse.json({ error: 'alert_id is required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'alert_id is required' },
+      { status: 400 }
+    );
   }
 
   const {
@@ -157,4 +159,3 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     history: history || [],
   });
 });
-

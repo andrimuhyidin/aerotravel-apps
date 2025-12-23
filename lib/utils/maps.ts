@@ -17,7 +17,11 @@ export type LocationPoint = {
 /**
  * Open location in Google Maps
  */
-export function openInGoogleMaps(latitude: number, longitude: number, label?: string): void {
+export function openInGoogleMaps(
+  latitude: number,
+  longitude: number,
+  label?: string
+): void {
   const query = encodeURIComponent(label || `${latitude},${longitude}`);
   const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
   window.open(url, '_blank');
@@ -26,7 +30,11 @@ export function openInGoogleMaps(latitude: number, longitude: number, label?: st
 /**
  * Open location in Waze
  */
-export function openInWaze(latitude: number, longitude: number, label?: string): void {
+export function openInWaze(
+  latitude: number,
+  longitude: number,
+  label?: string
+): void {
   const url = `https://waze.com/ul?ll=${latitude},${longitude}&navigate=yes&q=${encodeURIComponent(label || '')}`;
   window.open(url, '_blank');
 }
@@ -38,7 +46,7 @@ export function openLocation(
   latitude: number,
   longitude: number,
   provider: MapProvider,
-  label?: string,
+  label?: string
 ): void {
   if (provider === 'google') {
     openInGoogleMaps(latitude, longitude, label);
@@ -51,7 +59,7 @@ export function openLocation(
  * Get offline map data for important locations
  * This would typically fetch from a cache or API
  */
-export function getOfflineMapPoints(tripId?: string): LocationPoint[] {
+export function getOfflineMapPoints(_tripId?: string): LocationPoint[] {
   // In a real implementation, this would fetch from IndexedDB or API
   // For now, return empty array - will be populated from trip data
   return [];
@@ -68,11 +76,11 @@ export async function cacheLocationPoint(point: LocationPoint): Promise<void> {
     // For now, use localStorage as fallback
     const cached = localStorage.getItem('offline_map_points');
     const points: LocationPoint[] = cached ? JSON.parse(cached) : [];
-    
+
     // Remove existing point with same id
     const filtered = points.filter((p) => p.id !== point.id);
     filtered.push(point);
-    
+
     localStorage.setItem('offline_map_points', JSON.stringify(filtered));
   } catch (error) {
     console.error('Failed to cache location point:', error);

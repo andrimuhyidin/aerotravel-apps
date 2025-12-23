@@ -8,7 +8,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { parsePaginationParams, createPaginationMeta } from '@/lib/api/pagination';
+import {
+  parsePaginationParams,
+  createPaginationMeta,
+} from '@/lib/api/pagination';
 import { invalidateCache } from '@/lib/cache/redis-cache';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -38,8 +41,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     .eq('guide_id', user.id)
     .maybeSingle();
   if (walletError) {
-    logger.error('Failed to load guide_wallet', walletError, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to load wallet' }, { status: 500 });
+    logger.error('Failed to load guide_wallet', walletError, {
+      guideId: user.id,
+    });
+    return NextResponse.json(
+      { error: 'Failed to load wallet' },
+      { status: 500 }
+    );
   }
 
   // Auto-verify and sync balance if wallet exists (background check)
@@ -69,16 +77,21 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
           // Update balance
           await client
             .from('guide_wallets')
-            .update({ balance: calculated, updated_at: new Date().toISOString() })
+            .update({
+              balance: calculated,
+              updated_at: new Date().toISOString(),
+            })
             .eq('id', walletRow.id);
 
           // Use calculated balance
           walletRow.balance = calculated;
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // If RPC function doesn't exist yet (migration not applied), continue with stored balance
-      logger.debug('Auto-verification skipped (function may not exist)', { guideId: user.id });
+      logger.debug('Auto-verification skipped (function may not exist)', {
+        guideId: user.id,
+      });
     }
   }
 
@@ -89,11 +102,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   // Support legacy tx_limit/tx_offset params or standard page/limit params
   const txLimitParam = searchParams.get('tx_limit');
   const txOffsetParam = searchParams.get('tx_offset');
-  
+
   let txPage = 1;
   let txLimit = 20;
   let txOffset = 0;
-  
+
   if (txLimitParam || txOffsetParam) {
     // Legacy offset-based pagination
     txLimit = parseInt(txLimitParam || '20', 10);
@@ -109,29 +122,31 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   let transactions: unknown[] = [];
   let transactionsTotal = 0;
-  
+
   if (walletId) {
     // Get total count
     const { count } = await client
       .from('guide_wallet_transactions')
       .select('*', { count: 'exact', head: true })
       .eq('wallet_id', walletId);
-    
+
     transactionsTotal = count || 0;
 
     // Get paginated transactions
     const { data: txData, error: txError } = await client
       .from('guide_wallet_transactions')
-      .select('id, transaction_type, amount, balance_before, balance_after, reference_type, reference_id, status, description, created_at')
+      .select(
+        'id, transaction_type, amount, balance_before, balance_after, reference_type, reference_id, status, description, created_at'
+      )
       .eq('wallet_id', walletId)
       .order('created_at', { ascending: false })
       .range(txOffset, txOffset + txLimit - 1);
-      
+
     if (txError) {
       logger.error('Failed to load wallet transactions', txError, { walletId });
       return NextResponse.json(
         { error: 'Failed to load wallet transactions' },
-        { status: 500 },
+        { status: 500 }
       );
     }
     transactions = txData ?? [];
@@ -140,19 +155,27 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   // Salary overview (ready vs pending)
   const { data: salaryData, error: salaryError } = await client
     .from('salary_payments')
-    .select('id, period_start, period_end, net_amount, status, all_docs_uploaded')
+    .select(
+      'id, period_start, period_end, net_amount, status, all_docs_uploaded'
+    )
     .eq('guide_id', user.id)
     .order('created_at', { ascending: false })
     .limit(10);
 
   if (salaryError) {
-    logger.error('Failed to load salary overview', salaryError, { guideId: user.id });
+    logger.error('Failed to load salary overview', salaryError, {
+      guideId: user.id,
+    });
   }
 
   return NextResponse.json({
     balance,
     transactions,
-    transactionsPagination: createPaginationMeta(transactionsTotal, txPage, txLimit),
+    transactionsPagination: createPaginationMeta(
+      transactionsTotal,
+      txPage,
+      txLimit
+    ),
     salary: salaryData ?? [],
   });
 });
@@ -192,8 +215,13 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     .maybeSingle();
 
   if (walletError) {
-    logger.error('Failed to load guide_wallet', walletError, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to load wallet' }, { status: 500 });
+    logger.error('Failed to load guide_wallet', walletError, {
+      guideId: user.id,
+    });
+    return NextResponse.json(
+      { error: 'Failed to load wallet' },
+      { status: 500 }
+    );
   }
 
   let walletRow = walletRowData;
@@ -206,15 +234,23 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       .single();
 
     if (insertError) {
-      logger.error('Failed to create guide_wallet', insertError, { guideId: user.id });
-      return NextResponse.json({ error: 'Failed to init wallet' }, { status: 500 });
+      logger.error('Failed to create guide_wallet', insertError, {
+        guideId: user.id,
+      });
+      return NextResponse.json(
+        { error: 'Failed to init wallet' },
+        { status: 500 }
+      );
     }
 
     walletRow = newWallet;
   }
 
   if (!walletRow) {
-    return NextResponse.json({ error: 'Failed to initialize wallet' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to initialize wallet' },
+      { status: 500 }
+    );
   }
 
   const walletId = walletRow.id as string;
@@ -233,15 +269,17 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const minWithdraw = 50000;
   if (amount < minWithdraw) {
     return NextResponse.json(
-      { error: `Minimum penarikan adalah Rp ${minWithdraw.toLocaleString('id-ID')}` },
-      { status: 400 },
+      {
+        error: `Minimum penarikan adalah Rp ${minWithdraw.toLocaleString('id-ID')}`,
+      },
+      { status: 400 }
     );
   }
 
   if (amount > currentBalance) {
     return NextResponse.json(
       { error: 'Jumlah melebihi saldo yang tersedia' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -260,36 +298,41 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     if (!bankAccount) {
       return NextResponse.json(
         { error: 'Rekening bank tidak ditemukan' },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     if (bankAccount.status !== 'approved') {
       return NextResponse.json(
         { error: 'Rekening bank belum disetujui' },
-        { status: 400 },
+        { status: 400 }
       );
     }
   }
 
-  const { error: txError } = await client.from('guide_wallet_transactions').insert({
-    wallet_id: walletId,
-    transaction_type: 'withdraw_request',
-    amount,
-    balance_before: balanceBefore,
-    balance_after: balanceAfter,
-    reference_type: 'wallet_withdraw',
-    status: 'pending',
-    bank_account_id: bankAccountId || null,
-    created_by: user.id,
-  });
+  const { error: txError } = await client
+    .from('guide_wallet_transactions')
+    .insert({
+      wallet_id: walletId,
+      transaction_type: 'withdraw_request',
+      amount,
+      balance_before: balanceBefore,
+      balance_after: balanceAfter,
+      reference_type: 'wallet_withdraw',
+      status: 'pending',
+      bank_account_id: bankAccountId || null,
+      created_by: user.id,
+    });
 
   if (txError) {
     logger.error('Failed to create withdraw_request', txError, {
       guideId: user.id,
       amount,
     });
-    return NextResponse.json({ error: 'Failed to create withdraw request' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to create withdraw request' },
+      { status: 500 }
+    );
   }
 
   logger.info('Guide withdraw request created', { guideId: user.id, amount });

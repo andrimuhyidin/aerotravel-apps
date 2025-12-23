@@ -15,11 +15,11 @@ export type ProcessTripPaymentResult = {
 /**
  * Process payment for a completed trip
  * Uses fee_amount from trip_guides (not from contract)
- * 
+ *
  * NOTE: This function is kept for backward compatibility and manual processing.
  * Automatic payment processing is now handled by database trigger `trigger_auto_process_trip_payment`
  * which fires when `check_out_at` is set on `trip_guides` table.
- * 
+ *
  * The trigger will automatically create wallet transaction when a guide checks out,
  * preventing missing payments and ensuring data consistency.
  */
@@ -28,7 +28,7 @@ export async function processTripPayment(
   guideId: string
 ): Promise<ProcessTripPaymentResult> {
   const supabase = await createClient();
-  const client = supabase as unknown as any;
+  const client = supabase as unknown as unknown;
 
   try {
     // 1. Get trip assignment (fee is here)
@@ -40,7 +40,10 @@ export async function processTripPayment(
       .single();
 
     if (assignmentError || !assignment) {
-      logger.error('Trip assignment not found', assignmentError, { tripId, guideId });
+      logger.error('Trip assignment not found', assignmentError, {
+        tripId,
+        guideId,
+      });
       return { success: false, error: 'Trip assignment not found' };
     }
 
@@ -60,10 +63,13 @@ export async function processTripPayment(
       .maybeSingle();
 
     if (existingPayment) {
-      logger.info('Payment already processed for trip (may have been processed by trigger)', {
-        tripId,
-        transactionId: existingPayment.id,
-      });
+      logger.info(
+        'Payment already processed for trip (may have been processed by trigger)',
+        {
+          tripId,
+          transactionId: existingPayment.id,
+        }
+      );
       return { success: true, transactionId: existingPayment.id };
     }
 
@@ -123,7 +129,10 @@ export async function processTripPayment(
       .single();
 
     if (txError) {
-      logger.error('Failed to create wallet transaction', txError, { tripId, guideId });
+      logger.error('Failed to create wallet transaction', txError, {
+        tripId,
+        guideId,
+      });
       return { success: false, error: 'Failed to create wallet transaction' };
     }
 
@@ -141,7 +150,11 @@ export async function processTripPayment(
         })
         .catch((error: unknown) => {
           // Don't fail if contract payment link fails
-          logger.warn('Failed to link payment to contract', { error, contractId: masterContract.id, transactionId: transaction.id });
+          logger.warn('Failed to link payment to contract', {
+            error,
+            contractId: masterContract.id,
+            transactionId: transaction.id,
+          });
         });
     }
 
@@ -157,7 +170,11 @@ export async function processTripPayment(
         .eq('trip_id', tripId)
         .catch((error: unknown) => {
           // Don't fail if contract_trips update fails
-          logger.warn('Failed to update contract_trips status', { error, contractId: masterContract.id, tripId });
+          logger.warn('Failed to update contract_trips status', {
+            error,
+            contractId: masterContract.id,
+            tripId,
+          });
         });
     }
 
@@ -172,7 +189,10 @@ export async function processTripPayment(
     return { success: true, transactionId: transaction.id };
   } catch (error) {
     logger.error('Failed to process trip payment', error, { tripId, guideId });
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
 }
 
@@ -182,7 +202,11 @@ export async function processTripPayment(
 export async function processMultipleTripPayments(
   tripIds: string[],
   guideId: string
-): Promise<{ success: number; failed: number; errors: Array<{ tripId: string; error: string }> }> {
+): Promise<{
+  success: number;
+  failed: number;
+  errors: Array<{ tripId: string; error: string }>;
+}> {
   const results = await Promise.allSettled(
     tripIds.map((tripId) => processTripPayment(tripId, guideId))
   );
@@ -198,9 +222,10 @@ export async function processMultipleTripPayments(
       failed++;
       errors.push({
         tripId: tripIds[index] || 'unknown',
-        error: result.status === 'rejected'
-          ? result.reason?.message || 'Unknown error'
-          : result.value.error || 'Unknown error',
+        error:
+          result.status === 'rejected'
+            ? result.reason?.message || 'Unknown error'
+            : result.value.error || 'Unknown error',
       });
     }
   });

@@ -6,7 +6,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Download, Play, Video } from 'lucide-react';
+import { Download, Video } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
 import queryKeys from '@/lib/queries/query-keys';
 
@@ -30,7 +29,10 @@ type VideoBriefingPlayerProps = {
   language?: string;
 };
 
-export function VideoBriefingPlayer({ tripId, language: initialLanguage = 'id' }: VideoBriefingPlayerProps) {
+export function VideoBriefingPlayer({
+  tripId,
+  language: initialLanguage = 'id',
+}: VideoBriefingPlayerProps) {
   const [language, setLanguage] = useState(initialLanguage);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -53,7 +55,9 @@ export function VideoBriefingPlayer({ tripId, language: initialLanguage = 'id' }
   }>({
     queryKey: [...queryKeys.guide.tripsBriefing(tripId), 'video', language],
     queryFn: async () => {
-      const res = await fetch(`/api/guide/trips/${tripId}/briefing/video?language=${language}`);
+      const res = await fetch(
+        `/api/guide/trips/${tripId}/briefing/video?language=${language}`
+      );
       if (!res.ok) throw new Error('Failed to fetch video');
       return res.json();
     },
@@ -156,7 +160,7 @@ export function VideoBriefingPlayer({ tripId, language: initialLanguage = 'id' }
           <div>
             <CardTitle className="text-lg">{video.title}</CardTitle>
             {video.description && (
-              <p className="text-sm text-slate-600 mt-1">{video.description}</p>
+              <p className="mt-1 text-sm text-slate-600">{video.description}</p>
             )}
           </div>
           <Select value={language} onValueChange={setLanguage}>
@@ -174,12 +178,12 @@ export function VideoBriefingPlayer({ tripId, language: initialLanguage = 'id' }
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Video Player */}
-        <div className="relative aspect-video bg-slate-900 rounded-lg overflow-hidden">
+        <div className="relative aspect-video overflow-hidden rounded-lg bg-slate-900">
           <video
             ref={videoRef}
             src={video.videoUrl}
             poster={video.thumbnailUrl}
-            className="w-full h-full object-contain"
+            className="h-full w-full object-contain"
             controls
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
@@ -217,7 +221,7 @@ export function VideoBriefingPlayer({ tripId, language: initialLanguage = 'id' }
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
             </div>
-            <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div className="h-2 overflow-hidden rounded-full bg-slate-200">
               <div
                 className="h-full bg-emerald-600 transition-all"
                 style={{ width: `${(currentTime / duration) * 100}%` }}
@@ -229,4 +233,3 @@ export function VideoBriefingPlayer({ tripId, language: initialLanguage = 'id' }
     </Card>
   );
 }
-

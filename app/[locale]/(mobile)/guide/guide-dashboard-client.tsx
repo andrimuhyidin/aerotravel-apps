@@ -17,97 +17,119 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-    AlertCircle,
-    AlertTriangle,
-    BarChart3,
-    Bell,
-    Calendar,
-    Camera,
-    CheckCircle,
-    ChevronRight,
-    ClipboardList,
-    Clock,
-    GraduationCap,
-    HelpCircle,
-    MapPin,
-    Pause,
-    Play,
-    RefreshCw,
-    Settings,
-    TrendingUp,
-    Upload,
-    Users,
-    Wallet,
-    XCircle
+  AlertCircle,
+  AlertTriangle,
+  BarChart3,
+  Bell,
+  Calendar,
+  CheckCircle,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  GraduationCap,
+  HelpCircle,
+  MapPin,
+  Pause,
+  Play,
+  RefreshCw,
+  Settings,
+  TrendingUp,
+  Users,
+  Wallet,
+  XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-    useGuideStats,
-    useGuideStatus,
-    useGuideTrips,
+  useGuideStats,
+  useGuideStatus,
+  useGuideTrips,
 } from '@/hooks/use-guide-common';
 import { useOfflineStatus } from '@/hooks/use-offline-status';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
 
-import type { GreetingData, OnboardingData, WeatherAlert } from '@/types/guide';
+import type { GreetingData, OnboardingData } from '@/types/guide';
 import dynamic from 'next/dynamic';
 
 // Lazy load non-critical widgets untuk better code splitting
-const ChallengesWidget = dynamic(() => import('./widgets/challenges-widget').then((mod) => ({ default: mod.ChallengesWidget })), {
-  loading: () => (
-    <div>
-      <div className="mb-3 px-1">
-        <div className="h-3 w-24 bg-slate-200 rounded animate-pulse" />
+const ChallengesWidget = dynamic(
+  () =>
+    import('./widgets/challenges-widget').then((mod) => ({
+      default: mod.ChallengesWidget,
+    })),
+  {
+    loading: () => (
+      <div>
+        <div className="mb-3 px-1">
+          <div className="h-3 w-24 animate-pulse rounded bg-slate-200" />
+        </div>
+        <div className="h-24 w-full animate-pulse rounded-lg bg-slate-100" />
       </div>
-      <div className="h-24 w-full bg-slate-100 rounded-lg animate-pulse" />
-    </div>
-  ),
-  ssr: false,
-});
+    ),
+    ssr: false,
+  }
+);
 
-const PromoUpdatesWidget = dynamic(() => import('./widgets/promo-updates-widget').then((mod) => ({ default: mod.PromoUpdatesWidget })), {
-  loading: () => (
-    <div>
-      <div className="mb-3 px-1">
-        <div className="h-3 w-32 bg-slate-200 rounded animate-pulse" />
+const PromoUpdatesWidget = dynamic(
+  () =>
+    import('./widgets/promo-updates-widget').then((mod) => ({
+      default: mod.PromoUpdatesWidget,
+    })),
+  {
+    loading: () => (
+      <div>
+        <div className="mb-3 px-1">
+          <div className="h-3 w-32 animate-pulse rounded bg-slate-200" />
+        </div>
+        <div className="h-[180px] w-full animate-pulse rounded-lg bg-slate-100" />
       </div>
-      <div className="h-[180px] w-full bg-slate-100 rounded-lg animate-pulse" />
-    </div>
-  ),
-  ssr: false,
-});
+    ),
+    ssr: false,
+  }
+);
 
-const RewardPointsWidget = dynamic(() => import('./widgets/reward-points-widget').then((mod) => ({ default: mod.RewardPointsWidget })), {
-  loading: () => (
-    <div className="h-20 w-full bg-slate-100 rounded-lg animate-pulse" />
-  ),
-  ssr: false,
-});
+const RewardPointsWidget = dynamic(
+  () =>
+    import('./widgets/reward-points-widget').then((mod) => ({
+      default: mod.RewardPointsWidget,
+    })),
+  {
+    loading: () => (
+      <div className="h-20 w-full animate-pulse rounded-lg bg-slate-100" />
+    ),
+    ssr: false,
+  }
+);
 
-const SuperAppMenuGrid = dynamic(() => import('./widgets/super-app-menu-grid').then((mod) => ({ default: mod.SuperAppMenuGrid })), {
-  loading: () => (
-    <div className="h-48 w-full bg-slate-100 rounded-lg animate-pulse" />
-  ),
-  ssr: false,
-});
+const SuperAppMenuGrid = dynamic(
+  () =>
+    import('./widgets/super-app-menu-grid').then((mod) => ({
+      default: mod.SuperAppMenuGrid,
+    })),
+  {
+    loading: () => (
+      <div className="h-48 w-full animate-pulse rounded-lg bg-slate-100" />
+    ),
+    ssr: false,
+  }
+);
 
 // WeatherWidget compact version tetap di-load langsung karena digunakan di status bar
 import { WeatherWidget } from './widgets/weather-widget';
@@ -125,7 +147,9 @@ function StatsCards({
   const { data: monthlyData } = useQuery({
     queryKey: [...queryKeys.guide.insights.monthly(), yearMonthKey],
     queryFn: async () => {
-      const res = await fetch(`/api/guide/insights/monthly?month=${yearMonthKey}`);
+      const res = await fetch(
+        `/api/guide/insights/monthly?month=${yearMonthKey}`
+      );
       if (!res.ok) return null;
       return res.json() as Promise<{
         summary: {
@@ -147,14 +171,16 @@ function StatsCards({
 
   return (
     <div className="grid grid-cols-2 gap-3">
-      <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50 to-emerald-100/50">
+      <Card className="border-0 bg-gradient-to-br from-emerald-50 to-emerald-100/50 shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-2xl font-bold text-emerald-600">
                 {completedThisMonth}
               </div>
-              <div className="mt-1 text-xs font-medium text-slate-600">Trip Selesai</div>
+              <div className="mt-1 text-xs font-medium text-slate-600">
+                Trip Selesai
+              </div>
               {totalGuests > 0 && (
                 <div className="mt-1 text-xs text-slate-500">
                   {totalGuests} tamu total
@@ -167,12 +193,15 @@ function StatsCards({
           </div>
         </CardContent>
       </Card>
-      <Card className="border-0 shadow-sm bg-gradient-to-br from-amber-50 to-amber-100/50">
+      <Card className="border-0 bg-gradient-to-br from-amber-50 to-amber-100/50 shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-1">
-                <TrendingUp className="h-4 w-4 text-amber-500" aria-hidden="true" />
+                <TrendingUp
+                  className="h-4 w-4 text-amber-500"
+                  aria-hidden="true"
+                />
                 <span className="text-2xl font-bold text-amber-600">
                   {(statsData?.averageRating ?? 0).toFixed(1)}
                 </span>
@@ -193,14 +222,16 @@ function StatsCards({
         </CardContent>
       </Card>
       {totalIncome > 0 && (
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-blue-100/50">
+        <Card className="border-0 bg-gradient-to-br from-blue-50 to-blue-100/50 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xl font-bold text-blue-600">
                   Rp {Math.round(totalIncome).toLocaleString('id-ID')}
                 </div>
-                <div className="mt-1 text-xs font-medium text-slate-600">Pendapatan</div>
+                <div className="mt-1 text-xs font-medium text-slate-600">
+                  Pendapatan
+                </div>
                 <div className="mt-1 text-xs text-slate-500">Bulan ini</div>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
@@ -211,14 +242,19 @@ function StatsCards({
         </Card>
       )}
       {monthlySummary && monthlySummary.totalPenalties > 0 && (
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-red-50 to-red-100/50">
+        <Card className="border-0 bg-gradient-to-br from-red-50 to-red-100/50 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xl font-bold text-red-600">
-                  Rp {Math.round(monthlySummary.totalPenalties).toLocaleString('id-ID')}
+                  Rp{' '}
+                  {Math.round(monthlySummary.totalPenalties).toLocaleString(
+                    'id-ID'
+                  )}
                 </div>
-                <div className="mt-1 text-xs font-medium text-slate-600">Penalty</div>
+                <div className="mt-1 text-xs font-medium text-slate-600">
+                  Penalty
+                </div>
                 <div className="mt-1 text-xs text-slate-500">Bulan ini</div>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10">
@@ -262,7 +298,13 @@ type GuideDashboardClientProps = {
         destination?: string | null;
         duration?: number | null;
         meeting_point?: string | null;
-        assignment_status?: 'pending_confirmation' | 'confirmed' | 'rejected' | 'expired' | 'auto_reassigned' | null;
+        assignment_status?:
+          | 'pending_confirmation'
+          | 'confirmed'
+          | 'rejected'
+          | 'expired'
+          | 'auto_reassigned'
+          | null;
         confirmation_deadline?: string | null;
         confirmed_at?: string | null;
         rejected_at?: string | null;
@@ -279,8 +321,11 @@ type GuideDashboardClientProps = {
   };
 };
 
-
-export function GuideDashboardClient({ userName, locale, initialData }: GuideDashboardClientProps) {
+export function GuideDashboardClient({
+  userName,
+  locale,
+  initialData,
+}: GuideDashboardClientProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { online, pending } = useOfflineStatus();
@@ -291,9 +336,24 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Use shared hooks with initialData from server
-  const { data: statusData, isLoading: statusLoading, error: statusError, refetch: refetchStatus } = useGuideStatus(initialData?.status);
-  const { data: tripsData, isLoading: tripsLoading, error: tripsError, refetch: refetchTrips } = useGuideTrips(initialData?.trips);
-  const { data: statsData, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useGuideStats(initialData?.stats);
+  const {
+    data: statusData,
+    isLoading: statusLoading,
+    error: statusError,
+    refetch: refetchStatus,
+  } = useGuideStatus(initialData?.status);
+  const {
+    data: tripsData,
+    isLoading: tripsLoading,
+    error: tripsError,
+    refetch: refetchTrips,
+  } = useGuideTrips(initialData?.trips);
+  const {
+    data: statsData,
+    isLoading: statsLoading,
+    error: statsError,
+    refetch: refetchStats,
+  } = useGuideStats(initialData?.stats);
 
   const activeTrip =
     tripsData?.trips.find((trip) => trip.status === 'ongoing') ??
@@ -305,13 +365,15 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
 
   // State for real-time countdown updates
   const [, setCountdownTick] = useState(0);
-  
+
   // Update countdown every second for pending confirmation trips
   useEffect(() => {
     const hasPendingConfirmation = trips.some(
-      (trip) => trip.assignment_status === 'pending_confirmation' && trip.confirmation_deadline
+      (trip) =>
+        trip.assignment_status === 'pending_confirmation' &&
+        trip.confirmation_deadline
     );
-    
+
     if (!hasPendingConfirmation) return;
 
     const interval = setInterval(() => {
@@ -350,8 +412,22 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
     queryFn: async () => {
       const res = await fetch('/api/guide/notifications?limit=10');
       if (!res.ok) return null;
-      const data = await res.json() as { notifications: Array<{ id: string; type: string; title: string; message: string; created_at: string; read: boolean; is_urgent?: boolean }> };
-      return data.notifications.filter((n) => !n.read && (n.is_urgent || n.type === 'trip_assignment' || n.type === 'deadline'));
+      const data = (await res.json()) as {
+        notifications: Array<{
+          id: string;
+          type: string;
+          title: string;
+          message: string;
+          created_at: string;
+          read: boolean;
+          is_urgent?: boolean;
+        }>;
+      };
+      return data.notifications.filter(
+        (n) =>
+          !n.read &&
+          (n.is_urgent || n.type === 'trip_assignment' || n.type === 'deadline')
+      );
     },
     staleTime: 60000, // 1 minute
     refetchOnWindowFocus: false, // Don't refetch on window focus
@@ -365,12 +441,20 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
       if (!activeTrip?.id) return null;
       const res = await fetch(`/api/guide/trips/${activeTrip.id}/can-start`);
       if (!res.ok) return null;
-      return await res.json() as {
+      return (await res.json()) as {
         can_start: boolean;
         reasons?: string[];
         attendance_checked_in: boolean;
-        facility_checklist: { complete: boolean; checked: number; total: number };
-        equipment_checklist: { complete: boolean; checked: number; total: number };
+        facility_checklist: {
+          complete: boolean;
+          checked: number;
+          total: number;
+        };
+        equipment_checklist: {
+          complete: boolean;
+          checked: number;
+          total: number;
+        };
         risk_assessment: { exists: boolean; safe: boolean };
         certifications_valid: boolean;
         manifest: { boarded: number; total: number; percentage: number };
@@ -388,7 +472,7 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
       if (!activeTrip?.id) return null;
       const res = await fetch(`/api/guide/crew/trip/${activeTrip.id}`);
       if (!res.ok) return null;
-      return await res.json() as {
+      return (await res.json()) as {
         currentUserRole: string | null;
         isLeadGuide: boolean;
       };
@@ -404,7 +488,13 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
     queryFn: async () => {
       const res = await fetch('/api/guide/weather?lat=-5.45&lng=105.27');
       if (!res.ok) return null;
-      const data = await res.json() as { alerts?: Array<{ title: string; description: string; severity: string }> };
+      const data = (await res.json()) as {
+        alerts?: Array<{
+          title: string;
+          description: string;
+          severity: string;
+        }>;
+      };
       return data.alerts && data.alerts.length > 0 ? data.alerts : null;
     },
     staleTime: 300000, // 5 minutes
@@ -418,7 +508,7 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
     queryFn: async () => {
       const res = await fetch('/api/guide/wallet/analytics');
       if (!res.ok) return null;
-      return await res.json() as { today: { amount: number } };
+      return (await res.json()) as { today: { amount: number } };
     },
     staleTime: 60000, // 1 minute
     refetchOnWindowFocus: false,
@@ -431,7 +521,7 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
     queryFn: async () => {
       const res = await fetch('/api/guide/greeting');
       if (!res.ok) return null;
-      return await res.json() as GreetingData;
+      return (await res.json()) as GreetingData;
     },
     staleTime: 300000, // 5 minutes (greeting doesn't need to update too frequently)
     refetchOnWindowFocus: false,
@@ -442,7 +532,9 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
   const canStartTrip = canStartData?.can_start ?? false;
 
   // Prepare recent activity data
-  const recentTrips = trips.filter((trip) => trip.status === 'completed').slice(0, 3);
+  const recentTrips = trips
+    .filter((trip) => trip.status === 'completed')
+    .slice(0, 3);
   const recentActivity = [
     ...recentTrips.map((trip) => ({
       type: 'trip_completed' as const,
@@ -451,27 +543,35 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
       date: trip.date,
       tripId: trip.id,
     })),
-  ].sort((a, b) => {
-    const dateA = a.date ? new Date(a.date).getTime() : 0;
-    const dateB = b.date ? new Date(b.date).getTime() : 0;
-    return dateB - dateA;
-  }).slice(0, 5);
+  ]
+    .sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    })
+    .slice(0, 5);
 
   // Helper function to get time remaining for confirmation deadline
-  const getConfirmationTimeRemaining = (deadline: string | null | undefined): string | null => {
+  const getConfirmationTimeRemaining = (
+    deadline: string | null | undefined
+  ): string | null => {
     if (!deadline) return null;
     const now = new Date();
     const deadlineDate = new Date(deadline);
     const diff = deadlineDate.getTime() - now.getTime();
 
     if (diff <= 0) return 'Deadline lewat';
-    if (diff < 60 * 60 * 1000) return `${Math.floor(diff / (60 * 1000))} menit lagi`;
-    if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / (60 * 60 * 1000))} jam lagi`;
+    if (diff < 60 * 60 * 1000)
+      return `${Math.floor(diff / (60 * 1000))} menit lagi`;
+    if (diff < 24 * 60 * 60 * 1000)
+      return `${Math.floor(diff / (60 * 60 * 1000))} jam lagi`;
     return `${Math.floor(diff / (24 * 60 * 60 * 1000))} hari lagi`;
   };
 
   // Prepare deadline cards data
-  const upcomingTrips = trips.filter((trip) => trip.status === 'upcoming').slice(0, 3);
+  const upcomingTrips = trips
+    .filter((trip) => trip.status === 'upcoming')
+    .slice(0, 3);
   const deadlines = upcomingTrips
     .map((trip) => {
       const tripDate = trip.date ? new Date(trip.date) : null;
@@ -480,13 +580,31 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
       const diffMs = tripDate.getTime() - now.getTime();
       const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
       if (diffHours > 0 && diffHours <= 48) {
-        return { trip, hours: diffHours, tripName: (trip as { name?: string }).name || trip.trip_code || trip.code || 'Trip' };
+        return {
+          trip,
+          hours: diffHours,
+          tripName:
+            (trip as { name?: string }).name ||
+            trip.trip_code ||
+            trip.code ||
+            'Trip',
+        };
       }
       return null;
     })
-    .filter((d): d is { trip: typeof upcomingTrips[0]; hours: number; tripName: string } => d !== null);
+    .filter(
+      (
+        d
+      ): d is {
+        trip: (typeof upcomingTrips)[0];
+        hours: number;
+        tripName: string;
+      } => d !== null
+    );
 
-  const updateStatus = async (next: 'standby' | 'on_trip' | 'not_available') => {
+  const updateStatus = async (
+    next: 'standby' | 'on_trip' | 'not_available'
+  ) => {
     if (currentStatus === next) return;
     try {
       await fetch('/api/guide/status', {
@@ -502,11 +620,20 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
   };
 
   const statusOptions = [
-    { value: 'standby' as const, label: 'Standby', icon: Play, color: 'emerald' },
+    {
+      value: 'standby' as const,
+      label: 'Standby',
+      icon: Play,
+      color: 'emerald',
+    },
     { value: 'on_trip' as const, label: 'On Trip', icon: Pause, color: 'blue' },
-    { value: 'not_available' as const, label: 'Tidak Tersedia', icon: XCircle, color: 'slate' },
+    {
+      value: 'not_available' as const,
+      label: 'Tidak Tersedia',
+      icon: XCircle,
+      color: 'slate',
+    },
   ];
-
 
   // Check onboarding status (deferred - non-critical)
   const { data: onboardingData } = useQuery<OnboardingData>({
@@ -521,8 +648,10 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
     enabled: !statusLoading && !tripsLoading && !statsLoading, // Defer until critical data loaded
   });
 
-  const needsOnboarding = onboardingData?.currentProgress?.status !== 'completed';
-  const onboardingProgress = onboardingData?.currentProgress?.completion_percentage || 0;
+  const needsOnboarding =
+    onboardingData?.currentProgress?.status !== 'completed';
+  const onboardingProgress =
+    onboardingData?.currentProgress?.completion_percentage || 0;
 
   // Fetch expiring certifications (deferred - non-critical)
   const { data: expiringCerts } = useQuery<{
@@ -535,7 +664,10 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
     }>;
     count: number;
   }>({
-    queryKey: queryKeys.guide.certifications?.expiring() || ['certifications', 'expiring'],
+    queryKey: queryKeys.guide.certifications?.expiring() || [
+      'certifications',
+      'expiring',
+    ],
     queryFn: async () => {
       const res = await fetch('/api/guide/certifications/expiring');
       if (!res.ok) return { expiring: [], count: 0 };
@@ -550,11 +682,7 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await Promise.all([
-        refetchStatus(),
-        refetchTrips(),
-        refetchStats(),
-      ]);
+      await Promise.all([refetchStatus(), refetchTrips(), refetchStats()]);
     } catch (error) {
       logger.error('Failed to refresh dashboard', error);
     } finally {
@@ -577,7 +705,7 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
 
     const handleTouchMove = (e: TouchEvent) => {
       if (touchStartY.current === null || !e.touches[0]) return;
-      
+
       const currentY = e.touches[0].clientY;
       const distance = currentY - touchStartY.current;
 
@@ -612,19 +740,20 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
     };
   }, [pullDistance, isRefreshing]);
 
-
   return (
     <div
       ref={containerRef}
       className="relative space-y-6 pb-6"
       style={{
-        transform: isPulling ? `translateY(${Math.min(pullDistance, 80)}px)` : 'translateY(0)',
+        transform: isPulling
+          ? `translateY(${Math.min(pullDistance, 80)}px)`
+          : 'translateY(0)',
         transition: isPulling ? 'none' : 'transform 0.3s ease-out',
       }}
     >
       {/* Pull-to-refresh indicator */}
       {isPulling && (
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-center py-2">
+        <div className="absolute left-0 right-0 top-0 flex items-center justify-center py-2">
           <div className="flex items-center gap-2 text-sm text-slate-600">
             {pullDistance > 50 ? (
               <>
@@ -643,28 +772,37 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
 
       {/* Refresh spinner */}
       {isRefreshing && (
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-center py-2 bg-white/80 backdrop-blur-sm z-10">
+        <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-center bg-white/80 py-2 backdrop-blur-sm">
           <RefreshCw className="h-5 w-5 animate-spin text-emerald-600" />
         </div>
       )}
 
       {/* Onboarding Prompt */}
       {needsOnboarding && (
-        <Link href={`/${locale}/guide/onboarding`} className="block" aria-label="Lengkapi onboarding">
-          <Card className="border-0 shadow-sm bg-gradient-to-r from-emerald-500 to-emerald-600 cursor-pointer transition-all hover:shadow-md active:scale-[0.98]">
+        <Link
+          href={`/${locale}/guide/onboarding`}
+          className="block"
+          aria-label="Lengkapi onboarding"
+        >
+          <Card className="cursor-pointer border-0 bg-gradient-to-r from-emerald-500 to-emerald-600 shadow-sm transition-all hover:shadow-md active:scale-[0.98]">
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                  <GraduationCap className="h-6 w-6 text-white" aria-hidden="true" />
+                  <GraduationCap
+                    className="h-6 w-6 text-white"
+                    aria-hidden="true"
+                  />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-white mb-1">Lengkapi Onboarding</h3>
+                  <h3 className="mb-1 font-semibold text-white">
+                    Lengkapi Onboarding
+                  </h3>
                   <p className="text-sm text-emerald-50">
                     {onboardingProgress > 0
                       ? `${onboardingProgress}% selesai - Lanjutkan onboarding Anda`
                       : 'Mulai onboarding untuk mempersiapkan diri sebagai guide profesional'}
                   </p>
-                  <div className="mt-2 relative h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+                  <div className="relative mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
                     <div
                       className="h-full bg-white transition-all duration-300"
                       style={{ width: `${onboardingProgress}%` }}
@@ -675,7 +813,10 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
                     />
                   </div>
                 </div>
-                <ChevronRight className="h-5 w-5 text-white flex-shrink-0" aria-hidden="true" />
+                <ChevronRight
+                  className="h-5 w-5 flex-shrink-0 text-white"
+                  aria-hidden="true"
+                />
               </div>
             </CardContent>
           </Card>
@@ -704,11 +845,16 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
               <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-red-500">
                 <Bell className="h-4 w-4 text-white" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-red-900 mb-1">Penting!</p>
+              <div className="min-w-0 flex-1">
+                <p className="mb-1 text-xs font-semibold text-red-900">
+                  Penting!
+                </p>
                 <div className="space-y-1">
                   {notificationsData.slice(0, 2).map((notif) => (
-                    <p key={notif.id} className="text-xs text-red-800 line-clamp-2">
+                    <p
+                      key={notif.id}
+                      className="line-clamp-2 text-xs text-red-800"
+                    >
                       {notif.title}: {notif.message}
                     </p>
                   ))}
@@ -741,26 +887,39 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
           variant="inline"
         />
       ) : (
-        <Card className="border-slate-200 bg-white shadow-sm overflow-hidden">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
           {/* Quick Stats Row - Compact & Unified dengan border seamless */}
           <div className="grid grid-cols-3 divide-x divide-slate-200 border-b border-slate-200">
-            <Link href={`/${locale}/guide/wallet`} className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-3 hover:from-emerald-100 hover:to-emerald-200/50 transition-colors group">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] text-slate-600 font-medium">Hari Ini</span>
-                <ChevronRight className="h-3 w-3 text-slate-400 group-hover:text-slate-600 transition-colors" />
+            <Link
+              href={`/${locale}/guide/wallet`}
+              className="group bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-3 transition-colors hover:from-emerald-100 hover:to-emerald-200/50"
+            >
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-[10px] font-medium text-slate-600">
+                  Hari Ini
+                </span>
+                <ChevronRight className="h-3 w-3 text-slate-400 transition-colors group-hover:text-slate-600" />
               </div>
               {statsLoading ? (
                 <Skeleton className="h-4 w-16" />
               ) : (
                 <div className="text-sm font-bold text-emerald-600">
-                  Rp {(walletAnalytics?.today?.amount || 0).toLocaleString('id-ID')}
+                  Rp{' '}
+                  {(walletAnalytics?.today?.amount || 0).toLocaleString(
+                    'id-ID'
+                  )}
                 </div>
               )}
             </Link>
-            <Link href={`/${locale}/guide/insights`} className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-3 hover:from-blue-100 hover:to-blue-200/50 transition-colors group">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] text-slate-600 font-medium">Bulan Ini</span>
-                <ChevronRight className="h-3 w-3 text-slate-400 group-hover:text-slate-600 transition-colors" />
+            <Link
+              href={`/${locale}/guide/insights`}
+              className="group bg-gradient-to-br from-blue-50 to-blue-100/50 p-3 transition-colors hover:from-blue-100 hover:to-blue-200/50"
+            >
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-[10px] font-medium text-slate-600">
+                  Bulan Ini
+                </span>
+                <ChevronRight className="h-3 w-3 text-slate-400 transition-colors group-hover:text-slate-600" />
               </div>
               {tripsLoading ? (
                 <Skeleton className="h-4 w-12" />
@@ -770,10 +929,15 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
                 </div>
               )}
             </Link>
-            <Link href={`/${locale}/guide/insights`} className="bg-gradient-to-br from-amber-50 to-amber-100/50 p-3 hover:from-amber-100 hover:to-amber-200/50 transition-colors group">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] text-slate-600 font-medium">Rating</span>
-                <ChevronRight className="h-3 w-3 text-slate-400 group-hover:text-slate-600 transition-colors" />
+            <Link
+              href={`/${locale}/guide/insights`}
+              className="group bg-gradient-to-br from-amber-50 to-amber-100/50 p-3 transition-colors hover:from-amber-100 hover:to-amber-200/50"
+            >
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-[10px] font-medium text-slate-600">
+                  Rating
+                </span>
+                <ChevronRight className="h-3 w-3 text-slate-400 transition-colors group-hover:text-slate-600" />
               </div>
               {statsLoading ? (
                 <Skeleton className="h-4 w-12" />
@@ -796,22 +960,29 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
                       'inline-flex h-2 w-2 flex-shrink-0 rounded-full',
                       currentStatus === 'standby' && 'bg-emerald-500',
                       currentStatus === 'on_trip' && 'bg-blue-500',
-                      currentStatus === 'not_available' && 'bg-slate-400',
+                      currentStatus === 'not_available' && 'bg-slate-400'
                     )}
                     aria-label={`Status: ${statusLabel}`}
                   />
                   <div className="flex min-w-0 flex-col">
-                    <span className="text-[10px] font-medium text-slate-500">Status</span>
+                    <span className="text-[10px] font-medium text-slate-500">
+                      Status
+                    </span>
                     {statusLoading ? (
                       <Skeleton className="mt-0.5 h-3.5 w-16" />
                     ) : (
-                      <span className={cn('text-xs font-semibold leading-tight', statusTextClass)}>
+                      <span
+                        className={cn(
+                          'text-xs font-semibold leading-tight',
+                          statusTextClass
+                        )}
+                      >
                         {statusLabel}
                       </span>
                     )}
                   </div>
                 </div>
-                
+
                 {/* Status Dropdown Menu - Di kanan section Status */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -819,13 +990,16 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
                       type="button"
                       className={cn(
                         'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 active:scale-95',
-                        statusLoading && 'cursor-not-allowed opacity-50',
+                        statusLoading && 'cursor-not-allowed opacity-50'
                       )}
                       disabled={statusLoading}
                       aria-label="Ubah status"
                       aria-haspopup="true"
                     >
-                      <ChevronRight className="h-3.5 w-3.5 rotate-90" aria-hidden="true" />
+                      <ChevronRight
+                        className="h-3.5 w-3.5 rotate-90"
+                        aria-hidden="true"
+                      />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="min-w-[200px]">
@@ -837,7 +1011,7 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
                           key={option.value}
                           className={cn(
                             'flex cursor-pointer items-center gap-3 py-2.5',
-                            isActive && 'bg-slate-50',
+                            isActive && 'bg-slate-50'
                           )}
                           onSelect={(e) => {
                             e.preventDefault();
@@ -852,13 +1026,18 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
                               'h-4 w-4 flex-shrink-0',
                               option.color === 'emerald' && 'text-emerald-600',
                               option.color === 'blue' && 'text-blue-600',
-                              option.color === 'slate' && 'text-slate-600',
+                              option.color === 'slate' && 'text-slate-600'
                             )}
                             aria-hidden="true"
                           />
-                          <span className="flex-1 font-medium">{option.label}</span>
+                          <span className="flex-1 font-medium">
+                            {option.label}
+                          </span>
                           {isActive && (
-                            <CheckCircle className="h-4 w-4 flex-shrink-0 text-emerald-600" aria-hidden="true" />
+                            <CheckCircle
+                              className="h-4 w-4 flex-shrink-0 text-emerald-600"
+                              aria-hidden="true"
+                            />
                           )}
                         </DropdownMenuItem>
                       );
@@ -871,9 +1050,17 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
                       }}
                       aria-label="Atur ketersediaan"
                     >
-                      <Settings className="h-4 w-4 flex-shrink-0 text-slate-600" aria-hidden="true" />
-                      <span className="flex-1 font-medium text-slate-700">Atur Ketersediaan</span>
-                      <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-400" aria-hidden="true" />
+                      <Settings
+                        className="h-4 w-4 flex-shrink-0 text-slate-600"
+                        aria-hidden="true"
+                      />
+                      <span className="flex-1 font-medium text-slate-700">
+                        Atur Ketersediaan
+                      </span>
+                      <ChevronRight
+                        className="h-4 w-4 flex-shrink-0 text-slate-400"
+                        aria-hidden="true"
+                      />
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -893,38 +1080,58 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
 
       {/* Certification Expiry Alert */}
       {expiringCerts && expiringCerts.expiring.length > 0 && (
-        <Link href={`/${locale}/guide/certifications`} className="block" aria-label="Lihat sertifikat yang akan berakhir">
-          <Card className="border-0 shadow-sm bg-amber-50 border-amber-200 cursor-pointer transition-all hover:shadow-md active:scale-[0.98]">
+        <Link
+          href={`/${locale}/guide/certifications`}
+          className="block"
+          aria-label="Lihat sertifikat yang akan berakhir"
+        >
+          <Card className="cursor-pointer border-0 border-amber-200 bg-amber-50 shadow-sm transition-all hover:shadow-md active:scale-[0.98]">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
-                  <AlertTriangle className="h-5 w-5 text-amber-600" aria-hidden="true" />
+                  <AlertTriangle
+                    className="h-5 w-5 text-amber-600"
+                    aria-hidden="true"
+                  />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-amber-900 mb-1">Peringatan: Sertifikat Akan Berakhir</h3>
-                  <p className="text-sm text-amber-700 mb-2">
-                    {expiringCerts.expiring.length} sertifikat akan berakhir dalam 30 hari ke depan
+                <div className="min-w-0 flex-1">
+                  <h3 className="mb-1 font-semibold text-amber-900">
+                    Peringatan: Sertifikat Akan Berakhir
+                  </h3>
+                  <p className="mb-2 text-sm text-amber-700">
+                    {expiringCerts.expiring.length} sertifikat akan berakhir
+                    dalam 30 hari ke depan
                   </p>
                   <div className="space-y-1">
                     {expiringCerts.expiring.slice(0, 2).map((cert) => (
                       <p key={cert.id} className="text-xs text-amber-600">
-                        <span className="font-medium">{cert.certification_name}:</span>{' '}
+                        <span className="font-medium">
+                          {cert.certification_name}:
+                        </span>{' '}
                         {cert.days_until_expiry} hari lagi
                         {cert.expiry_date && (
                           <span className="text-amber-500">
-                            {' '}({new Date(cert.expiry_date).toLocaleDateString('id-ID')})
+                            {' '}
+                            (
+                            {new Date(cert.expiry_date).toLocaleDateString(
+                              'id-ID'
+                            )}
+                            )
                           </span>
                         )}
                       </p>
                     ))}
                     {expiringCerts.expiring.length > 2 && (
-                      <p className="text-xs text-amber-600 font-medium">
+                      <p className="text-xs font-medium text-amber-600">
                         +{expiringCerts.expiring.length - 2} sertifikat lainnya
                       </p>
                     )}
                   </div>
                 </div>
-                <ChevronRight className="h-5 w-5 text-amber-600 flex-shrink-0 mt-1" aria-hidden="true" />
+                <ChevronRight
+                  className="mt-1 h-5 w-5 flex-shrink-0 text-amber-600"
+                  aria-hidden="true"
+                />
               </div>
             </CardContent>
           </Card>
@@ -945,67 +1152,94 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
           variant="card"
         />
       ) : activeTrip ? (
-        <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30 shadow-md overflow-hidden">
+        <Card className="overflow-hidden border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30 shadow-md">
           {/* Compact Header dengan semua info penting */}
           <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3">
-            <div className="flex items-start justify-between gap-3 mb-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-medium text-emerald-100">Trip Aktif</span>
+            <div className="mb-2 flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="text-xs font-medium text-emerald-100">
+                    Trip Aktif
+                  </span>
                   <span className="h-1 w-1 rounded-full bg-emerald-200" />
                   <span className="text-xs text-emerald-50">
-                    {(activeTrip.status ?? 'upcoming') === 'ongoing' ? 'Berlangsung' : 'Akan Berjalan'}
+                    {(activeTrip.status ?? 'upcoming') === 'ongoing'
+                      ? 'Berlangsung'
+                      : 'Akan Berjalan'}
                   </span>
                 </div>
-                <h3 className="text-lg font-bold leading-tight text-white mb-1 truncate">
-                  {(activeTrip as { name?: string }).name || activeTrip.trip_code || activeTrip.code || activeTrip.id || 'Trip'}
+                <h3 className="mb-1 truncate text-lg font-bold leading-tight text-white">
+                  {(activeTrip as { name?: string }).name ||
+                    activeTrip.trip_code ||
+                    activeTrip.code ||
+                    activeTrip.id ||
+                    'Trip'}
                 </h3>
-                {(activeTrip as { destination?: string | null }).destination && (
-                  <p className="flex items-center gap-1 text-xs text-emerald-50 truncate">
+                {(activeTrip as { destination?: string | null })
+                  .destination && (
+                  <p className="flex items-center gap-1 truncate text-xs text-emerald-50">
                     <MapPin className="h-3 w-3 flex-shrink-0" />
-                    <span className="truncate">{(activeTrip as { destination?: string | null }).destination}</span>
+                    <span className="truncate">
+                      {
+                        (activeTrip as { destination?: string | null })
+                          .destination
+                      }
+                    </span>
                   </p>
                 )}
               </div>
               {/* Quick Readiness Badge untuk upcoming trip */}
-              {(activeTrip.status ?? 'upcoming') === 'upcoming' && canStartData && (
-                <div className={cn(
-                  'flex-shrink-0 rounded-lg px-2 py-1.5 text-center min-w-[60px]',
-                  canStartTrip 
-                    ? 'bg-emerald-400/20 backdrop-blur-sm border border-emerald-300/30' 
-                    : 'bg-red-400/20 backdrop-blur-sm border border-red-300/30'
-                )}>
-                  <div className={cn('text-[10px] font-semibold mb-0.5', canStartTrip ? 'text-emerald-100' : 'text-red-100')}>
-                    {canStartTrip ? 'Siap' : 'Belum Siap'}
-                  </div>
-                  {!canStartTrip && canStartData?.reasons && canStartData.reasons.length > 0 && (
-                    <div className="text-[9px] text-red-100/80">
-                      {canStartData.reasons.length} syarat
+              {(activeTrip.status ?? 'upcoming') === 'upcoming' &&
+                canStartData && (
+                  <div
+                    className={cn(
+                      'min-w-[60px] flex-shrink-0 rounded-lg px-2 py-1.5 text-center',
+                      canStartTrip
+                        ? 'border border-emerald-300/30 bg-emerald-400/20 backdrop-blur-sm'
+                        : 'border border-red-300/30 bg-red-400/20 backdrop-blur-sm'
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'mb-0.5 text-[10px] font-semibold',
+                        canStartTrip ? 'text-emerald-100' : 'text-red-100'
+                      )}
+                    >
+                      {canStartTrip ? 'Siap' : 'Belum Siap'}
                     </div>
-                  )}
-                </div>
-              )}
+                    {!canStartTrip &&
+                      canStartData?.reasons &&
+                      canStartData.reasons.length > 0 && (
+                        <div className="text-[9px] text-red-100/80">
+                          {canStartData.reasons.length} syarat
+                        </div>
+                      )}
+                  </div>
+                )}
             </div>
 
             {/* Compact Info Bar - Semua info dalam satu baris */}
-            <div className="flex items-center gap-3 text-xs text-emerald-50/90 flex-wrap">
-              {activeTrip.date && (() => {
-                const tripDate = new Date(activeTrip.date);
-                const formattedDate = tripDate.toLocaleDateString('id-ID', {
-                  day: 'numeric',
-                  month: 'short',
-                });
-                return (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    <span>{formattedDate}</span>
-                  </div>
-                );
-              })()}
+            <div className="flex flex-wrap items-center gap-3 text-xs text-emerald-50/90">
+              {activeTrip.date &&
+                (() => {
+                  const tripDate = new Date(activeTrip.date);
+                  const formattedDate = tripDate.toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'short',
+                  });
+                  return (
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      <span>{formattedDate}</span>
+                    </div>
+                  );
+                })()}
               {(activeTrip as { duration?: number | null }).duration && (
                 <div className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  <span>{(activeTrip as { duration?: number | null }).duration}d</span>
+                  <span>
+                    {(activeTrip as { duration?: number | null }).duration}d
+                  </span>
                 </div>
               )}
               <div className="flex items-center gap-1">
@@ -1013,75 +1247,126 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
                 <span>{activeTrip.guests || 0} tamu</span>
               </div>
               {/* Readiness Progress untuk upcoming trip */}
-              {(activeTrip.status ?? 'upcoming') === 'upcoming' && canStartData && (() => {
-                const facilityChecklist = canStartData.facility_checklist ?? { total: 0, checked: 0, complete: false };
-                const equipmentChecklist = canStartData.equipment_checklist ?? { total: 0, checked: 0, complete: false };
-                const riskAssessment = canStartData.risk_assessment ?? { exists: false, safe: false };
-                const totalChecks = 2 + (facilityChecklist.total > 0 ? 1 : 0) + (equipmentChecklist.total > 0 ? 1 : 0);
-                const completedChecks = 
-                  (canStartData.attendance_checked_in ? 1 : 0) +
-                  (facilityChecklist.complete ? 1 : 0) +
-                  (equipmentChecklist.complete ? 1 : 0) +
-                  (riskAssessment.safe ? 1 : 0) +
-                  (canStartData.certifications_valid ? 1 : 0);
-                const progress = totalChecks > 0 ? (completedChecks / totalChecks) * 100 : 0;
-                return (
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    <div className="w-16 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                      <div 
-                        className={cn('h-full transition-all', canStartTrip ? 'bg-emerald-200' : 'bg-red-200')}
-                        style={{ width: `${progress}%` }}
-                      />
+              {(activeTrip.status ?? 'upcoming') === 'upcoming' &&
+                canStartData &&
+                (() => {
+                  const facilityChecklist = canStartData.facility_checklist ?? {
+                    total: 0,
+                    checked: 0,
+                    complete: false,
+                  };
+                  const equipmentChecklist =
+                    canStartData.equipment_checklist ?? {
+                      total: 0,
+                      checked: 0,
+                      complete: false,
+                    };
+                  const riskAssessment = canStartData.risk_assessment ?? {
+                    exists: false,
+                    safe: false,
+                  };
+                  const totalChecks =
+                    2 +
+                    (facilityChecklist.total > 0 ? 1 : 0) +
+                    (equipmentChecklist.total > 0 ? 1 : 0);
+                  const completedChecks =
+                    (canStartData.attendance_checked_in ? 1 : 0) +
+                    (facilityChecklist.complete ? 1 : 0) +
+                    (equipmentChecklist.complete ? 1 : 0) +
+                    (riskAssessment.safe ? 1 : 0) +
+                    (canStartData.certifications_valid ? 1 : 0);
+                  const progress =
+                    totalChecks > 0 ? (completedChecks / totalChecks) * 100 : 0;
+                  return (
+                    <div className="ml-auto flex items-center gap-1.5">
+                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/20">
+                        <div
+                          className={cn(
+                            'h-full transition-all',
+                            canStartTrip ? 'bg-emerald-200' : 'bg-red-200'
+                          )}
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-medium">
+                        {completedChecks}/{totalChecks}
+                      </span>
                     </div>
-                    <span className="text-[10px] font-medium">{completedChecks}/{totalChecks}</span>
-                  </div>
-                );
-              })()}
+                  );
+                })()}
             </div>
           </div>
 
-          <CardContent className="p-3 space-y-2.5">
+          <CardContent className="space-y-2.5 p-3">
             {/* Action Buttons - Minimalis dengan 3 tombol */}
             <div className="grid grid-cols-3 gap-2">
               {/* Primary Action - Start Trip (upcoming) atau Manifest (ongoing) */}
-              {isLeadGuide && (activeTrip.status ?? 'upcoming') === 'upcoming' ? (
+              {isLeadGuide &&
+              (activeTrip.status ?? 'upcoming') === 'upcoming' ? (
                 <Button
-                  onClick={() => router.push(`/${locale}/guide/trips/${activeTrip.trip_code || activeTrip.code || activeTrip.id || ''}`)}
+                  onClick={() =>
+                    router.push(
+                      `/${locale}/guide/trips/${activeTrip.trip_code || activeTrip.code || activeTrip.id || ''}`
+                    )
+                  }
                   className={cn(
                     'h-14 flex-col gap-1 py-0 text-white shadow-sm transition-all',
-                    canStartTrip 
-                      ? 'bg-emerald-600 hover:bg-emerald-700 active:scale-95' 
-                      : 'bg-slate-400 hover:bg-slate-500 cursor-not-allowed opacity-75'
+                    canStartTrip
+                      ? 'bg-emerald-600 hover:bg-emerald-700 active:scale-95'
+                      : 'cursor-not-allowed bg-slate-400 opacity-75 hover:bg-slate-500'
                   )}
                   disabled={!canStartTrip}
                 >
                   <Play className="h-4 w-4" />
-                  <span className="text-[10px] font-semibold leading-tight">Start Trip</span>
+                  <span className="text-[10px] font-semibold leading-tight">
+                    Start Trip
+                  </span>
                 </Button>
               ) : (activeTrip.status ?? 'upcoming') === 'ongoing' ? (
-                <Link href={`/${locale}/guide/trips/${activeTrip.trip_code || activeTrip.code || activeTrip.id}/manifest`} className="block">
-                  <Button className="h-14 flex-col gap-1 py-0 w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all active:scale-95">
+                <Link
+                  href={`/${locale}/guide/trips/${activeTrip.trip_code || activeTrip.code || activeTrip.id}/manifest`}
+                  className="block"
+                >
+                  <Button className="h-14 w-full flex-col gap-1 bg-blue-600 py-0 text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95">
                     <ClipboardList className="h-4 w-4" />
-                    <span className="text-[10px] font-semibold leading-tight">Manifest</span>
+                    <span className="text-[10px] font-semibold leading-tight">
+                      Manifest
+                    </span>
                   </Button>
                 </Link>
               ) : (
                 <div className="h-14" />
               )}
-              
+
               {/* Check-in Button */}
-              <Link href={`/${locale}/guide/attendance?trip=${activeTrip.trip_code || activeTrip.code || activeTrip.id}`} className="block">
-                <Button variant="outline" className="h-14 flex-col gap-1 py-0 w-full border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95">
+              <Link
+                href={`/${locale}/guide/attendance?trip=${activeTrip.trip_code || activeTrip.code || activeTrip.id}`}
+                className="block"
+              >
+                <Button
+                  variant="outline"
+                  className="h-14 w-full flex-col gap-1 border-slate-200 py-0 transition-all hover:border-slate-300 hover:bg-slate-50 active:scale-95"
+                >
                   <MapPin className="h-4 w-4 text-slate-700" />
-                  <span className="text-[10px] font-semibold leading-tight text-slate-700">Check-in</span>
+                  <span className="text-[10px] font-semibold leading-tight text-slate-700">
+                    Check-in
+                  </span>
                 </Button>
               </Link>
-              
+
               {/* Detail Trip Button */}
-              <Link href={`/${locale}/guide/trips/${activeTrip.trip_code || activeTrip.code || activeTrip.id}`} className="block">
-                <Button variant="outline" className="h-14 flex-col gap-1 py-0 w-full border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95">
+              <Link
+                href={`/${locale}/guide/trips/${activeTrip.trip_code || activeTrip.code || activeTrip.id}`}
+                className="block"
+              >
+                <Button
+                  variant="outline"
+                  className="h-14 w-full flex-col gap-1 border-slate-200 py-0 transition-all hover:border-slate-300 hover:bg-slate-50 active:scale-95"
+                >
                   <ChevronRight className="h-4 w-4 text-slate-700" />
-                  <span className="text-[10px] font-semibold leading-tight text-slate-700">Detail</span>
+                  <span className="text-[10px] font-semibold leading-tight text-slate-700">
+                    Detail
+                  </span>
                 </Button>
               </Link>
             </div>
@@ -1090,15 +1375,24 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
             {activeTrip.status === 'upcoming' && canStartData && (
               <details className="group">
                 <summary className="cursor-pointer list-none">
-                  <div className="flex items-center justify-between text-xs py-1.5 px-2 rounded-md hover:bg-slate-50 transition-colors">
-                    <span className="font-medium text-slate-700">Detail Kesiapan</span>
+                  <div className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-slate-50">
+                    <span className="font-medium text-slate-700">
+                      Detail Kesiapan
+                    </span>
                     <ChevronRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-open:rotate-90" />
                   </div>
                 </summary>
                 <div className="mt-1.5 space-y-1.5 pl-2 pr-1">
-                  <div className="flex items-center justify-between text-[11px] py-1">
+                  <div className="flex items-center justify-between py-1 text-[11px]">
                     <span className="text-slate-600">Check-in</span>
-                    <span className={cn('font-medium flex items-center gap-1', canStartData.attendance_checked_in ? 'text-emerald-600' : 'text-red-600')}>
+                    <span
+                      className={cn(
+                        'flex items-center gap-1 font-medium',
+                        canStartData.attendance_checked_in
+                          ? 'text-emerald-600'
+                          : 'text-red-600'
+                      )}
+                    >
                       {canStartData.attendance_checked_in ? (
                         <CheckCircle className="h-3 w-3" />
                       ) : (
@@ -1107,24 +1401,47 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
                     </span>
                   </div>
                   {canStartData.facility_checklist.total > 0 && (
-                    <div className="flex items-center justify-between text-[11px] py-1">
+                    <div className="flex items-center justify-between py-1 text-[11px]">
                       <span className="text-slate-600">Facility</span>
-                      <span className={cn('font-medium', canStartData.facility_checklist.complete ? 'text-emerald-600' : 'text-red-600')}>
-                        {canStartData.facility_checklist.checked}/{canStartData.facility_checklist.total}
+                      <span
+                        className={cn(
+                          'font-medium',
+                          canStartData.facility_checklist.complete
+                            ? 'text-emerald-600'
+                            : 'text-red-600'
+                        )}
+                      >
+                        {canStartData.facility_checklist.checked}/
+                        {canStartData.facility_checklist.total}
                       </span>
                     </div>
                   )}
                   {canStartData.equipment_checklist.total > 0 && (
-                    <div className="flex items-center justify-between text-[11px] py-1">
+                    <div className="flex items-center justify-between py-1 text-[11px]">
                       <span className="text-slate-600">Equipment</span>
-                      <span className={cn('font-medium', canStartData.equipment_checklist.complete ? 'text-emerald-600' : 'text-red-600')}>
-                        {canStartData.equipment_checklist.checked}/{canStartData.equipment_checklist.total}
+                      <span
+                        className={cn(
+                          'font-medium',
+                          canStartData.equipment_checklist.complete
+                            ? 'text-emerald-600'
+                            : 'text-red-600'
+                        )}
+                      >
+                        {canStartData.equipment_checklist.checked}/
+                        {canStartData.equipment_checklist.total}
                       </span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between text-[11px] py-1">
+                  <div className="flex items-center justify-between py-1 text-[11px]">
                     <span className="text-slate-600">Risk Assessment</span>
-                    <span className={cn('font-medium flex items-center gap-1', canStartData.risk_assessment.safe ? 'text-emerald-600' : 'text-red-600')}>
+                    <span
+                      className={cn(
+                        'flex items-center gap-1 font-medium',
+                        canStartData.risk_assessment.safe
+                          ? 'text-emerald-600'
+                          : 'text-red-600'
+                      )}
+                    >
                       {canStartData.risk_assessment.safe ? (
                         <CheckCircle className="h-3 w-3" />
                       ) : (
@@ -1132,9 +1449,16 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
                       )}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] py-1">
+                  <div className="flex items-center justify-between py-1 text-[11px]">
                     <span className="text-slate-600">Sertifikasi</span>
-                    <span className={cn('font-medium flex items-center gap-1', canStartData.certifications_valid ? 'text-emerald-600' : 'text-red-600')}>
+                    <span
+                      className={cn(
+                        'flex items-center gap-1 font-medium',
+                        canStartData.certifications_valid
+                          ? 'text-emerald-600'
+                          : 'text-red-600'
+                      )}
+                    >
                       {canStartData.certifications_valid ? (
                         <CheckCircle className="h-3 w-3" />
                       ) : (
@@ -1165,19 +1489,28 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
           {deadlines
             .filter((d) => d.trip.id !== activeTrip?.id)
             .map((deadline) => (
-              <Card key={deadline.trip.id} className="border-amber-200 bg-amber-50/50">
+              <Card
+                key={deadline.trip.id}
+                className="border-amber-200 bg-amber-50/50"
+              >
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-amber-900">
                         Trip akan dimulai dalam {deadline.hours} jam
                       </p>
-                      <p className="mt-0.5 text-xs text-amber-700 truncate">
+                      <p className="mt-0.5 truncate text-xs text-amber-700">
                         {deadline.tripName}
                       </p>
                     </div>
-                    <Link href={`/${locale}/guide/trips/${deadline.trip.trip_code || deadline.trip.code || deadline.trip.id}`}>
-                      <Button size="sm" variant="outline" className="h-8 border-amber-300 text-amber-700 hover:bg-amber-100">
+                    <Link
+                      href={`/${locale}/guide/trips/${deadline.trip.trip_code || deadline.trip.code || deadline.trip.id}`}
+                    >
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-amber-300 text-amber-700 hover:bg-amber-100"
+                      >
                         Lihat
                       </Button>
                     </Link>
@@ -1207,7 +1540,7 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
             {Array.from({ length: 3 }).map((_, i) => (
               <Card key={i} className="border-0 shadow-sm">
                 <CardContent className="p-3">
-                  <Skeleton className="h-4 w-24 mb-2" />
+                  <Skeleton className="mb-2 h-4 w-24" />
                   <Skeleton className="h-3 w-32" />
                 </CardContent>
               </Card>
@@ -1219,170 +1552,202 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
             onRetry={() => void refetchTrips()}
             variant="card"
           />
-        ) : (() => {
-          const deadlineTripIds = new Set(deadlines.map((d) => d.trip.id));
-          
-          // Filter upcoming trips (exclude activeTrip dan trip yang sudah di Countdown Cards)
-          const upcomingTripsFiltered = trips
-            .filter((trip) => {
+        ) : (
+          (() => {
+            const deadlineTripIds = new Set(deadlines.map((d) => d.trip.id));
+
+            // Filter upcoming trips (exclude activeTrip dan trip yang sudah di Countdown Cards)
+            const upcomingTripsFiltered = trips.filter((trip) => {
               if (trip.id === activeTrip?.id) return false;
               if (deadlineTripIds.has(trip.id)) return false;
               return trip.status === 'upcoming';
             });
 
-          // Separate pending confirmation trips and regular upcoming trips
-          // Prioritize pending confirmation trips (show them first)
-          const pendingConfirmationTrips = upcomingTripsFiltered.filter(
-            (trip) => trip.assignment_status === 'pending_confirmation'
-          );
-          const regularUpcomingTrips = upcomingTripsFiltered.filter(
-            (trip) => trip.assignment_status !== 'pending_confirmation'
-          );
+            // Separate pending confirmation trips and regular upcoming trips
+            // Prioritize pending confirmation trips (show them first)
+            const pendingConfirmationTrips = upcomingTripsFiltered.filter(
+              (trip) => trip.assignment_status === 'pending_confirmation'
+            );
+            const regularUpcomingTrips = upcomingTripsFiltered.filter(
+              (trip) => trip.assignment_status !== 'pending_confirmation'
+            );
 
-          // Combine: pending confirmation first, then regular upcoming trips
-          const sortedUpcomingTrips = [...pendingConfirmationTrips, ...regularUpcomingTrips].slice(0, 3);
+            // Combine: pending confirmation first, then regular upcoming trips
+            const sortedUpcomingTrips = [
+              ...pendingConfirmationTrips,
+              ...regularUpcomingTrips,
+            ].slice(0, 3);
 
-          if (sortedUpcomingTrips.length === 0) {
-            // No upcoming trips to show - check if there are any upcoming trips at all
-            const hasAnyUpcomingTrips = trips.some((trip) => trip.status === 'upcoming');
-            
-            if (!hasAnyUpcomingTrips) {
-              // No upcoming trips at all - show empty state
-              return (
-                <EmptyState
-                  icon={Calendar}
-                  title="Belum ada trip yang dijadwalkan"
-                  description="Trip yang dijadwalkan akan muncul di sini setelah ditugaskan ke Anda."
-                  action={
-                    <Link
-                      href={`/${locale}/help#getting-started`}
-                      className="inline-flex items-center gap-2 text-sm font-medium text-emerald-600"
-                    >
-                      <HelpCircle className="h-4 w-4" aria-hidden="true" />
-                      Pelajari cara mendapatkan trip
-                    </Link>
-                  }
-                  variant="subtle"
-                />
+            if (sortedUpcomingTrips.length === 0) {
+              // No upcoming trips to show - check if there are any upcoming trips at all
+              const hasAnyUpcomingTrips = trips.some(
+                (trip) => trip.status === 'upcoming'
               );
-            } else {
-              // Has upcoming trips but all are already shown in active/deadline sections
-              return (
-                <EmptyState
-                  icon={Calendar}
-                  title="Belum ada trip yang dijadwalkan"
-                  description="Trip yang dijadwalkan akan muncul di sini setelah ditugaskan ke Anda."
-                  variant="subtle"
-                />
-              );
-            }
-          }
 
-          return (
-            <div className="space-y-2" role="list" aria-label="Daftar trip mendatang">
-              {sortedUpcomingTrips.map((trip) => {
-                const tripDate = trip.date ? new Date(trip.date) : null;
-                const formattedDate = tripDate
-                  ? tripDate.toLocaleDateString('id-ID', {
-                      weekday: 'short',
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })
-                  : trip.date;
-                const tripName = (trip as { name?: string }).name || trip.trip_code || trip.code || 'Trip';
-                const destination = (trip as { destination?: string | null }).destination;
-                const duration = (trip as { duration?: number | null }).duration;
-                const meetingPoint = (trip as { meeting_point?: string | null }).meeting_point;
-                const isPendingConfirmation = trip.assignment_status === 'pending_confirmation';
-                const confirmationTimeRemaining = isPendingConfirmation 
-                  ? getConfirmationTimeRemaining(trip.confirmation_deadline || null)
-                  : null;
-
+              if (!hasAnyUpcomingTrips) {
+                // No upcoming trips at all - show empty state
                 return (
-                  <Link
-                    key={trip.id}
-                    href={`/${locale}/guide/trips/${trip.trip_code || trip.code || trip.id}`}
-                    className={cn(
-                      'block rounded-lg border p-4 transition-all hover:shadow-sm active:scale-[0.98]',
-                      isPendingConfirmation
-                        ? 'border-amber-300 bg-gradient-to-br from-amber-50 via-amber-50/50 to-orange-50/30 hover:border-amber-400'
-                        : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/30'
-                    )}
-                    role="listitem"
-                    aria-label={`Trip ${tripName} pada ${formattedDate}`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-2">
-                          <div className={cn(
-                            'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg',
-                            isPendingConfirmation
-                              ? 'bg-amber-100'
-                              : 'bg-emerald-100'
-                          )}>
-                            {isPendingConfirmation ? (
-                              <AlertCircle className="h-5 w-5 text-amber-600" />
-                            ) : (
-                              <Calendar className="h-5 w-5 text-emerald-600" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start gap-2">
-                              <div className="font-semibold text-slate-900 leading-tight flex-1 min-w-0">
-                                {tripName}
+                  <EmptyState
+                    icon={Calendar}
+                    title="Belum ada trip yang dijadwalkan"
+                    description="Trip yang dijadwalkan akan muncul di sini setelah ditugaskan ke Anda."
+                    action={
+                      <Link
+                        href={`/${locale}/help#getting-started`}
+                        className="inline-flex items-center gap-2 text-sm font-medium text-emerald-600"
+                      >
+                        <HelpCircle className="h-4 w-4" aria-hidden="true" />
+                        Pelajari cara mendapatkan trip
+                      </Link>
+                    }
+                    variant="subtle"
+                  />
+                );
+              } else {
+                // Has upcoming trips but all are already shown in active/deadline sections
+                return (
+                  <EmptyState
+                    icon={Calendar}
+                    title="Belum ada trip yang dijadwalkan"
+                    description="Trip yang dijadwalkan akan muncul di sini setelah ditugaskan ke Anda."
+                    variant="subtle"
+                  />
+                );
+              }
+            }
+
+            return (
+              <div
+                className="space-y-2"
+                role="list"
+                aria-label="Daftar trip mendatang"
+              >
+                {sortedUpcomingTrips.map((trip) => {
+                  const tripDate = trip.date ? new Date(trip.date) : null;
+                  const formattedDate = tripDate
+                    ? tripDate.toLocaleDateString('id-ID', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                    : trip.date;
+                  const tripName =
+                    (trip as { name?: string }).name ||
+                    trip.trip_code ||
+                    trip.code ||
+                    'Trip';
+                  const destination = (trip as { destination?: string | null })
+                    .destination;
+                  const duration = (trip as { duration?: number | null })
+                    .duration;
+                  const meetingPoint = (
+                    trip as { meeting_point?: string | null }
+                  ).meeting_point;
+                  const isPendingConfirmation =
+                    trip.assignment_status === 'pending_confirmation';
+                  const confirmationTimeRemaining = isPendingConfirmation
+                    ? getConfirmationTimeRemaining(
+                        trip.confirmation_deadline || null
+                      )
+                    : null;
+
+                  return (
+                    <Link
+                      key={trip.id}
+                      href={`/${locale}/guide/trips/${trip.trip_code || trip.code || trip.id}`}
+                      className={cn(
+                        'block rounded-lg border p-4 transition-all hover:shadow-sm active:scale-[0.98]',
+                        isPendingConfirmation
+                          ? 'border-amber-300 bg-gradient-to-br from-amber-50 via-amber-50/50 to-orange-50/30 hover:border-amber-400'
+                          : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/30'
+                      )}
+                      role="listitem"
+                      aria-label={`Trip ${tripName} pada ${formattedDate}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start gap-2">
+                            <div
+                              className={cn(
+                                'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg',
+                                isPendingConfirmation
+                                  ? 'bg-amber-100'
+                                  : 'bg-emerald-100'
+                              )}
+                            >
+                              {isPendingConfirmation ? (
+                                <AlertCircle className="h-5 w-5 text-amber-600" />
+                              ) : (
+                                <Calendar className="h-5 w-5 text-emerald-600" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start gap-2">
+                                <div className="min-w-0 flex-1 font-semibold leading-tight text-slate-900">
+                                  {tripName}
+                                </div>
+                                {isPendingConfirmation && (
+                                  <div className="flex-shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                                    Butuh Konfirmasi
+                                  </div>
+                                )}
                               </div>
-                              {isPendingConfirmation && (
-                                <div className="flex-shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                                  Butuh Konfirmasi
+                              {isPendingConfirmation &&
+                                confirmationTimeRemaining && (
+                                  <div className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-amber-700">
+                                    <Clock className="h-3 w-3" />
+                                    <span>{confirmationTimeRemaining}</span>
+                                  </div>
+                                )}
+                              {destination && (
+                                <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-600">
+                                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                                  <span className="truncate">
+                                    {destination}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {formattedDate}
+                                </span>
+                                {duration && (
+                                  <>
+                                    <span aria-hidden="true">•</span>
+                                    <span>{duration} hari</span>
+                                  </>
+                                )}
+                                <span aria-hidden="true">•</span>
+                                <span className="flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  {trip.guests || 0} tamu
+                                </span>
+                              </div>
+                              {meetingPoint && (
+                                <div className="mt-2 text-xs text-slate-500">
+                                  <span className="font-medium">
+                                    Meeting Point:
+                                  </span>{' '}
+                                  {meetingPoint}
                                 </div>
                               )}
                             </div>
-                            {isPendingConfirmation && confirmationTimeRemaining && (
-                              <div className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-amber-700">
-                                <Clock className="h-3 w-3" />
-                                <span>{confirmationTimeRemaining}</span>
-                              </div>
-                            )}
-                            {destination && (
-                              <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-600">
-                                <MapPin className="h-3 w-3 flex-shrink-0" />
-                                <span className="truncate">{destination}</span>
-                              </div>
-                            )}
-                            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {formattedDate}
-                              </span>
-                              {duration && (
-                                <>
-                                  <span aria-hidden="true">•</span>
-                                  <span>{duration} hari</span>
-                                </>
-                              )}
-                              <span aria-hidden="true">•</span>
-                              <span className="flex items-center gap-1">
-                                <Users className="h-3 w-3" />
-                                {trip.guests || 0} tamu
-                              </span>
-                            </div>
-                            {meetingPoint && (
-                              <div className="mt-2 text-xs text-slate-500">
-                                <span className="font-medium">Meeting Point:</span> {meetingPoint}
-                              </div>
-                            )}
                           </div>
                         </div>
+                        <ChevronRight
+                          className="mt-1 h-5 w-5 flex-shrink-0 text-slate-400"
+                          aria-hidden="true"
+                        />
                       </div>
-                      <ChevronRight className="h-5 w-5 flex-shrink-0 text-slate-400 mt-1" aria-hidden="true" />
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          );
-        })()}
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          })()
+        )}
       </div>
 
       {/* Offline Status Banner */}
@@ -1390,11 +1755,17 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" aria-hidden="true" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-amber-900">Mode Offline</p>
+              <AlertTriangle
+                className="h-4 w-4 flex-shrink-0 text-amber-600"
+                aria-hidden="true"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-amber-900">
+                  Mode Offline
+                </p>
                 <p className="text-[10px] text-amber-700">
-                  {pending} {pending === 1 ? 'aksi' : 'aksi'} menunggu sinkronisasi
+                  {pending} {pending === 1 ? 'aksi' : 'aksi'} menunggu
+                  sinkronisasi
                 </p>
               </div>
               <Link
@@ -1425,9 +1796,13 @@ export function GuideDashboardClient({ userName, locale, initialData }: GuideDas
                     <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-100">
                       <CheckCircle className="h-4 w-4 text-emerald-600" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-slate-900">{activity.title}</p>
-                      <p className="mt-0.5 text-xs text-slate-600">{activity.message}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-slate-900">
+                        {activity.title}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-600">
+                        {activity.message}
+                      </p>
                       {activity.date && (
                         <p className="mt-1 text-[10px] text-slate-500">
                           {new Date(activity.date).toLocaleDateString('id-ID', {

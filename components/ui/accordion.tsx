@@ -11,7 +11,9 @@ type AccordionContextValue = {
   defaultOpen?: boolean;
 };
 
-const AccordionContext = React.createContext<AccordionContextValue | undefined>(undefined);
+const AccordionContext = React.createContext<AccordionContextValue | undefined>(
+  undefined
+);
 
 type AccordionProps = {
   children: React.ReactNode;
@@ -20,7 +22,12 @@ type AccordionProps = {
   type?: 'single' | 'multiple';
 };
 
-export function Accordion({ children, className, defaultOpen = false, type = 'multiple' }: AccordionProps) {
+export function Accordion({
+  children,
+  className,
+  defaultOpen = false,
+  type = 'multiple',
+}: AccordionProps) {
   const defaultValues = React.useMemo(() => {
     const values: string[] = [];
     React.Children.forEach(children, (child) => {
@@ -40,20 +47,23 @@ export function Accordion({ children, className, defaultOpen = false, type = 'mu
 
   const [openItems, setOpenItems] = React.useState<Set<string>>(defaultValues);
 
-  const toggleItem = React.useCallback((value: string) => {
-    setOpenItems((prev) => {
-      const next = new Set(prev);
-      if (next.has(value)) {
-        next.delete(value);
-      } else {
-        if (type === 'single') {
-          next.clear();
+  const toggleItem = React.useCallback(
+    (value: string) => {
+      setOpenItems((prev) => {
+        const next = new Set(prev);
+        if (next.has(value)) {
+          next.delete(value);
+        } else {
+          if (type === 'single') {
+            next.clear();
+          }
+          next.add(value);
         }
-        next.add(value);
-      }
-      return next;
-    });
-  }, [type]);
+        return next;
+      });
+    },
+    [type]
+  );
 
   return (
     <AccordionContext.Provider value={{ openItems, toggleItem, defaultOpen }}>
@@ -69,7 +79,12 @@ type AccordionItemProps = {
   defaultOpen?: boolean;
 };
 
-export function AccordionItem({ value, children, className, defaultOpen }: AccordionItemProps) {
+export function AccordionItem({
+  value,
+  children,
+  className,
+  _defaultOpen,
+}: AccordionItemProps) {
   const context = React.useContext(AccordionContext);
   if (!context) throw new Error('AccordionItem must be used within Accordion');
 
@@ -77,14 +92,26 @@ export function AccordionItem({ value, children, className, defaultOpen }: Accor
   const isOpen = context.openItems.has(value);
 
   return (
-    <div className={cn('border border-slate-200 rounded-lg overflow-hidden', className)}>
+    <div
+      className={cn(
+        'overflow-hidden rounded-lg border border-slate-200',
+        className
+      )}
+    >
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child)) {
-          const childProps = child.props as { value?: string; isOpen?: boolean };
-          return React.cloneElement(child as React.ReactElement<{ value?: string; isOpen?: boolean }>, { 
-            value: childProps.value || value, 
-            isOpen: childProps.isOpen !== undefined ? childProps.isOpen : isOpen 
-          });
+          const childProps = child.props as {
+            value?: string;
+            isOpen?: boolean;
+          };
+          return React.cloneElement(
+            child as React.ReactElement<{ value?: string; isOpen?: boolean }>,
+            {
+              value: childProps.value || value,
+              isOpen:
+                childProps.isOpen !== undefined ? childProps.isOpen : isOpen,
+            }
+          );
         }
         return child;
       })}
@@ -99,9 +126,15 @@ type AccordionTriggerProps = {
   isOpen?: boolean;
 };
 
-export function AccordionTrigger({ value, children, className, isOpen }: AccordionTriggerProps) {
+export function AccordionTrigger({
+  value,
+  children,
+  className,
+  isOpen,
+}: AccordionTriggerProps) {
   const context = React.useContext(AccordionContext);
-  if (!context) throw new Error('AccordionTrigger must be used within Accordion');
+  if (!context)
+    throw new Error('AccordionTrigger must be used within Accordion');
 
   return (
     <button
@@ -115,7 +148,10 @@ export function AccordionTrigger({ value, children, className, isOpen }: Accordi
     >
       <span>{children}</span>
       <ChevronDown
-        className={cn('h-5 w-5 text-slate-500 transition-transform duration-200', isOpen && 'rotate-180')}
+        className={cn(
+          'h-5 w-5 text-slate-500 transition-transform duration-200',
+          isOpen && 'rotate-180'
+        )}
         aria-hidden="true"
       />
     </button>
@@ -129,14 +165,21 @@ type AccordionContentProps = {
   isOpen?: boolean;
 };
 
-export function AccordionContent({ value, children, className, isOpen }: AccordionContentProps) {
+export function AccordionContent({
+  _value,
+  children,
+  className,
+  isOpen,
+}: AccordionContentProps) {
   if (!isOpen) return null;
 
   return (
     <div
       className={cn(
         'overflow-hidden transition-all duration-200',
-        isOpen ? 'animate-in slide-in-from-top-1' : 'animate-out slide-out-to-top-1',
+        isOpen
+          ? 'animate-in slide-in-from-top-1'
+          : 'animate-out slide-out-to-top-1',
         className
       )}
     >

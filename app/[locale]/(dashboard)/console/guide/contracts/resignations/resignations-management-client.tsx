@@ -18,7 +18,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -67,37 +67,47 @@ type Resignation = {
   } | null;
 };
 
-export function ResignationsManagementClient({ locale }: ResignationsManagementClientProps) {
+export function ResignationsManagementClient({
+  locale,
+}: ResignationsManagementClientProps) {
   const queryClient = useQueryClient();
-  const [selectedResignation, setSelectedResignation] = useState<Resignation | null>(null);
+  const [selectedResignation, setSelectedResignation] =
+    useState<Resignation | null>(null);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data, isLoading, error, refetch } = useQuery<{ data: Resignation[] }>({
-    queryKey: ['admin', 'guide', 'contracts', 'resignations', statusFilter],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (statusFilter !== 'all') {
-        params.append('status', statusFilter);
-      }
-      const res = await fetch(`/api/admin/guide/contracts/resignations?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to load resignations');
-      return res.json();
-    },
-  });
+  const { data, isLoading, error, refetch } = useQuery<{ data: Resignation[] }>(
+    {
+      queryKey: ['admin', 'guide', 'contracts', 'resignations', statusFilter],
+      queryFn: async () => {
+        const params = new URLSearchParams();
+        if (statusFilter !== 'all') {
+          params.append('status', statusFilter);
+        }
+        const res = await fetch(
+          `/api/admin/guide/contracts/resignations?${params.toString()}`
+        );
+        if (!res.ok) throw new Error('Failed to load resignations');
+        return res.json();
+      },
+    }
+  );
 
   const resignations = data?.data || [];
 
   const approveMutation = useMutation({
     mutationFn: async (resignationId: string) => {
-      const res = await fetch(`/api/admin/guide/contracts/resignations/${resignationId}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ review_notes: reviewNotes }),
-      });
+      const res = await fetch(
+        `/api/admin/guide/contracts/resignations/${resignationId}/approve`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ review_notes: reviewNotes }),
+        }
+      );
       if (!res.ok) {
         const body = (await res.json()) as { error?: string };
         throw new Error(body.error || 'Gagal menyetujui resign');
@@ -105,7 +115,9 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'guide', 'contracts', 'resignations'] });
+      queryClient.invalidateQueries({
+        queryKey: ['admin', 'guide', 'contracts', 'resignations'],
+      });
       setShowApproveDialog(false);
       setSelectedResignation(null);
       setReviewNotes('');
@@ -113,20 +125,25 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
     },
     onError: (error) => {
       logger.error('Failed to approve resignation', error);
-      toast.error(error instanceof Error ? error.message : 'Gagal menyetujui resign');
+      toast.error(
+        error instanceof Error ? error.message : 'Gagal menyetujui resign'
+      );
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: async (resignationId: string) => {
-      const res = await fetch(`/api/admin/guide/contracts/resignations/${resignationId}/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rejection_reason: rejectionReason,
-          review_notes: reviewNotes,
-        }),
-      });
+      const res = await fetch(
+        `/api/admin/guide/contracts/resignations/${resignationId}/reject`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rejection_reason: rejectionReason,
+            review_notes: reviewNotes,
+          }),
+        }
+      );
       if (!res.ok) {
         const body = (await res.json()) as { error?: string };
         throw new Error(body.error || 'Gagal menolak resign');
@@ -134,7 +151,9 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'guide', 'contracts', 'resignations'] });
+      queryClient.invalidateQueries({
+        queryKey: ['admin', 'guide', 'contracts', 'resignations'],
+      });
       setShowRejectDialog(false);
       setSelectedResignation(null);
       setRejectionReason('');
@@ -143,7 +162,9 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
     },
     onError: (error) => {
       logger.error('Failed to reject resignation', error);
-      toast.error(error instanceof Error ? error.message : 'Gagal menolak resign');
+      toast.error(
+        error instanceof Error ? error.message : 'Gagal menolak resign'
+      );
     },
   });
 
@@ -159,7 +180,10 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
     return (
       <Card className="border-0 shadow-sm">
         <CardContent className="p-6">
-          <LoadingState variant="spinner" message="Memuat pengajuan resign..." />
+          <LoadingState
+            variant="spinner"
+            message="Memuat pengajuan resign..."
+          />
         </CardContent>
       </Card>
     );
@@ -179,7 +203,9 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
     );
   }
 
-  const pendingResignations = resignations.filter((r) => r.status === 'pending');
+  const pendingResignations = resignations.filter(
+    (r) => r.status === 'pending'
+  );
 
   return (
     <div className="space-y-6">
@@ -191,7 +217,9 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-slate-900">Pengajuan Resign Guide</h1>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Pengajuan Resign Guide
+          </h1>
           <p className="text-sm text-slate-600">
             {pendingResignations.length} pengajuan pending
           </p>
@@ -234,7 +262,7 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
       {resignations.length === 0 ? (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-12 text-center">
-            <LogOut className="mx-auto h-12 w-12 text-slate-400 mb-4" />
+            <LogOut className="mx-auto mb-4 h-12 w-12 text-slate-400" />
             <p className="text-slate-600">Tidak ada pengajuan resign</p>
           </CardContent>
         </Card>
@@ -245,17 +273,21 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
+                    <div className="mb-3 flex items-center gap-3">
                       <h3 className="font-semibold text-slate-900">
                         {resignation.contract?.title || 'Kontrak'}
                       </h3>
                       <span
                         className={cn(
                           'rounded-full px-3 py-1 text-xs font-medium',
-                          resignation.status === 'pending' && 'bg-amber-100 text-amber-700',
-                          resignation.status === 'approved' && 'bg-emerald-100 text-emerald-700',
-                          resignation.status === 'rejected' && 'bg-red-100 text-red-700',
-                          resignation.status === 'withdrawn' && 'bg-slate-100 text-slate-600',
+                          resignation.status === 'pending' &&
+                            'bg-amber-100 text-amber-700',
+                          resignation.status === 'approved' &&
+                            'bg-emerald-100 text-emerald-700',
+                          resignation.status === 'rejected' &&
+                            'bg-red-100 text-red-700',
+                          resignation.status === 'withdrawn' &&
+                            'bg-slate-100 text-slate-600'
                         )}
                       >
                         {resignation.status === 'pending' && 'Pending'}
@@ -269,7 +301,9 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
                       <div>
                         <span className="text-slate-500">Guide:</span>{' '}
                         <span className="font-medium text-slate-900">
-                          {resignation.guide?.full_name || resignation.guide?.email || '-'}
+                          {resignation.guide?.full_name ||
+                            resignation.guide?.email ||
+                            '-'}
                         </span>
                       </div>
                       <div>
@@ -280,7 +314,9 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
                       </div>
                       <div>
                         <span className="text-slate-500">Alasan:</span>
-                        <p className="font-medium text-slate-900 mt-1">{resignation.reason}</p>
+                        <p className="mt-1 font-medium text-slate-900">
+                          {resignation.reason}
+                        </p>
                       </div>
                       <div>
                         <span className="text-slate-500">Tanggal Efektif:</span>{' '}
@@ -298,15 +334,17 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
                         <div>
                           <span className="text-slate-500">Direview oleh:</span>{' '}
                           <span className="font-medium text-slate-900">
-                            {resignation.reviewed_by_user?.full_name || '-'} pada{' '}
-                            {formatDate(resignation.reviewed_at)}
+                            {resignation.reviewed_by_user?.full_name || '-'}{' '}
+                            pada {formatDate(resignation.reviewed_at)}
                           </span>
                         </div>
                       )}
                       {resignation.rejection_reason && (
                         <div>
-                          <span className="text-slate-500">Alasan Penolakan:</span>
-                          <p className="font-medium text-red-600 mt-1">
+                          <span className="text-slate-500">
+                            Alasan Penolakan:
+                          </span>
+                          <p className="mt-1 font-medium text-red-600">
                             {resignation.rejection_reason}
                           </p>
                         </div>
@@ -353,13 +391,16 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
           <DialogHeader>
             <DialogTitle>Setujui Pengajuan Resign</DialogTitle>
             <DialogDescription>
-              Setujui pengajuan resign ini. Kontrak akan dihentikan secara otomatis.
+              Setujui pengajuan resign ini. Kontrak akan dihentikan secara
+              otomatis.
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Catatan Review (Opsional)</label>
+              <label className="text-sm font-medium">
+                Catatan Review (Opsional)
+              </label>
               <Textarea
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
@@ -370,7 +411,10 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowApproveDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowApproveDialog(false)}
+            >
               Batal
             </Button>
             <Button
@@ -404,11 +448,12 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
           <DialogHeader>
             <DialogTitle>Tolak Pengajuan Resign</DialogTitle>
             <DialogDescription>
-              Berikan alasan penolakan pengajuan resign ini (minimal 10 karakter)
+              Berikan alasan penolakan pengajuan resign ini (minimal 10
+              karakter)
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4 space-y-4">
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Alasan Penolakan *</label>
               <Textarea
@@ -424,7 +469,9 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Catatan Review (Opsional)</label>
+              <label className="text-sm font-medium">
+                Catatan Review (Opsional)
+              </label>
               <Textarea
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
@@ -435,7 +482,10 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowRejectDialog(false)}
+            >
               Batal
             </Button>
             <Button
@@ -444,7 +494,9 @@ export function ResignationsManagementClient({ locale }: ResignationsManagementC
                   rejectMutation.mutate(selectedResignation.id);
                 }
               }}
-              disabled={rejectionReason.trim().length < 10 || rejectMutation.isPending}
+              disabled={
+                rejectionReason.trim().length < 10 || rejectMutation.isPending
+              }
               variant="destructive"
             >
               {rejectMutation.isPending ? (

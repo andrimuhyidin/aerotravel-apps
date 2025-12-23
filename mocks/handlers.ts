@@ -1,7 +1,7 @@
 /**
  * Mock Service Worker (MSW) Handlers
  * Mock API responses for frontend development when backend is not ready
- * 
+ *
  * Setup:
  * 1. Install: pnpm add -D msw
  * 2. Setup worker: See mocks/browser.ts and mocks/server.ts
@@ -60,10 +60,7 @@ export const handlers = [
   http.get('/api/bookings/:id', ({ params }) => {
     const booking = mockBookings.find((b) => b.id === params.id);
     if (!booking) {
-      return HttpResponse.json(
-        { error: 'Booking not found' },
-        { status: 404 }
-      );
+      return HttpResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
     return HttpResponse.json({ data: booking });
   }),
@@ -76,7 +73,7 @@ export const handlers = [
       status: 'pending',
       createdAt: new Date().toISOString(),
     };
-    mockBookings.push(newBooking as unknown as typeof mockBookings[0]);
+    mockBookings.push(newBooking as unknown as (typeof mockBookings)[0]);
     return HttpResponse.json({ data: newBooking }, { status: 201 });
   }),
 
@@ -91,17 +88,14 @@ export const handlers = [
   http.get('/api/packages/:slug', ({ params }) => {
     const pkg = mockPackages.find((p) => p.slug === params.slug);
     if (!pkg) {
-      return HttpResponse.json(
-        { error: 'Package not found' },
-        { status: 404 }
-      );
+      return HttpResponse.json({ error: 'Package not found' }, { status: 404 });
     }
     return HttpResponse.json({ data: pkg });
   }),
 
   // Payment
   http.post('/api/payment', async ({ request }) => {
-    const body = await request.json();
+    const _body = await request.json();
     return HttpResponse.json({
       success: true,
       token: 'mock-midtrans-token',
@@ -111,11 +105,10 @@ export const handlers = [
 
   // Chat
   http.post('/api/chat', async ({ request }) => {
-    const body = await request.json();
+    const _body = await request.json();
     return HttpResponse.json({
       message: 'This is a mock response. Backend API is not ready yet.',
       remaining: 9,
     });
   }),
 ];
-

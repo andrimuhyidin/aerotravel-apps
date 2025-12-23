@@ -126,14 +126,18 @@ Terima kasih! 🎉`;
  */
 export async function createInAppNotification(
   guideId: string,
-  type: 'contract_sent' | 'contract_signed' | 'contract_active' | 'contract_expiring',
+  type:
+    | 'contract_sent'
+    | 'contract_signed'
+    | 'contract_active'
+    | 'contract_expiring',
   title: string,
   message: string,
   contractId?: string
 ): Promise<void> {
   try {
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     await client.from('guide_notifications').insert({
       guide_id: guideId,

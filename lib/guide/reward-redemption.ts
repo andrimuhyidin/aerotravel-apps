@@ -7,9 +7,19 @@ import { createClient } from '@/lib/supabase/server';
 import { redeemPoints } from './reward-points';
 import { logger } from '@/lib/utils/logger';
 
-export type RedemptionStatus = 'pending' | 'processing' | 'completed' | 'cancelled' | 'failed';
+export type RedemptionStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'cancelled'
+  | 'failed';
 
-export type RewardType = 'cashback' | 'voucher' | 'merchandise' | 'benefit' | 'discount';
+export type RewardType =
+  | 'cashback'
+  | 'voucher'
+  | 'merchandise'
+  | 'benefit'
+  | 'discount';
 
 /**
  * Create a redemption request
@@ -21,7 +31,7 @@ export async function createRedemption(
 ): Promise<string | null> {
   try {
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     // First, redeem points
     const transactionId = await redeemPoints(
@@ -90,7 +100,7 @@ export async function processCashbackRedemption(
 ): Promise<boolean> {
   try {
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     // Get redemption details
     const { data: redemption, error: redemptionError } = await client
@@ -205,7 +215,7 @@ export async function processVoucherRedemption(
 ): Promise<string | null> {
   try {
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     // Generate voucher code
     const { data: voucherCode, error: codeError } = await client.rpc(
@@ -265,7 +275,7 @@ export async function processMerchandiseRedemption(
 ): Promise<boolean> {
   try {
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     // Update redemption status with delivery info
     const { error: updateError } = await client.rpc('process_redemption', {
@@ -305,7 +315,7 @@ export async function processBenefitRedemption(
 ): Promise<boolean> {
   try {
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     // Get redemption details
     const { data: redemption, error: redemptionError } = await client
@@ -362,7 +372,7 @@ export async function processDiscountRedemption(
 ): Promise<string | null> {
   try {
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     // Generate discount code
     const { data: discountCode, error: codeError } = await client.rpc(
@@ -421,7 +431,7 @@ export async function cancelRedemption(
 ): Promise<boolean> {
   try {
     const supabase = await createClient();
-    const client = supabase as unknown as any;
+    const client = supabase as unknown as unknown;
 
     // Update redemption status
     const { error: updateError } = await client.rpc('process_redemption', {
@@ -451,4 +461,3 @@ export async function cancelRedemption(
     return false;
   }
 }
-

@@ -18,21 +18,21 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { logger } from '@/lib/utils/logger';
@@ -44,7 +44,11 @@ const contractFormSchema = z.object({
   description: z.string().optional(),
   start_date: z.string().date('Tanggal mulai tidak valid'),
   end_date: z.string().date().nullable().optional(), // Auto-calculated if not provided
-  fee_amount: z.number().positive('Fee harus lebih dari 0').optional().nullable(), // Always optional (fee in trip_guides)
+  fee_amount: z
+    .number()
+    .positive('Fee harus lebih dari 0')
+    .optional()
+    .nullable(), // Always optional (fee in trip_guides)
   fee_type: z.enum(['per_trip']).default('per_trip'), // Always per_trip for master contracts
   payment_terms: z.string().optional(),
   auto_send: z.boolean().default(false),
@@ -72,7 +76,13 @@ export function CreateContractClient({ locale }: CreateContractClientProps) {
   });
 
   // Fetch guides list
-  const { data: guidesData } = useQuery<{ guides: Array<{ id: string; full_name: string | null; email: string | null }> }>({
+  const { data: guidesData } = useQuery<{
+    guides: Array<{
+      id: string;
+      full_name: string | null;
+      email: string | null;
+    }>;
+  }>({
     queryKey: ['admin', 'guides', 'list'],
     queryFn: async () => {
       const res = await fetch('/api/admin/guides');
@@ -95,13 +105,17 @@ export function CreateContractClient({ locale }: CreateContractClientProps) {
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'guide', 'contracts'] });
+      queryClient.invalidateQueries({
+        queryKey: ['admin', 'guide', 'contracts'],
+      });
       toast.success('Kontrak berhasil dibuat');
       router.push(`/${locale}/console/guide/contracts/${data.contract.id}`);
     },
     onError: (error) => {
       logger.error('Failed to create contract', error);
-      toast.error(error instanceof Error ? error.message : 'Gagal membuat kontrak');
+      toast.error(
+        error instanceof Error ? error.message : 'Gagal membuat kontrak'
+      );
     },
   });
 
@@ -126,8 +140,12 @@ export function CreateContractClient({ locale }: CreateContractClientProps) {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-slate-900">Buat Kontrak Baru</h1>
-          <p className="mt-1 text-sm text-slate-600">Buat kontrak kerja untuk guide</p>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Buat Kontrak Baru
+          </h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Buat kontrak kerja untuk guide
+          </p>
         </div>
       </div>
 
@@ -146,7 +164,10 @@ export function CreateContractClient({ locale }: CreateContractClientProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Guide *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? ''}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih guide" />
@@ -169,18 +190,19 @@ export function CreateContractClient({ locale }: CreateContractClientProps) {
               <FormField
                 control={form.control}
                 name="contract_type"
-                render={({ field }) => (
+                render={({ field: _field }) => (
                   <FormItem>
                     <FormLabel>Jenis Kontrak *</FormLabel>
-                      <Input
-                        value="Tahunan (Master Contract)"
-                        disabled
-                        className="bg-muted"
-                      />
-                      <FormDescription>
-                        Semua kontrak adalah master contract tahunan yang berlaku untuk semua trip dalam periode 1 tahun
-                      </FormDescription>
-                      <FormMessage />
+                    <Input
+                      value="Tahunan (Master Contract)"
+                      disabled
+                      className="bg-muted"
+                    />
+                    <FormDescription>
+                      Semua kontrak adalah master contract tahunan yang berlaku
+                      untuk semua trip dalam periode 1 tahun
+                    </FormDescription>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -245,10 +267,15 @@ export function CreateContractClient({ locale }: CreateContractClientProps) {
                           type="date"
                           {...field}
                           value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value || null)}
+                          onChange={(e) =>
+                            field.onChange(e.target.value || null)
+                          }
                         />
                       </FormControl>
-                        <FormDescription>Kosongkan - fee ditentukan per trip assignment (di trip_guides.fee_amount)</FormDescription>
+                      <FormDescription>
+                        Kosongkan - fee ditentukan per trip assignment (di
+                        trip_guides.fee_amount)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -263,14 +290,19 @@ export function CreateContractClient({ locale }: CreateContractClientProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tipe Fee *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="per_trip">Per Trip Assignment</SelectItem>
+                          <SelectItem value="per_trip">
+                            Per Trip Assignment
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -288,7 +320,11 @@ export function CreateContractClient({ locale }: CreateContractClientProps) {
                           type="number"
                           placeholder="300000"
                           value={field.value ?? ''}
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value ? parseFloat(e.target.value) : null
+                            )
+                          }
                           onBlur={field.onBlur}
                         />
                       </FormControl>
@@ -324,7 +360,9 @@ export function CreateContractClient({ locale }: CreateContractClientProps) {
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-base">Kirim Otomatis ke Guide</FormLabel>
+                      <FormLabel className="text-base">
+                        Kirim Otomatis ke Guide
+                      </FormLabel>
                       <FormDescription>
                         Kontrak akan langsung dikirim ke guide setelah dibuat
                       </FormDescription>

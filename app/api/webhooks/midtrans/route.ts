@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getTransactionStatus } from '@/lib/integrations/midtrans';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -37,7 +36,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
     if (!tippingRequest) {
       logger.warn('Tipping request not found for order_id', { order_id });
-      return NextResponse.json({ received: true, message: 'Tipping request not found' });
+      return NextResponse.json({
+        received: true,
+        message: 'Tipping request not found',
+      });
     }
 
     switch (transaction_status) {
@@ -82,7 +84,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         break;
 
       default:
-        logger.info('Unhandled tipping transaction status', { transaction_status, order_id });
+        logger.info('Unhandled tipping transaction status', {
+          transaction_status,
+          order_id,
+        });
     }
   } else {
     // Handle booking payment (existing logic)
@@ -130,4 +135,3 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   return NextResponse.json({ received: true });
 });
-

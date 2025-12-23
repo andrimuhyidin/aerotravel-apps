@@ -11,11 +11,9 @@ import {
   Building2,
   CheckCircle,
   CreditCard,
-  DollarSign,
   HeadphonesIcon,
   Percent,
   TrendingUp,
-  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -36,7 +34,8 @@ export function PartnerLandingContent({
     {
       icon: Percent,
       title: 'Komisi Menarik',
-      description: 'Dapatkan komisi hingga 15% dari setiap booking yang berhasil',
+      description:
+        'Dapatkan komisi hingga 15% dari setiap booking yang berhasil',
     },
     {
       icon: CreditCard,
@@ -80,10 +79,10 @@ export function PartnerLandingContent({
       <Section className="bg-gradient-to-br from-cyan-50 via-cyan-100 to-cyan-50 py-8 sm:py-12 md:py-20">
         <Container>
           <div className="text-center">
-            <h1 className="mb-4 sm:mb-6 text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900">
+            <h1 className="mb-4 text-2xl font-bold text-slate-900 sm:mb-6 sm:text-3xl md:text-4xl lg:text-5xl">
               Program Mitra B2B
             </h1>
-            <p className="mb-6 sm:mb-8 text-sm sm:text-base md:text-lg lg:text-xl text-slate-700">
+            <p className="mb-6 text-sm text-slate-700 sm:mb-8 sm:text-base md:text-lg lg:text-xl">
               Tingkatkan bisnis travel Anda dengan menjadi mitra Aero Travel.
               Dapatkan komisi menarik dan akses ke sistem booking terintegrasi
             </p>
@@ -103,10 +102,13 @@ export function PartnerLandingContent({
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" size="lg" className="text-lg">
-                    <Link href={`/${locale}/login`}>
-                      Login
-                    </Link>
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="lg"
+                    className="text-lg"
+                  >
+                    <Link href={`/${locale}/login`}>Login</Link>
                   </Button>
                 </>
               )}
@@ -118,15 +120,16 @@ export function PartnerLandingContent({
       {/* Benefits Section */}
       <Section className="py-8 sm:py-12 md:py-16">
         <Container>
-          <div className="mb-8 sm:mb-12 text-center">
-            <h2 className="mb-4 text-xl sm:text-2xl md:text-3xl font-bold text-slate-900">
+          <div className="mb-8 text-center sm:mb-12">
+            <h2 className="mb-4 text-xl font-bold text-slate-900 sm:text-2xl md:text-3xl">
               Keuntungan Menjadi Mitra
             </h2>
-            <p className="text-sm sm:text-base md:text-lg text-slate-600">
-              Nikmati berbagai keuntungan saat bergabung dengan program mitra B2B
+            <p className="text-sm text-slate-600 sm:text-base md:text-lg">
+              Nikmati berbagai keuntungan saat bergabung dengan program mitra
+              B2B
             </p>
           </div>
-          <div className="grid gap-4 sm:gap-6 md:gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 md:gap-8 lg:grid-cols-3">
             {benefits.map((benefit, index) => {
               const Icon = benefit.icon;
               return (
@@ -137,10 +140,12 @@ export function PartnerLandingContent({
                   <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-100">
                     <Icon className="h-6 w-6 text-cyan-600" />
                   </div>
-                  <h3 className="mb-2 text-lg sm:text-xl font-semibold text-slate-900">
+                  <h3 className="mb-2 text-lg font-semibold text-slate-900 sm:text-xl">
                     {benefit.title}
                   </h3>
-                  <p className="text-sm sm:text-base text-slate-600">{benefit.description}</p>
+                  <p className="text-sm text-slate-600 sm:text-base">
+                    {benefit.description}
+                  </p>
                 </div>
               );
             })}
@@ -152,11 +157,11 @@ export function PartnerLandingContent({
       <Section className="bg-slate-50 py-8 sm:py-12 md:py-16">
         <Container>
           <div>
-            <div className="mb-8 sm:mb-12 text-center">
-              <h2 className="mb-4 text-xl sm:text-2xl md:text-3xl font-bold text-slate-900">
+            <div className="mb-8 text-center sm:mb-12">
+              <h2 className="mb-4 text-xl font-bold text-slate-900 sm:text-2xl md:text-3xl">
                 Fitur & Layanan
               </h2>
-              <p className="text-sm sm:text-base md:text-lg text-slate-600">
+              <p className="text-sm text-slate-600 sm:text-base md:text-lg">
                 Semua yang Anda butuhkan untuk mengembangkan bisnis travel
               </p>
             </div>
@@ -167,7 +172,9 @@ export function PartnerLandingContent({
                   className="flex items-start gap-4 rounded-lg border border-slate-200 bg-white p-4"
                 >
                   <CheckCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-cyan-600" />
-                  <p className="text-sm sm:text-base text-slate-700">{feature}</p>
+                  <p className="text-sm text-slate-700 sm:text-base">
+                    {feature}
+                  </p>
                 </div>
               ))}
             </div>
@@ -179,10 +186,10 @@ export function PartnerLandingContent({
       <Section className="bg-gradient-to-r from-cyan-600 to-cyan-700 py-8 sm:py-12 md:py-16">
         <Container>
           <div className="text-center">
-            <h2 className="mb-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">
+            <h2 className="mb-4 text-xl font-bold text-white sm:text-2xl md:text-3xl">
               Siap Mengembangkan Bisnis Travel Anda?
             </h2>
-            <p className="mb-6 sm:mb-8 text-sm sm:text-base md:text-lg text-cyan-50">
+            <p className="mb-6 text-sm text-cyan-50 sm:mb-8 sm:text-base md:text-lg">
               Daftar sekarang dan nikmati berbagai keuntungan sebagai mitra B2B
               Aero Travel
             </p>
@@ -200,4 +207,3 @@ export function PartnerLandingContent({
     </>
   );
 }
-

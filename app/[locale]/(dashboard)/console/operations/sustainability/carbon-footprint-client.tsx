@@ -6,11 +6,17 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, Download, TrendingDown, TrendingUp } from 'lucide-react';
+import { Download, TrendingDown, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -56,7 +62,9 @@ type CarbonFootprintData = {
   }>;
 };
 
-export function CarbonFootprintClient({ locale }: CarbonFootprintClientProps) {
+export function CarbonFootprintClient({
+  locale: _locale,
+}: CarbonFootprintClientProps) {
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
 
@@ -99,8 +107,12 @@ export function CarbonFootprintClient({ locale }: CarbonFootprintClientProps) {
       {/* Header with Filters */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Carbon Footprint Report</h1>
-          <p className="text-slate-600">Monthly carbon emissions tracking (ISO 14001)</p>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Carbon Footprint Report
+          </h1>
+          <p className="text-slate-600">
+            Monthly carbon emissions tracking (ISO 14001)
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Select
@@ -113,7 +125,9 @@ export function CarbonFootprintClient({ locale }: CarbonFootprintClientProps) {
             <SelectContent>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                 <SelectItem key={m} value={m.toString()}>
-                  {new Date(2000, m - 1).toLocaleString('id-ID', { month: 'long' })}
+                  {new Date(2000, m - 1).toLocaleString('id-ID', {
+                    month: 'long',
+                  })}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -144,7 +158,9 @@ export function CarbonFootprintClient({ locale }: CarbonFootprintClientProps) {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Total CO2 Emissions</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Total CO2 Emissions
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">
@@ -154,12 +170,16 @@ export function CarbonFootprintClient({ locale }: CarbonFootprintClientProps) {
               {summary.co2_trend_percent > 0 ? (
                 <>
                   <TrendingUp className="h-3 w-3 text-red-500" />
-                  <span className="text-red-500">+{summary.co2_trend_percent.toFixed(1)}%</span>
+                  <span className="text-red-500">
+                    +{summary.co2_trend_percent.toFixed(1)}%
+                  </span>
                 </>
               ) : (
                 <>
                   <TrendingDown className="h-3 w-3 text-green-500" />
-                  <span className="text-green-500">{summary.co2_trend_percent.toFixed(1)}%</span>
+                  <span className="text-green-500">
+                    {summary.co2_trend_percent.toFixed(1)}%
+                  </span>
                 </>
               )}
               <span>vs previous month</span>
@@ -169,38 +189,50 @@ export function CarbonFootprintClient({ locale }: CarbonFootprintClientProps) {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Fuel Consumption</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Fuel Consumption
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">
               {summary.total_fuel_liters.toFixed(2)} L
             </div>
-            <div className="mt-1 text-xs text-slate-500">{summary.trip_count} trips</div>
+            <div className="mt-1 text-xs text-slate-500">
+              {summary.trip_count} trips
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Distance</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Distance
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">
               {summary.total_distance_nm.toFixed(2)} NM
             </div>
-            <div className="mt-1 text-xs text-slate-500">Total nautical miles</div>
+            <div className="mt-1 text-xs text-slate-500">
+              Total nautical miles
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Goal Status</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Goal Status
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {goal ? (
               <>
                 <div
                   className={`text-2xl font-bold ${
-                    goal.status === 'on_target' ? 'text-green-600' : 'text-red-600'
+                    goal.status === 'on_target'
+                      ? 'text-green-600'
+                      : 'text-red-600'
                   }`}
                 >
                   {goal.status === 'on_target' ? 'On Target' : 'Exceeded'}
@@ -214,7 +246,9 @@ export function CarbonFootprintClient({ locale }: CarbonFootprintClientProps) {
             ) : (
               <>
                 <div className="text-2xl font-bold text-slate-400">No Goal</div>
-                <div className="mt-1 text-xs text-slate-500">Set sustainability goal</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Set sustainability goal
+                </div>
               </>
             )}
           </CardContent>
@@ -227,7 +261,8 @@ export function CarbonFootprintClient({ locale }: CarbonFootprintClientProps) {
           <CardHeader>
             <CardTitle>Goal Progress</CardTitle>
             <CardDescription>
-              Target: {goal.target_co2_kg.toFixed(2)} kg CO2 | Actual: {goal.actual_co2_kg.toFixed(2)} kg CO2
+              Target: {goal.target_co2_kg.toFixed(2)} kg CO2 | Actual:{' '}
+              {goal.actual_co2_kg.toFixed(2)} kg CO2
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -235,7 +270,9 @@ export function CarbonFootprintClient({ locale }: CarbonFootprintClientProps) {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-600">Progress</span>
                 <span className="font-medium">
-                  {goal.progress_percent !== null ? `${goal.progress_percent.toFixed(1)}%` : 'N/A'}
+                  {goal.progress_percent !== null
+                    ? `${goal.progress_percent.toFixed(1)}%`
+                    : 'N/A'}
                 </span>
               </div>
               <div className="h-4 w-full overflow-hidden rounded-full bg-slate-200">
@@ -265,7 +302,9 @@ export function CarbonFootprintClient({ locale }: CarbonFootprintClientProps) {
         </CardHeader>
         <CardContent>
           {trip_breakdown.length === 0 ? (
-            <div className="py-8 text-center text-slate-500">No fuel logs for this period</div>
+            <div className="py-8 text-center text-slate-500">
+              No fuel logs for this period
+            </div>
           ) : (
             <div className="space-y-3">
               {trip_breakdown.map((trip) => (
@@ -278,7 +317,8 @@ export function CarbonFootprintClient({ locale }: CarbonFootprintClientProps) {
                       {trip.trip_name || trip.trip_code || trip.trip_id}
                     </div>
                     <div className="text-sm text-slate-600">
-                      {trip.fuel_liters.toFixed(2)} L {trip.fuel_type} • {trip.distance_nm.toFixed(2)} NM
+                      {trip.fuel_liters.toFixed(2)} L {trip.fuel_type} •{' '}
+                      {trip.distance_nm.toFixed(2)} NM
                     </div>
                     <div className="text-xs text-slate-500">
                       {new Date(trip.logged_at).toLocaleDateString('id-ID')}
@@ -298,4 +338,3 @@ export function CarbonFootprintClient({ locale }: CarbonFootprintClientProps) {
     </div>
   );
 }
-

@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
+import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -26,7 +26,10 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
   const branchContext = await getBranchContext(user.id);
 
   if (!branchContext.branchId && !branchContext.isSuperAdmin) {
-    return NextResponse.json({ error: 'Branch context required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Branch context required' },
+      { status: 400 }
+    );
   }
 
   const client = supabase as unknown as any;
@@ -39,21 +42,29 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
     .limit(1);
 
   if (!branchContext.isSuperAdmin && branchContext.branchId) {
-    warehouseUserQuery = warehouseUserQuery.eq('branch_id', branchContext.branchId);
+    warehouseUserQuery = warehouseUserQuery.eq(
+      'branch_id',
+      branchContext.branchId
+    );
   }
 
   const { data: warehouseUsers, error } = await warehouseUserQuery;
 
   if (error) {
-    logger.error('Failed to fetch warehouse user', error, { branchId: branchContext.branchId });
-    return NextResponse.json({ error: 'Failed to fetch warehouse user' }, { status: 500 });
+    logger.error('Failed to fetch warehouse user', error, {
+      branchId: branchContext.branchId,
+    });
+    return NextResponse.json(
+      { error: 'Failed to fetch warehouse user' },
+      { status: 500 }
+    );
   }
 
-  const warehouseUser = warehouseUsers && warehouseUsers.length > 0 ? warehouseUsers[0] : null;
+  const warehouseUser =
+    warehouseUsers && warehouseUsers.length > 0 ? warehouseUsers[0] : null;
 
   return NextResponse.json({
     warehouseUserId: warehouseUser?.id || null,
     warehouseUserName: warehouseUser?.full_name || null,
   });
 });
-

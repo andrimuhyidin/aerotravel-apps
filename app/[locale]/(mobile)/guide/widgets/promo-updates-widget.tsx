@@ -12,7 +12,6 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
@@ -53,7 +52,7 @@ export function PromoUpdatesWidget({ locale }: PromoUpdatesWidgetProps) {
 
   // Standardize to 3 items for widget display
   const promos = (promosData?.items || []).slice(0, 3);
-  
+
   // Calculate max index untuk slide
   // Per screen: 1 card penuh + peek card berikutnya (~20% terlihat)
   // Jika ada 3 items: bisa slide 2x (index 0->1->2)
@@ -105,7 +104,7 @@ export function PromoUpdatesWidget({ locale }: PromoUpdatesWidgetProps) {
         </div>
         <Card className="border-slate-200 bg-slate-50/50">
           <CardContent className="p-4 text-center">
-            <Megaphone className="h-8 w-8 mx-auto text-slate-400 mb-2" />
+            <Megaphone className="mx-auto mb-2 h-8 w-8 text-slate-400" />
             <p className="text-sm text-slate-600">
               Belum ada promo atau update. Update akan muncul di sini.
             </p>
@@ -136,7 +135,9 @@ export function PromoUpdatesWidget({ locale }: PromoUpdatesWidgetProps) {
                   onClick={() => setCurrentIndex(idx)}
                   className={cn(
                     'h-1.5 rounded-full transition-all duration-200',
-                    idx === currentIndex ? 'w-4 bg-emerald-600' : 'w-1.5 bg-slate-300 hover:bg-slate-400',
+                    idx === currentIndex
+                      ? 'w-4 bg-emerald-600'
+                      : 'w-1.5 bg-slate-300 hover:bg-slate-400'
                   )}
                   aria-label={`Go to slide ${idx + 1}`}
                 />
@@ -157,8 +158,8 @@ export function PromoUpdatesWidget({ locale }: PromoUpdatesWidgetProps) {
         <div
           ref={promoRef}
           className="flex gap-3 transition-transform duration-300 ease-in-out"
-          style={{ 
-            transform: canSlide 
+          style={{
+            transform: canSlide
               ? `translateX(calc(-${currentIndex} * (${cardWidthPercent}% + ${gapSize}px)))`
               : 'translateX(0)',
           }}
@@ -166,39 +167,45 @@ export function PromoUpdatesWidget({ locale }: PromoUpdatesWidgetProps) {
           {promos.map((promo, index) => {
             // Use unique key combining ID and index for extra safety
             const uniqueKey = `promo-${promo.id}-${index}`;
-            
+
             const cardContent = (
               <Card
                 className={cn(
-                  'h-[180px] flex-shrink-0 overflow-hidden border-0 shadow-md rounded-lg',
+                  'h-[180px] flex-shrink-0 overflow-hidden rounded-lg border-0 shadow-md',
                   `bg-gradient-to-br ${promo.gradient}`,
                   'transition-all hover:shadow-lg active:scale-[0.98]',
-                  promo.link && 'cursor-pointer',
+                  promo.link && 'cursor-pointer'
                 )}
                 style={{ width: `${cardWidthPercent}%` }}
               >
-                <CardContent className="p-4 h-full flex flex-col text-white justify-between">
-                  <div className="flex-1 min-w-0 flex flex-col gap-3">
+                <CardContent className="flex h-full flex-col justify-between p-4 text-white">
+                  <div className="flex min-w-0 flex-1 flex-col gap-3">
                     {promo.badge && (
-                      <div className="inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm px-3 py-1 text-xs font-semibold shadow-sm border border-white/10 w-fit">
-                        {promo.type === 'promo' && <Sparkles className="h-3.5 w-3.5" />}
-                        {promo.type === 'update' && <Megaphone className="h-3.5 w-3.5" />}
-                        {promo.type === 'announcement' && <Megaphone className="h-3.5 w-3.5" />}
+                      <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/10 bg-white/20 px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur-sm">
+                        {promo.type === 'promo' && (
+                          <Sparkles className="h-3.5 w-3.5" />
+                        )}
+                        {promo.type === 'update' && (
+                          <Megaphone className="h-3.5 w-3.5" />
+                        )}
+                        {promo.type === 'announcement' && (
+                          <Megaphone className="h-3.5 w-3.5" />
+                        )}
                         {promo.badge}
                       </div>
                     )}
-                    <div className="flex-1 flex flex-col justify-center gap-2">
-                      <h3 className="text-base font-bold leading-snug line-clamp-2 text-white">
+                    <div className="flex flex-1 flex-col justify-center gap-2">
+                      <h3 className="line-clamp-2 text-base font-bold leading-snug text-white">
                         {promo.title}
                       </h3>
-                      <p className="text-sm font-medium opacity-95 line-clamp-2 text-white/95 leading-relaxed">
+                      <p className="line-clamp-2 text-sm font-medium leading-relaxed text-white/95 opacity-95">
                         {promo.subtitle}
                       </p>
                     </div>
                   </div>
                   {promo.link && (
                     <div className="flex justify-end pt-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm border border-white/10 transition-all hover:bg-white/30">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/20 backdrop-blur-sm transition-all hover:bg-white/30">
                         <ChevronRight className="h-4 w-4" />
                       </div>
                     </div>
@@ -208,8 +215,9 @@ export function PromoUpdatesWidget({ locale }: PromoUpdatesWidgetProps) {
             );
 
             // Card click handler: if promo.link exists, use it; otherwise navigate to detail page
-            const cardHref = promo.link || `/${locale}/guide/promos/${promo.id}`;
-            
+            const cardHref =
+              promo.link || `/${locale}/guide/promos/${promo.id}`;
+
             return (
               <Link
                 key={uniqueKey}

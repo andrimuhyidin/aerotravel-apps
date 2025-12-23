@@ -6,7 +6,14 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { AlertCircle, CheckCircle2, Clock, Download, FileText, XCircle } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Download,
+  FileText,
+  XCircle,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -16,11 +23,11 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
@@ -36,7 +43,14 @@ type Contract = {
   fee_amount: number | null; // Null for master contracts (fee in trip_guides)
   fee_type: string;
   payment_terms?: string | null;
-  status: 'draft' | 'pending_signature' | 'pending_company' | 'active' | 'expired' | 'terminated' | 'rejected';
+  status:
+    | 'draft'
+    | 'pending_signature'
+    | 'pending_company'
+    | 'active'
+    | 'expired'
+    | 'terminated'
+    | 'rejected';
   guide_signed_at?: string | null;
   company_signed_at?: string | null;
   expires_at?: string | null;
@@ -62,9 +76,17 @@ const contractTypeLabels: Record<string, string> = {
 
 const statusConfig: Record<
   string,
-  { label: string; color: string; icon: React.ComponentType<{ className?: string }> }
+  {
+    label: string;
+    color: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }
 > = {
-  draft: { label: 'Draft', color: 'bg-slate-100 text-slate-700', icon: FileText },
+  draft: {
+    label: 'Draft',
+    color: 'bg-slate-100 text-slate-700',
+    icon: FileText,
+  },
   pending_signature: {
     label: 'Menunggu Tanda Tangan',
     color: 'bg-amber-100 text-amber-700',
@@ -75,18 +97,41 @@ const statusConfig: Record<
     color: 'bg-blue-100 text-blue-700',
     icon: Clock,
   },
-  active: { label: 'Aktif', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
-  expired: { label: 'Kadaluarsa', color: 'bg-slate-100 text-slate-600', icon: AlertCircle },
-  terminated: { label: 'Dihentikan', color: 'bg-red-100 text-red-700', icon: XCircle },
-  rejected: { label: 'Ditolak', color: 'bg-red-100 text-red-700', icon: XCircle },
+  active: {
+    label: 'Aktif',
+    color: 'bg-emerald-100 text-emerald-700',
+    icon: CheckCircle2,
+  },
+  expired: {
+    label: 'Kadaluarsa',
+    color: 'bg-slate-100 text-slate-600',
+    icon: AlertCircle,
+  },
+  terminated: {
+    label: 'Dihentikan',
+    color: 'bg-red-100 text-red-700',
+    icon: XCircle,
+  },
+  rejected: {
+    label: 'Ditolak',
+    color: 'bg-red-100 text-red-700',
+    icon: XCircle,
+  },
 };
 
-export function ContractsClient({ locale, guideId: _guideId }: ContractsClientProps) {
+export function ContractsClient({
+  locale,
+  guideId: _guideId,
+}: ContractsClientProps) {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data, isLoading, error, refetch } = useQuery<{ contracts: Contract[] }>({
-    queryKey: queryKeys.guide.contracts.list({ status: statusFilter !== 'all' ? statusFilter : undefined }),
+  const { data, isLoading, error, refetch } = useQuery<{
+    contracts: Contract[];
+  }>({
+    queryKey: queryKeys.guide.contracts.list({
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+    }),
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== 'all') {
@@ -95,7 +140,8 @@ export function ContractsClient({ locale, guideId: _guideId }: ContractsClientPr
       const res = await fetch(`/api/guide/contracts?${params.toString()}`);
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        const errorMessage = errorData.error || errorData.details || 'Failed to load contracts';
+        const errorMessage =
+          errorData.error || errorData.details || 'Failed to load contracts';
         throw new Error(errorMessage);
       }
       return res.json();
@@ -135,18 +181,20 @@ export function ContractsClient({ locale, guideId: _guideId }: ContractsClientPr
   }
 
   if (error) {
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : 'Gagal memuat kontrak. Silakan coba lagi.';
-    
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : 'Gagal memuat kontrak. Silakan coba lagi.';
+
     // Extract error details for better debugging
     let errorDetails: string | undefined;
     if (error instanceof Error) {
-      errorDetails = process.env.NODE_ENV === 'development' 
-        ? error.stack || error.message
-        : undefined;
+      errorDetails =
+        process.env.NODE_ENV === 'development'
+          ? error.stack || error.message
+          : undefined;
     }
-    
+
     return (
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4">
@@ -175,22 +223,30 @@ export function ContractsClient({ locale, guideId: _guideId }: ContractsClientPr
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Kontrak Kerja</h1>
-        <p className="mt-1 text-sm text-slate-600">Lihat dan kelola kontrak kerja Anda</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Lihat dan kelola kontrak kerja Anda
+        </p>
       </div>
 
       {/* Filters */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-slate-700">Filter Status:</label>
+            <label className="text-sm font-medium text-slate-700">
+              Filter Status:
+            </label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua</SelectItem>
-                <SelectItem value="pending_signature">Menunggu Tanda Tangan</SelectItem>
-                <SelectItem value="pending_company">Menunggu Perusahaan</SelectItem>
+                <SelectItem value="pending_signature">
+                  Menunggu Tanda Tangan
+                </SelectItem>
+                <SelectItem value="pending_company">
+                  Menunggu Perusahaan
+                </SelectItem>
                 <SelectItem value="active">Aktif</SelectItem>
                 <SelectItem value="expired">Kadaluarsa</SelectItem>
                 <SelectItem value="rejected">Ditolak</SelectItem>
@@ -201,7 +257,7 @@ export function ContractsClient({ locale, guideId: _guideId }: ContractsClientPr
       </Card>
 
       {/* Contracts List */}
-      {(!contracts || contracts.length === 0) ? (
+      {!contracts || contracts.length === 0 ? (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
             <EmptyState
@@ -217,17 +273,20 @@ export function ContractsClient({ locale, guideId: _guideId }: ContractsClientPr
                 <Button
                   onClick={async () => {
                     try {
-                      const res = await fetch('/api/guide/contracts/create-sample', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                      });
+                      const res = await fetch(
+                        '/api/guide/contracts/create-sample',
+                        {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                        }
+                      );
                       const data = await res.json();
                       if (res.ok) {
                         window.location.reload();
                       } else {
                         alert(data.error || 'Gagal membuat sample data');
                       }
-                    } catch (error) {
+                    } catch (_error) {
                       alert('Gagal membuat sample data');
                     }
                   }}
@@ -244,30 +303,31 @@ export function ContractsClient({ locale, guideId: _guideId }: ContractsClientPr
           {contracts
             .filter((c) => c && c.id && c.contract_number)
             .map((contract) => {
-            const contractStatus = contract.status || 'draft';
-            const status = statusConfig[contractStatus] || statusConfig.draft;
-            
-            if (!status) {
-              return null; // Skip if status config not found
-            }
-            
-            const StatusIcon = status.icon;
-            const isPendingSignature = contractStatus === 'pending_signature';
-            const isActive = contractStatus === 'active';
+              const contractStatus = contract.status || 'draft';
+              const status = statusConfig[contractStatus] || statusConfig.draft;
 
-            return (
-              <Card
-                key={contract.id}
-                className="border-0 shadow-sm hover:shadow-md transition-shadow"
-              >
+              if (!status) {
+                return null; // Skip if status config not found
+              }
+
+              const StatusIcon = status.icon;
+              const isPendingSignature = contractStatus === 'pending_signature';
+              const isActive = contractStatus === 'active';
+
+              return (
+                <Card
+                  key={contract.id}
+                  className="border-0 shadow-sm transition-shadow hover:shadow-md"
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base font-semibold text-slate-900 line-clamp-1">
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="line-clamp-1 text-base font-semibold text-slate-900">
                           {contract.title}
                         </CardTitle>
                         <p className="mt-1 text-xs text-slate-500">
-                          {contract.contract_number} • {contractTypeLabels[contract.contract_type]}
+                          {contract.contract_number} •{' '}
+                          {contractTypeLabels[contract.contract_type]}
                         </p>
                       </div>
                       <div
@@ -285,18 +345,23 @@ export function ContractsClient({ locale, guideId: _guideId }: ContractsClientPr
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
                         <span className="text-slate-500">Mulai:</span>
-                        <p className="font-medium text-slate-900">{formatDate(contract.start_date)}</p>
+                        <p className="font-medium text-slate-900">
+                          {formatDate(contract.start_date)}
+                        </p>
                       </div>
                       {contract.end_date && (
                         <div>
                           <span className="text-slate-500">Berakhir:</span>
-                          <p className="font-medium text-slate-900">{formatDate(contract.end_date)}</p>
+                          <p className="font-medium text-slate-900">
+                            {formatDate(contract.end_date)}
+                          </p>
                         </div>
                       )}
                       <div className="col-span-2">
                         <span className="text-slate-500">Fee:</span>
                         <p className="font-semibold text-emerald-600">
-                          {contract.fee_amount !== null && contract.fee_amount !== undefined
+                          {contract.fee_amount !== null &&
+                          contract.fee_amount !== undefined
                             ? formatCurrency(contract.fee_amount)
                             : 'Fee per trip assignment'}
                         </p>
@@ -304,7 +369,7 @@ export function ContractsClient({ locale, guideId: _guideId }: ContractsClientPr
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                    <div className="flex items-center gap-2 border-t border-slate-100 pt-2">
                       {isPendingSignature && (
                         <Button
                           size="sm"
@@ -312,7 +377,9 @@ export function ContractsClient({ locale, guideId: _guideId }: ContractsClientPr
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            router.push(`/${locale}/guide/contracts/${contract.id}`);
+                            router.push(
+                              `/${locale}/guide/contracts/${contract.id}`
+                            );
                           }}
                         >
                           Tandatangani
@@ -326,7 +393,10 @@ export function ContractsClient({ locale, guideId: _guideId }: ContractsClientPr
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            window.open(`/api/guide/contracts/${contract.id}/pdf`, '_blank');
+                            window.open(
+                              `/api/guide/contracts/${contract.id}/pdf`,
+                              '_blank'
+                            );
                           }}
                         >
                           <Download className="mr-2 h-4 w-4" />
@@ -340,7 +410,9 @@ export function ContractsClient({ locale, guideId: _guideId }: ContractsClientPr
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          router.push(`/${locale}/guide/contracts/${contract.id}`);
+                          router.push(
+                            `/${locale}/guide/contracts/${contract.id}`
+                          );
                         }}
                       >
                         Lihat Detail
@@ -348,8 +420,8 @@ export function ContractsClient({ locale, guideId: _guideId }: ContractsClientPr
                     </div>
                   </CardContent>
                 </Card>
-            );
-          })}
+              );
+            })}
         </div>
       )}
     </div>

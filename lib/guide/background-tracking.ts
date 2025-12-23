@@ -1,7 +1,7 @@
 /**
  * Background GPS Tracking Service for Guide App
  * PRD 6.1.C: Live Tracking (Posisi Armada)
- * 
+ *
  * Features:
  * - Periodic GPS ping setiap 5-10 menit saat trip ON_TRIP
  * - Battery-aware tracking (reduce frequency saat battery low)
@@ -28,7 +28,9 @@ function getBatteryLevel(): Promise<number> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const battery = (navigator as any).getBattery?.();
     if (battery) {
-      battery.then((batt: { level: number }) => resolve(batt.level)).catch(() => resolve(1));
+      battery
+        .then((batt: { level: number }) => resolve(batt.level))
+        .catch(() => resolve(1));
     } else {
       // Fallback: assume full battery
       resolve(1);
@@ -46,15 +48,11 @@ async function getCurrentLocation(): Promise<GeolocationPosition> {
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      resolve,
-      reject,
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    });
   });
 }
 
@@ -69,7 +67,7 @@ async function sendTrackingPing(
   const accuracyMeters = position.coords.accuracy ?? undefined;
   const altitudeMeters = position.coords.altitude ?? undefined;
   const heading = position.coords.heading ?? undefined;
-  const speed = position.coords.speed ? (position.coords.speed * 3.6) : undefined; // Convert m/s to km/h
+  const speed = position.coords.speed ? position.coords.speed * 3.6 : undefined; // Convert m/s to km/h
 
   const payload = {
     tripId,
@@ -91,7 +89,11 @@ async function sendTrackingPing(
       });
 
       if (response.ok) {
-        logger.info('[Tracking] GPS ping sent', { tripId, latitude, longitude });
+        logger.info('[Tracking] GPS ping sent', {
+          tripId,
+          latitude,
+          longitude,
+        });
         return;
       }
 
@@ -102,7 +104,10 @@ async function sendTrackingPing(
       });
     } catch (error) {
       // Network error, fall through to queue
-      logger.warn('[Tracking] Network error, queueing for sync', { tripId, error });
+      logger.warn('[Tracking] Network error, queueing for sync', {
+        tripId,
+        error,
+      });
     }
   }
 
@@ -111,7 +116,11 @@ async function sendTrackingPing(
     // Dynamic import to avoid circular dependencies
     const { queueMutation } = await import('./offline-sync');
     await queueMutation('TRACK_POSITION', payload);
-    logger.info('[Tracking] GPS ping queued for sync', { tripId, latitude, longitude });
+    logger.info('[Tracking] GPS ping queued for sync', {
+      tripId,
+      latitude,
+      longitude,
+    });
   } catch (error) {
     logger.error('[Tracking] Failed to queue GPS ping', error, { tripId });
     throw error;
@@ -131,7 +140,9 @@ async function performTrackingPing(): Promise<void> {
     const position = await getCurrentLocation();
     await sendTrackingPing(currentTripId, position);
   } catch (error) {
-    logger.error('[Tracking] Tracking ping failed', error, { tripId: currentTripId });
+    logger.error('[Tracking] Tracking ping failed', error, {
+      tripId: currentTripId,
+    });
   }
 }
 
@@ -166,10 +177,11 @@ export async function startTracking(tripId: string): Promise<void> {
   const setupInterval = async () => {
     const batteryLevel = await getBatteryLevel();
     const isBatteryLow = batteryLevel < 0.2; // Less than 20%
-    
+
     // Check if app is in background
-    const isBackground = document.hidden || document.visibilityState === 'hidden';
-    
+    const isBackground =
+      document.hidden || document.visibilityState === 'hidden';
+
     // Determine interval based on battery and background state
     let interval = TRACKING_INTERVAL_NORMAL;
     if (isBatteryLow) {
@@ -220,7 +232,7 @@ export async function startTracking(tripId: string): Promise<void> {
   // Watch position for continuous tracking (optional, for better accuracy)
   if (navigator.geolocation && 'watchPosition' in navigator.geolocation) {
     watchId = navigator.geolocation.watchPosition(
-      (position) => {
+      (_position) => {
         // Store last known position for periodic ping
         // The actual ping is sent via interval to avoid too many requests
       },
@@ -244,7 +256,9 @@ export async function stopTracking(): Promise<void> {
     return;
   }
 
-  logger.info('[Tracking] Stopping background tracking', { tripId: currentTripId });
+  logger.info('[Tracking] Stopping background tracking', {
+    tripId: currentTripId,
+  });
 
   if (trackingInterval) {
     clearInterval(trackingInterval);
@@ -278,10 +292,17 @@ export function getCurrentTrackingTripId(): string | null {
  * Register background sync for tracking (Service Worker)
  */
 export function registerBackgroundTrackingSync(): void {
-  if ('serviceWorker' in navigator && 'sync' in ServiceWorkerRegistration.prototype) {
+  if (
+    'serviceWorker' in navigator &&
+    'sync' in ServiceWorkerRegistration.prototype
+  ) {
     navigator.serviceWorker.ready.then((registration) => {
       // Background Sync API
-      const syncManager = (registration as unknown as { sync?: { register: (tag: string) => Promise<void> } }).sync;
+      const syncManager = (
+        registration as unknown as {
+          sync?: { register: (tag: string) => Promise<void> };
+        }
+      ).sync;
       if (syncManager) {
         syncManager.register('tracking-ping').catch((error: unknown) => {
           logger.warn('[Tracking] Background sync registration failed', {
@@ -292,4 +313,3 @@ export function registerBackgroundTrackingSync(): void {
     });
   }
 }
-

@@ -28,24 +28,27 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
     // Get progress
     const { data: progress, error: progressError } = await (supabase as any)
       .from('guide_onboarding_progress')
-      .select(`
+      .select(
+        `
         *,
         current_step:guide_onboarding_steps(*)
-      `)
+      `
+      )
       .eq('guide_id', user.id)
       .maybeSingle();
 
     if (progressError) {
-      logger.error('Failed to fetch onboarding progress', progressError, { guideId: user.id });
-      return NextResponse.json({ error: 'Failed to fetch progress' }, { status: 500 });
+      logger.error('Failed to fetch onboarding progress', progressError, {
+        guideId: user.id,
+      });
+      return NextResponse.json(
+        { error: 'Failed to fetch progress' },
+        { status: 500 }
+      );
     }
 
     // Get completed steps and recalculate progress
     if (progress) {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/guide/onboarding/progress/route.ts:42',message:'Getting progress and recalculating',data:{progressId:progress.id,currentPercentage:progress.completion_percentage,branchId:branchContext.branchId},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
-
       const { data: completions } = await (supabase as any)
         .from('guide_onboarding_step_completions')
         .select('step_id, status, completed_at')
@@ -81,7 +84,13 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
       const globalStepsList = globalSteps || [];
       const allSteps = [
         ...branchStepsList,
-        ...globalStepsList.filter((g: { step_order: number; id: string }) => !branchStepsList.find((b: { step_order: number; id: string }) => b.step_order === g.step_order)),
+        ...globalStepsList.filter(
+          (g: { step_order: number; id: string }) =>
+            !branchStepsList.find(
+              (b: { step_order: number; id: string }) =>
+                b.step_order === g.step_order
+            )
+        ),
       ];
 
       const { data: completedSteps } = await (supabase as any)
@@ -92,11 +101,8 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
 
       const totalSteps = allSteps.length;
       const completedCount = completedSteps?.length || 0;
-      const recalculatedPercentage = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 0;
-
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/guide/onboarding/progress/route.ts:75',message:'Progress recalculation result',data:{totalSteps,completedCount,storedPercentage:progress.completion_percentage,recalculatedPercentage,needsUpdate:recalculatedPercentage !== progress.completion_percentage,branchStepsCount:branchStepsList.length,globalStepsCount:globalStepsList.length,allStepsIds:allSteps.map((s: { id: string }) => s.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
+      const recalculatedPercentage =
+        totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 0;
 
       // Update progress if percentage changed
       if (recalculatedPercentage !== progress.completion_percentage) {
@@ -117,15 +123,13 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
         if (isCompleted && !progress.completed_at) {
           progress.completed_at = new Date().toISOString();
         }
-
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/guide/onboarding/progress/route.ts:97',message:'Progress updated in database',data:{newPercentage:recalculatedPercentage,newStatus:progress.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
       }
 
       return NextResponse.json({
         progress,
-        completedSteps: (completions || []).map((c: { step_id: string }) => c.step_id),
+        completedSteps: (completions || []).map(
+          (c: { step_id: string }) => c.step_id
+        ),
       });
     }
 
@@ -134,8 +138,13 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
       completedSteps: [],
     });
   } catch (error) {
-    logger.error('Failed to fetch onboarding progress', error, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to fetch progress' }, { status: 500 });
+    logger.error('Failed to fetch onboarding progress', error, {
+      guideId: user.id,
+    });
+    return NextResponse.json(
+      { error: 'Failed to fetch progress' },
+      { status: 500 }
+    );
   }
 });
 
@@ -188,8 +197,13 @@ export const POST = withErrorHandler(async (_request: NextRequest) => {
       .single();
 
     if (progressError) {
-      logger.error('Failed to start onboarding', progressError, { guideId: user.id });
-      return NextResponse.json({ error: 'Failed to start onboarding' }, { status: 500 });
+      logger.error('Failed to start onboarding', progressError, {
+        guideId: user.id,
+      });
+      return NextResponse.json(
+        { error: 'Failed to start onboarding' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -199,6 +213,9 @@ export const POST = withErrorHandler(async (_request: NextRequest) => {
     });
   } catch (error) {
     logger.error('Failed to start onboarding', error, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to start onboarding' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to start onboarding' },
+      { status: 500 }
+    );
   }
 });

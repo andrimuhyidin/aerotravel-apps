@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
+import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient, hasRole } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -39,7 +39,9 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     // 1. Check: Completed trips without payment
     let missingPaymentsQuery = client
       .from('trip_guides')
-      .select('trip_id, guide_id, fee_amount, check_out_at, trip:trips(trip_code, branch_id)')
+      .select(
+        'trip_id, guide_id, fee_amount, check_out_at, trip:trips(trip_code, branch_id)'
+      )
       .not('check_out_at', 'is', null)
       .gt('fee_amount', 0)
       .not(
@@ -79,7 +81,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       }
     }
 
-    const { data: missingPayments, error: missingPaymentsError } = await missingPaymentsQuery;
+    const { data: missingPayments, error: missingPaymentsError } =
+      await missingPaymentsQuery;
 
     if (missingPaymentsError) {
       logger.error('Failed to check missing payments', missingPaymentsError);
@@ -98,7 +101,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     }
 
     const tripIdsFromTransactions = (allTripTransactions || []).map(
-      (t: { reference_id: string }) => t.reference_id,
+      (t: { reference_id: string }) => t.reference_id
     );
 
     let orphanPayments: Array<{
@@ -116,11 +119,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         .is('check_out_at', null);
 
       const tripsWithoutCheckoutIds = new Set(
-        (tripsWithoutCheckout || []).map((t: { trip_id: string }) => t.trip_id),
+        (tripsWithoutCheckout || []).map((t: { trip_id: string }) => t.trip_id)
       );
 
       orphanPayments = (allTripTransactions || [])
-        .filter((t: { reference_id: string }) => tripsWithoutCheckoutIds.has(t.reference_id))
+        .filter((t: { reference_id: string }) =>
+          tripsWithoutCheckoutIds.has(t.reference_id)
+        )
         .map((t: { id: string; reference_id: string; created_at: string }) => ({
           transaction_id: t.id,
           trip_id: t.reference_id,
@@ -130,7 +135,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
     // 3. Check: Balance mismatches
     const { data: balanceMismatches, error: balanceError } = await client.rpc(
-      'check_wallet_balance_consistency',
+      'check_wallet_balance_consistency'
     );
 
     if (balanceError) {
@@ -146,9 +151,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         .eq('branch_id', branchContext.branchId)
         .eq('role', 'guide');
 
-      const guideIds = new Set(branchGuides?.map((g: { id: string }) => g.id) || []);
+      const guideIds = new Set(
+        branchGuides?.map((g: { id: string }) => g.id) || []
+      );
       filteredBalanceMismatches = (balanceMismatches || []).filter(
-        (bm: { guide_id: string }) => guideIds.has(bm.guide_id),
+        (bm: { guide_id: string }) => guideIds.has(bm.guide_id)
       );
     }
 
@@ -161,11 +168,14 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       .eq('transaction_type', 'earning');
 
     if (dateCheckError) {
-      logger.error('Failed to fetch transactions for date check', dateCheckError);
+      logger.error(
+        'Failed to fetch transactions for date check',
+        dateCheckError
+      );
     }
 
     const transactionTripIds = (transactionsWithTrips || []).map(
-      (t: { reference_id: string }) => t.reference_id,
+      (t: { reference_id: string }) => t.reference_id
     );
 
     let dateInconsistencies: Array<{
@@ -182,19 +192,25 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         .not('check_out_at', 'is', null);
 
       const checkoutMap = new Map(
-        (tripCheckouts || []).map((t: { trip_id: string; check_out_at: string }) => [
-          t.trip_id,
-          new Date(t.check_out_at).getTime(),
-        ]),
+        (tripCheckouts || []).map(
+          (t: { trip_id: string; check_out_at: string }) => [
+            t.trip_id,
+            new Date(t.check_out_at).getTime(),
+          ]
+        )
       );
 
       dateInconsistencies = (transactionsWithTrips || [])
-        .filter((t: { reference_id: string }) => checkoutMap.has(t.reference_id))
+        .filter((t: { reference_id: string }) =>
+          checkoutMap.has(t.reference_id)
+        )
         .map((t: { id: string; reference_id: string; created_at: string }) => {
           const checkoutTime = checkoutMap.get(t.reference_id);
-          if (checkoutTime === undefined || typeof checkoutTime !== 'number') return null;
+          if (checkoutTime === undefined || typeof checkoutTime !== 'number')
+            return null;
           const transactionTime = new Date(t.created_at).getTime();
-          const diffHours = Math.abs(transactionTime - checkoutTime) / (1000 * 60 * 60);
+          const diffHours =
+            Math.abs(transactionTime - checkoutTime) / (1000 * 60 * 60);
 
           return {
             transaction_id: t.id,
@@ -207,11 +223,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
     // Format missing payments
     const missingPaymentsFormatted =
-      missingPayments?.map((mp: { trip_id: string; guide_id: string; fee_amount: number }) => ({
-        trip_id: mp.trip_id,
-        guide_id: mp.guide_id,
-        fee_amount: Number(mp.fee_amount || 0),
-      })) || [];
+      missingPayments?.map(
+        (mp: { trip_id: string; guide_id: string; fee_amount: number }) => ({
+          trip_id: mp.trip_id,
+          guide_id: mp.guide_id,
+          fee_amount: Number(mp.fee_amount || 0),
+        })
+      ) || [];
 
     // Format balance mismatches
     const balanceMismatchesFormatted = (filteredBalanceMismatches || []).map(
@@ -227,7 +245,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         expected: Number(bm.expected_balance || 0),
         actual: Number(bm.actual_balance || 0),
         difference: Number(bm.difference || 0),
-      }),
+      })
     );
 
     // Calculate summary
@@ -237,7 +255,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       balanceMismatchesFormatted.length +
       dateInconsistencies.length;
 
-    const criticalIssues = missingPaymentsFormatted.length + balanceMismatchesFormatted.length;
+    const criticalIssues =
+      missingPaymentsFormatted.length + balanceMismatchesFormatted.length;
 
     const status = totalIssues > 0 ? 'issues_found' : 'ok';
 
@@ -267,8 +286,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       },
     });
   } catch (error) {
-    logger.error('Failed to check data consistency', error, { userId: user.id });
-    return NextResponse.json({ error: 'Failed to check data consistency' }, { status: 500 });
+    logger.error('Failed to check data consistency', error, {
+      userId: user.id,
+    });
+    return NextResponse.json(
+      { error: 'Failed to check data consistency' },
+      { status: 500 }
+    );
   }
 });
-

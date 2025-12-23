@@ -4,7 +4,7 @@
  * POST /api/guide/wallet/verify - Recalculate and sync balance
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { createClient } from '@/lib/supabase/server';
@@ -13,7 +13,10 @@ import { logger } from '@/lib/utils/logger';
 /**
  * Calculate balance from transactions
  */
-async function calculateBalanceFromTransactions(walletId: string, client: any): Promise<number> {
+async function calculateBalanceFromTransactions(
+  walletId: string,
+  client: unknown
+): Promise<number> {
   const { data: transactions, error } = await client
     .from('guide_wallet_transactions')
     .select('transaction_type, amount, status')
@@ -21,7 +24,11 @@ async function calculateBalanceFromTransactions(walletId: string, client: any): 
     .order('created_at', { ascending: true });
 
   if (error) {
-    logger.error('Failed to fetch transactions for balance calculation', error, { walletId });
+    logger.error(
+      'Failed to fetch transactions for balance calculation',
+      error,
+      { walletId }
+    );
     return 0;
   }
 
@@ -78,7 +85,10 @@ export const GET = withErrorHandler(async () => {
 
   if (walletError) {
     logger.error('Failed to load wallet', walletError, { guideId: user.id });
-    return NextResponse.json({ error: 'Failed to load wallet' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to load wallet' },
+      { status: 500 }
+    );
   }
 
   if (!wallet) {
@@ -92,7 +102,10 @@ export const GET = withErrorHandler(async () => {
   }
 
   const storedBalance = Number(wallet.balance || 0);
-  const calculatedBalance = await calculateBalanceFromTransactions(wallet.id, client);
+  const calculatedBalance = await calculateBalanceFromTransactions(
+    wallet.id,
+    client
+  );
   const difference = storedBalance - calculatedBalance;
   const isConsistent = Math.abs(difference) < 0.01; // Allow small floating point differences
 
@@ -137,7 +150,10 @@ export const GET = withErrorHandler(async () => {
       totalWithdrawals: summary.totalWithdrawals,
       pendingWithdrawals: summary.pendingWithdrawals,
       totalAdjustments: summary.totalAdjustments,
-      expectedBalance: summary.totalEarnings - summary.totalWithdrawals + summary.totalAdjustments,
+      expectedBalance:
+        summary.totalEarnings -
+        summary.totalWithdrawals +
+        summary.totalAdjustments,
     },
     message: isConsistent
       ? 'Balance is consistent'
@@ -171,17 +187,28 @@ export const POST = withErrorHandler(async () => {
   }
 
   // Calculate correct balance
-  const calculatedBalance = await calculateBalanceFromTransactions(wallet.id, client);
+  const calculatedBalance = await calculateBalanceFromTransactions(
+    wallet.id,
+    client
+  );
 
   // Update stored balance
   const { error: updateError } = await client
     .from('guide_wallets')
-    .update({ balance: calculatedBalance, updated_at: new Date().toISOString() })
+    .update({
+      balance: calculatedBalance,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', wallet.id);
 
   if (updateError) {
-    logger.error('Failed to update wallet balance', updateError, { walletId: wallet.id });
-    return NextResponse.json({ error: 'Failed to sync balance' }, { status: 500 });
+    logger.error('Failed to update wallet balance', updateError, {
+      walletId: wallet.id,
+    });
+    return NextResponse.json(
+      { error: 'Failed to sync balance' },
+      { status: 500 }
+    );
   }
 
   logger.info('Wallet balance synced', {
@@ -199,4 +226,3 @@ export const POST = withErrorHandler(async () => {
     difference: calculatedBalance - Number(wallet.balance || 0),
   });
 });
-

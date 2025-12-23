@@ -4,7 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -115,7 +115,7 @@ async function executeSQL(sql) {
 async function runMigration(filename) {
   const filePath = join(__dirname, '..', 'supabase', 'migrations', filename);
   
-  if (!readFileSync.existsSync && !require('fs').existsSync(filePath)) {
+  if (!existsSync(filePath)) {
     console.error(`❌ File not found: ${filename}`);
     return false;
   }

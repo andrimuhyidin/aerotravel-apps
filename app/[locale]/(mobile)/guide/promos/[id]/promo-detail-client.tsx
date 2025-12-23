@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
-import { LoadingState } from '@/components/ui/loading-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -78,10 +77,18 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
     },
     onSuccess: () => {
       // Invalidate queries to refresh read status
-      void queryClient.invalidateQueries({ queryKey: ['guide', 'promos', 'updates', promoId] });
-      void queryClient.invalidateQueries({ queryKey: ['guide', 'promos', 'updates', 'list'] });
-      void queryClient.invalidateQueries({ queryKey: ['guide', 'promos', 'updates', 'widget'] });
-      void queryClient.invalidateQueries({ queryKey: ['guide', 'notifications'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['guide', 'promos', 'updates', promoId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['guide', 'promos', 'updates', 'list'],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['guide', 'promos', 'updates', 'widget'],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['guide', 'notifications'],
+      });
     },
   });
 
@@ -90,8 +97,7 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
     if (promo && !promo.isRead) {
       markReadMutation.mutate();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [promo?.id, promo?.isRead]);
+  }, [promo?.id, promo?.isRead, markReadMutation]);
 
   // Format date for display
   const formatDate = (dateString: string | null | undefined) => {
@@ -190,9 +196,9 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
         </div>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
-            <Skeleton className="h-8 w-3/4 mb-4" />
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="mb-4 h-8 w-3/4" />
+            <Skeleton className="mb-2 h-4 w-full" />
+            <Skeleton className="mb-2 h-4 w-full" />
             <Skeleton className="h-4 w-2/3" />
           </CardContent>
         </Card>
@@ -203,11 +209,7 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
   if (error) {
     return (
       <div className="space-y-4">
-        <Button
-          variant="ghost"
-          onClick={() => router.back()}
-          className="gap-2"
-        >
+        <Button variant="ghost" onClick={() => router.back()} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
           Kembali
         </Button>
@@ -226,11 +228,7 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
   if (!promo) {
     return (
       <div className="space-y-4">
-        <Button
-          variant="ghost"
-          onClick={() => router.back()}
-          className="gap-2"
-        >
+        <Button variant="ghost" onClick={() => router.back()} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
           Kembali
         </Button>
@@ -252,7 +250,7 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
       <Button
         variant="ghost"
         onClick={() => router.back()}
-        className="gap-2 -ml-2"
+        className="-ml-2 gap-2"
       >
         <ArrowLeft className="h-4 w-4" />
         Kembali
@@ -261,20 +259,20 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
       {/* Promo Header Card */}
       <Card
         className={cn(
-          'border-0 shadow-md overflow-hidden',
-          `bg-gradient-to-br ${gradientClass}`,
+          'overflow-hidden border-0 shadow-md',
+          `bg-gradient-to-br ${gradientClass}`
         )}
       >
         <CardContent className="p-6">
-          <div className="flex items-start justify-between gap-3 mb-4">
-            <div className="flex-1 min-w-0">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
               {promo.badge && (
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm px-3 py-1 text-xs font-semibold shadow-sm border border-white/10 mb-3">
+                <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/20 px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur-sm">
                   <TypeIcon className="h-3.5 w-3.5" />
                   {promo.badge}
                 </div>
               )}
-              <h1 className="text-2xl font-bold leading-tight text-white mb-2">
+              <h1 className="mb-2 text-2xl font-bold leading-tight text-white">
                 {promo.title}
               </h1>
               {promo.subtitle && (
@@ -288,8 +286,8 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
           <div className="flex flex-wrap items-center gap-3">
             <span
               className={cn(
-                'inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border',
-                getPriorityColor(promo.priority),
+                'inline-flex items-center rounded-lg border px-3 py-1 text-xs font-medium',
+                getPriorityColor(promo.priority)
               )}
             >
               {getPriorityLabel(promo.priority)}
@@ -306,11 +304,11 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
       {promo.description && (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-3">
+            <h2 className="mb-3 text-lg font-semibold text-slate-900">
               Detail
             </h2>
             <div className="prose prose-sm max-w-none">
-              <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
+              <p className="whitespace-pre-wrap leading-relaxed text-slate-700">
                 {promo.description}
               </p>
             </div>
@@ -321,14 +319,14 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
       {/* Date Information Card */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">
             Informasi Waktu
           </h2>
           <div className="space-y-3">
             <div className="flex items-start gap-3">
-              <Calendar className="h-5 w-5 text-slate-400 mt-0.5 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-slate-600 mb-1">
+              <Calendar className="mt-0.5 h-5 w-5 flex-shrink-0 text-slate-400" />
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 text-sm font-medium text-slate-600">
                   Tanggal Mulai
                 </div>
                 <div className="text-base text-slate-900">
@@ -338,9 +336,9 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
             </div>
             {promo.endDate && (
               <div className="flex items-start gap-3">
-                <Calendar className="h-5 w-5 text-slate-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-slate-600 mb-1">
+                <Calendar className="mt-0.5 h-5 w-5 flex-shrink-0 text-slate-400" />
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 text-sm font-medium text-slate-600">
                     Tanggal Berakhir
                   </div>
                   <div className="text-base text-slate-900">
@@ -360,7 +358,7 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
             <Link href={promo.link}>
               <Button className="w-full" size="lg">
                 Lihat Lebih Lanjut
-                <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
+                <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
               </Button>
             </Link>
           </CardContent>
@@ -369,4 +367,3 @@ export function PromoDetailClient({ locale, promoId }: PromoDetailClientProps) {
     </div>
   );
 }
-

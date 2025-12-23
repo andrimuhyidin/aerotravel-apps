@@ -9,7 +9,11 @@ import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 export type AiUsageEvent = {
-  feature: 'rag_search' | 'briefing_generation' | 'briefing_edit' | 'chat_assistant';
+  feature:
+    | 'rag_search'
+    | 'briefing_generation'
+    | 'briefing_edit'
+    | 'chat_assistant';
   userId: string;
   tripId?: string;
   metadata?: Record<string, unknown>;
@@ -20,7 +24,7 @@ export type AiUsageEvent = {
  */
 export async function trackAiUsage(event: AiUsageEvent): Promise<void> {
   try {
-    const supabase = await createClient();
+    const _supabase = await createClient();
 
     // Insert ke analytics table (atau log untuk sekarang)
     // TODO: Create analytics table jika belum ada

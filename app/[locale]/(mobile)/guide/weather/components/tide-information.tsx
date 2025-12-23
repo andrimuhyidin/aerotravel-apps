@@ -7,12 +7,11 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { Clock, TrendingDown, TrendingUp, Waves } from 'lucide-react';
+import { TrendingDown, TrendingUp, Waves } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 
 type TideInformationProps = {
   lat: number;
@@ -26,7 +25,10 @@ type TideData = {
   heights: Array<{ dt: number; date?: string; height: number }>;
 };
 
-const fetchTideData = async (lat: number, lng: number): Promise<TideData | null> => {
+const fetchTideData = async (
+  lat: number,
+  lng: number
+): Promise<TideData | null> => {
   const worldTidesApiKey = 'd784ee1e-eb1d-4e3a-bbdc-5c58e7adc717';
   const response = await fetch(
     `https://www.worldtides.info/api/v2?heights&lat=${lat}&lon=${lng}&key=${worldTidesApiKey}&days=3`
@@ -45,7 +47,11 @@ const fetchTideData = async (lat: number, lng: number): Promise<TideData | null>
     }>;
   };
 
-  if (!data.heights || !Array.isArray(data.heights) || data.heights.length === 0) {
+  if (
+    !data.heights ||
+    !Array.isArray(data.heights) ||
+    data.heights.length === 0
+  ) {
     return null;
   }
 
@@ -66,7 +72,8 @@ const fetchTideData = async (lat: number, lng: number): Promise<TideData | null>
     const curr = currItem.height;
     const next = nextItem.height;
 
-    if (prev === undefined || curr === undefined || next === undefined) continue;
+    if (prev === undefined || curr === undefined || next === undefined)
+      continue;
 
     if (curr > prev && curr > next) {
       // Local maximum (high tide)
@@ -92,14 +99,22 @@ const fetchTideData = async (lat: number, lng: number): Promise<TideData | null>
   };
 };
 
-export function TideInformation({ lat, lng, currentDate = new Date() }: TideInformationProps) {
+export function TideInformation({
+  lat,
+  lng,
+  currentDate = new Date(),
+}: TideInformationProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const { data: tideData, isLoading, error } = useQuery({
+  const {
+    data: tideData,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['tide-data', lat, lng],
     queryFn: () => fetchTideData(lat, lng),
     enabled: mounted && !!lat && !!lng,
@@ -121,7 +136,7 @@ export function TideInformation({ lat, lng, currentDate = new Date() }: TideInfo
     return (
       <Card className="rounded-xl bg-slate-50 p-4">
         <CardContent className="p-0">
-          <div className="flex items-center gap-2 text-slate-600 mb-2">
+          <div className="mb-2 flex items-center gap-2 text-slate-600">
             <Waves className="h-4 w-4" />
             <span className="text-xs font-medium">Informasi Pasang Surut</span>
           </div>
@@ -135,7 +150,7 @@ export function TideInformation({ lat, lng, currentDate = new Date() }: TideInfo
     return (
       <Card className="rounded-xl bg-slate-50 p-4">
         <CardContent className="p-0">
-          <div className="flex items-center gap-2 text-slate-600 mb-2">
+          <div className="mb-2 flex items-center gap-2 text-slate-600">
             <Waves className="h-4 w-4" />
             <span className="text-xs font-medium">Informasi Pasang Surut</span>
           </div>
@@ -150,17 +165,19 @@ export function TideInformation({ lat, lng, currentDate = new Date() }: TideInfo
 
   // Get next high and low tide
   const now = currentDate.getTime() / 1000;
-  const nextHighTide = Array.isArray(tideData.highTides) && tideData.highTides.length > 0
-    ? tideData.highTides.find((ht) => ht && ht.time && ht.time > now)
-    : null;
-  const nextLowTide = Array.isArray(tideData.lowTides) && tideData.lowTides.length > 0
-    ? tideData.lowTides.find((lt) => lt && lt.time && lt.time > now)
-    : null;
+  const nextHighTide =
+    Array.isArray(tideData.highTides) && tideData.highTides.length > 0
+      ? tideData.highTides.find((ht) => ht && ht.time && ht.time > now)
+      : null;
+  const nextLowTide =
+    Array.isArray(tideData.lowTides) && tideData.lowTides.length > 0
+      ? tideData.lowTides.find((lt) => lt && lt.time && lt.time > now)
+      : null;
 
   return (
     <Card className="rounded-xl bg-slate-50 p-4">
       <CardContent className="p-0">
-        <div className="flex items-center gap-2 text-slate-600 mb-3">
+        <div className="mb-3 flex items-center gap-2 text-slate-600">
           <Waves className="h-4 w-4" />
           <span className="text-xs font-medium">Informasi Pasang Surut</span>
         </div>
@@ -171,11 +188,15 @@ export function TideInformation({ lat, lng, currentDate = new Date() }: TideInfo
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-blue-600" />
                 <div>
-                  <div className="text-xs font-medium text-blue-900">Pasang Tinggi</div>
+                  <div className="text-xs font-medium text-blue-900">
+                    Pasang Tinggi
+                  </div>
                   <div className="text-xs text-blue-700">
                     {(() => {
                       try {
-                        return new Date(nextHighTide.time * 1000).toLocaleTimeString('id-ID', {
+                        return new Date(
+                          nextHighTide.time * 1000
+                        ).toLocaleTimeString('id-ID', {
                           hour: '2-digit',
                           minute: '2-digit',
                         });
@@ -186,7 +207,9 @@ export function TideInformation({ lat, lng, currentDate = new Date() }: TideInfo
                   </div>
                 </div>
               </div>
-              <div className="text-sm font-bold text-blue-900">{(nextHighTide.height ?? 0).toFixed(2)}m</div>
+              <div className="text-sm font-bold text-blue-900">
+                {(nextHighTide.height ?? 0).toFixed(2)}m
+              </div>
             </div>
           )}
 
@@ -195,11 +218,15 @@ export function TideInformation({ lat, lng, currentDate = new Date() }: TideInfo
               <div className="flex items-center gap-2">
                 <TrendingDown className="h-4 w-4 text-cyan-600" />
                 <div>
-                  <div className="text-xs font-medium text-cyan-900">Pasang Rendah</div>
+                  <div className="text-xs font-medium text-cyan-900">
+                    Pasang Rendah
+                  </div>
                   <div className="text-xs text-cyan-700">
                     {(() => {
                       try {
-                        return new Date(nextLowTide.time * 1000).toLocaleTimeString('id-ID', {
+                        return new Date(
+                          nextLowTide.time * 1000
+                        ).toLocaleTimeString('id-ID', {
                           hour: '2-digit',
                           minute: '2-digit',
                         });
@@ -210,16 +237,19 @@ export function TideInformation({ lat, lng, currentDate = new Date() }: TideInfo
                   </div>
                 </div>
               </div>
-              <div className="text-sm font-bold text-cyan-900">{(nextLowTide.height ?? 0).toFixed(2)}m</div>
+              <div className="text-sm font-bold text-cyan-900">
+                {(nextLowTide.height ?? 0).toFixed(2)}m
+              </div>
             </div>
           )}
 
           {!nextHighTide && !nextLowTide && (
-            <div className="text-sm text-slate-600">Tidak ada data pasang surut untuk hari ini</div>
+            <div className="text-sm text-slate-600">
+              Tidak ada data pasang surut untuk hari ini
+            </div>
           )}
         </div>
       </CardContent>
     </Card>
   );
 }
-

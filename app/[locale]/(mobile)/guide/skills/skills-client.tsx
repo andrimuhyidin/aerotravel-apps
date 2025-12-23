@@ -6,11 +6,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-    Award,
-    Plus,
-    Target
-} from 'lucide-react';
+import { Award, Plus, Target } from 'lucide-react';
 import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -94,11 +90,18 @@ const getStatusColor = (status: string) => {
 
 export function SkillsClient({ locale: _locale }: SkillsClientProps) {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'my-skills' | 'catalog' | 'goals'>('my-skills');
+  const [activeTab, setActiveTab] = useState<'my-skills' | 'catalog' | 'goals'>(
+    'my-skills'
+  );
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Fetch guide skills
-  const { data: skillsData, isLoading: skillsLoading, error: skillsError, refetch: refetchSkills } = useQuery<{
+  const {
+    data: skillsData,
+    isLoading: skillsLoading,
+    error: skillsError,
+    refetch: refetchSkills,
+  } = useQuery<{
     skills: GuideSkill[];
   }>({
     queryKey: queryKeys.guide.skills.guide(),
@@ -110,7 +113,12 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
   });
 
   // Fetch skills catalog
-  const { data: catalogData, isLoading: catalogLoading, error: catalogError, refetch: refetchCatalog } = useQuery<{
+  const {
+    data: catalogData,
+    isLoading: catalogLoading,
+    error: catalogError,
+    refetch: refetchCatalog,
+  } = useQuery<{
     skills: SkillCatalogItem[];
   }>({
     queryKey: queryKeys.guide.skills.catalog(),
@@ -122,7 +130,12 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
   });
 
   // Fetch skill goals
-  const { data: goalsData, isLoading: goalsLoading, error: goalsError, refetch: refetchGoals } = useQuery<{
+  const {
+    data: goalsData,
+    isLoading: goalsLoading,
+    error: goalsError,
+    refetch: refetchGoals,
+  } = useQuery<{
     goals: SkillGoal[];
   }>({
     queryKey: queryKeys.guide.skills.goals(),
@@ -132,6 +145,40 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
       return (await res.json()) as { goals: SkillGoal[] };
     },
   });
+
+  // Hooks must be called before any conditional returns
+
+  const claimMutation = useMutation({
+    mutationFn: async ({
+      skillId,
+      level,
+    }: {
+      skillId: string;
+      level: number;
+    }) => {
+      const res = await fetch('/api/guide/skills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skillId, level }),
+      });
+      if (!res.ok) throw new Error('Failed to claim skill');
+      return (await res.json()) as { success: boolean; skill: GuideSkill };
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.skills.guide(),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.skills.catalog(),
+      });
+    },
+  });
+
+  // Show loading state
+  const isAnyLoading = skillsLoading || catalogLoading || goalsLoading;
+  if (isAnyLoading) {
+    return <LoadingState message="Memuat skills..." />;
+  }
 
   // Show error if any query fails
   if (skillsError || catalogError || goalsError) {
@@ -143,29 +190,14 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
     };
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : 'Gagal memuat data skills'}
+        message={
+          error instanceof Error ? error.message : 'Gagal memuat data skills'
+        }
         onRetry={refetch}
         variant="card"
       />
     );
   }
-
-  // Claim skill mutation
-  const claimMutation = useMutation({
-    mutationFn: async ({ skillId, level }: { skillId: string; level: number }) => {
-      const res = await fetch('/api/guide/skills', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ skillId, level }),
-      });
-      if (!res.ok) throw new Error('Failed to claim skill');
-      return (await res.json()) as { success: boolean; skill: GuideSkill };
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.guide.skills.guide() });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.guide.skills.catalog() });
-    },
-  });
 
   const mySkills = skillsData?.skills ?? [];
   const catalog = catalogData?.skills ?? [];
@@ -185,21 +217,20 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
 
   return (
     <div className="space-y-4 pb-6">
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+      >
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="my-skills">
             Skills Saya ({mySkills.length})
           </TabsTrigger>
-          <TabsTrigger value="catalog">
-            Katalog ({catalog.length})
-          </TabsTrigger>
-          <TabsTrigger value="goals">
-            Goals ({goals.length})
-          </TabsTrigger>
+          <TabsTrigger value="catalog">Katalog ({catalog.length})</TabsTrigger>
+          <TabsTrigger value="goals">Goals ({goals.length})</TabsTrigger>
         </TabsList>
 
         {/* My Skills Tab */}
-        <TabsContent value="my-skills" className="space-y-4 mt-4">
+        <TabsContent value="my-skills" className="mt-4 space-y-4">
           {skillsLoading ? (
             <Card className="border-0 shadow-sm">
               <CardContent className="p-6">
@@ -223,73 +254,89 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
                 .filter((gs) => gs && gs.id && gs.skill)
                 .map((guideSkill) => {
                   const skill = guideSkill.skill;
-                  if (!skill || !skill.levels || !Array.isArray(skill.levels)) return null;
+                  if (!skill || !skill.levels || !Array.isArray(skill.levels))
+                    return null;
                   const maxLevel = skill.levels.length || 1;
-                  const levelProgress = maxLevel > 0 ? (guideSkill.current_level / maxLevel) * 100 : 0;
+                  const levelProgress =
+                    maxLevel > 0
+                      ? (guideSkill.current_level / maxLevel) * 100
+                      : 0;
 
-                return (
-                  <Card key={guideSkill.id} className="border-0 shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-2xl">
-                          {getCategoryIcon(skill.category)}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <h3 className="font-semibold text-slate-900">{skill.name}</h3>
-                              {skill.description && (
-                                <p className="text-sm text-slate-600 mt-0.5">{skill.description}</p>
-                              )}
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                guideSkill.status === 'validated' && 'border-emerald-500 text-emerald-700',
-                                guideSkill.status === 'claimed' && 'border-amber-500 text-amber-700',
-                              )}
-                            >
-                              {guideSkill.status === 'validated' ? 'Validated' : 'Claimed'}
-                            </Badge>
+                  return (
+                    <Card key={guideSkill.id} className="border-0 shadow-sm">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-4">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-2xl">
+                            {getCategoryIcon(skill.category)}
                           </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-slate-600">
-                                Level {guideSkill.current_level} / {maxLevel}
-                              </span>
-                              {guideSkill.target_level && (
-                                <span className="text-slate-500">
-                                  Target: Level {guideSkill.target_level}
+                          <div className="flex-1">
+                            <div className="mb-2 flex items-start justify-between">
+                              <div>
+                                <h3 className="font-semibold text-slate-900">
+                                  {skill.name}
+                                </h3>
+                                {skill.description && (
+                                  <p className="mt-0.5 text-sm text-slate-600">
+                                    {skill.description}
+                                  </p>
+                                )}
+                              </div>
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  guideSkill.status === 'validated' &&
+                                    'border-emerald-500 text-emerald-700',
+                                  guideSkill.status === 'claimed' &&
+                                    'border-amber-500 text-amber-700'
+                                )}
+                              >
+                                {guideSkill.status === 'validated'
+                                  ? 'Validated'
+                                  : 'Claimed'}
+                              </Badge>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-slate-600">
+                                  Level {guideSkill.current_level} / {maxLevel}
                                 </span>
-                              )}
+                                {guideSkill.target_level && (
+                                  <span className="text-slate-500">
+                                    Target: Level {guideSkill.target_level}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                                <div
+                                  className="h-full bg-emerald-600 transition-all duration-300"
+                                  style={{ width: `${levelProgress}%` }}
+                                />
+                              </div>
+                              {skill.levels &&
+                                skill.levels[guideSkill.current_level - 1] && (
+                                  <p className="text-xs text-slate-500">
+                                    {
+                                      skill.levels[guideSkill.current_level - 1]
+                                        ?.description
+                                    }
+                                  </p>
+                                )}
                             </div>
-                            <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                              <div
-                                className="h-full bg-emerald-600 transition-all duration-300"
-                                style={{ width: `${levelProgress}%` }}
-                              />
-                            </div>
-                            {skill.levels && skill.levels[guideSkill.current_level - 1] && (
-                              <p className="text-xs text-slate-500">
-                                {skill.levels[guideSkill.current_level - 1]?.description}
-                              </p>
-                            )}
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
           )}
         </TabsContent>
 
         {/* Catalog Tab */}
-        <TabsContent value="catalog" className="space-y-4 mt-4">
+        <TabsContent value="catalog" className="mt-4 space-y-4">
           {/* Category Filter */}
           {categories.length > 0 && (
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant={selectedCategory === null ? 'default' : 'outline'}
                 size="sm"
@@ -332,56 +379,65 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
               {filteredCatalog
                 .filter((s) => s && s.id && s.name)
                 .map((skill) => {
-                  const isClaimed = mySkills.some((gs) => gs && gs.skill_id === skill.id);
-                  const maxLevel = skill.levels && Array.isArray(skill.levels) ? skill.levels.length : 0;
+                  const isClaimed = mySkills.some(
+                    (gs) => gs && gs.skill_id === skill.id
+                  );
+                  const maxLevel =
+                    skill.levels && Array.isArray(skill.levels)
+                      ? skill.levels.length
+                      : 0;
 
-                return (
-                  <Card key={skill.id} className="border-0 shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-2xl">
-                          {getCategoryIcon(skill.category)}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <h3 className="font-semibold text-slate-900">{skill.name}</h3>
-                              {skill.description && (
-                                <p className="text-sm text-slate-600 mt-0.5">{skill.description}</p>
-                              )}
+                  return (
+                    <Card key={skill.id} className="border-0 shadow-sm">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-4">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-2xl">
+                            {getCategoryIcon(skill.category)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="mb-2 flex items-start justify-between">
+                              <div>
+                                <h3 className="font-semibold text-slate-900">
+                                  {skill.name}
+                                </h3>
+                                {skill.description && (
+                                  <p className="mt-0.5 text-sm text-slate-600">
+                                    {skill.description}
+                                  </p>
+                                )}
+                              </div>
+                              <Badge variant="outline">{skill.category}</Badge>
                             </div>
-                            <Badge variant="outline">{skill.category}</Badge>
+                            <div className="mb-3 text-xs text-slate-500">
+                              {maxLevel} level tersedia
+                            </div>
+                            {!isClaimed ? (
+                              <Button
+                                size="sm"
+                                onClick={() => handleClaimSkill(skill.id, 1)}
+                                disabled={claimMutation.isPending}
+                                className="w-full sm:w-auto"
+                              >
+                                <Plus className="mr-1 h-4 w-4" />
+                                Klaim Skill
+                              </Button>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">
+                                Sudah diklaim
+                              </Badge>
+                            )}
                           </div>
-                          <div className="text-xs text-slate-500 mb-3">
-                            {maxLevel} level tersedia
-                          </div>
-                          {!isClaimed ? (
-                            <Button
-                              size="sm"
-                              onClick={() => handleClaimSkill(skill.id, 1)}
-                              disabled={claimMutation.isPending}
-                              className="w-full sm:w-auto"
-                            >
-                              <Plus className="h-4 w-4 mr-1" />
-                              Klaim Skill
-                            </Button>
-                          ) : (
-                            <Badge variant="outline" className="text-xs">
-                              Sudah diklaim
-                            </Badge>
-                          )}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
           )}
         </TabsContent>
 
         {/* Goals Tab */}
-        <TabsContent value="goals" className="space-y-4 mt-4">
+        <TabsContent value="goals" className="mt-4 space-y-4">
           {goalsLoading ? (
             <Card className="border-0 shadow-sm">
               <CardContent className="p-6">
@@ -406,61 +462,69 @@ export function SkillsClient({ locale: _locale }: SkillsClientProps) {
                 .map((goal) => {
                   const skill = goal.skill;
                   if (!skill || !skill.id) return null;
-                return (
-                  <Card key={goal.id} className="border-0 shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-2xl">
-                          {getCategoryIcon(skill.category)}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <h3 className="font-semibold text-slate-900">{skill.name}</h3>
-                              <p className="text-sm text-slate-600 mt-0.5">
-                                Target: Level {goal.target_level}
-                              </p>
-                            </div>
-                            <Badge
-                              variant={
-                                goal.status === 'completed' ? 'default' :
-                                goal.status === 'active' ? 'secondary' :
-                                'outline'
-                              }
-                            >
-                              {goal.status}
-                            </Badge>
+                  return (
+                    <Card key={goal.id} className="border-0 shadow-sm">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-4">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-2xl">
+                            {getCategoryIcon(skill.category)}
                           </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-slate-600">Progress</span>
-                              <span className="font-semibold text-slate-900">{goal.current_progress}%</span>
+                          <div className="flex-1">
+                            <div className="mb-2 flex items-start justify-between">
+                              <div>
+                                <h3 className="font-semibold text-slate-900">
+                                  {skill.name}
+                                </h3>
+                                <p className="mt-0.5 text-sm text-slate-600">
+                                  Target: Level {goal.target_level}
+                                </p>
+                              </div>
+                              <Badge
+                                variant={
+                                  goal.status === 'completed'
+                                    ? 'default'
+                                    : goal.status === 'active'
+                                      ? 'secondary'
+                                      : 'outline'
+                                }
+                              >
+                                {goal.status}
+                              </Badge>
                             </div>
-                            <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                              <div
-                                className="h-full bg-blue-600 transition-all duration-300"
-                                style={{ width: `${goal.current_progress}%` }}
-                              />
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-slate-600">Progress</span>
+                                <span className="font-semibold text-slate-900">
+                                  {goal.current_progress}%
+                                </span>
+                              </div>
+                              <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                                <div
+                                  className="h-full bg-blue-600 transition-all duration-300"
+                                  style={{ width: `${goal.current_progress}%` }}
+                                />
+                              </div>
+                              {goal.target_date && (
+                                <p className="text-xs text-slate-500">
+                                  Target:{' '}
+                                  {(() => {
+                                    try {
+                                      return new Date(
+                                        goal.target_date
+                                      ).toLocaleDateString('id-ID');
+                                    } catch {
+                                      return 'Tanggal tidak valid';
+                                    }
+                                  })()}
+                                </p>
+                              )}
                             </div>
-                            {goal.target_date && (
-                              <p className="text-xs text-slate-500">
-                                Target:{' '}
-                                {(() => {
-                                  try {
-                                    return new Date(goal.target_date).toLocaleDateString('id-ID');
-                                  } catch {
-                                    return 'Tanggal tidak valid';
-                                  }
-                                })()}
-                              </p>
-                            )}
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
           )}
         </TabsContent>

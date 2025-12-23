@@ -26,13 +26,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { sanitizeInput, sanitizePhone } from '@/lib/utils/sanitize';
+import { sanitizePhone } from '@/lib/utils/sanitize';
 import type { EmploymentStatus } from '@/types/guide';
 
 // Validation schema
 // Note: hire_date and employment_status are company-managed fields, not in validation
 const profileFormSchema = z.object({
-  name: z.string().min(3, 'Nama harus antara 3-200 karakter').max(200, 'Nama harus antara 3-200 karakter'),
+  name: z
+    .string()
+    .min(3, 'Nama harus antara 3-200 karakter')
+    .max(200, 'Nama harus antara 3-200 karakter'),
   phone: z
     .string()
     .optional()
@@ -43,22 +46,19 @@ const profileFormSchema = z.object({
   nik: z
     .string()
     .optional()
-    .refine(
-      (val) => {
-        if (!val) return true;
-        // Must be 16 digits
-        if (val.length !== 16 || !/^\d+$/.test(val)) return false;
-        // Basic NIK format validation: First 6 digits should be valid date (YYMMDD)
-        const datePart = val.substring(0, 6);
-        const year = parseInt(datePart.substring(0, 2), 10);
-        const month = parseInt(datePart.substring(2, 4), 10);
-        const day = parseInt(datePart.substring(4, 6), 10);
-        // Validate month (1-12) and day (1-31) - basic check
-        if (month < 1 || month > 12 || day < 1 || day > 31) return false;
-        return true;
-      },
-      'NIK harus berupa 16 digit angka dengan format valid. Contoh: 3201010101010001 (YYMMDD-XXXX-XXXX-XXXX)'
-    ),
+    .refine((val) => {
+      if (!val) return true;
+      // Must be 16 digits
+      if (val.length !== 16 || !/^\d+$/.test(val)) return false;
+      // Basic NIK format validation: First 6 digits should be valid date (YYMMDD)
+      const datePart = val.substring(0, 6);
+      const year = parseInt(datePart.substring(0, 2), 10);
+      const month = parseInt(datePart.substring(2, 4), 10);
+      const day = parseInt(datePart.substring(4, 6), 10);
+      // Validate month (1-12) and day (1-31) - basic check
+      if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+      return true;
+    }, 'NIK harus berupa 16 digit angka dengan format valid. Contoh: 3201010101010001 (YYMMDD-XXXX-XXXX-XXXX)'),
   address: z.string().max(500, 'Alamat maksimal 500 karakter').optional(),
   // home_address removed - redundant with address for guides
   // employee_number, hire_date, employment_status, supervisor_id are company-managed
@@ -85,12 +85,17 @@ type EditProfileFormProps = {
   };
 };
 
-export function EditProfileForm({ locale: _locale, initialData }: EditProfileFormProps) {
+export function EditProfileForm({
+  locale: _locale,
+  initialData,
+}: EditProfileFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(initialData.avatar_url);
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(
+    initialData.avatar_url
+  );
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
@@ -113,7 +118,9 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
       });
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: 'Failed to update profile' }));
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: 'Failed to update profile' }));
         throw new Error(errorData.error || 'Failed to update profile');
       }
 
@@ -152,7 +159,9 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
       });
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: 'Failed to upload avatar' }));
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: 'Failed to upload avatar' }));
         throw new Error(errorData.error || 'Failed to upload avatar');
       }
 
@@ -206,7 +215,11 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" suppressHydrationWarning>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-4"
+        suppressHydrationWarning
+      >
         {error && (
           <div
             className="rounded-lg bg-red-50 p-3 text-sm text-red-700"
@@ -219,7 +232,7 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
 
         {success && (
           <div
-            className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700 flex items-center justify-between"
+            className="flex items-center justify-between rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700"
             role="alert"
             aria-live="polite"
           >
@@ -237,7 +250,9 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
 
         {/* Avatar Upload Section */}
         <div className="space-y-3">
-          <Label className="text-sm font-medium text-slate-700">Foto Profil</Label>
+          <Label className="text-sm font-medium text-slate-700">
+            Foto Profil
+          </Label>
           <div className="flex items-center gap-4">
             {/* Avatar Preview */}
             <div className="relative flex-shrink-0">
@@ -283,7 +298,11 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
                 className="w-full"
               >
                 <Camera className="mr-2 h-4 w-4" />
-                {isUploadingAvatar ? 'Mengupload...' : avatarUrl ? 'Ganti Foto' : 'Upload Foto'}
+                {isUploadingAvatar
+                  ? 'Mengupload...'
+                  : avatarUrl
+                    ? 'Ganti Foto'
+                    : 'Upload Foto'}
               </Button>
               <p className="mt-1 text-xs text-slate-500">
                 Format: JPG, PNG. Maksimal 5MB
@@ -297,7 +316,10 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="name" className="text-sm font-medium text-slate-700">
+              <FormLabel
+                htmlFor="name"
+                className="text-sm font-medium text-slate-700"
+              >
                 Nama Lengkap
               </FormLabel>
               <FormControl>
@@ -330,7 +352,10 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
           name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="phone" className="text-sm font-medium text-slate-700">
+              <FormLabel
+                htmlFor="phone"
+                className="text-sm font-medium text-slate-700"
+              >
                 No. Telepon
               </FormLabel>
               <FormControl>
@@ -358,8 +383,12 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
           name="nik"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="nik" className="text-sm font-medium text-slate-700">
-                NIK (Nomor Induk Kependudukan) <span className="text-red-500">*</span>
+              <FormLabel
+                htmlFor="nik"
+                className="text-sm font-medium text-slate-700"
+              >
+                NIK (Nomor Induk Kependudukan){' '}
+                <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
                 <Input
@@ -390,7 +419,10 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
           name="address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="address" className="text-sm font-medium text-slate-700">
+              <FormLabel
+                htmlFor="address"
+                className="text-sm font-medium text-slate-700"
+              >
                 Alamat Lengkap
               </FormLabel>
               <FormControl>
@@ -402,7 +434,9 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
                   rows={3}
                   aria-label="Alamat lengkap"
                   aria-describedby="address-description address-help"
-                  aria-invalid={form.formState.errors.address ? 'true' : 'false'}
+                  aria-invalid={
+                    form.formState.errors.address ? 'true' : 'false'
+                  }
                 />
               </FormControl>
               <FormDescription id="address-description" className="sr-only">
@@ -432,12 +466,17 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
         </div>
 
         {/* Employee Information Section */}
-        <div className="border-t border-slate-200 pt-4 mt-4">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">Informasi Karyawan</h3>
+        <div className="mt-4 border-t border-slate-200 pt-4">
+          <h3 className="mb-4 text-sm font-semibold text-slate-900">
+            Informasi Karyawan
+          </h3>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="employee_number" className="text-sm font-medium text-slate-700">
+              <Label
+                htmlFor="employee_number"
+                className="text-sm font-medium text-slate-700"
+              >
                 Nomor Karyawan
               </Label>
               <Input
@@ -450,12 +489,16 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
                 aria-label="Nomor karyawan (hanya baca)"
               />
               <p className="text-xs text-slate-500">
-                Nomor karyawan di-generate otomatis oleh sistem saat kontrak master ditandatangani. Hubungi admin untuk perubahan.
+                Nomor karyawan di-generate otomatis oleh sistem saat kontrak
+                master ditandatangani. Hubungi admin untuk perubahan.
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="hire_date" className="text-sm font-medium text-slate-700">
+              <Label
+                htmlFor="hire_date"
+                className="text-sm font-medium text-slate-700"
+              >
                 Tanggal Mulai Bekerja
               </Label>
               <Input
@@ -468,12 +511,16 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
                 aria-label="Tanggal mulai bekerja (hanya baca)"
               />
               <p className="text-xs text-slate-500">
-                Tanggal mulai bekerja diatur oleh perusahaan berdasarkan kontrak. Hubungi admin untuk perubahan.
+                Tanggal mulai bekerja diatur oleh perusahaan berdasarkan
+                kontrak. Hubungi admin untuk perubahan.
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="employment_status" className="text-sm font-medium text-slate-700">
+              <Label
+                htmlFor="employment_status"
+                className="text-sm font-medium text-slate-700"
+              >
                 Status Karyawan
               </Label>
               <Input
@@ -495,13 +542,17 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
                 aria-label="Status karyawan (hanya baca)"
               />
               <p className="text-xs text-slate-500">
-                Status karyawan diatur oleh perusahaan. Hubungi admin untuk perubahan.
+                Status karyawan diatur oleh perusahaan. Hubungi admin untuk
+                perubahan.
               </p>
             </div>
 
             {initialData.supervisor_id && (
               <div className="space-y-2">
-                <Label htmlFor="supervisor" className="text-sm font-medium text-slate-700">
+                <Label
+                  htmlFor="supervisor"
+                  className="text-sm font-medium text-slate-700"
+                >
                   Supervisor
                 </Label>
                 <Input
@@ -513,7 +564,8 @@ export function EditProfileForm({ locale: _locale, initialData }: EditProfileFor
                   aria-label="Supervisor (hanya baca)"
                 />
                 <p className="text-xs text-slate-500">
-                  Supervisor ditetapkan oleh perusahaan. Hubungi admin untuk informasi lebih lanjut.
+                  Supervisor ditetapkan oleh perusahaan. Hubungi admin untuk
+                  informasi lebih lanjut.
                 </p>
               </div>
             )}

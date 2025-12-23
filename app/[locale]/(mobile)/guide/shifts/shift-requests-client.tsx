@@ -2,7 +2,6 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Calendar, RefreshCw, Users } from 'lucide-react';
-import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,12 +32,10 @@ type ShiftRequestsResponse = {
   requests: ShiftRequest[];
 };
 
-export function ShiftRequestsClient({ locale }: ShiftRequestsClientProps) {
-  const {
-    data,
-    isLoading,
-    refetch,
-  } = useQuery<ShiftRequestsResponse>({
+export function ShiftRequestsClient({
+  locale: _locale,
+}: ShiftRequestsClientProps) {
+  const { data, isLoading, refetch } = useQuery<ShiftRequestsResponse>({
     queryKey: ['guide', 'shift-requests'],
     queryFn: async () => {
       const res = await fetch('/api/guide/shifts/swap');
@@ -79,14 +76,14 @@ export function ShiftRequestsClient({ locale }: ShiftRequestsClientProps) {
           <p className="font-semibold">Cara kerja singkat</p>
           <ul className="list-disc space-y-1 pl-4">
             <li>
-              Ajukan permintaan ganti shift melalui Admin / Ops terlebih dahulu sesuai SOP.
+              Ajukan permintaan ganti shift melalui Admin / Ops terlebih dahulu
+              sesuai SOP.
             </li>
             <li>
-              Ops akan memilih guide pengganti dan menginput permintaan di sistem.
+              Ops akan memilih guide pengganti dan menginput permintaan di
+              sistem.
             </li>
-            <li>
-              Setelah disetujui, penugasan trip akan diperbarui otomatis.
-            </li>
+            <li>Setelah disetujui, penugasan trip akan diperbarui otomatis.</li>
           </ul>
         </CardContent>
       </Card>
@@ -137,10 +134,7 @@ export function ShiftRequestsClient({ locale }: ShiftRequestsClientProps) {
                     : 'bg-amber-50 text-amber-700';
 
             return (
-              <Card
-                key={req.id}
-                className="border-0 shadow-sm"
-              >
+              <Card key={req.id} className="border-0 shadow-sm">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -163,7 +157,9 @@ export function ShiftRequestsClient({ locale }: ShiftRequestsClientProps) {
                     <ArrowRight className="h-3.5 w-3.5 text-slate-500" />
                     <span>
                       Dialihkan ke:{' '}
-                      {req.to_guide?.full_name || req.to_guide?.email || 'Guide lain'}
+                      {req.to_guide?.full_name ||
+                        req.to_guide?.email ||
+                        'Guide lain'}
                     </span>
                   </div>
                   {req.reason && (
@@ -194,10 +190,9 @@ export function ShiftRequestsClient({ locale }: ShiftRequestsClientProps) {
       )}
 
       <div className="pt-2 text-center text-[11px] text-slate-500">
-        Untuk mengajukan permintaan baru, ikuti SOP dan hubungi Admin/Ops terlebih dahulu.
+        Untuk mengajukan permintaan baru, ikuti SOP dan hubungi Admin/Ops
+        terlebih dahulu.
       </div>
     </div>
   );
 }
-
-

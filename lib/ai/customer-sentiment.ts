@@ -18,13 +18,11 @@ export type SentimentAnalysis = {
 /**
  * Analyze real-time customer sentiment
  */
-export async function analyzeCustomerSentiment(
-  interaction: {
-    text?: string;
-    rating?: number;
-    behavior?: string; // e.g., "complaining", "asking questions", "praising"
-  }
-): Promise<SentimentAnalysis> {
+export async function analyzeCustomerSentiment(interaction: {
+  text?: string;
+  rating?: number;
+  behavior?: string; // e.g., "complaining", "asking questions", "praising"
+}): Promise<SentimentAnalysis> {
   try {
     const prompt = `Analyze customer sentiment from this interaction:
 
@@ -44,7 +42,11 @@ Provide sentiment analysis in JSON:
 
 Return ONLY the JSON object, no additional text.`;
 
-    const response = await generateContent(prompt, undefined, 'gemini-1.5-flash');
+    const response = await generateContent(
+      prompt,
+      undefined,
+      'gemini-1.5-flash'
+    );
 
     try {
       const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
@@ -55,7 +57,10 @@ Return ONLY the JSON object, no additional text.`;
         if (interaction.rating >= 4 && analysis.sentiment !== 'positive') {
           analysis.sentiment = 'positive';
           analysis.score = 0.7;
-        } else if (interaction.rating <= 2 && analysis.sentiment !== 'negative') {
+        } else if (
+          interaction.rating <= 2 &&
+          analysis.sentiment !== 'negative'
+        ) {
           analysis.sentiment = 'negative';
           analysis.score = -0.7;
           analysis.alert = true;
@@ -100,7 +105,11 @@ Return JSON array: ["suggestion 1", "suggestion 2", ...]
 
 Return ONLY the JSON array, no additional text.`;
 
-    const response = await generateContent(prompt, undefined, 'gemini-1.5-flash');
+    const response = await generateContent(
+      prompt,
+      undefined,
+      'gemini-1.5-flash'
+    );
 
     try {
       const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
@@ -135,8 +144,22 @@ function getFallbackSentiment(interaction: {
     }
   } else if (interaction.text) {
     const text = interaction.text.toLowerCase();
-    const negativeWords = ['buruk', 'jelek', 'tidak puas', 'kecewa', 'bad', 'poor'];
-    const positiveWords = ['bagus', 'puas', 'senang', 'mantap', 'good', 'great'];
+    const negativeWords = [
+      'buruk',
+      'jelek',
+      'tidak puas',
+      'kecewa',
+      'bad',
+      'poor',
+    ];
+    const positiveWords = [
+      'bagus',
+      'puas',
+      'senang',
+      'mantap',
+      'good',
+      'great',
+    ];
 
     const negativeCount = negativeWords.filter((w) => text.includes(w)).length;
     const positiveCount = positiveWords.filter((w) => text.includes(w)).length;
@@ -160,7 +183,7 @@ function getFallbackSentiment(interaction: {
   };
 }
 
-function getDefaultSuggestions(sentiment: SentimentAnalysis): string[] {
+function getDefaultSuggestions(_sentiment: SentimentAnalysis): string[] {
   return [
     'Acknowledge the concern and show empathy',
     'Ask clarifying questions to understand the issue better',

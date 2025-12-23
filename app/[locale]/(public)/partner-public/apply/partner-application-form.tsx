@@ -16,20 +16,20 @@ import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card';
 import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -50,7 +50,9 @@ type PartnerApplicationFormProps = {
   locale: string;
 };
 
-export function PartnerApplicationForm({ locale }: PartnerApplicationFormProps) {
+export function PartnerApplicationForm({
+  locale,
+}: PartnerApplicationFormProps) {
   const router = useRouter();
   const applyRole = useApplyRole();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,7 +88,7 @@ export function PartnerApplicationForm({ locale }: PartnerApplicationFormProps) 
       setTimeout(() => {
         router.push(`/${locale}/partner/dashboard`);
       }, 2000);
-    } catch (error) {
+    } catch (_error) {
       // Error is handled by the hook
       setIsSubmitting(false);
     } finally {
@@ -109,7 +111,14 @@ export function PartnerApplicationForm({ locale }: PartnerApplicationFormProps) 
             <FormField
               control={form.control}
               name="companyName"
-              render={({ field }: { field: ControllerRenderProps<PartnerApplicationFormData, 'companyName'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  PartnerApplicationFormData,
+                  'companyName'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Building2 className="h-4 w-4" />
@@ -130,7 +139,14 @@ export function PartnerApplicationForm({ locale }: PartnerApplicationFormProps) 
             <FormField
               control={form.control}
               name="companyAddress"
-              render={({ field }: { field: ControllerRenderProps<PartnerApplicationFormData, 'companyAddress'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  PartnerApplicationFormData,
+                  'companyAddress'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
@@ -152,7 +168,14 @@ export function PartnerApplicationForm({ locale }: PartnerApplicationFormProps) 
             <FormField
               control={form.control}
               name="npwp"
-              render={({ field }: { field: ControllerRenderProps<PartnerApplicationFormData, 'npwp'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  PartnerApplicationFormData,
+                  'npwp'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
@@ -175,7 +198,14 @@ export function PartnerApplicationForm({ locale }: PartnerApplicationFormProps) 
             <FormField
               control={form.control}
               name="phone"
-              render={({ field }: { field: ControllerRenderProps<PartnerApplicationFormData, 'phone'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  PartnerApplicationFormData,
+                  'phone'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Phone className="h-4 w-4" />
@@ -197,7 +227,14 @@ export function PartnerApplicationForm({ locale }: PartnerApplicationFormProps) 
             <FormField
               control={form.control}
               name="contactPerson"
-              render={({ field }: { field: ControllerRenderProps<PartnerApplicationFormData, 'contactPerson'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  PartnerApplicationFormData,
+                  'contactPerson'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel>Nama Kontak Person</FormLabel>
                   <FormControl>
@@ -218,7 +255,14 @@ export function PartnerApplicationForm({ locale }: PartnerApplicationFormProps) 
             <FormField
               control={form.control}
               name="message"
-              render={({ field }: { field: ControllerRenderProps<PartnerApplicationFormData, 'message'> }) => (
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<
+                  PartnerApplicationFormData,
+                  'message'
+                >;
+              }) => (
                 <FormItem>
                   <FormLabel>Pesan Tambahan (Opsional)</FormLabel>
                   <FormControl>
@@ -235,11 +279,7 @@ export function PartnerApplicationForm({ locale }: PartnerApplicationFormProps) 
             />
 
             <div className="flex gap-4">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1"
-              >
+              <Button type="submit" disabled={isSubmitting} className="flex-1">
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -264,4 +304,3 @@ export function PartnerApplicationForm({ locale }: PartnerApplicationFormProps) 
     </Card>
   );
 }
-

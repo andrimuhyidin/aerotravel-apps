@@ -6,9 +6,18 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react';
+import { AlertTriangle, TrendingUp } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -28,7 +37,10 @@ type RiskTrendChartProps = {
   days?: number;
 };
 
-export function RiskTrendChart({ tripId, days: initialDays = 30 }: RiskTrendChartProps) {
+export function RiskTrendChart({
+  tripId,
+  days: initialDays = 30,
+}: RiskTrendChartProps) {
   const [days, setDays] = useState(initialDays);
   const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month'>('day');
 
@@ -118,8 +130,11 @@ export function RiskTrendChart({ tripId, days: initialDays = 30 }: RiskTrendChar
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Risk Trend Analysis</CardTitle>
           <div className="flex gap-2">
-            <Select value={groupBy} onValueChange={(v) => setGroupBy(v as 'day' | 'week' | 'month')}>
-              <SelectTrigger className="w-[100px] h-8 text-xs">
+            <Select
+              value={groupBy}
+              onValueChange={(v) => setGroupBy(v as 'day' | 'week' | 'month')}
+            >
+              <SelectTrigger className="h-8 w-[100px] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -128,8 +143,11 @@ export function RiskTrendChart({ tripId, days: initialDays = 30 }: RiskTrendChar
                 <SelectItem value="month">Bulanan</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={days.toString()} onValueChange={(v) => setDays(Number(v))}>
-              <SelectTrigger className="w-[100px] h-8 text-xs">
+            <Select
+              value={days.toString()}
+              onValueChange={(v) => setDays(Number(v))}
+            >
+              <SelectTrigger className="h-8 w-[100px] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -144,35 +162,47 @@ export function RiskTrendChart({ tripId, days: initialDays = 30 }: RiskTrendChar
       </CardHeader>
       <CardContent>
         {/* Statistics Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="text-center p-3 bg-slate-50 rounded-lg">
+        <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="rounded-lg bg-slate-50 p-3 text-center">
             <p className="text-xs text-slate-500">Total Assessments</p>
             <p className="text-lg font-semibold">{data.statistics.total}</p>
           </div>
-          <div className="text-center p-3 bg-emerald-50 rounded-lg">
+          <div className="rounded-lg bg-emerald-50 p-3 text-center">
             <p className="text-xs text-emerald-600">Safe Trips</p>
-            <p className="text-lg font-semibold text-emerald-700">{data.statistics.safeCount}</p>
+            <p className="text-lg font-semibold text-emerald-700">
+              {data.statistics.safeCount}
+            </p>
           </div>
-          <div className="text-center p-3 bg-red-50 rounded-lg">
+          <div className="rounded-lg bg-red-50 p-3 text-center">
             <p className="text-xs text-red-600">Unsafe Trips</p>
-            <p className="text-lg font-semibold text-red-700">{data.statistics.unsafeCount}</p>
+            <p className="text-lg font-semibold text-red-700">
+              {data.statistics.unsafeCount}
+            </p>
           </div>
-          <div className="text-center p-3 bg-blue-50 rounded-lg">
+          <div className="rounded-lg bg-blue-50 p-3 text-center">
             <p className="text-xs text-blue-600">Avg Risk Score</p>
-            <p className="text-lg font-semibold text-blue-700">{data.statistics.avgRiskScore}</p>
+            <p className="text-lg font-semibold text-blue-700">
+              {data.statistics.avgRiskScore}
+            </p>
           </div>
         </div>
 
         {/* Risk Score Trend Chart */}
         <div className="mb-6">
-          <h4 className="text-sm font-semibold mb-2">Average Risk Score Trend</h4>
+          <h4 className="mb-2 text-sm font-semibold">
+            Average Risk Score Trend
+          </h4>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" tick={{ fontSize: 12 }} />
               <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
               <Tooltip
-                formatter={(value: number | undefined) => value !== undefined ? [value.toFixed(2), 'Risk Score'] : ['', '']}
+                formatter={(value: number | undefined) =>
+                  value !== undefined
+                    ? [value.toFixed(2), 'Risk Score']
+                    : ['', '']
+                }
                 labelFormatter={(label) => `Date: ${label}`}
               />
               <Area
@@ -194,14 +224,15 @@ export function RiskTrendChart({ tripId, days: initialDays = 30 }: RiskTrendChar
               />
             </AreaChart>
           </ResponsiveContainer>
-          <p className="text-xs text-slate-500 mt-2">
-            Garis merah menunjukkan threshold risiko (70). Score di atas 70 = trip tidak aman.
+          <p className="mt-2 text-xs text-slate-500">
+            Garis merah menunjukkan threshold risiko (70). Score di atas 70 =
+            trip tidak aman.
           </p>
         </div>
 
         {/* Safe vs Unsafe Comparison */}
         <div>
-          <h4 className="text-sm font-semibold mb-2">Safe vs Unsafe Trips</h4>
+          <h4 className="mb-2 text-sm font-semibold">Safe vs Unsafe Trips</h4>
           <ResponsiveContainer width="100%" height={150}>
             <AreaChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -230,14 +261,17 @@ export function RiskTrendChart({ tripId, days: initialDays = 30 }: RiskTrendChar
 
         {/* Insights */}
         {data.statistics.avgRiskScore > 70 && (
-          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600" />
               <div>
-                <p className="text-sm font-semibold text-amber-900">Perhatian</p>
-                <p className="text-xs text-amber-700 mt-1">
-                  Rata-rata risk score ({data.statistics.avgRiskScore}) melebihi threshold aman (70).
-                  Pertimbangkan untuk meningkatkan prosedur keselamatan.
+                <p className="text-sm font-semibold text-amber-900">
+                  Perhatian
+                </p>
+                <p className="mt-1 text-xs text-amber-700">
+                  Rata-rata risk score ({data.statistics.avgRiskScore}) melebihi
+                  threshold aman (70). Pertimbangkan untuk meningkatkan prosedur
+                  keselamatan.
                 </p>
               </div>
             </div>
@@ -245,13 +279,16 @@ export function RiskTrendChart({ tripId, days: initialDays = 30 }: RiskTrendChar
         )}
 
         {data.statistics.safePercentage >= 90 && (
-          <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
             <div className="flex items-start gap-2">
-              <TrendingUp className="h-5 w-5 text-emerald-600 mt-0.5" />
+              <TrendingUp className="mt-0.5 h-5 w-5 text-emerald-600" />
               <div>
-                <p className="text-sm font-semibold text-emerald-900">Prestasi Baik</p>
-                <p className="text-xs text-emerald-700 mt-1">
-                  {data.statistics.safePercentage}% trip dinyatakan aman. Pertahankan standar keselamatan ini!
+                <p className="text-sm font-semibold text-emerald-900">
+                  Prestasi Baik
+                </p>
+                <p className="mt-1 text-xs text-emerald-700">
+                  {data.statistics.safePercentage}% trip dinyatakan aman.
+                  Pertahankan standar keselamatan ini!
                 </p>
               </div>
             </div>
@@ -262,15 +299,20 @@ export function RiskTrendChart({ tripId, days: initialDays = 30 }: RiskTrendChar
   );
 }
 
-function formatDate(dateString: string, groupBy: 'day' | 'week' | 'month'): string {
+function formatDate(
+  dateString: string,
+  groupBy: 'day' | 'week' | 'month'
+): string {
   const date = new Date(dateString);
-  
+
   if (groupBy === 'day') {
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
   } else if (groupBy === 'week') {
     return `Week ${date.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })}`;
   } else {
-    return date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+    return date.toLocaleDateString('id-ID', {
+      month: 'short',
+      year: 'numeric',
+    });
   }
 }
-

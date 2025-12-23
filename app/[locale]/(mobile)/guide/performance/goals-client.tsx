@@ -5,7 +5,7 @@
  * Target bulanan untuk trips, rating, income dengan progress tracking visual
  */
 
-import { BarChart3, Target, TrendingUp } from 'lucide-react';
+import { BarChart3, Target } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -44,7 +44,9 @@ type Comparison = {
   income: { user: number; average: number; percentile: number };
 };
 
-export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) {
+export function PerformanceGoalsClient({
+  locale: _locale,
+}: PerformanceGoalsClientProps) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -82,7 +84,9 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
       }
 
       if (comparisonRes.ok) {
-        const comparisonJson = (await comparisonRes.json()) as { comparison: Comparison };
+        const comparisonJson = (await comparisonRes.json()) as {
+          comparison: Comparison;
+        };
         setComparison(comparisonJson.comparison);
       }
     } catch (err) {
@@ -101,9 +105,15 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
         body: JSON.stringify({
           year,
           month,
-          targetTrips: newGoal.targetTrips ? parseInt(newGoal.targetTrips) : undefined,
-          targetRating: newGoal.targetRating ? parseFloat(newGoal.targetRating) : undefined,
-          targetIncome: newGoal.targetIncome ? parseFloat(newGoal.targetIncome) : undefined,
+          targetTrips: newGoal.targetTrips
+            ? parseInt(newGoal.targetTrips)
+            : undefined,
+          targetRating: newGoal.targetRating
+            ? parseFloat(newGoal.targetRating)
+            : undefined,
+          targetIncome: newGoal.targetIncome
+            ? parseFloat(newGoal.targetIncome)
+            : undefined,
         }),
       });
 
@@ -120,19 +130,32 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
     }
   }
 
-  const tripsProgress = goal && goal.target_trips > 0
-    ? Math.min((current.trips / goal.target_trips) * 100, 100)
-    : 0;
-  const ratingProgress = goal && goal.target_rating > 0
-    ? Math.min((current.rating / goal.target_rating) * 100, 100)
-    : 0;
-  const incomeProgress = goal && goal.target_income > 0
-    ? Math.min((current.income / goal.target_income) * 100, 100)
-    : 0;
+  const tripsProgress =
+    goal && goal.target_trips > 0
+      ? Math.min((current.trips / goal.target_trips) * 100, 100)
+      : 0;
+  const ratingProgress =
+    goal && goal.target_rating > 0
+      ? Math.min((current.rating / goal.target_rating) * 100, 100)
+      : 0;
+  const incomeProgress =
+    goal && goal.target_income > 0
+      ? Math.min((current.income / goal.target_income) * 100, 100)
+      : 0;
 
   const monthNames = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
   ];
 
   return (
@@ -174,7 +197,10 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i).map((y) => (
+                {Array.from(
+                  { length: 5 },
+                  (_, i) => now.getFullYear() - 2 + i
+                ).map((y) => (
                   <SelectItem key={y} value={y.toString()}>
                     {y}
                   </SelectItem>
@@ -194,7 +220,11 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
                 <Target className="h-5 w-5 text-emerald-600" />
                 Target {monthNames[month - 1]} {year}
               </CardTitle>
-              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEditing(true)}
+              >
                 {goal ? 'Edit' : 'Set Target'}
               </Button>
             </div>
@@ -204,7 +234,7 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
               <>
                 {/* Trips Goal */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="mb-2 flex items-center justify-between">
                     <Label className="text-sm font-medium">Target Trips</Label>
                     <span className="text-sm text-slate-600">
                       {current.trips} / {goal.target_trips}
@@ -212,40 +242,48 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
                   </div>
                   <Progress value={tripsProgress} className="h-2" />
                   <p className="mt-1 text-xs text-slate-500">
-                    {tripsProgress >= 100 ? '✅ Target tercapai!' : `${Math.round(tripsProgress)}% tercapai`}
+                    {tripsProgress >= 100
+                      ? '✅ Target tercapai!'
+                      : `${Math.round(tripsProgress)}% tercapai`}
                   </p>
                 </div>
 
                 {/* Rating Goal */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="mb-2 flex items-center justify-between">
                     <Label className="text-sm font-medium">Target Rating</Label>
                     <span className="text-sm text-slate-600">
-                      {current.rating.toFixed(1)} / {goal.target_rating.toFixed(1)} ⭐
+                      {current.rating.toFixed(1)} /{' '}
+                      {goal.target_rating.toFixed(1)} ⭐
                     </span>
                   </div>
                   <Progress value={ratingProgress} className="h-2" />
                   <p className="mt-1 text-xs text-slate-500">
-                    {ratingProgress >= 100 ? '✅ Target tercapai!' : `${Math.round(ratingProgress)}% tercapai`}
+                    {ratingProgress >= 100
+                      ? '✅ Target tercapai!'
+                      : `${Math.round(ratingProgress)}% tercapai`}
                   </p>
                 </div>
 
                 {/* Income Goal */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="mb-2 flex items-center justify-between">
                     <Label className="text-sm font-medium">Target Income</Label>
                     <span className="text-sm text-slate-600">
-                      Rp {current.income.toLocaleString('id-ID')} / Rp {goal.target_income.toLocaleString('id-ID')}
+                      Rp {current.income.toLocaleString('id-ID')} / Rp{' '}
+                      {goal.target_income.toLocaleString('id-ID')}
                     </span>
                   </div>
                   <Progress value={incomeProgress} className="h-2" />
                   <p className="mt-1 text-xs text-slate-500">
-                    {incomeProgress >= 100 ? '✅ Target tercapai!' : `${Math.round(incomeProgress)}% tercapai`}
+                    {incomeProgress >= 100
+                      ? '✅ Target tercapai!'
+                      : `${Math.round(incomeProgress)}% tercapai`}
                   </p>
                 </div>
               </>
             ) : (
-              <p className="text-sm text-slate-500 text-center py-4">
+              <p className="py-4 text-center text-sm text-slate-500">
                 Belum ada target yang ditetapkan. Klik "Set Target" untuk mulai.
               </p>
             )}
@@ -254,7 +292,9 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
       ) : (
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">Set Target</CardTitle>
+            <CardTitle className="text-base font-semibold">
+              Set Target
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -264,7 +304,10 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
                 className="mt-1"
                 value={newGoal.targetTrips}
                 onChange={(e) =>
-                  setNewGoal((prev) => ({ ...prev, targetTrips: e.target.value }))
+                  setNewGoal((prev) => ({
+                    ...prev,
+                    targetTrips: e.target.value,
+                  }))
                 }
                 placeholder={goal?.target_trips.toString() || '0'}
               />
@@ -279,7 +322,10 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
                 className="mt-1"
                 value={newGoal.targetRating}
                 onChange={(e) =>
-                  setNewGoal((prev) => ({ ...prev, targetRating: e.target.value }))
+                  setNewGoal((prev) => ({
+                    ...prev,
+                    targetRating: e.target.value,
+                  }))
                 }
                 placeholder={goal?.target_rating.toString() || '0'}
               />
@@ -291,13 +337,20 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
                 className="mt-1"
                 value={newGoal.targetIncome}
                 onChange={(e) =>
-                  setNewGoal((prev) => ({ ...prev, targetIncome: e.target.value }))
+                  setNewGoal((prev) => ({
+                    ...prev,
+                    targetIncome: e.target.value,
+                  }))
                 }
                 placeholder={goal?.target_income.toString() || '0'}
               />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setEditing(false)}>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setEditing(false)}
+              >
                 Batal
               </Button>
               <Button
@@ -323,10 +376,11 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="mb-1 flex items-center justify-between">
                 <span className="text-sm font-medium text-blue-900">Trips</span>
                 <span className="text-xs text-blue-700">
-                  Anda: {comparison.trips.user} | Rata-rata: {comparison.trips.average}
+                  Anda: {comparison.trips.user} | Rata-rata:{' '}
+                  {comparison.trips.average}
                 </span>
               </div>
               <p className="text-xs text-blue-700">
@@ -334,10 +388,13 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
               </p>
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-blue-900">Rating</span>
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-sm font-medium text-blue-900">
+                  Rating
+                </span>
                 <span className="text-xs text-blue-700">
-                  Anda: {comparison.rating.user.toFixed(1)} ⭐ | Rata-rata: {comparison.rating.average.toFixed(1)} ⭐
+                  Anda: {comparison.rating.user.toFixed(1)} ⭐ | Rata-rata:{' '}
+                  {comparison.rating.average.toFixed(1)} ⭐
                 </span>
               </div>
               <p className="text-xs text-blue-700">
@@ -345,10 +402,14 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
               </p>
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-blue-900">Income</span>
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-sm font-medium text-blue-900">
+                  Income
+                </span>
                 <span className="text-xs text-blue-700">
-                  Anda: Rp {comparison.income.user.toLocaleString('id-ID')} | Rata-rata: Rp {comparison.income.average.toLocaleString('id-ID')}
+                  Anda: Rp {comparison.income.user.toLocaleString('id-ID')} |
+                  Rata-rata: Rp{' '}
+                  {comparison.income.average.toLocaleString('id-ID')}
                 </span>
               </div>
               <p className="text-xs text-blue-700">
@@ -361,4 +422,3 @@ export function PerformanceGoalsClient({ locale }: PerformanceGoalsClientProps) 
     </div>
   );
 }
-

@@ -43,13 +43,24 @@ type MusicReference = {
   suitable_for?: string[];
 };
 
-export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagementSectionProps) {
-  const [activeTab, setActiveTab] = useState<'quiz' | 'music' | 'photo' | 'leaderboard'>('quiz');
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+export function GuestEngagementSection({
+  tripId,
+  locale: _locale,
+}: GuestEngagementSectionProps) {
+  const [activeTab, setActiveTab] = useState<
+    'quiz' | 'music' | 'photo' | 'leaderboard'
+  >('quiz');
+  const [selectedAnswers, setSelectedAnswers] = useState<
+    Record<string, string>
+  >({});
   const queryClient = useQueryClient();
 
   // Fetch quiz questions
-  const { data: quizData, isLoading: quizLoading, refetch: refetchQuiz } = useQuery<{
+  const {
+    data: quizData,
+    isLoading: quizLoading,
+    refetch: refetchQuiz,
+  } = useQuery<{
     questions: QuizQuestion[];
   }>({
     queryKey: queryKeys.guide.trips.engagement.quiz(tripId),
@@ -76,7 +87,9 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
     },
     onSuccess: (data) => {
       toast.success(data.message || 'Quiz berhasil di-generate');
-      queryClient.invalidateQueries({ queryKey: queryKeys.guide.trips.engagement.quiz(tripId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.trips.engagement.quiz(tripId),
+      });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Gagal generate quiz');
@@ -84,7 +97,11 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
   });
 
   // Fetch music references (AI-generated)
-  const { data: musicData, isLoading: musicLoading, refetch: refetchMusic } = useQuery<{ 
+  const {
+    data: musicData,
+    isLoading: musicLoading,
+    refetch: refetchMusic,
+  } = useQuery<{
     playlists: MusicReference[];
     generated_at?: string;
     note?: string;
@@ -99,7 +116,12 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
 
   // Fetch photo challenges
   const { data: photoData, isLoading: photoLoading } = useQuery<{
-    challenges: Array<{ type: string; title: string; description: string; points: number }>;
+    challenges: Array<{
+      type: string;
+      title: string;
+      description: string;
+      points: number;
+    }>;
     submissions: Array<{
       id: string;
       passengerName: string;
@@ -111,7 +133,9 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
   }>({
     queryKey: ['photo-challenges', tripId],
     queryFn: async () => {
-      const res = await fetch(`/api/guide/trips/${tripId}/engagement/photo-challenge`);
+      const res = await fetch(
+        `/api/guide/trips/${tripId}/engagement/photo-challenge`
+      );
       if (!res.ok) throw new Error('Failed to fetch photo challenges');
       return res.json();
     },
@@ -129,13 +153,18 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
   }>({
     queryKey: queryKeys.guide.trips.engagement.leaderboard(tripId),
     queryFn: async () => {
-      const res = await fetch(`/api/guide/trips/${tripId}/engagement/leaderboard`);
+      const res = await fetch(
+        `/api/guide/trips/${tripId}/engagement/leaderboard`
+      );
       if (!res.ok) throw new Error('Failed to fetch leaderboard');
       return res.json();
     },
   });
 
-  const handleSubmitAnswer = async (questionId: string, question: QuizQuestion) => {
+  const handleSubmitAnswer = async (
+    questionId: string,
+    question: QuizQuestion
+  ) => {
     const answer = selectedAnswers[questionId];
     if (!answer) {
       toast.error('Pilih jawaban terlebih dahulu');
@@ -168,7 +197,7 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
         delete next[questionId];
         return next;
       });
-    } catch (error) {
+    } catch (_error) {
       toast.error('Gagal submit jawaban');
     }
   };
@@ -183,16 +212,18 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
   return (
     <div className="space-y-4">
       {/* Section Header */}
-      <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50/50 to-blue-50/50">
+      <Card className="border-0 bg-gradient-to-br from-emerald-50/50 to-blue-50/50 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center justify-between">
-            <span className="text-base font-semibold text-slate-900">Guest Engagement</span>
+            <span className="text-base font-semibold text-slate-900">
+              Guest Engagement
+            </span>
           </CardTitle>
         </CardHeader>
       </Card>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 overflow-x-auto">
+      <div className="flex gap-2 overflow-x-auto border-b border-slate-200">
         <Button
           variant={activeTab === 'quiz' ? 'default' : 'ghost'}
           onClick={() => setActiveTab('quiz')}
@@ -239,12 +270,13 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
             <CardContent className="p-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                  <h3 className="flex items-center gap-2 font-semibold text-slate-900">
                     <Bot className="h-4 w-4 text-blue-600" />
                     Generate Quiz dengan AI
                   </h3>
-                  <p className="text-xs text-slate-600 mt-1">
-                    AI akan membuat pertanyaan quiz berdasarkan informasi trip ini
+                  <p className="mt-1 text-xs text-slate-600">
+                    AI akan membuat pertanyaan quiz berdasarkan informasi trip
+                    ini
                   </p>
                 </div>
                 <Button
@@ -299,22 +331,25 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
                 <Card key={question.id} className="border-0 shadow-sm">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-sm font-semibold text-slate-900 flex-1">
+                      <CardTitle className="flex-1 text-sm font-semibold text-slate-900">
                         {idx + 1}. {question.question_text}
                       </CardTitle>
                       {question.category && (
-                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-100 text-slate-600 whitespace-nowrap">
+                        <span className="whitespace-nowrap rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
                           {question.category}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="mt-2 flex items-center gap-2">
                       <span
                         className={cn(
-                          'px-2 py-0.5 text-[10px] font-medium rounded-full',
-                          question.difficulty === 'easy' && 'bg-green-100 text-green-700',
-                          question.difficulty === 'medium' && 'bg-yellow-100 text-yellow-700',
-                          question.difficulty === 'hard' && 'bg-red-100 text-red-700',
+                          'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                          question.difficulty === 'easy' &&
+                            'bg-green-100 text-green-700',
+                          question.difficulty === 'medium' &&
+                            'bg-yellow-100 text-yellow-700',
+                          question.difficulty === 'hard' &&
+                            'bg-red-100 text-red-700'
                         )}
                       >
                         {question.difficulty}
@@ -322,33 +357,40 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {question.question_type === 'multiple_choice' && question.options && (
-                      <div className="space-y-2">
-                        {question.options.map((option, optIdx) => (
-                          <Button
-                            key={optIdx}
-                            variant={
-                              selectedAnswers[question.id] === option.text ? 'default' : 'outline'
-                            }
-                            onClick={() =>
-                              setSelectedAnswers((prev) => ({
-                                ...prev,
-                                [question.id]: option.text,
-                              }))
-                            }
-                            className="w-full justify-start text-left h-auto py-2.5 px-3"
-                          >
-                            <span className="font-medium mr-2">{String.fromCharCode(65 + optIdx)}.</span>
-                            <span className="flex-1">{option.text}</span>
-                          </Button>
-                        ))}
-                      </div>
-                    )}
+                    {question.question_type === 'multiple_choice' &&
+                      question.options && (
+                        <div className="space-y-2">
+                          {question.options.map((option, optIdx) => (
+                            <Button
+                              key={optIdx}
+                              variant={
+                                selectedAnswers[question.id] === option.text
+                                  ? 'default'
+                                  : 'outline'
+                              }
+                              onClick={() =>
+                                setSelectedAnswers((prev) => ({
+                                  ...prev,
+                                  [question.id]: option.text,
+                                }))
+                              }
+                              className="h-auto w-full justify-start px-3 py-2.5 text-left"
+                            >
+                              <span className="mr-2 font-medium">
+                                {String.fromCharCode(65 + optIdx)}.
+                              </span>
+                              <span className="flex-1">{option.text}</span>
+                            </Button>
+                          ))}
+                        </div>
+                      )}
                     {question.question_type === 'true_false' && (
                       <div className="grid grid-cols-2 gap-2">
                         <Button
                           variant={
-                            selectedAnswers[question.id] === 'True' ? 'default' : 'outline'
+                            selectedAnswers[question.id] === 'True'
+                              ? 'default'
+                              : 'outline'
                           }
                           onClick={() =>
                             setSelectedAnswers((prev) => ({
@@ -362,7 +404,9 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
                         </Button>
                         <Button
                           variant={
-                            selectedAnswers[question.id] === 'False' ? 'default' : 'outline'
+                            selectedAnswers[question.id] === 'False'
+                              ? 'default'
+                              : 'outline'
                           }
                           onClick={() =>
                             setSelectedAnswers((prev) => ({
@@ -400,12 +444,13 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
             <CardContent className="p-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                  <h3 className="flex items-center gap-2 font-semibold text-slate-900">
                     <Bot className="h-4 w-4 text-purple-600" />
                     Generate Referensi Musik dengan AI
                   </h3>
-                  <p className="text-xs text-slate-600 mt-1">
-                    AI akan membuat referensi playlist musik berdasarkan informasi trip ini
+                  <p className="mt-1 text-xs text-slate-600">
+                    AI akan membuat referensi playlist musik berdasarkan
+                    informasi trip ini
                   </p>
                 </div>
                 <Button
@@ -444,12 +489,15 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
               <Card className="border-amber-200 bg-amber-50/50">
                 <CardContent className="p-4">
                   <p className="text-sm text-amber-800">
-                    <strong>Catatan:</strong> Referensi musik berikut di-generate oleh AI dan hanya sebagai panduan. 
-                    Guide dapat memutar musik sesuai preferensi dengan aplikasi musik yang tersedia.
+                    <strong>Catatan:</strong> Referensi musik berikut
+                    di-generate oleh AI dan hanya sebagai panduan. Guide dapat
+                    memutar musik sesuai preferensi dengan aplikasi musik yang
+                    tersedia.
                   </p>
                   {musicData?.generated_at && (
-                    <p className="text-xs text-amber-700 mt-2">
-                      Generated: {new Date(musicData.generated_at).toLocaleString('id-ID')}
+                    <p className="mt-2 text-xs text-amber-700">
+                      Generated:{' '}
+                      {new Date(musicData.generated_at).toLocaleString('id-ID')}
                     </p>
                   )}
                 </CardContent>
@@ -461,20 +509,22 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
                     <div className="space-y-3">
                       <div>
                         <div className="flex items-center justify-between">
-                          <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                          <h3 className="flex items-center gap-2 font-semibold text-slate-900">
                             <Music className="h-4 w-4 text-slate-600" />
                             {ref.name}
                           </h3>
                           {ref.category && (
-                            <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-purple-100 text-purple-700">
+                            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">
                               {ref.category}
                             </span>
                           )}
                         </div>
                         {ref.description && (
-                          <p className="text-sm text-slate-600 mt-2">{ref.description}</p>
+                          <p className="mt-2 text-sm text-slate-600">
+                            {ref.description}
+                          </p>
                         )}
-                        <div className="flex flex-wrap gap-2 mt-2">
+                        <div className="mt-2 flex flex-wrap gap-2">
                           {ref.genre && (
                             <span className="text-xs text-slate-500">
                               Genre: {ref.genre}
@@ -488,12 +538,14 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
                         </div>
                         {ref.suitable_for && ref.suitable_for.length > 0 && (
                           <div className="mt-2">
-                            <p className="text-xs font-medium text-slate-700 mb-1">Cocok untuk:</p>
+                            <p className="mb-1 text-xs font-medium text-slate-700">
+                              Cocok untuk:
+                            </p>
                             <div className="flex flex-wrap gap-1">
                               {ref.suitable_for.map((suitable, idx) => (
                                 <span
                                   key={idx}
-                                  className="px-2 py-0.5 text-[10px] rounded-full bg-slate-100 text-slate-600"
+                                  className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600"
                                 >
                                   {suitable}
                                 </span>
@@ -523,8 +575,12 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
                   <Card key={challenge.type} className="border-0 shadow-sm">
                     <CardContent className="p-4">
                       <div className="space-y-2">
-                        <h3 className="font-semibold text-sm">{challenge.title}</h3>
-                        <p className="text-xs text-slate-600">{challenge.description}</p>
+                        <h3 className="text-sm font-semibold">
+                          {challenge.title}
+                        </h3>
+                        <p className="text-xs text-slate-600">
+                          {challenge.description}
+                        </p>
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium text-emerald-600">
                             +{challenge.points} poin
@@ -538,7 +594,7 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
 
               {photoData?.submissions && photoData.submissions.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-sm">Submissions</h3>
+                  <h3 className="text-sm font-semibold">Submissions</h3>
                   <div className="grid grid-cols-2 gap-3">
                     {photoData.submissions.map((submission) => (
                       <Card key={submission.id} className="border-0 shadow-sm">
@@ -546,11 +602,15 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
                           <img
                             src={submission.photoUrl}
                             alt={submission.challengeType}
-                            className="w-full h-32 object-cover rounded-lg mb-2"
+                            className="mb-2 h-32 w-full rounded-lg object-cover"
                           />
-                          <p className="text-xs font-medium">{submission.passengerName}</p>
-                          <p className="text-xs text-slate-500">{submission.challengeType}</p>
-                          <p className="text-xs text-emerald-600 font-semibold">
+                          <p className="text-xs font-medium">
+                            {submission.passengerName}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {submission.challengeType}
+                          </p>
+                          <p className="text-xs font-semibold text-emerald-600">
                             +{submission.points} poin
                           </p>
                         </CardContent>
@@ -569,14 +629,16 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
         <div className="space-y-4">
           {leaderboardLoading ? (
             <LoadingState message="Memuat leaderboard..." />
-          ) : leaderboardData?.leaderboard && leaderboardData.leaderboard.length > 0 ? (
+          ) : leaderboardData?.leaderboard &&
+            leaderboardData.leaderboard.length > 0 ? (
             <div className="space-y-2">
               {leaderboardData.leaderboard.map((entry, idx) => (
                 <Card
                   key={idx}
                   className={cn(
                     'border-0 shadow-sm',
-                    entry.rank === 1 && 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200'
+                    entry.rank === 1 &&
+                      'border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50'
                   )}
                 >
                   <CardContent className="p-4">
@@ -584,20 +646,22 @@ export function GuestEngagementSection({ tripId, locale: _locale }: GuestEngagem
                       <div className="flex items-center gap-3">
                         <div
                           className={cn(
-                            'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm',
+                            'flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold',
                             entry.rank === 1
                               ? 'bg-amber-500 text-white'
                               : entry.rank === 2
-                              ? 'bg-slate-400 text-white'
-                              : entry.rank === 3
-                              ? 'bg-amber-700 text-white'
-                              : 'bg-slate-200 text-slate-700'
+                                ? 'bg-slate-400 text-white'
+                                : entry.rank === 3
+                                  ? 'bg-amber-700 text-white'
+                                  : 'bg-slate-200 text-slate-700'
                           )}
                         >
                           {entry.rank}
                         </div>
                         <div>
-                          <p className="font-semibold">{entry.passenger.name}</p>
+                          <p className="font-semibold">
+                            {entry.passenger.name}
+                          </p>
                           <div className="flex gap-3 text-xs text-slate-600">
                             <span>Quiz: {entry.quiz_points}</span>
                             <span>Photo: {entry.photo_challenge_points}</span>

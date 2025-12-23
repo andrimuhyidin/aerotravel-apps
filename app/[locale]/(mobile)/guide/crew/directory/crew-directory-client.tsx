@@ -10,7 +10,6 @@ import { Loader2, Map, MapPin, Phone, Search, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
 
 import queryKeys from '@/lib/queries/query-keys';
 
@@ -21,13 +20,13 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import { LoadingState } from '@/components/ui/loading-state';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
-import { DynamicMap, type MapLocation } from '@/components/map/dynamic-map';
+import { DynamicMap } from '@/components/map/dynamic-map';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
 
@@ -37,7 +36,12 @@ type CrewMember = {
   photo_url: string | null;
   badges: Array<{ name: string; level?: string }> | null;
   skills: Array<{ name: string; level?: number }> | null;
-  current_availability: 'available' | 'on_duty' | 'on_trip' | 'not_available' | 'unknown';
+  current_availability:
+    | 'available'
+    | 'on_duty'
+    | 'on_trip'
+    | 'not_available'
+    | 'unknown';
   last_status_update: string | null;
   contact_enabled: boolean;
   branch?: {
@@ -91,7 +95,7 @@ function formatDistance(meters: number): string {
 // Helper function to format relative time
 function formatRelativeTime(dateString: string | null | undefined): string {
   if (!dateString) return 'Tidak diketahui';
-  
+
   try {
     const date = new Date(dateString);
     const now = new Date();
@@ -104,7 +108,7 @@ function formatRelativeTime(dateString: string | null | undefined): string {
     if (diffMins < 60) return `${diffMins} menit lalu`;
     if (diffHours < 24) return `${diffHours} jam lalu`;
     if (diffDays < 7) return `${diffDays} hari lalu`;
-    
+
     return date.toLocaleDateString('id-ID', {
       day: 'numeric',
       month: 'short',
@@ -116,7 +120,9 @@ function formatRelativeTime(dateString: string | null | undefined): string {
 }
 
 // Helper function to calculate experience level from skills
-function getExperienceLevel(skills: Array<{ name: string; level?: number }> | null | undefined): {
+function getExperienceLevel(
+  skills: Array<{ name: string; level?: number }> | null | undefined
+): {
   totalLevel: number;
   skillCount: number;
   maxLevel: number;
@@ -125,10 +131,8 @@ function getExperienceLevel(skills: Array<{ name: string; level?: number }> | nu
     return { totalLevel: 0, skillCount: 0, maxLevel: 0 };
   }
 
-  const levels = skills
-    .map((s) => s.level || 0)
-    .filter((l) => l > 0);
-  
+  const levels = skills.map((s) => s.level || 0).filter((l) => l > 0);
+
   const totalLevel = levels.reduce((sum, level) => sum + level, 0);
   const skillCount = skills.length;
   const maxLevel = levels.length > 0 ? Math.max(...levels) : 0;
@@ -150,10 +154,15 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
   const [skillFilter, setSkillFilter] = useState<string>('');
   const [showMap, setShowMap] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
-  const [realtimeLocations, setRealtimeLocations] = useState<Record<string, LocationUpdate>>({});
+  const [realtimeLocations, setRealtimeLocations] = useState<
+    Record<string, LocationUpdate>
+  >({});
   const [streamConnected, setStreamConnected] = useState(false);
 
   // Real-time location stream using SSE
@@ -169,8 +178,12 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
 
     eventSource.onmessage = (event) => {
       try {
-        const message = JSON.parse(event.data) as { type: string; data?: LocationUpdate[]; timestamp?: string };
-        
+        const message = JSON.parse(event.data) as {
+          type: string;
+          data?: LocationUpdate[];
+          timestamp?: string;
+        };
+
         if (message.type === 'locations' && message.data) {
           const locationMap: Record<string, LocationUpdate> = {};
           message.data.forEach((loc) => {
@@ -206,13 +219,15 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
   const { data, isLoading, error, refetch } = useQuery<CrewDirectoryResponse>({
     queryKey: queryKeys.guide.team.directory.search({
       search: searchQuery || undefined,
-      availability: availabilityFilter !== 'all' ? availabilityFilter : undefined,
+      availability:
+        availabilityFilter !== 'all' ? availabilityFilter : undefined,
       skill: skillFilter || undefined,
     }),
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
-      if (availabilityFilter !== 'all') params.append('availability', availabilityFilter);
+      if (availabilityFilter !== 'all')
+        params.append('availability', availabilityFilter);
       if (skillFilter) params.append('skill', skillFilter);
 
       const res = await fetch(`/api/guide/crew/directory?${params.toString()}`);
@@ -248,16 +263,18 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
           logger.warn('GPS capture failed', { error });
           let errorMessage = 'Gagal mendapatkan lokasi';
           if (error.code === error.PERMISSION_DENIED) {
-            errorMessage = 'Akses lokasi ditolak. Silakan izinkan akses lokasi di pengaturan browser.';
+            errorMessage =
+              'Akses lokasi ditolak. Silakan izinkan akses lokasi di pengaturan browser.';
           } else if (error.code === error.POSITION_UNAVAILABLE) {
             errorMessage = 'Lokasi tidak tersedia. Pastikan GPS aktif.';
           } else if (error.code === error.TIMEOUT) {
-            errorMessage = 'Timeout saat mendapatkan lokasi. Silakan coba lagi.';
+            errorMessage =
+              'Timeout saat mendapatkan lokasi. Silakan coba lagi.';
           }
           setLocationError(errorMessage);
           setIsGettingLocation(false);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
     } else {
       // Reset states when map is hidden
@@ -276,11 +293,14 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
       location: { latitude: number; longitude: number };
     }>;
   }>({
-    queryKey: queryKeys.guide.team.directory.nearby(userLocation?.latitude, userLocation?.longitude),
+    queryKey: queryKeys.guide.team.directory.nearby(
+      userLocation?.latitude,
+      userLocation?.longitude
+    ),
     queryFn: async () => {
       if (!userLocation) return { nearby: [] };
       const res = await fetch(
-        `/api/guide/crew/directory/nearby?lat=${userLocation.latitude}&lng=${userLocation.longitude}&radius=10000`,
+        `/api/guide/crew/directory/nearby?lat=${userLocation.latitude}&lng=${userLocation.longitude}&radius=10000`
       );
       if (!res.ok) {
         throw new Error('Failed to fetch nearby crew');
@@ -315,7 +335,11 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
   };
 
   const handleSOSNotifyNearby = async () => {
-    if (!userLocation || !nearbyData?.nearby || nearbyData.nearby.length === 0) {
+    if (
+      !userLocation ||
+      !nearbyData?.nearby ||
+      nearbyData.nearby.length === 0
+    ) {
       alert('Tidak ada crew terdekat untuk diberitahu');
       return;
     }
@@ -333,13 +357,15 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
       });
 
       if (res.ok) {
-        alert(`SOS dikirim. ${nearbyData.nearby.length} crew terdekat telah diberitahu.`);
+        alert(
+          `SOS dikirim. ${nearbyData.nearby.length} crew terdekat telah diberitahu.`
+        );
       }
     } catch (error) {
-      logger.error('SOS error', error, { 
-        latitude: userLocation?.latitude, 
+      logger.error('SOS error', error, {
+        latitude: userLocation?.latitude,
         longitude: userLocation?.longitude,
-        nearbyCount: nearbyData?.nearby.length 
+        nearbyCount: nearbyData?.nearby.length,
       });
       alert('Gagal mengirim SOS');
     }
@@ -360,7 +386,9 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4">
           <ErrorState
-            message={error instanceof Error ? error.message : 'Gagal memuat directory'}
+            message={
+              error instanceof Error ? error.message : 'Gagal memuat directory'
+            }
             onRetry={() => void refetch()}
             variant="card"
           />
@@ -371,10 +399,14 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
 
   const myCrew = data?.myCrew ?? [];
   const directory = data?.directory ?? [];
-  
+
   // Filter out invalid crew members
-  const validMyCrew = myCrew.filter((m: CrewMember) => m && m.user_id && m.display_name);
-  const validDirectory = directory.filter((m: CrewMember) => m && m.user_id && m.display_name);
+  const validMyCrew = myCrew.filter(
+    (m: CrewMember) => m && m.user_id && m.display_name
+  );
+  const validDirectory = directory.filter(
+    (m: CrewMember) => m && m.user_id && m.display_name
+  );
 
   return (
     <div className="space-y-4">
@@ -388,22 +420,32 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
           <Map className="mr-2 h-4 w-4" />
           {showMap ? 'Sembunyikan Peta' : 'Tampilkan Peta'}
         </Button>
-        {showMap && userLocation && nearbyData && nearbyData.nearby.length > 0 && (
-          <Button
-            variant="destructive"
-            onClick={handleSOSNotifyNearby}
-            className="bg-red-600 hover:bg-red-700"
-          >
-            SOS & Notify Nearby
-          </Button>
-        )}
+        {showMap &&
+          userLocation &&
+          nearbyData &&
+          nearbyData.nearby.length > 0 && (
+            <Button
+              variant="destructive"
+              onClick={handleSOSNotifyNearby}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              SOS & Notify Nearby
+            </Button>
+          )}
       </div>
 
       {/* Real-time Connection Status */}
       {showMap && (
         <div className="flex items-center gap-2 text-xs">
-          <div className={`h-2 w-2 rounded-full ${streamConnected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-          <span className={cn('text-slate-600', streamConnected && 'text-emerald-600')}>
+          <div
+            className={`h-2 w-2 rounded-full ${streamConnected ? 'bg-emerald-500' : 'bg-amber-500'}`}
+          />
+          <span
+            className={cn(
+              'text-slate-600',
+              streamConnected && 'text-emerald-600'
+            )}
+          >
             {streamConnected ? 'Real-time location aktif' : 'Menghubungkan...'}
           </span>
         </div>
@@ -423,14 +465,14 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
 
       {/* Error State - Location Error */}
       {showMap && locationError && (
-        <Card className="border-0 shadow-sm border-amber-200 bg-amber-50">
+        <Card className="border-0 border-amber-200 bg-amber-50 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
                 <p className="text-sm font-medium text-amber-900">
                   Gagal mendapatkan lokasi
                 </p>
-                <p className="text-xs text-amber-700 mt-1">{locationError}</p>
+                <p className="mt-1 text-xs text-amber-700">{locationError}</p>
               </div>
               <Button
                 size="sm"
@@ -452,16 +494,23 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
                         logger.warn('GPS retry failed', { error });
                         let errorMessage = 'Gagal mendapatkan lokasi';
                         if (error.code === error.PERMISSION_DENIED) {
-                          errorMessage = 'Akses lokasi ditolak. Silakan izinkan akses lokasi di pengaturan browser.';
+                          errorMessage =
+                            'Akses lokasi ditolak. Silakan izinkan akses lokasi di pengaturan browser.';
                         } else if (error.code === error.POSITION_UNAVAILABLE) {
-                          errorMessage = 'Lokasi tidak tersedia. Pastikan GPS aktif.';
+                          errorMessage =
+                            'Lokasi tidak tersedia. Pastikan GPS aktif.';
                         } else if (error.code === error.TIMEOUT) {
-                          errorMessage = 'Timeout saat mendapatkan lokasi. Silakan coba lagi.';
+                          errorMessage =
+                            'Timeout saat mendapatkan lokasi. Silakan coba lagi.';
                         }
                         setLocationError(errorMessage);
                         setIsGettingLocation(false);
                       },
-                      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+                      {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000,
+                      }
                     );
                   }
                 }}
@@ -478,7 +527,7 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
       {showMap && userLocation && !locationError && (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-0">
-            <div className="h-64 w-full rounded-lg overflow-hidden">
+            <div className="h-64 w-full overflow-hidden rounded-lg">
               <DynamicMap
                 center={[userLocation.latitude, userLocation.longitude]}
                 zoom={13}
@@ -493,7 +542,13 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
                   },
                   // Real-time location markers (prioritize over nearby data)
                   ...Object.values(realtimeLocations)
-                    .filter((loc) => loc && loc.guideId && loc.latitude !== undefined && loc.longitude !== undefined)
+                    .filter(
+                      (loc) =>
+                        loc &&
+                        loc.guideId &&
+                        loc.latitude !== undefined &&
+                        loc.longitude !== undefined
+                    )
                     .map((loc) => ({
                       lat: loc.latitude,
                       lng: loc.longitude,
@@ -501,9 +556,17 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
                       description: `Last seen: ${formatRelativeTime(loc.lastSeenAt)}`,
                     })),
                   // Nearby crew markers (fallback if no realtime data)
-                  ...(Object.keys(realtimeLocations).length === 0 && nearbyData?.nearby && Array.isArray(nearbyData.nearby)
+                  ...(Object.keys(realtimeLocations).length === 0 &&
+                  nearbyData?.nearby &&
+                  Array.isArray(nearbyData.nearby)
                     ? nearbyData.nearby
-                        .filter((crew) => crew && crew.user_id && crew.location && crew.display_name)
+                        .filter(
+                          (crew) =>
+                            crew &&
+                            crew.user_id &&
+                            crew.location &&
+                            crew.display_name
+                        )
                         .map((crew) => ({
                           lat: crew.location.latitude,
                           lng: crew.location.longitude,
@@ -514,29 +577,39 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
                 ]}
               />
             </div>
-            {nearbyData && nearbyData.nearby && Array.isArray(nearbyData.nearby) && nearbyData.nearby.length > 0 && (
-              <div className="p-4 space-y-2 border-t">
-                <p className="text-sm font-semibold">Crew Terdekat:</p>
-                <div className="space-y-1">
-                  {nearbyData.nearby
-                    .filter((crew) => crew && crew.user_id && crew.display_name)
-                    .slice(0, 5)
-                    .map((crew) => (
-                      <div key={crew.user_id} className="flex items-center justify-between text-xs">
-                        <span>{crew.display_name}</span>
-                        <span className="text-slate-500">{formatDistance(crew.distance ?? 0)}</span>
-                      </div>
-                    ))}
+            {nearbyData &&
+              nearbyData.nearby &&
+              Array.isArray(nearbyData.nearby) &&
+              nearbyData.nearby.length > 0 && (
+                <div className="space-y-2 border-t p-4">
+                  <p className="text-sm font-semibold">Crew Terdekat:</p>
+                  <div className="space-y-1">
+                    {nearbyData.nearby
+                      .filter(
+                        (crew) => crew && crew.user_id && crew.display_name
+                      )
+                      .slice(0, 5)
+                      .map((crew) => (
+                        <div
+                          key={crew.user_id}
+                          className="flex items-center justify-between text-xs"
+                        >
+                          <span>{crew.display_name}</span>
+                          <span className="text-slate-500">
+                            {formatDistance(crew.distance ?? 0)}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </CardContent>
         </Card>
       )}
 
       {/* Search & Filters */}
       <Card className="border-0 shadow-sm">
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="space-y-3 p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
@@ -547,7 +620,10 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+            <Select
+              value={availabilityFilter}
+              onValueChange={setAvailabilityFilter}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Availability" />
               </SelectTrigger>
@@ -593,7 +669,9 @@ export function CrewDirectoryClient({ locale }: CrewDirectoryClientProps) {
           <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
             All Directory
           </h2>
-          <span className="text-xs text-slate-500">{validDirectory.length} guide</span>
+          <span className="text-xs text-slate-500">
+            {validDirectory.length} guide
+          </span>
         </div>
         {validDirectory.length === 0 ? (
           <Card className="border-0 shadow-sm">
@@ -636,14 +714,16 @@ function CrewMemberCard({
   onContact: (guideId: string) => void;
   locale: string;
 }) {
-  if (!member || !member.user_id || !member.display_name) return null;
-  
+  // Hooks must be called before any early returns
   const params = useParams();
   const localeParam = (params?.locale as string) || locale;
+
+  if (!member || !member.user_id || !member.display_name) return null;
   const availability = member.current_availability || 'unknown';
   const availabilityLabel = availabilityLabels[availability] || availability;
-  const availabilityColor = availabilityColors[availability] || availabilityColors.unknown;
-  
+  const availabilityColor =
+    availabilityColors[availability] || availabilityColors.unknown;
+
   // Calculate experience level
   const experience = getExperienceLevel(member.skills);
   const lastSeen = formatRelativeTime(member.last_status_update);
@@ -656,7 +736,10 @@ function CrewMemberCard({
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           {/* Avatar */}
-          <Link href={`/${localeParam}/guide/crew/${member.user_id}`} className="relative flex-shrink-0">
+          <Link
+            href={`/${localeParam}/guide/crew/${member.user_id}`}
+            className="relative flex-shrink-0"
+          >
             {memberPhoto ? (
               <img
                 src={memberPhoto}
@@ -675,7 +758,7 @@ function CrewMemberCard({
                 availability === 'on_duty' && 'bg-blue-500',
                 availability === 'on_trip' && 'bg-amber-500',
                 availability === 'not_available' && 'bg-slate-400',
-                availability === 'unknown' && 'bg-slate-300',
+                availability === 'unknown' && 'bg-slate-300'
               )}
               title={availabilityLabel}
             />
@@ -708,7 +791,8 @@ function CrewMemberCard({
                   {experience.skillCount > 0 && (
                     <span className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
-                      {experience.skillCount} skill{experience.skillCount > 1 ? 's' : ''}
+                      {experience.skillCount} skill
+                      {experience.skillCount > 1 ? 's' : ''}
                     </span>
                   )}
                   {member.last_status_update && (
@@ -720,14 +804,15 @@ function CrewMemberCard({
                 </div>
                 {member.trip_info && (
                   <p className="mt-1 text-xs text-slate-600">
-                    Trip: {member.trip_info.trip_code} ({member.trip_role === 'lead' ? 'Lead' : 'Support'})
+                    Trip: {member.trip_info.trip_code} (
+                    {member.trip_role === 'lead' ? 'Lead' : 'Support'})
                   </p>
                 )}
               </div>
               <span
                 className={cn(
                   'flex-shrink-0 rounded-full px-2 py-1 text-[10px] font-medium',
-                  availabilityColor,
+                  availabilityColor
                 )}
               >
                 {availabilityLabel}
