@@ -107,6 +107,32 @@ export async function generateUnifiedAIInsights(
           expectedScore: parsedInsights.expected_score || undefined,
         },
       },
+      // Initialize new insight sections as empty to ensure they're always present
+      riskAlerts: [],
+      quickWins: [],
+      comparative: {
+        peerRanking: {
+          overall: 50,
+          trips: 50,
+          earnings: 50,
+          ratings: 50,
+          efficiency: 50,
+        },
+        topPerformerGap: {
+          trips: 0,
+          earnings: 0,
+          ratings: 0,
+        },
+        strengthsVsPeer: [],
+        improvementOpportunities: [],
+      },
+      opportunities: [],
+      financialHealth: {
+        score: 50,
+        level: 'fair',
+        factors: [],
+        recommendations: [],
+      },
     };
 
     // Process recommendations from multiple sources
@@ -175,7 +201,7 @@ export async function generateUnifiedAIInsights(
       );
     }
 
-    // Parse quick wins
+    // Parse quick wins (overwrite initial empty array if AI returns data)
     if (parsedInsights.quick_wins && Array.isArray(parsedInsights.quick_wins)) {
       insights.quickWins = parsedInsights.quick_wins.map(
         (win: any, idx: number) => ({
@@ -194,7 +220,7 @@ export async function generateUnifiedAIInsights(
       );
     }
 
-    // Parse comparative insights
+    // Parse comparative insights (overwrite initial object if AI returns data)
     if (parsedInsights.comparative_insights) {
       const comp = parsedInsights.comparative_insights;
       insights.comparative = {
@@ -222,7 +248,7 @@ export async function generateUnifiedAIInsights(
       };
     }
 
-    // Parse opportunities
+    // Parse opportunities (overwrite initial empty array if AI returns data)
     if (
       parsedInsights.opportunities &&
       Array.isArray(parsedInsights.opportunities)
@@ -245,7 +271,7 @@ export async function generateUnifiedAIInsights(
       );
     }
 
-    // Parse financial health
+    // Parse financial health (overwrite initial object if AI returns data)
     if (parsedInsights.financial_health) {
       const fh = parsedInsights.financial_health;
       insights.financialHealth = {
@@ -266,44 +292,7 @@ export async function generateUnifiedAIInsights(
     const detectedRisks = detectRisks(metrics);
     if (detectedRisks.length > 0) {
       // Merge with AI-generated risks, prioritizing detected risks
-      insights.riskAlerts = [...detectedRisks, ...(insights.riskAlerts || [])];
-    } else if (!insights.riskAlerts) {
-      // Initialize empty array if no risks detected
-      insights.riskAlerts = [];
-    }
-
-    // Initialize empty arrays/objects for sections that weren't parsed from AI
-    if (!insights.quickWins) {
-      insights.quickWins = [];
-    }
-    if (!insights.comparative) {
-      insights.comparative = {
-        peerRanking: {
-          overall: 50,
-          trips: 50,
-          earnings: 50,
-          ratings: 50,
-          efficiency: 50,
-        },
-        topPerformerGap: {
-          trips: 0,
-          earnings: 0,
-          ratings: 0,
-        },
-        strengthsVsPeer: [],
-        improvementOpportunities: [],
-      };
-    }
-    if (!insights.opportunities) {
-      insights.opportunities = [];
-    }
-    if (!insights.financialHealth) {
-      insights.financialHealth = {
-        score: 50,
-        level: 'fair',
-        factors: [],
-        recommendations: [],
-      };
+      insights.riskAlerts = [...detectedRisks, ...insights.riskAlerts];
     }
 
     // Log insights for debugging
