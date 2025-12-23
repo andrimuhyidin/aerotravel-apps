@@ -115,10 +115,16 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     `${periodType}:${periodStart.toISOString().split('T')[0]}:${periodEnd.toISOString().split('T')[0]}:${includeKey}:${compareWithPreviousParam === 'true' ? 'compare' : 'no-compare'}`
   );
 
+  // Calculate metrics (with cache)
   const metrics = await getCached(
     cacheKey,
     cacheTTL.unifiedMetrics,
     async () => {
+      logger.info('Calculating unified metrics (cache miss)', {
+        guideId: user.id,
+        period: periodType,
+        include: options.include,
+      });
       return await calculateUnifiedMetrics(
         user.id,
         {

@@ -406,7 +406,9 @@ export async function calculateUnifiedMetrics(
       errorStack: error instanceof Error ? error.stack : undefined,
     });
     // Return default metrics instead of throwing to prevent complete failure
-    return {
+    // Always include default objects for advanced metrics if they were requested
+    const include = options.include || [];
+    const defaultMetrics: UnifiedMetrics = {
       period: {
         start: period.start.toISOString(),
         end: period.end.toISOString(),
@@ -437,13 +439,103 @@ export async function calculateUnifiedMetrics(
         skillsImproved: 0,
         assessmentsCompleted: 0,
       },
-      customerSatisfaction: undefined,
-      efficiency: undefined,
-      financial: undefined,
-      quality: undefined,
-      growth: undefined,
-      comparative: undefined,
+      // Always include default objects for requested advanced metrics
+      customerSatisfaction: include.includes('customerSatisfaction')
+        ? {
+            responseRate: null,
+            repeatCustomerRate: null,
+            complaintResolutionRate: null,
+            satisfactionScore: null,
+          }
+        : undefined,
+      efficiency: include.includes('efficiency')
+        ? {
+            avgTripDuration: null,
+            guestToTripRatio: null,
+            revenuePerGuest: null,
+            utilizationRate: null,
+            avgResponseTime: null,
+          }
+        : undefined,
+      financial: include.includes('financial')
+        ? {
+            netEarnings: 0,
+            penaltyImpact: 0,
+            savingsRate: null,
+            withdrawalFrequency: 0,
+            earningsTrend: [],
+          }
+        : undefined,
+      quality: include.includes('quality')
+        ? {
+            onTimeCompletionRate: null,
+            noShowRate: null,
+            documentationCompletionRate: null,
+            issueResolutionRate: null,
+            lateCheckInRate: null,
+          }
+        : undefined,
+      growth: include.includes('growth')
+        ? {
+            momGrowth: {
+              trips: null,
+              earnings: null,
+              ratings: null,
+            },
+            skillProgressionRate: null,
+            certificationCompletionRate: null,
+            assessmentImprovement: null,
+          }
+        : undefined,
+      comparative: include.includes('comparative')
+        ? {
+            peerRanking: null,
+            percentileImprovement: null,
+            topPerformerGap: {
+              trips: null,
+              earnings: null,
+              ratings: null,
+            },
+            marketShare: null,
+          }
+        : undefined,
+      sustainability: include.includes('sustainability')
+        ? {
+            totalWasteKg: 0,
+            wasteByType: {
+              plastic: 0,
+              organic: 0,
+              glass: 0,
+              hazmat: 0,
+            },
+            recyclingRate: null,
+            carbonFootprintKg: 0,
+            carbonPerGuest: null,
+            sustainabilityScore: null,
+            wasteReductionTrend: null,
+          }
+        : undefined,
+      operations: include.includes('operations')
+        ? {
+            equipmentChecklistRate: null,
+            riskAssessmentRate: null,
+            documentationUploadRate: null,
+            expenseSubmissionRate: null,
+            taskCompletionRate: null,
+            attendanceComplianceRate: null,
+            logisticsHandoverRate: null,
+          }
+        : undefined,
+      safety: include.includes('safety')
+        ? {
+            incidentFrequency: 0,
+            riskAssessmentFrequency: 0,
+            safetyComplianceScore: null,
+            preTripReadinessRate: null,
+          }
+        : undefined,
     };
+    return defaultMetrics;
   }
 }
 
