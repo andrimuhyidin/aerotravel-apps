@@ -6,6 +6,17 @@
  */
 
 import { useState } from 'react';
+import {
+  BarChart3,
+  DollarSign,
+  TrendingUp,
+  CheckCircle2,
+  Users,
+  Award,
+  Leaf,
+  ClipboardCheck,
+  Shield,
+} from 'lucide-react';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CustomerSatisfactionMetrics } from '@/components/guide/metrics-customer-satisfaction';
@@ -62,6 +73,19 @@ export function AdvancedMetrics({ metrics, className }: AdvancedMetricsProps) {
     return null;
   }
 
+  // Count available tabs
+  const availableTabs = [
+    metrics.customerSatisfaction !== undefined,
+    metrics.efficiency !== undefined,
+    metrics.financial !== undefined,
+    metrics.quality !== undefined,
+    metrics.growth !== undefined,
+    metrics.comparative !== undefined,
+    metrics.sustainability !== undefined,
+    metrics.operations !== undefined,
+    metrics.safety !== undefined,
+  ].filter(Boolean).length;
+
   return (
     <div className={className}>
       <Tabs
@@ -69,53 +93,91 @@ export function AdvancedMetrics({ metrics, className }: AdvancedMetricsProps) {
         onValueChange={setActiveTab}
         className="space-y-4"
       >
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-9">
-          {metrics.customerSatisfaction !== undefined && (
-            <TabsTrigger value="customer" className="text-xs">
-              Customer
-            </TabsTrigger>
-          )}
-          {metrics.efficiency !== undefined && (
-            <TabsTrigger value="efficiency" className="text-xs">
-              Efficiency
-            </TabsTrigger>
-          )}
-          {metrics.financial !== undefined && (
-            <TabsTrigger value="financial" className="text-xs">
-              Financial
-            </TabsTrigger>
-          )}
-          {metrics.quality !== undefined && (
-            <TabsTrigger value="quality" className="text-xs">
-              Quality
-            </TabsTrigger>
-          )}
-          {metrics.growth !== undefined && (
-            <TabsTrigger value="growth" className="text-xs">
-              Growth
-            </TabsTrigger>
-          )}
-          {metrics.comparative !== undefined && (
-            <TabsTrigger value="comparative" className="text-xs">
-              Compare
-            </TabsTrigger>
-          )}
-          {metrics.sustainability !== undefined && (
-            <TabsTrigger value="sustainability" className="text-xs">
-              Waste
-            </TabsTrigger>
-          )}
-          {metrics.operations !== undefined && (
-            <TabsTrigger value="operations" className="text-xs">
-              Ops
-            </TabsTrigger>
-          )}
-          {metrics.safety !== undefined && (
-            <TabsTrigger value="safety" className="text-xs">
-              Safety
-            </TabsTrigger>
-          )}
-        </TabsList>
+        <div className="-mx-4 overflow-x-auto px-4">
+          <TabsList className="inline-flex h-auto w-max min-w-full gap-1.5 bg-transparent p-0">
+            {metrics.customerSatisfaction !== undefined && (
+              <TabsTrigger
+                value="customer"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium shadow-sm transition-all data-[state=active]:border-emerald-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-900"
+              >
+                <Users className="h-3.5 w-3.5" />
+                <span>Customer</span>
+              </TabsTrigger>
+            )}
+            {metrics.efficiency !== undefined && (
+              <TabsTrigger
+                value="efficiency"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium shadow-sm transition-all data-[state=active]:border-emerald-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-900"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                <span>Efficiency</span>
+              </TabsTrigger>
+            )}
+            {metrics.financial !== undefined && (
+              <TabsTrigger
+                value="financial"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium shadow-sm transition-all data-[state=active]:border-emerald-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-900"
+              >
+                <DollarSign className="h-3.5 w-3.5" />
+                <span>Financial</span>
+              </TabsTrigger>
+            )}
+            {metrics.quality !== undefined && (
+              <TabsTrigger
+                value="quality"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium shadow-sm transition-all data-[state=active]:border-emerald-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-900"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span>Quality</span>
+              </TabsTrigger>
+            )}
+            {metrics.growth !== undefined && (
+              <TabsTrigger
+                value="growth"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium shadow-sm transition-all data-[state=active]:border-emerald-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-900"
+              >
+                <TrendingUp className="h-3.5 w-3.5" />
+                <span>Growth</span>
+              </TabsTrigger>
+            )}
+            {metrics.comparative !== undefined && (
+              <TabsTrigger
+                value="comparative"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium shadow-sm transition-all data-[state=active]:border-emerald-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-900"
+              >
+                <Award className="h-3.5 w-3.5" />
+                <span>Compare</span>
+              </TabsTrigger>
+            )}
+            {metrics.sustainability !== undefined && (
+              <TabsTrigger
+                value="sustainability"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium shadow-sm transition-all data-[state=active]:border-emerald-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-900"
+              >
+                <Leaf className="h-3.5 w-3.5" />
+                <span>Waste</span>
+              </TabsTrigger>
+            )}
+            {metrics.operations !== undefined && (
+              <TabsTrigger
+                value="operations"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium shadow-sm transition-all data-[state=active]:border-emerald-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-900"
+              >
+                <ClipboardCheck className="h-3.5 w-3.5" />
+                <span>Ops</span>
+              </TabsTrigger>
+            )}
+            {metrics.safety !== undefined && (
+              <TabsTrigger
+                value="safety"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium shadow-sm transition-all data-[state=active]:border-emerald-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-900"
+              >
+                <Shield className="h-3.5 w-3.5" />
+                <span>Safety</span>
+              </TabsTrigger>
+            )}
+          </TabsList>
+        </div>
 
         {metrics.customerSatisfaction !== undefined && (
           <TabsContent value="customer" className="mt-4">
