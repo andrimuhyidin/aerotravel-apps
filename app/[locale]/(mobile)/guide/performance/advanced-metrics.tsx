@@ -42,16 +42,18 @@ export function AdvancedMetrics({ metrics, className }: AdvancedMetricsProps) {
   const [activeTab, setActiveTab] = useState<string>(getInitialTab());
 
   // Check if any advanced metrics are available
+  // Always show tabs if metrics object exists (even if data is null/undefined)
+  // This ensures the UI shows that the feature is implemented
   const hasAdvancedMetrics =
-    metrics.customerSatisfaction ||
-    metrics.efficiency ||
-    metrics.financial ||
-    metrics.quality ||
-    metrics.growth ||
-    metrics.comparative ||
-    metrics.sustainability ||
-    metrics.operations ||
-    metrics.safety;
+    metrics.customerSatisfaction !== undefined ||
+    metrics.efficiency !== undefined ||
+    metrics.financial !== undefined ||
+    metrics.quality !== undefined ||
+    metrics.growth !== undefined ||
+    metrics.comparative !== undefined ||
+    metrics.sustainability !== undefined ||
+    metrics.operations !== undefined ||
+    metrics.safety !== undefined;
 
   if (!hasAdvancedMetrics) {
     return null;
@@ -65,102 +67,102 @@ export function AdvancedMetrics({ metrics, className }: AdvancedMetricsProps) {
         className="space-y-4"
       >
         <TabsList className="grid w-full grid-cols-3 lg:grid-cols-9">
-          {metrics.customerSatisfaction && (
+          {metrics.customerSatisfaction !== undefined && (
             <TabsTrigger value="customer" className="text-xs">
               Customer
             </TabsTrigger>
           )}
-          {metrics.efficiency && (
+          {metrics.efficiency !== undefined && (
             <TabsTrigger value="efficiency" className="text-xs">
               Efficiency
             </TabsTrigger>
           )}
-          {metrics.financial && (
+          {metrics.financial !== undefined && (
             <TabsTrigger value="financial" className="text-xs">
               Financial
             </TabsTrigger>
           )}
-          {metrics.quality && (
+          {metrics.quality !== undefined && (
             <TabsTrigger value="quality" className="text-xs">
               Quality
             </TabsTrigger>
           )}
-          {metrics.growth && (
+          {metrics.growth !== undefined && (
             <TabsTrigger value="growth" className="text-xs">
               Growth
             </TabsTrigger>
           )}
-          {metrics.comparative && (
+          {metrics.comparative !== undefined && (
             <TabsTrigger value="comparative" className="text-xs">
               Compare
             </TabsTrigger>
           )}
-          {metrics.sustainability && (
+          {metrics.sustainability !== undefined && (
             <TabsTrigger value="sustainability" className="text-xs">
               Waste
             </TabsTrigger>
           )}
-          {metrics.operations && (
+          {metrics.operations !== undefined && (
             <TabsTrigger value="operations" className="text-xs">
               Ops
             </TabsTrigger>
           )}
-          {metrics.safety && (
+          {metrics.safety !== undefined && (
             <TabsTrigger value="safety" className="text-xs">
               Safety
             </TabsTrigger>
           )}
         </TabsList>
 
-        {metrics.customerSatisfaction && (
+        {metrics.customerSatisfaction !== undefined && (
           <TabsContent value="customer" className="mt-4">
             <CustomerSatisfactionMetrics metrics={metrics} />
           </TabsContent>
         )}
 
-        {metrics.efficiency && (
+        {metrics.efficiency !== undefined && (
           <TabsContent value="efficiency" className="mt-4">
             <EfficiencyMetrics metrics={metrics} />
           </TabsContent>
         )}
 
-        {metrics.financial && (
+        {metrics.financial !== undefined && (
           <TabsContent value="financial" className="mt-4">
             <FinancialMetrics metrics={metrics} />
           </TabsContent>
         )}
 
-        {metrics.quality && (
+        {metrics.quality !== undefined && (
           <TabsContent value="quality" className="mt-4">
             <QualityMetrics metrics={metrics} />
           </TabsContent>
         )}
 
-        {metrics.growth && (
+        {metrics.growth !== undefined && (
           <TabsContent value="growth" className="mt-4">
             <GrowthMetrics metrics={metrics} />
           </TabsContent>
         )}
 
-        {metrics.comparative && (
+        {metrics.comparative !== undefined && (
           <TabsContent value="comparative" className="mt-4">
             <ComparativeMetrics metrics={metrics} />
           </TabsContent>
         )}
 
-        {metrics.sustainability && (
+        {metrics.sustainability !== undefined && (
           <TabsContent value="sustainability" className="mt-4">
             <SustainabilityMetrics metrics={metrics} />
           </TabsContent>
         )}
 
-        {metrics.operations && (
+        {metrics.operations !== undefined && (
           <TabsContent value="operations" className="mt-4">
             <OperationsMetrics metrics={metrics} />
           </TabsContent>
         )}
 
-        {metrics.safety && (
+        {metrics.safety !== undefined && (
           <TabsContent value="safety" className="mt-4">
             <SafetyMetrics metrics={metrics} />
           </TabsContent>
