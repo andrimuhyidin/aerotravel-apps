@@ -1,13 +1,19 @@
 /**
  * API: AI Performance Coach
  * GET /api/guide/performance/coach
- * 
+ *
+ * @deprecated This endpoint is deprecated. Use /api/guide/ai/insights/unified instead.
+ * This endpoint is kept for backward compatibility but will be removed in the future.
+ *
  * Personalized coaching, skill gap analysis, learning path
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 
-import { generateCoachingPlan, type PerformanceData } from '@/lib/ai/performance-coach';
+import {
+  generateCoachingPlan,
+  type PerformanceData,
+} from '@/lib/ai/performance-coach';
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
@@ -44,10 +50,13 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
       .select('guide_rating, overall_rating, comment')
       .eq('guide_id', user.id);
 
-    const ratings = (reviews || []).map((r: any) => r.guide_rating || r.overall_rating).filter((r: number | null) => r !== null) as number[];
-    const averageRating = ratings.length > 0
-      ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
-      : 0;
+    const ratings = (reviews || [])
+      .map((r: any) => r.guide_rating || r.overall_rating)
+      .filter((r: number | null) => r !== null) as number[];
+    const averageRating =
+      ratings.length > 0
+        ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
+        : 0;
 
     // Fetch earnings
     const { data: wallet } = await client
@@ -100,14 +109,21 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
     // Calculate trends (simplified)
     const recentRatings = ratings.slice(-10);
     const olderRatings = ratings.slice(-20, -10);
-    const recentAvg = recentRatings.length > 0
-      ? recentRatings.reduce((sum, r) => sum + r, 0) / recentRatings.length
-      : averageRating;
-    const olderAvg = olderRatings.length > 0
-      ? olderRatings.reduce((sum, r) => sum + r, 0) / olderRatings.length
-      : averageRating;
+    const recentAvg =
+      recentRatings.length > 0
+        ? recentRatings.reduce((sum, r) => sum + r, 0) / recentRatings.length
+        : averageRating;
+    const olderAvg =
+      olderRatings.length > 0
+        ? olderRatings.reduce((sum, r) => sum + r, 0) / olderRatings.length
+        : averageRating;
 
-    const ratingTrend = recentAvg > olderAvg + 0.2 ? 'improving' : recentAvg < olderAvg - 0.2 ? 'declining' : 'stable';
+    const ratingTrend =
+      recentAvg > olderAvg + 0.2
+        ? 'improving'
+        : recentAvg < olderAvg - 0.2
+          ? 'declining'
+          : 'stable';
 
     // Build performance data
     const performance: PerformanceData = {
