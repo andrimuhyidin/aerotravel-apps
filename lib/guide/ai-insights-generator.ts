@@ -258,6 +258,18 @@ export async function generateUnifiedAIInsights(
       insights.riskAlerts = [...detectedRisks, ...(insights.riskAlerts || [])];
     }
 
+    // Log insights for debugging
+    logger.info('Generated unified AI insights', {
+      guideId: context.guideId,
+      hasRiskAlerts: insights.riskAlerts && insights.riskAlerts.length > 0,
+      hasQuickWins: insights.quickWins && insights.quickWins.length > 0,
+      hasComparative: insights.comparative !== undefined,
+      hasOpportunities:
+        insights.opportunities && insights.opportunities.length > 0,
+      hasFinancialHealth: insights.financialHealth !== undefined,
+      recommendationsCount: insights.recommendations.length,
+    });
+
     // Generate coaching insights if requested
     if (
       includeCoaching &&
