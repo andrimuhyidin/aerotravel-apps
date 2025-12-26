@@ -3,9 +3,12 @@
  * Sesuai PRD 4.3.B - Partner Portal
  * 
  * Generate invoice dengan logo dan identitas partner
+ * Support multi-language (ID/EN)
  */
 
 import { logger } from '@/lib/utils/logger';
+import { getDocumentTranslations, type DocumentLanguage } from './document-translations';
+import { formatDate, formatCurrency } from './multi-language-document';
 
 export type MitraProfile = {
   id: string;
@@ -136,50 +139,58 @@ export function calculateInvoiceTotals(
 
 /**
  * Format invoice data for PDF
+ * @param data - Invoice data
+ * @param language - Document language ('id' | 'en'), default 'id'
  */
-export function formatInvoiceForPDF(data: WhitelabelInvoiceData) {
+export function formatInvoiceForPDF(
+  data: WhitelabelInvoiceData,
+  language: DocumentLanguage = 'id'
+) {
+  const t = getDocumentTranslations(language);
+  
   return {
     ...data,
-    invoiceDateFormatted: new Date(data.invoiceDate).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }),
-    tripDateFormatted: new Date(data.tripDate).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }),
-    dueDateFormatted: data.dueDate
-      ? new Date(data.dueDate).toLocaleDateString('id-ID', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        })
-      : undefined,
-    subtotalFormatted: formatIDR(data.subtotal),
-    discountFormatted: data.discount ? formatIDR(data.discount) : undefined,
-    taxFormatted: data.tax ? formatIDR(data.tax) : undefined,
-    totalFormatted: formatIDR(data.total),
-    paidAmountFormatted: data.paidAmount ? formatIDR(data.paidAmount) : undefined,
+    invoiceDateFormatted: formatDate(data.invoiceDate, language),
+    tripDateFormatted: formatDate(data.tripDate, language),
+    dueDateFormatted: data.dueDate ? formatDate(data.dueDate, language) : undefined,
+    subtotalFormatted: formatCurrency(data.subtotal),
+    discountFormatted: data.discount ? formatCurrency(data.discount) : undefined,
+    taxFormatted: data.tax ? formatCurrency(data.tax) : undefined,
+    totalFormatted: formatCurrency(data.total),
+    paidAmountFormatted: data.paidAmount ? formatCurrency(data.paidAmount) : undefined,
     remainingFormatted: data.paidAmount
-      ? formatIDR(data.total - data.paidAmount)
+      ? formatCurrency(data.total - data.paidAmount)
       : undefined,
+    paymentStatusLabel: t.invoice[data.paymentStatus] || data.paymentStatus,
     items: data.items.map((item) => ({
       ...item,
-      unitPriceFormatted: formatIDR(item.unitPrice),
-      totalFormatted: formatIDR(item.total),
+      unitPriceFormatted: formatCurrency(item.unitPrice),
+      totalFormatted: formatCurrency(item.total),
     })),
+    labels: {
+      title: t.invoice.title,
+      invoiceNumber: t.invoice.invoiceNumber,
+      invoiceDate: t.invoice.invoiceDate,
+      dueDate: t.invoice.dueDate,
+      from: t.invoice.from,
+      to: t.invoice.to,
+      item: t.invoice.item,
+      description: t.invoice.description,
+      quantity: t.invoice.quantity,
+      unitPrice: t.invoice.unitPrice,
+      total: t.invoice.total,
+      subtotal: t.invoice.subtotal,
+      discount: t.invoice.discount,
+      tax: t.invoice.tax,
+      totalAmount: t.invoice.totalAmount,
+      paidAmount: t.invoice.paidAmount,
+      remainingAmount: t.invoice.remainingAmount,
+      paymentStatus: t.invoice.paymentStatus,
+      notes: t.invoice.notes,
+      termsAndConditions: t.invoice.termsAndConditions,
+      thankYou: t.invoice.thankYou,
+    },
   };
-}
-
-function formatIDR(amount: number): string {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
 }
 
 /**

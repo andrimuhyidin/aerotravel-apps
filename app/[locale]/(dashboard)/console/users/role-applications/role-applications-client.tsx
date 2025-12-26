@@ -34,6 +34,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { PartnerReviewClient } from './partner-review-client';
 
 type RoleApplication = {
   id: string;
@@ -108,6 +109,7 @@ export function RoleApplicationsClient({ locale: _locale }: RoleApplicationsClie
   );
   const [adminNotes, setAdminNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
+  const [showPartnerReview, setShowPartnerReview] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -161,6 +163,13 @@ export function RoleApplicationsClient({ locale: _locale }: RoleApplicationsClie
   const applications = data?.applications || [];
 
   const handleApprove = (app: RoleApplication) => {
+    // For partner (mitra) applications, use enhanced review UI
+    if (app.requested_role === 'mitra') {
+      setSelectedApp(app);
+      setShowPartnerReview(true);
+      return;
+    }
+    // For other roles, use simple approve dialog
     setSelectedApp(app);
     setActionType('approve');
     setAdminNotes('');
@@ -449,6 +458,22 @@ export function RoleApplicationsClient({ locale: _locale }: RoleApplicationsClie
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Partner Review Dialog */}
+      {showPartnerReview && selectedApp && (
+        <PartnerReviewClient
+          applicationId={selectedApp.id}
+          onClose={() => {
+            setShowPartnerReview(false);
+            setSelectedApp(null);
+          }}
+          onReviewed={() => {
+            queryClient.invalidateQueries({
+              queryKey: ['admin', 'role-applications'],
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

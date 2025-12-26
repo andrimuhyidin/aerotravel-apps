@@ -1,6 +1,7 @@
 /**
  * Empty State Component
  * Standardized empty state UI for when data is not available
+ * Enhanced version for Partner Apps redesign
  */
 
 import { cn } from '@/lib/utils';
@@ -34,11 +35,11 @@ export function EmptyState({
     return (
       <div className={cn('text-center', className)}>
         {Icon && (
-          <Icon className="mx-auto mb-2 h-8 w-8 text-slate-300" aria-hidden="true" />
+          <Icon className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" aria-hidden="true" />
         )}
-        <p className="text-sm font-medium text-slate-600">{title}</p>
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
         {description && (
-          <p className="mt-1 text-xs text-slate-500">{description}</p>
+          <p className="mt-1 text-xs text-muted-foreground/70">{description}</p>
         )}
         {action && <div className="mt-3">{action}</div>}
       </div>
@@ -46,18 +47,18 @@ export function EmptyState({
   }
 
   return (
-    <Card className={cn('border-0 shadow-sm', className)}>
+    <Card className={cn('border shadow-sm', className)}>
       <CardContent className={cn('flex flex-col items-center justify-center text-center', variants[variant])}>
         {Icon && (
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-            <Icon className="h-8 w-8 text-slate-400" aria-hidden="true" />
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted/50">
+            <Icon className="h-8 w-8 text-muted-foreground/60" aria-hidden="true" />
           </div>
         )}
-        <h3 className="mb-2 text-sm font-semibold text-slate-900">{title}</h3>
+        <h3 className="mb-2 text-base font-semibold text-foreground">{title}</h3>
         {description && (
-          <p className="text-xs text-slate-500 max-w-sm">{description}</p>
+          <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">{description}</p>
         )}
-        {action && <div className="mt-4">{action}</div>}
+        {action && <div className="mt-6">{action}</div>}
       </CardContent>
     </Card>
   );

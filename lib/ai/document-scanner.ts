@@ -6,7 +6,7 @@
 import { analyzeImage } from '@/lib/gemini';
 import { logger } from '@/lib/utils/logger';
 
-export type DocumentType = 'ktp' | 'sim' | 'certificate' | 'license' | 'other';
+export type DocumentType = 'ktp' | 'sim' | 'siup' | 'npwp' | 'certificate' | 'license' | 'other';
 
 export type DocumentData = {
   type: DocumentType;
@@ -157,6 +157,129 @@ Return ONLY the JSON object, no additional text.`;
 }
 
 /**
+ * Scan SIUP (Surat Izin Usaha Perdagangan)
+ */
+export async function scanSIUP(
+  imageBase64: string,
+  mimeType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'
+): Promise<DocumentData> {
+  try {
+    const prompt = `Extract information from this SIUP (Surat Izin Usaha Perdagangan) document image in JSON format:
+{
+  "nomor_siup": "SIUP number/registration number",
+  "nama_perusahaan": "company name",
+  "alamat_perusahaan": "company address",
+  "tanggal_terbit": "YYYY-MM-DD",
+  "tanggal_berlaku": "YYYY-MM-DD",
+  "jenis_usaha": "type of business",
+  "modal_usaha": "business capital",
+  "npwp": "NPWP number if visible",
+  "confidence": 0-100
+}
+
+If any field cannot be extracted, set it to null.
+Return ONLY the JSON object, no additional text.`;
+
+    const result = await analyzeImage(imageBase64, mimeType, prompt);
+
+    try {
+      const cleaned = result.replace(/```json\n?|\n?```/g, '').trim();
+      const data = JSON.parse(cleaned) as Record<string, unknown>;
+
+      const expiryDate = data.tanggal_berlaku as string | undefined;
+      const isExpired = expiryDate ? new Date(expiryDate) < new Date() : false;
+      const daysUntilExpiry = expiryDate
+        ? Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+        : undefined;
+
+      return {
+        type: 'siup',
+        extractedData: data,
+        confidence: (data.confidence as number) || 0.7,
+        expiryDate,
+        isExpired,
+        daysUntilExpiry,
+        fields: {
+          nomor_siup: (data.nomor_siup as string) || '',
+          nama_perusahaan: (data.nama_perusahaan as string) || '',
+          alamat_perusahaan: (data.alamat_perusahaan as string) || '',
+          tanggal_terbit: (data.tanggal_terbit as string) || '',
+          tanggal_berlaku: expiryDate || '',
+        },
+      };
+    } catch {
+      return {
+        type: 'siup',
+        extractedData: {},
+        confidence: 0.3,
+        isExpired: false,
+        fields: {},
+      };
+    }
+  } catch (error) {
+    logger.error('Failed to scan SIUP', error);
+    throw new Error('Gagal memindai SIUP');
+  }
+}
+
+/**
+ * Scan NPWP (Nomor Pokok Wajib Pajak)
+ */
+export async function scanNPWP(
+  imageBase64: string,
+  mimeType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'
+): Promise<DocumentData> {
+  try {
+    const prompt = `Extract information from this NPWP (Nomor Pokok Wajib Pajak) document image in JSON format:
+{
+  "nomor_npwp": "15-digit NPWP number (format: XX.XXX.XXX.X-XXX.XXX)",
+  "nama_wajib_pajak": "taxpayer name (company or individual)",
+  "alamat": "address",
+  "kpp": "Kantor Pelayanan Pajak (tax office)",
+  "tanggal_daftar": "YYYY-MM-DD",
+  "status": "aktif" | "non-aktif",
+  "confidence": 0-100
+}
+
+If any field cannot be extracted, set it to null.
+Return ONLY the JSON object, no additional text.`;
+
+    const result = await analyzeImage(imageBase64, mimeType, prompt);
+
+    try {
+      const cleaned = result.replace(/```json\n?|\n?```/g, '').trim();
+      const data = JSON.parse(cleaned) as Record<string, unknown>;
+
+      // NPWP doesn't have expiry date
+      return {
+        type: 'npwp',
+        extractedData: data,
+        confidence: (data.confidence as number) || 0.7,
+        isExpired: false,
+        fields: {
+          nomor_npwp: (data.nomor_npwp as string) || '',
+          nama_wajib_pajak: (data.nama_wajib_pajak as string) || '',
+          alamat: (data.alamat as string) || '',
+          kpp: (data.kpp as string) || '',
+          status: (data.status as string) || '',
+        },
+      };
+    } catch {
+      return {
+        type: 'npwp',
+        extractedData: {},
+        confidence: 0.3,
+        isExpired: false,
+        fields: {},
+      };
+    }
+  } catch (error) {
+    logger.error('Failed to scan NPWP', error);
+    throw new Error('Gagal memindai NPWP');
+  }
+}
+
+/**
  * Auto-detect document type and scan
  */
 export async function scanDocument(
@@ -170,16 +293,20 @@ export async function scanDocument(
       return await scanKTP(imageBase64, mimeType);
     } else if (documentType === 'sim') {
       return await scanSIM(imageBase64, mimeType);
+    } else if (documentType === 'siup') {
+      return await scanSIUP(imageBase64, mimeType);
+    } else if (documentType === 'npwp') {
+      return await scanNPWP(imageBase64, mimeType);
     }
 
     // Auto-detect type
     const detectPrompt = `Identify the type of document in this image and extract key information.
 
-Possible types: KTP (Indonesian ID Card), SIM (Driver's License), Certificate, License, Other
+Possible types: KTP (Indonesian ID Card), SIM (Driver's License), SIUP (Business License), NPWP (Tax ID), Certificate, License, Other
 
 Return JSON:
 {
-  "type": "ktp" | "sim" | "certificate" | "license" | "other",
+  "type": "ktp" | "sim" | "siup" | "npwp" | "certificate" | "license" | "other",
   "extractedData": { ... },
   "confidence": 0-100
 }
@@ -197,6 +324,10 @@ Return ONLY the JSON object, no additional text.`;
         return await scanKTP(imageBase64, mimeType);
       } else if (detected.type === 'sim') {
         return await scanSIM(imageBase64, mimeType);
+      } else if (detected.type === 'siup') {
+        return await scanSIUP(imageBase64, mimeType);
+      } else if (detected.type === 'npwp') {
+        return await scanNPWP(imageBase64, mimeType);
       }
 
       // Generic extraction

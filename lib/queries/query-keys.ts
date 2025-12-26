@@ -468,6 +468,74 @@ const queryKeys = {
         [...queryKeys.admin.settings.all(), key] as const,
     },
   },
+
+  // Partner
+  partner: {
+    all: ['partner'] as const,
+    auth: () => [...queryKeys.partner.all, 'auth'] as const,
+    wallet: {
+      all: () => [...queryKeys.partner.all, 'wallet'] as const,
+      balance: () => [...queryKeys.partner.wallet.all(), 'balance'] as const,
+      transactions: (filters?: Record<string, unknown>) =>
+        [...queryKeys.partner.wallet.all(), 'transactions', filters] as const,
+    },
+    bookings: {
+      all: () => [...queryKeys.partner.all, 'bookings'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.partner.bookings.all(), 'list', filters] as const,
+      detail: (id: string) =>
+        [...queryKeys.partner.bookings.all(), 'detail', id] as const,
+    },
+    packages: {
+      all: () => [...queryKeys.partner.all, 'packages'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.partner.packages.all(), 'list', filters] as const,
+      availability: (packageId: string, days?: number) =>
+        [...queryKeys.partner.packages.all(), 'availability', packageId, days] as const,
+    },
+    notifications: {
+      all: () => [...queryKeys.partner.all, 'notifications'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.partner.notifications.all(), 'list', filters] as const,
+      unreadCount: () =>
+        [...queryKeys.partner.notifications.all(), 'unread-count'] as const,
+    },
+    reports: {
+      all: () => [...queryKeys.partner.all, 'reports'] as const,
+      commission: (filters?: Record<string, unknown>) =>
+        [...queryKeys.partner.reports.all(), 'commission', filters] as const,
+    },
+    analytics: {
+      all: () => [...queryKeys.partner.all, 'analytics'] as const,
+      dashboard: (period?: string) =>
+        [...queryKeys.partner.analytics.all(), 'dashboard', period] as const,
+    },
+    customers: {
+      all: () => [...queryKeys.partner.all, 'customers'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.partner.customers.all(), 'list', filters] as const,
+      detail: (id: string) =>
+        [...queryKeys.partner.customers.all(), 'detail', id] as const,
+    },
+    team: {
+      all: () => [...queryKeys.partner.all, 'team'] as const,
+      list: () => [...queryKeys.partner.team.all(), 'list'] as const,
+      detail: (id: string) =>
+        [...queryKeys.partner.team.all(), 'detail', id] as const,
+      performance: (userId: string) =>
+        [...queryKeys.partner.team.all(), 'performance', userId] as const,
+    },
+    support: {
+      all: () => [...queryKeys.partner.all, 'support'] as const,
+      tickets: {
+        all: () => [...queryKeys.partner.support.all(), 'tickets'] as const,
+        list: (filters?: Record<string, unknown>) =>
+          [...queryKeys.partner.support.tickets.all(), 'list', filters] as const,
+        detail: (id: string) =>
+          [...queryKeys.partner.support.tickets.all(), 'detail', id] as const,
+      },
+    },
+  },
 } as const;
 
 export default queryKeys;

@@ -10,27 +10,56 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
-  const { searchParams } = new URL(request.url);
-  const partnerId = searchParams.get('partnerId');
 
-  if (!partnerId) {
-    return NextResponse.json({ error: 'Partner ID required' }, { status: 400 });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data, error } = await supabase
-    .from('mitra_wallets')
-    .select('balance, credit_limit')
-    .eq('mitra_id', partnerId)
-    .single();
+  const client = supabase as unknown as any;
 
-  if (error) {
-    logger.error('Failed to fetch wallet balance', error);
-    return NextResponse.json({ error: 'Wallet not found' }, { status: 404 });
+  try {
+    const { data, error } = await client
+      .from('mitra_wallets')
+      .select('balance, credit_limit, credit_used')
+      .eq('mitra_id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      logger.error('Failed to fetch wallet balance', error, {
+        userId: user.id,
+      });
+      throw error;
+    }
+
+    // If wallet doesn't exist, return zero balance
+    if (!data) {
+      return NextResponse.json({
+        balance: 0,
+        creditLimit: 0,
+        creditUsed: 0,
+        availableBalance: 0,
+      });
+    }
+
+    const balance = Number(data.balance || 0);
+    const creditLimit = Number(data.credit_limit || 0);
+    const creditUsed = Number(data.credit_used || 0);
+    const availableBalance = balance + (creditLimit - creditUsed);
+
+    return NextResponse.json({
+      balance,
+      creditLimit,
+      creditUsed,
+      availableBalance,
+    });
+  } catch (error) {
+    logger.error('Failed to get wallet balance', error, {
+      userId: user.id,
+    });
+    throw error;
   }
-
-  return NextResponse.json({
-    balance: Number(data.balance),
-    creditLimit: Number(data.credit_limit),
-    availableBalance: Number(data.balance) + Number(data.credit_limit),
-  });
 });

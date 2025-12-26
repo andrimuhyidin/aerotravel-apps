@@ -1,54 +1,56 @@
 /**
- * Whitelabel Page
+ * Partner Whitelabel Settings Page
  * Route: /[locale]/partner/whitelabel
  */
 
 import { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
-import { Container } from '@/components/layout/container';
-import { Section } from '@/components/layout/section';
-import { locales } from '@/i18n';
+import { redirect } from 'next/navigation';
+
+import { createClient } from '@/lib/supabase/server';
+import { getPartnerProfile, getWhitelabelSettings } from '@/lib/partner/profile-service';
+import { WhitelabelSettingsClient } from './whitelabel-settings-client';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
 };
 
-export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: 'Pengaturan Whitelabel - Partner Portal',
+  description: 'Kustomisasi branding invoice Anda',
+};
 
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
-
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export default async function WhitelabelPage({ params }: PageProps) {
   const { locale } = await params;
-  setRequestLocale(locale);
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(`/${locale}/auth/login`);
+  }
+
+  const profile = await getPartnerProfile(supabase, user.id);
   
-  return {
-    title: 'Whitelabel - Aero Travel',
-    alternates: {
-      canonical: `${baseUrl}/${locale}/partner/whitelabel`,
-    },
+  if (!profile) {
+    return (
+      <div className="p-4 text-center">
+        <h1 className="text-lg font-bold">Profile Not Found</h1>
+      </div>
+    );
+  }
+
+  const settings = await getWhitelabelSettings(supabase, profile.id);
+  
+  const initialSettings = settings || {
+    enabled: false,
+    companyName: profile.companyName,
+    logoUrl: null,
+    primaryColor: '#000000',
+    secondaryColor: '#ffffff',
+    customDomain: null,
   };
-}
 
-export default async function PartnerWhitelabelPage({ params }: PageProps) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-
-  return (
-    <Section>
-      <Container>
-        <div className="py-8">
-          <h1 className="text-3xl font-bold mb-6">Whitelabel</h1>
-          
-          <div className="bg-muted p-8 rounded-lg">
-            <p className="text-muted-foreground">
-              Whitelabel page will be implemented here.
-            </p>
-          </div>
-        </div>
-      </Container>
-    </Section>
-  );
+  return <WhitelabelSettingsClient locale={locale} initialSettings={initialSettings} />;
 }

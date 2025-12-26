@@ -67,7 +67,7 @@ export function LiveGPSTracker({
           onTrackingUpdate({
             latitude: position.latitude,
             longitude: position.longitude,
-            accuracy: position.accuracy,
+            accuracy: position.accuracy ?? 0,
             timestamp: new Date().toISOString(),
             speed: position.speed,
           });
@@ -191,7 +191,7 @@ export function LiveGPSTracker({
                   {currentPosition.longitude.toFixed(6)}
                 </p>
                 <p className="mt-1 text-slate-600">
-                  Akurasi: ±{Math.round(currentPosition.accuracy)}m
+                  Akurasi: ±{Math.round(currentPosition.accuracy ?? 0)}m
                 </p>
               </div>
             </div>

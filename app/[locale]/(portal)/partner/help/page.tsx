@@ -147,8 +147,8 @@ export default async function PartnerHelpPage({ params }: PageProps) {
     <Container className="py-6">
       {/* Hero */}
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-500/10">
-          <HelpCircle className="h-8 w-8 text-orange-600" />
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+          <HelpCircle className="h-8 w-8 text-primary" />
         </div>
         <h1 className="mb-2 text-2xl font-bold">Pusat Bantuan</h1>
         <p className="text-sm text-muted-foreground">
@@ -186,7 +186,7 @@ export default async function PartnerHelpPage({ params }: PageProps) {
             <Card key={index} className="border-none shadow-sm">
               <CardContent className="p-4">
                 <h3 className="mb-2 flex items-start gap-2 text-sm font-semibold">
-                  <HelpCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-orange-600" />
+                  <HelpCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                   {item.question}
                 </h3>
                 <p className="ml-6 text-xs text-muted-foreground">
@@ -219,12 +219,12 @@ export default async function PartnerHelpPage({ params }: PageProps) {
               >
                 <Card className="border-none shadow-sm transition-shadow hover:shadow-md">
                   <CardContent className="flex items-center gap-3 p-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/10">
-                      <Icon className="h-5 w-5 text-orange-600" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <Icon className="h-5 w-5 text-primary" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <h3 className="text-sm font-semibold">{option.title}</h3>
-                      <p className="text-xs font-medium text-orange-600">
+                      <p className="text-xs font-medium text-primary">
                         {option.value}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -240,10 +240,10 @@ export default async function PartnerHelpPage({ params }: PageProps) {
       </div>
 
       {/* Operating Hours */}
-      <Card className="border-none bg-orange-500/5 shadow-sm">
+      <Card className="border-none bg-primary/5 shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-orange-600" />
+            <Clock className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm font-semibold">
                 Jam Layanan Partnership Support

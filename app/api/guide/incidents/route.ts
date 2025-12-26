@@ -38,6 +38,7 @@ const incidentSchema = z.object({
   involved_people: z.array(involvedPersonSchema).optional(),
   injuries: z.array(injurySchema).optional(),
   photoUrls: z.array(z.string().url()).optional(),
+  voiceNoteUrl: z.string().url().optional(), // Voice note audio file URL from transcription
   tripId: z.string().uuid().optional(),
   signature: z.object({
     method: z.enum(['draw', 'upload', 'typed']),
@@ -57,7 +58,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { incidentType, chronology, witnesses, involved_passenger_ids, involved_people, injuries, photoUrls, tripId, signature } = payload;
+  const { incidentType, chronology, witnesses, involved_passenger_ids, involved_people, injuries, photoUrls, voiceNoteUrl, tripId, signature } = payload;
 
   const branchContext = await getBranchContext(user.id);
   const client = supabase as unknown as any;
@@ -75,6 +76,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       chronology,
       witnesses: witnesses || null,
       photo_urls: photoUrls || [],
+      voice_note_url: voiceNoteUrl || null,
       signature_data: signature?.data || null,
       signature_method: signature?.method || null,
       signature_timestamp: signature ? new Date().toISOString() : null,

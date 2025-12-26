@@ -15,15 +15,18 @@ import { logger } from '@/lib/utils/logger';
 export type WalletBalance = {
   balance: number;
   creditLimit: number;
-  availableBalance: number; // balance + creditLimit
+  creditUsed: number;
+  availableBalance: number; // balance + (creditLimit - creditUsed)
 };
 
 export type WalletTransaction = {
   id: string;
-  type: 'topup' | 'booking_debit' | 'refund_credit' | 'adjustment';
+  type: 'topup' | 'booking_debit' | 'refund_credit' | 'adjustment' | 'credit_repayment';
   amount: number;
   balanceBefore: number;
   balanceAfter: number;
+  creditUsedBefore?: number;
+  creditUsedAfter?: number;
   description?: string;
   bookingCode?: string;
   createdAt: string;
@@ -43,7 +46,7 @@ export async function getWalletBalance(mitraId: string): Promise<WalletBalance |
 
   const { data, error } = await supabase
     .from('mitra_wallets')
-    .select('balance, credit_limit')
+    .select('balance, credit_limit, credit_used')
     .eq('mitra_id', mitraId)
     .single();
 
@@ -52,10 +55,16 @@ export async function getWalletBalance(mitraId: string): Promise<WalletBalance |
     return null;
   }
 
+  const balance = Number(data.balance || 0);
+  const creditLimit = Number(data.credit_limit || 0);
+  const creditUsed = Number(data.credit_used || 0);
+  const availableBalance = balance + (creditLimit - creditUsed);
+
   return {
-    balance: Number(data.balance),
-    creditLimit: Number(data.credit_limit),
-    availableBalance: Number(data.balance) + Number(data.credit_limit),
+    balance,
+    creditLimit,
+    creditUsed,
+    availableBalance,
   };
 }
 
@@ -86,6 +95,8 @@ export async function getWalletTransactions(
       amount,
       balance_before,
       balance_after,
+      credit_used_before,
+      credit_used_after,
       description,
       booking:bookings(booking_code),
       created_at
@@ -105,6 +116,8 @@ export async function getWalletTransactions(
     amount: Number(t.amount),
     balanceBefore: Number(t.balance_before),
     balanceAfter: Number(t.balance_after),
+    creditUsedBefore: t.credit_used_before ? Number(t.credit_used_before) : undefined,
+    creditUsedAfter: t.credit_used_after ? Number(t.credit_used_after) : undefined,
     description: t.description ?? undefined,
     bookingCode: t.booking?.booking_code ?? undefined,
     createdAt: t.created_at || new Date().toISOString(),
@@ -250,7 +263,66 @@ export async function creditWallet(
     .update({ balance: newBalance })
     .eq('id', wallet.id);
 
+  // TODO: Emit wallet.balance_changed event via API endpoint
+  // Event emission disabled to avoid server-only import in client components
+  // Should be moved to server-side API endpoint
+
   return { success: true };
+}
+
+/**
+ * Repay credit limit that has been used
+ */
+export async function repayCreditLimit(
+  mitraId: string,
+  amount: number,
+  description?: string
+): Promise<{ success: boolean; message: string; transactionId?: string }> {
+  const supabase = createClient();
+
+  try {
+    // Get wallet ID
+    const { data: wallet, error: walletError } = await supabase
+      .from('mitra_wallets')
+      .select('id, credit_used')
+      .eq('mitra_id', mitraId)
+      .single();
+
+    if (walletError || !wallet) {
+      logger.error('Failed to get wallet for credit repayment', walletError);
+      return { success: false, message: 'Wallet tidak ditemukan.' };
+    }
+
+    const creditUsed = Number(wallet.credit_used || 0);
+    if (creditUsed <= 0) {
+      return { success: false, message: 'Tidak ada credit yang perlu dibayar.' };
+    }
+
+    if (amount > creditUsed) {
+      return { success: false, message: `Jumlah pembayaran melebihi credit yang digunakan (${formatCurrency(creditUsed)}).` };
+    }
+
+    // Call database function to process repayment
+    const { data: transactionId, error: rpcError } = await supabase.rpc('process_credit_repayment', {
+      p_wallet_id: wallet.id,
+      p_amount: amount,
+      p_description: description || 'Credit limit repayment',
+    });
+
+    if (rpcError || !transactionId) {
+      logger.error('Failed to process credit repayment', rpcError);
+      return { success: false, message: 'Gagal memproses pembayaran credit.' };
+    }
+
+    return {
+      success: true,
+      message: 'Pembayaran credit berhasil.',
+      transactionId: transactionId as string,
+    };
+  } catch (error) {
+    logger.error('Credit repayment error', error);
+    return { success: false, message: 'Terjadi kesalahan saat memproses pembayaran.' };
+  }
 }
 
 /**

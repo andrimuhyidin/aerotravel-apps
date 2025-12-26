@@ -1,0 +1,122 @@
+/**
+ * API: Generate Packing List PDF
+ * GET /api/partner/packages/[id]/documents/packing-list
+ */
+
+import { withErrorHandler } from '@/lib/api/error-handler';
+import { createClient } from '@/lib/supabase/server';
+import { generatePackingListPDF } from '@/lib/pdf/packing-list';
+import { logger } from '@/lib/utils/logger';
+import { NextRequest, NextResponse } from 'next/server';
+
+type Params = Promise<{ id: string }>;
+
+export const GET = withErrorHandler(async (
+  request: NextRequest,
+  { params }: { params: Params }
+) => {
+  const { id: packageId } = await params;
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const language = (searchParams.get('language') || 'id') as 'id' | 'en';
+
+  const client = supabase as unknown as any;
+
+  try {
+    // Get package details and partner whitelabel settings
+    const { data: packageData, error: packageError } = await client
+      .from('packages')
+      .select(`
+        id,
+        name,
+        destination,
+        duration_days,
+        duration_nights,
+        package_type,
+        packing_list_items,
+        mitra:users!packages_mitra_id_fkey(
+          id,
+          full_name,
+          company_name,
+          partner_whitelabel_settings(
+            company_name,
+            company_address,
+            company_phone,
+            company_email,
+            invoice_footer
+          )
+        )
+      `)
+      .eq('id', packageId)
+      .single();
+
+    if (packageError || !packageData) {
+      return NextResponse.json(
+        { error: 'Package not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get whitelabel settings
+    const whitelabel = packageData.mitra?.partner_whitelabel_settings?.[0];
+    const companyName = whitelabel?.company_name || packageData.mitra?.company_name || packageData.mitra?.full_name || 'Partner';
+    const companyAddress = whitelabel?.company_address || '';
+    const companyPhone = whitelabel?.company_phone || '';
+    const companyEmail = whitelabel?.company_email || '';
+
+    // Parse custom packing list items if stored as JSON
+    let customItems: string[] | undefined;
+    if (packageData.packing_list_items) {
+      try {
+        if (typeof packageData.packing_list_items === 'string') {
+          customItems = JSON.parse(packageData.packing_list_items);
+        } else if (Array.isArray(packageData.packing_list_items)) {
+          customItems = packageData.packing_list_items;
+        }
+      } catch (e) {
+        logger.warn('Failed to parse packing_list_items', { packageId, error: e });
+      }
+    }
+
+    // Generate packing list PDF
+    const packingListData = {
+      companyName,
+      companyAddress,
+      companyPhone,
+      companyEmail,
+      packageName: packageData.name,
+      destination: packageData.destination,
+      durationDays: packageData.duration_days || 0,
+      durationNights: packageData.duration_nights || 0,
+      packageType: packageData.package_type || undefined,
+      footerText: whitelabel?.invoice_footer || undefined,
+      customItems,
+      language,
+    };
+
+    const pdfBuffer = await generatePackingListPDF(packingListData);
+
+    return new NextResponse(pdfBuffer as unknown as BodyInit, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="packing-list-${packageData.name.replace(/\s+/g, '-')}.pdf"`,
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to generate packing list PDF', error, {
+      packageId,
+      userId: user.id,
+    });
+    throw error;
+  }
+});
+

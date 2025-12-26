@@ -55,6 +55,76 @@ export type CreateBookingData = {
 };
 
 /**
+ * Get package availability dates (client-side only)
+ * Fetches available dates for a package (cached for 5 minutes)
+ */
+async function getPackageAvailability(
+  packageId: string,
+  days: number = 90
+): Promise<string[]> {
+  // Only run in browser environment
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    // Check cache first (5 minutes TTL)
+    const cacheKey = `package_availability_${packageId}_${days}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const { data, timestamp } = JSON.parse(cached);
+        const now = Date.now();
+        // 5 minutes = 300000 ms
+        if (now - timestamp < 300000) {
+          return data;
+        }
+      } catch (parseError) {
+        // Invalid cache, remove it
+        sessionStorage.removeItem(cacheKey);
+      }
+    }
+
+    // Fetch from API
+    const response = await fetch(
+      `/api/partner/packages/${packageId}/availability?days=${days}`
+    );
+
+    if (!response.ok) {
+      logger.warn('Failed to fetch availability', {
+        packageId,
+        status: response.status,
+      });
+      return [];
+    }
+
+    const result = await response.json();
+    const availableDates =
+      result.availability
+        ?.filter((a: { isAvailable: boolean }) => a.isAvailable)
+        .map((a: { date: string }) => a.date) || [];
+
+    // Cache the result
+    try {
+      sessionStorage.setItem(
+        cacheKey,
+        JSON.stringify({ data: availableDates, timestamp: Date.now() })
+      );
+    } catch (cacheError) {
+      // SessionStorage might be full or unavailable, ignore
+      logger.warn('Failed to cache availability', {
+        error: cacheError instanceof Error ? cacheError.message : String(cacheError),
+      });
+    }
+
+    return availableDates;
+  } catch (error) {
+    logger.error('Failed to get package availability', error, { packageId });
+    return [];
+  }
+}
+
+/**
  * Get packages with NTA pricing for mitra
  */
 export async function getNTAPackages(_mitraId: string): Promise<NTAPackage[]> {
@@ -85,31 +155,41 @@ export async function getNTAPackages(_mitraId: string): Promise<NTAPackage[]> {
     return [];
   }
 
-  return data.map((pkg) => {
-    // Get base price tier (2 pax default)
-    const baseTier =
-      pkg.prices?.find(
-        (p: { min_pax: number; max_pax: number }) =>
-          p.min_pax <= 2 && p.max_pax >= 2
-      ) || pkg.prices?.[0];
+  // Fetch availability for all packages in parallel (with limit to avoid too many requests)
+  const packagesWithAvailability = await Promise.all(
+    data.map(async (pkg) => {
+      // Get base price tier (2 pax default)
+      const baseTier =
+        pkg.prices?.find(
+          (p: { min_pax: number; max_pax: number }) =>
+            p.min_pax <= 2 && p.max_pax >= 2
+        ) || pkg.prices?.[0];
 
-    const publishPrice = Number(baseTier?.price_publish || 0);
-    const ntaPrice = Number(baseTier?.price_nta || 0);
+      const publishPrice = Number(baseTier?.price_publish || 0);
+      const ntaPrice = Number(baseTier?.price_nta || 0);
 
-    return {
-      id: pkg.id,
-      name: pkg.name,
-      destination: pkg.destination,
-      duration: `${pkg.duration_days} Hari`,
-      publishPrice,
-      ntaPrice,
-      margin: publishPrice - ntaPrice,
-      minPax: baseTier?.min_pax || 1,
-      maxPax: baseTier?.max_pax || 50,
-      availableDates: [], // TODO: Calculate from availability
-      thumbnailUrl: pkg.thumbnail_url ?? undefined,
-    };
-  });
+      // Fetch availability (non-blocking, will return empty array if fails)
+      const availableDates = await getPackageAvailability(pkg.id, 90).catch(
+        () => []
+      );
+
+      return {
+        id: pkg.id,
+        name: pkg.name,
+        destination: pkg.destination,
+        duration: `${pkg.duration_days} Hari`,
+        publishPrice,
+        ntaPrice,
+        margin: publishPrice - ntaPrice,
+        minPax: baseTier?.min_pax || 1,
+        maxPax: baseTier?.max_pax || 50,
+        availableDates,
+        thumbnailUrl: pkg.thumbnail_url ?? undefined,
+      };
+    })
+  );
+
+  return packagesWithAvailability;
 }
 
 /**
@@ -198,11 +278,17 @@ export async function createMitraBooking(
     // Calculate pricing
     const totalAdult = data.adultPax;
 
-    const priceTier =
-      (pkg.prices as unknown[])?.find(
-        (p: { min_pax: number; max_pax: number }) =>
-          p.min_pax <= totalAdult && p.max_pax >= totalAdult
-      ) || (pkg.prices as unknown[])?.[0];
+    type PriceTier = {
+      min_pax: number;
+      max_pax: number;
+      price_publish?: number;
+      price_nta?: number;
+    };
+
+    const priceTier = (pkg.prices as unknown as PriceTier[])?.find(
+      (p: PriceTier) =>
+        p.min_pax <= totalAdult && p.max_pax >= totalAdult
+    ) || (pkg.prices as unknown as PriceTier[])?.[0];
 
     if (!priceTier) {
       return {
@@ -211,10 +297,8 @@ export async function createMitraBooking(
       };
     }
 
-    const pricePerAdult = Number(priceTier?.price_publish || 0);
-    const ntaPricePerAdult = Number(
-      (priceTier as { price_nta?: number })?.price_nta || 0
-    );
+    const pricePerAdult = Number(priceTier.price_publish || 0);
+    const ntaPricePerAdult = Number(priceTier.price_nta || 0);
     // Child discount - default 50%
     const childPercent = 0.5;
 

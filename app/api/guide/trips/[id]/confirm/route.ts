@@ -99,6 +99,34 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
       assignmentId: assignment.id,
     });
 
+    // Emit trip.status_changed event (non-blocking)
+    try {
+      const { emitEvent } = await import('@/lib/events/event-bus');
+      const trip = assignment.trip as { trip_code?: string; status?: string } | null;
+      
+      await emitEvent(
+        {
+          type: 'trip.status_changed',
+          app: 'guide',
+          userId: user.id,
+          data: {
+            tripId: tripId,
+            tripCode: trip?.trip_code || tripId,
+            oldStatus: assignment.assignment_status,
+            newStatus: 'confirmed',
+            guideId: user.id,
+            action: 'accept',
+          },
+        }
+      ).catch((eventError) => {
+        logger.warn('Failed to emit trip.status_changed event', eventError);
+      });
+    } catch (eventError) {
+      logger.warn('Event emission error (non-critical)', {
+        error: eventError instanceof Error ? eventError.message : String(eventError),
+      });
+    }
+
     return NextResponse.json({
       success: true,
       assignment: updated,
@@ -128,6 +156,35 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
       assignmentId: assignment.id,
       reason: body.rejection_reason,
     });
+
+    // Emit trip.status_changed event (non-blocking)
+    try {
+      const { emitEvent } = await import('@/lib/events/event-bus');
+      const trip = assignment.trip as { trip_code?: string; status?: string } | null;
+      
+      await emitEvent(
+        {
+          type: 'trip.status_changed',
+          app: 'guide',
+          userId: user.id,
+          data: {
+            tripId: tripId,
+            tripCode: trip?.trip_code || tripId,
+            oldStatus: assignment.assignment_status,
+            newStatus: 'rejected',
+            guideId: user.id,
+            action: 'reject',
+            rejectionReason: body.rejection_reason,
+          },
+        }
+      ).catch((eventError) => {
+        logger.warn('Failed to emit trip.status_changed event', eventError);
+      });
+    } catch (eventError) {
+      logger.warn('Event emission error (non-critical)', {
+        error: eventError instanceof Error ? eventError.message : String(eventError),
+      });
+    }
 
     return NextResponse.json({
       success: true,

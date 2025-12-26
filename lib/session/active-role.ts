@@ -271,3 +271,31 @@ export async function getUserRoles(userId: string): Promise<UserRole[]> {
   }
 }
 
+/**
+ * Check if current user has any of the specified roles
+ * @param allowedRoles - Array of roles to check
+ * @returns true if user has any of the allowed roles
+ */
+export async function hasRole(allowedRoles: UserRole[]): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return false;
+    }
+    
+    // Get active role
+    const activeRole = await getActiveRole(user.id);
+    if (!activeRole) {
+      return false;
+    }
+    
+    // Check if active role is in allowed roles
+    return allowedRoles.includes(activeRole);
+  } catch (error) {
+    logger.error('Failed to check user role', error);
+    return false;
+  }
+}
+

@@ -1,229 +1,278 @@
-'use client';
-
 /**
- * Partner Dashboard Client Component
- * Menampilkan wallet balance, recent bookings, quick actions
+ * Partner Dashboard Client - Unified Superapp Style
+ * Polished layout with unified header block and pixel-perfect grid
  */
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getMitraBookings, type MitraBooking } from '@/lib/partner/booking';
-import { formatCurrency, getWalletBalance, getWalletTransactions, type WalletBalance, type WalletTransaction } from '@/lib/partner/wallet';
-import { cn } from '@/lib/utils';
+'use client';
+
 import {
-    ArrowDownRight,
-    ArrowUpRight,
-    CreditCard,
-    FileText,
-    Loader2,
-    Package,
-    Plus,
-    RefreshCw,
-    Wallet,
+  ListOrdered,
+  Wallet,
+  BarChart3,
+  TrendingUp,
+  AlertCircle,
+  Award,
 } from 'lucide-react';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 
-export function PartnerDashboardClient() {
-  const [loading, setLoading] = useState(true);
-  const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
-  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
-  const [recentBookings, setRecentBookings] = useState<MitraBooking[]>([]);
+import {
+  AllMenuModal,
+  HeroSlider,
+  QuickStatsMini,
+} from '@/components/partner';
+import { SuperAppMenuGrid } from '@/components/partner/super-app-menu-grid';
+import { FeaturedPackagesCarousel } from '@/components/partner/featured-packages-carousel';
+import { ActiveOrdersSummary } from '@/components/partner/active-orders-summary';
+import { formatCurrency } from '@/lib/partner/package-utils';
+import { logger } from '@/lib/utils/logger';
+import { toast } from 'sonner';
+import { type DashboardData } from '@/lib/partner/dashboard-service';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
-  // TODO: Get from auth context
-  const partnerId = 'demo-partner-id';
+type PartnerProfile = {
+  name: string;
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
+  avatar: string | null;
+};
 
+interface PartnerDashboardClientProps {
+  initialData: DashboardData;
+  initialProfile: PartnerProfile;
+  isProfileIncomplete?: boolean;
+}
+
+export function PartnerDashboardClient({
+  initialData,
+  initialProfile,
+  isProfileIncomplete = false,
+}: PartnerDashboardClientProps) {
+  const params = useParams();
+  const locale = params.locale as string;
+  const [menuModalOpen, setMenuModalOpen] = useState(false);
+  const [greeting, setGreeting] = useState('Selamat Datang');
+
+  // Calculate greeting on mount
   useEffect(() => {
-    loadDashboardData();
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Selamat Pagi');
+    else if (hour < 17) setGreeting('Selamat Siang');
+    else setGreeting('Selamat Malam');
   }, []);
 
-  const loadDashboardData = async () => {
-    setLoading(true);
-    const [balance, txs, bookings] = await Promise.all([
-      getWalletBalance(partnerId),
-      getWalletTransactions(partnerId, 5),
-      getMitraBookings(partnerId, 5),
-    ]);
-    setWalletBalance(balance);
-    setTransactions(txs);
-    setRecentBookings(bookings);
-    setLoading(false);
+  // Fetch dashboard data with initialData from server
+  const { data: dashboardData, isLoading: dashboardLoading } =
+    useQuery<DashboardData>({
+      queryKey: ['partner', 'dashboard', 'unified'],
+      queryFn: async () => {
+        const res = await fetch('/api/partner/dashboard');
+        if (!res.ok) throw new Error('Failed to load dashboard data');
+        return res.json();
+      },
+      initialData,
+      staleTime: 30000,
+      refetchInterval: 60000,
+    });
+
+  // Fetch profile for header with initialData
+  const { data: profileData } = useQuery<PartnerProfile>({
+    queryKey: ['partner', 'profile', 'compact'],
+    queryFn: async () => {
+      const res = await fetch('/api/partner/profile');
+      if (!res.ok)
+        return { name: 'Partner', tier: 'bronze' as const, avatar: null };
+      const data = await res.json();
+      return {
+        name: data.profile?.companyName || data.profile?.fullName || 'Partner',
+        tier: (data.profile?.tier || 'bronze') as
+          | 'bronze'
+          | 'silver'
+          | 'gold'
+          | 'platinum',
+        avatar: data.profile?.avatar || null,
+      };
+    },
+    initialData: initialProfile,
+    staleTime: 300000,
+  });
+
+  const handleSendReminder = async (orderId: string) => {
+    try {
+      const res = await fetch(`/api/partner/bookings/${orderId}/reminder`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Failed to send reminder');
+      toast.success('Reminder berhasil dikirim ke customer');
+    } catch (error) {
+      logger.error('Failed to send reminder', error);
+      toast.error('Gagal mengirim reminder');
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const getTierColor = (tier: string) => {
+    switch (tier.toLowerCase()) {
+      case 'platinum':
+        return 'from-slate-400 to-slate-600';
+      case 'gold':
+        return 'from-yellow-400 to-yellow-600';
+      case 'silver':
+        return 'from-gray-300 to-gray-500';
+      default:
+        return 'from-orange-400 to-orange-600';
+    }
+  };
+
+  // Quick Stats Mini
+  const quickStats = [
+    {
+      label: 'Saldo Wallet',
+      value: formatCurrency(dashboardData?.wallet?.balance || 0),
+      icon: Wallet,
+      iconColor: 'bg-green-500/15 text-green-700 dark:text-green-400',
+      href: `/${locale}/partner/wallet`,
+    },
+    {
+      label: 'Booking Pending',
+      value: dashboardData?.active?.length || 0,
+      icon: ListOrdered,
+      iconColor: 'bg-orange-500/15 text-orange-700 dark:text-orange-400',
+      href: `/${locale}/partner/bookings`,
+    },
+    {
+      label: 'Omset Hari Ini',
+      value: formatCurrency(dashboardData?.today?.sales || 0),
+      icon: TrendingUp,
+      iconColor: 'bg-blue-500/15 text-blue-700 dark:text-blue-400',
+    },
+    {
+      label: 'Omset Bulan Ini',
+      value: formatCurrency(dashboardData?.monthly?.totalSales || 0),
+      icon: TrendingUp,
+      iconColor: 'bg-purple-500/15 text-purple-700 dark:text-purple-400',
+      href: `/${locale}/partner/analytics`,
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Partner Dashboard</h1>
-          <p className="text-muted-foreground">Kelola booking dan deposit Anda</p>
+    <div className="min-h-screen bg-muted/10 pb-20">
+      {/* UNIFIED TOP BLOCK (White/Card) */}
+      <div className="bg-card pb-6 rounded-b-3xl shadow-sm relative z-10">
+        
+        {/* Greeting & Profile Section */}
+        <div className="px-4 pt-4 pb-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-foreground">
+                {greeting}, {profileData.name.split(' ')[0]}
+              </h1>
+              <div className="mt-1 flex items-center gap-2">
+                <span className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm",
+                  "bg-gradient-to-r", 
+                  getTierColor(profileData.tier)
+                )}>
+                  <Award className="h-3 w-3" />
+                  {profileData.tier.toUpperCase()} PARTNER
+                </span>
+              </div>
+            </div>
+            {/* Avatar - Optional if already in header, but nice for context */}
+            {profileData.avatar ? (
+              <img
+                src={profileData.avatar}
+                alt={profileData.name}
+                className="h-12 w-12 rounded-full object-cover border-2 border-background shadow-sm"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg border-2 border-background shadow-sm">
+                {profileData.name.charAt(0)}
+              </div>
+            )}
+          </div>
         </div>
-        <Button variant="outline" size="sm" onClick={loadDashboardData}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+
+        {/* Profile Incomplete Banner */}
+        {isProfileIncomplete && (
+          <div className="px-4 mt-4">
+            <Alert variant="destructive" className="border-orange-500/50 bg-orange-500/10 text-orange-700 dark:text-orange-400">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Akun Belum Lengkap</AlertTitle>
+              <AlertDescription className="mt-1 flex flex-col gap-2">
+                <p className="text-xs">
+                  Lengkapi data profil dan verifikasi akun Anda untuk mulai berjualan.
+                  Saat ini Anda dalam mode preview.
+                </p>
+                <Button size="sm" variant="outline" className="w-full h-7 text-xs bg-background">
+                  Lengkapi Profil
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {/* 2. Hero Slider */}
+        <div className="px-4 mt-4">
+          <HeroSlider />
+        </div>
+
+        {/* 3. Quick Stats Strip */}
+        <div className="mt-4">
+          <QuickStatsMini stats={quickStats} loading={dashboardLoading} />
+        </div>
+
+        {/* 4. Main Grid Menu - Using SuperAppMenuGrid with central config */}
+        <div className="mt-4 px-4">
+          <SuperAppMenuGrid locale={locale} />
+        </div>
       </div>
 
-      {/* Wallet Card */}
-      <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Wallet className="h-5 w-5" />
-            Saldo Wallet
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold">
-            {walletBalance ? formatCurrency(walletBalance.balance) : 'Rp 0'}
+      {/* CONTENT BLOCK (Gray Background) */}
+      <div className="px-4 py-6 space-y-6">
+        {/* Featured Packages */}
+        <section>
+          <div className="mb-3 flex items-center justify-between px-1">
+            <h2 className="text-sm font-bold text-foreground">Paket Pilihan</h2>
+            <a
+              href={`/${locale}/partner/packages`}
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              Lihat Semua
+            </a>
           </div>
-          {walletBalance && walletBalance.creditLimit > 0 && (
-            <div className="text-sm opacity-80 mt-1">
-              Credit Limit: {formatCurrency(walletBalance.creditLimit)}
-            </div>
-          )}
-          <div className="flex gap-2 mt-4">
-            <Button variant="secondary" size="sm" asChild>
-              <Link href="/partner/wallet">
-                <Plus className="h-4 w-4 mr-2" />
-                Top-up
-              </Link>
-            </Button>
-            <Button variant="secondary" size="sm" asChild>
-              <Link href="/partner/wallet">
-                <FileText className="h-4 w-4 mr-2" />
-                Riwayat
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          <FeaturedPackagesCarousel
+            packages={dashboardData?.featured || []}
+            loading={dashboardLoading}
+          />
+        </section>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/partner/whitelabel">
-          <Card className="cursor-pointer hover:border-primary transition-colors">
-            <CardContent className="py-6 flex flex-col items-center gap-2">
-              <Package className="h-8 w-8 text-primary" />
-              <span className="font-medium">Lihat Paket</span>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/partner/bookings">
-          <Card className="cursor-pointer hover:border-primary transition-colors">
-            <CardContent className="py-6 flex flex-col items-center gap-2">
-              <CreditCard className="h-8 w-8 text-primary" />
-              <span className="font-medium">Buat Booking</span>
-            </CardContent>
-          </Card>
-        </Link>
+        {/* Active Orders */}
+        <section>
+          <div className="mb-3 flex items-center justify-between px-1">
+            <h2 className="text-sm font-bold text-foreground">Pesanan Aktif</h2>
+            <a
+              href={`/${locale}/partner/bookings`}
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              Lihat Semua
+            </a>
+          </div>
+          <ActiveOrdersSummary
+            orders={(dashboardData?.active || []) as any}
+            loading={dashboardLoading}
+            onSendReminder={handleSendReminder}
+          />
+        </section>
       </div>
 
-      {/* Recent Transactions */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Transaksi Terakhir</CardTitle>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/partner/wallet">Lihat Semua</Link>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {transactions.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">
-              Belum ada transaksi
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {transactions.map((tx) => (
-                <div key={tx.id} className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      'p-2 rounded-full',
-                      tx.amount > 0 ? 'bg-green-100' : 'bg-red-100'
-                    )}
-                  >
-                    {tx.amount > 0 ? (
-                      <ArrowDownRight className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <ArrowUpRight className="h-4 w-4 text-red-600" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">
-                      {tx.description || tx.type}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(tx.createdAt).toLocaleDateString('id-ID')}
-                    </div>
-                  </div>
-                  <div
-                    className={cn(
-                      'font-medium',
-                      tx.amount > 0 ? 'text-green-600' : 'text-red-600'
-                    )}
-                  >
-                    {tx.amount > 0 ? '+' : ''}
-                    {formatCurrency(tx.amount)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recent Bookings */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Booking Terakhir</CardTitle>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/partner/bookings">Lihat Semua</Link>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {recentBookings.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">
-              Belum ada booking
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {recentBookings.map((booking) => (
-                <Link
-                  key={booking.id}
-                  href={`/partner/bookings/${booking.id}`}
-                  className="block"
-                >
-                  <div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">
-                        {booking.packageName}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {booking.bookingCode} • {booking.customerName}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium text-green-600">
-                        +{formatCurrency(booking.margin)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Margin
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* All Menu Drawer */}
+      <AllMenuModal
+        open={menuModalOpen}
+        onOpenChange={setMenuModalOpen}
+      />
     </div>
   );
 }

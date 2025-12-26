@@ -1,77 +1,113 @@
+#!/usr/bin/env node
+/**
+ * Run Database Migrations
+ * Executes migration files in order
+ */
+
 import { readFileSync } from 'fs';
+import { join } from 'path';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
+import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import pg from 'pg';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mjzukilsgkdqmcusjdut.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_secret_JT_3cgWg2As222JrSVy0AQ_S_McPr_R';
+// Load .env.local
+config({ path: join(__dirname, '..', '.env.local') });
 
-const migrations = [
-  'supabase/migrations/20251219000000_021-guide-ui-config.sql',
-  'supabase/migrations/20251219000001_022-guide-sample-data.sql',
-  'supabase/migrations/20251219000002_023-guide-comprehensive-sample.sql',
-];
+const { Pool } = pg;
 
-async function runMigrations() {
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
+// Get database connection from env
+const databaseUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
 
-  console.log('✅ Connected to Supabase');
-
-  for (const migration of migrations) {
-    const filePath = join(__dirname, '..', migration);
-    console.log(`\n📦 Running ${migration}...`);
-    
-    const sql = readFileSync(filePath, 'utf8');
-    
-    // Split by semicolon and execute each statement
-    const statements = sql
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--') && !s.startsWith('BEGIN') && !s.startsWith('COMMIT'));
-
-    for (const statement of statements) {
-      if (statement.includes('DO $$')) {
-        // Handle DO blocks separately
-        const { error } = await supabase.rpc('exec_sql', { sql_query: statement });
-        if (error) {
-          console.error(`❌ Error in statement:`, error.message);
-        }
-      } else {
-        const { error } = await supabase.rpc('exec_sql', { sql_query: statement + ';' });
-        if (error) {
-          // Try direct query
-          try {
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': SUPABASE_SERVICE_KEY,
-                'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-              },
-              body: JSON.stringify({ sql_query: statement + ';' }),
-            });
-            if (!response.ok) {
-              console.warn(`⚠️  Warning: ${response.statusText}`);
-            }
-          } catch (e) {
-            console.warn(`⚠️  Could not execute via RPC, trying direct...`);
-          }
-        }
-      }
-    }
-    
-    console.log(`✅ ${migration} completed`);
-  }
-
-  console.log('\n🎉 All migrations completed!');
+if (!databaseUrl) {
+  console.error('❌ DATABASE_URL or SUPABASE_DB_URL not found in .env.local');
+  process.exit(1);
 }
 
-runMigrations().catch(console.error);
+// Parse connection string
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: databaseUrl.includes('supabase') ? { rejectUnauthorized: false } : false,
+});
+
+// Migration files to run (in order)
+const migrations = [
+  '20251226000001_113-partner-credit-limit-tracking.sql',
+  '20251226000002_114-partner-reward-points.sql',
+  '20251226000003_115-inbox-parsing.sql',
+];
+
+async function runMigration(filename) {
+  const filePath = join(__dirname, '..', 'supabase', 'migrations', filename);
+  
+  try {
+    const sql = readFileSync(filePath, 'utf-8');
+    console.log(`\n📄 Running: ${filename}`);
+    
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(sql);
+      await client.query('COMMIT');
+      console.log(`✅ Success: ${filename}`);
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error(`❌ Error in ${filename}:`, error.message);
+    if (error.code === '42P07' || error.message.includes('already exists')) {
+      console.log(`⚠️  Warning: ${filename} - Some objects may already exist (skipping)`);
+      return true; // Continue even if some objects exist
+    }
+    throw error;
+  }
+}
+
+async function main() {
+  console.log('🚀 Starting database migrations...\n');
+  console.log(`📊 Database: ${databaseUrl.split('@')[1]?.split('/')[1] || 'connected'}\n`);
+
+  let successCount = 0;
+  let errorCount = 0;
+
+  for (const migration of migrations) {
+    try {
+      const success = await runMigration(migration);
+      if (success) {
+        successCount++;
+      } else {
+        errorCount++;
+      }
+    } catch (error) {
+      console.error(`\n❌ Failed to run ${migration}:`, error.message);
+      errorCount++;
+      // Continue with next migration
+    }
+  }
+
+  console.log('\n' + '='.repeat(50));
+  console.log(`✅ Completed: ${successCount}/${migrations.length} migrations`);
+  if (errorCount > 0) {
+    console.log(`❌ Errors: ${errorCount} migrations failed`);
+  }
+  console.log('='.repeat(50) + '\n');
+
+  await pool.end();
+
+  if (errorCount > 0) {
+    process.exit(1);
+  }
+}
+
+main().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});

@@ -1,14 +1,18 @@
 /**
  * Partner Portal Layout
- * Layout for B2B partner portal with mobile-first wrapper
- * Features: Partner branding, navigation, wallet balance display
+ * Mobile-First PWA Wrapper (Native Mobile Apps Style)
+ * Consistent with Guide Apps and Public Apps structure
  */
 
-import { BarChart, FileText, Home, Menu, Settings, Wallet } from 'lucide-react';
-import Link from 'next/link';
 import React from 'react';
 
-import { RoleSwitcher } from '@/components/role-switcher';
+import { SkipLink, LiveRegion } from '@/components/accessibility';
+import { PartnerErrorBoundary } from '@/components/partner/partner-error-boundary';
+import { PartnerBottomNavigation } from '@/components/partner/partner-bottom-navigation';
+import { PartnerHeader } from '@/components/partner/partner-header';
+import { PushNotificationInit } from '@/components/partner/push-notification-init';
+import { FloatingActionButton } from '@/components/partner/floating-action-button';
+import { getCurrentUser } from '@/lib/supabase/server';
 
 type PartnerLayoutProps = {
   children: React.ReactNode;
@@ -20,79 +24,50 @@ export default async function PartnerLayout({
   params,
 }: PartnerLayoutProps) {
   const { locale } = await params;
+  const user = await getCurrentUser();
+  const profile = user?.profile as {
+    full_name?: string;
+    avatar_url?: string;
+  } | null;
 
   return (
-    <div className="min-h-screen bg-gray-200">
-      {/* Mobile-First Container */}
-      <div className="relative mx-auto min-h-screen w-full max-w-md bg-background shadow-xl">
-        {/* Header - Sticky */}
-        <header className="sticky top-0 z-50 border-b bg-orange-600 text-white">
-          <div className="flex h-14 items-center justify-between px-4">
-            <Link
-              href={`/${locale}/partner/dashboard`}
-              className="text-lg font-bold"
-            >
-              Partner Portal
-            </Link>
-            <div className="flex items-center gap-2">
-              <RoleSwitcher
-                size="sm"
-                variant="ghost"
-                className="text-white hover:bg-white/20"
-              />
-              <Link href={`/${locale}/partner/settings`}>
-                <Settings className="h-5 w-5" />
-              </Link>
+    <PartnerErrorBoundary>
+      <SkipLink href="#main-content" />
+      <LiveRegion id="partner-live-region" message="" />
+      <div className="min-h-screen bg-muted/30">
+        {/* Mobile-First Container - Centered on desktop, full on mobile */}
+        <div className="relative mx-auto min-h-screen w-full max-w-md bg-background shadow-xl">
+          {/* App Header - Sticky */}
+          <PartnerHeader
+            user={
+              user
+                ? {
+                    name: profile?.full_name || user.email?.split('@')[0],
+                    avatar: profile?.avatar_url ?? undefined,
+                  }
+                : null
+            }
+          />
+
+          {/* Main Content - Native Scrolling */}
+          <main id="main-content" className="min-h-screen pb-20" tabIndex={-1}>
+            {children}
+          </main>
+
+          {/* Push Notification Init */}
+          <PushNotificationInit />
+
+          {/* Floating Action Button */}
+          <FloatingActionButton />
+
+          {/* Bottom Navigation - Fixed at bottom */}
+          <div className="fixed bottom-0 left-0 right-0 z-50">
+            <div className="mx-auto w-full max-w-md">
+              <PartnerBottomNavigation locale={locale} />
             </div>
           </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="min-h-screen pb-20">{children}</main>
-
-        {/* Bottom Navigation */}
-        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background">
-          <div className="mx-auto w-full max-w-md">
-            <div className="flex h-16 items-center justify-around">
-              <Link
-                href={`/${locale}/partner/dashboard`}
-                className="flex flex-col items-center gap-1 p-2 text-xs"
-              >
-                <Home className="h-5 w-5" />
-                <span>Dashboard</span>
-              </Link>
-              <Link
-                href={`/${locale}/partner/bookings`}
-                className="flex flex-col items-center gap-1 p-2 text-xs"
-              >
-                <BarChart className="h-5 w-5" />
-                <span>Bookings</span>
-              </Link>
-              <Link
-                href={`/${locale}/partner/wallet`}
-                className="flex flex-col items-center gap-1 p-2 text-xs"
-              >
-                <Wallet className="h-5 w-5" />
-                <span>Wallet</span>
-              </Link>
-              <Link
-                href={`/${locale}/partner/invoices`}
-                className="flex flex-col items-center gap-1 p-2 text-xs"
-              >
-                <FileText className="h-5 w-5" />
-                <span>Invoices</span>
-              </Link>
-              <Link
-                href={`/${locale}/partner/menu`}
-                className="flex flex-col items-center gap-1 p-2 text-xs"
-              >
-                <Menu className="h-5 w-5" />
-                <span>Menu</span>
-              </Link>
-            </div>
-          </div>
-        </nav>
+        </div>
       </div>
-    </div>
+    </PartnerErrorBoundary>
   );
 }

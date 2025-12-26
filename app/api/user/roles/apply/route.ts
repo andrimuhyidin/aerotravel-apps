@@ -42,7 +42,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   try {
     const body = await request.json();
-    const { role, message } = body as { role: UserRole; message?: string };
+    const { role, message, companyData, legalDocuments } = body as {
+      role: UserRole;
+      message?: string;
+      companyData?: Record<string, unknown>;
+      legalDocuments?: string[];
+    };
 
     if (!role) {
       return NextResponse.json(
@@ -93,15 +98,24 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       );
     }
 
-    // Create application
+    // Create application with company data for partner role
+    const applicationData: Record<string, unknown> = {
+      user_id: user.id,
+      requested_role: role,
+      status: 'pending',
+      message: message || null,
+    };
+
+    // Add partner-specific data if provided
+    if (role === 'mitra' && companyData) {
+      applicationData.company_data = companyData;
+      applicationData.legal_documents = legalDocuments || [];
+      applicationData.application_status = 'pending_review';
+    }
+
     const { data: application, error: insertError } = await (supabase as any)
       .from('role_applications')
-      .insert({
-        user_id: user.id,
-        requested_role: role,
-        status: 'pending',
-        message: message || null,
-      })
+      .insert(applicationData)
       .select()
       .single();
 

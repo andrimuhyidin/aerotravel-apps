@@ -5,9 +5,8 @@
 
 import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
-import { Container } from '@/components/layout/container';
-import { Section } from '@/components/layout/section';
 import { locales } from '@/i18n';
+import { BookingsListClient } from './bookings-list-client';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -25,30 +24,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
   
   return {
-    title: 'Partner Bookings - Aero Travel',
+    title: 'Daftar Booking - Partner Portal',
+    description: 'Lihat semua booking customer Anda',
     alternates: {
       canonical: `${baseUrl}/${locale}/partner/bookings`,
     },
   };
 }
 
-export default async function PartnerBookingsPage({ params }: PageProps) {
+export default async function BookingsPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  return (
-    <Section>
-      <Container>
-        <div className="py-8">
-          <h1 className="text-3xl font-bold mb-6">Partner Bookings</h1>
-          
-          <div className="bg-muted p-8 rounded-lg">
-            <p className="text-muted-foreground">
-              Partner Bookings page will be implemented here.
-            </p>
-          </div>
-        </div>
-      </Container>
-    </Section>
-  );
+  return <BookingsListClient locale={locale} />;
 }

@@ -47,8 +47,8 @@ export default async function PartnerTermsPage({ params }: PageProps) {
     <Container className="py-6">
       {/* Hero */}
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-500/10">
-          <FileText className="h-8 w-8 text-orange-600" />
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+          <FileText className="h-8 w-8 text-primary" />
         </div>
         <h1 className="mb-2 text-2xl font-bold">Syarat dan Ketentuan</h1>
         <p className="text-sm text-muted-foreground">
@@ -287,7 +287,7 @@ export default async function PartnerTermsPage({ params }: PageProps) {
               </p>
             </section>
 
-            <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
               <p className="text-sm text-foreground">
                 <strong>Pertanyaan Kemitraan?</strong> Hubungi Partnership
                 Manager kami:
@@ -295,7 +295,7 @@ export default async function PartnerTermsPage({ params }: PageProps) {
                 Email:{' '}
                 <a
                   href="mailto:partner@aerotravel.co.id"
-                  className="text-orange-600 underline"
+                  className="text-primary underline"
                 >
                   partner@aerotravel.co.id
                 </a>

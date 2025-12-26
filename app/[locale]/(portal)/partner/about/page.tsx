@@ -139,8 +139,8 @@ export default async function PartnerAboutPage({ params }: PageProps) {
           {benefits.map((benefit, index) => (
             <Card key={index} className="border-none shadow-sm">
               <CardContent className="flex flex-col items-center p-4 text-center">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-orange-500/10">
-                  <benefit.icon className="h-5 w-5 text-orange-600" />
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <benefit.icon className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="mb-2 text-sm font-semibold">{benefit.title}</h3>
                 <p className="text-xs text-muted-foreground">
@@ -165,10 +165,10 @@ export default async function PartnerAboutPage({ params }: PageProps) {
             <Card key={index} className="border-none shadow-sm">
               <CardContent className="p-4">
                 <div className="mb-2 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-orange-600">
+                  <h3 className="text-sm font-semibold text-primary">
                     {tier.tier}
                   </h3>
-                  <span className="rounded-full bg-orange-500/10 px-2 py-1 text-xs font-medium">
+                  <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium">
                     {tier.commission}
                   </span>
                 </div>
@@ -185,7 +185,7 @@ export default async function PartnerAboutPage({ params }: PageProps) {
       </div>
 
       {/* Stats */}
-      <Card className="mb-6 border-none bg-orange-600 text-white shadow-sm">
+      <Card className="mb-6 border-none bg-primary text-primary-foreground shadow-sm">
         <CardContent className="p-6">
           <h2 className="mb-4 text-center text-base font-semibold">
             Partnership Network
@@ -214,7 +214,7 @@ export default async function PartnerAboutPage({ params }: PageProps) {
             Partner Success Story
           </h2>
           <div className="space-y-3">
-            <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
               <p className="mb-2 text-sm font-semibold">
                 &quot;Revenue naik 300% dalam 6 bulan!&quot;
               </p>

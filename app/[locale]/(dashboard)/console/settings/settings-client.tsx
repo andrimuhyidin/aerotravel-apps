@@ -42,6 +42,7 @@ type Setting = {
 };
 
 export function SettingsClient() {
+  const [activeTab, setActiveTab] = useState('operational');
   const queryClient = useQueryClient();
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
 
@@ -238,7 +239,7 @@ export function SettingsClient() {
         </div>
       </div>
 
-      <Tabs defaultValue="operational" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList>
           <TabsTrigger value="operational">Operasional</TabsTrigger>
           <TabsTrigger value="payment">Pembayaran & Poin</TabsTrigger>

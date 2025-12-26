@@ -213,6 +213,34 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
         walletId,
         amount: contract.fee_amount,
       });
+
+      // Emit wallet.balance_changed event (non-blocking)
+      try {
+        const { emitEvent } = await import('@/lib/events/event-bus');
+        await emitEvent(
+          {
+            type: 'wallet.balance_changed',
+            app: 'guide',
+            userId: contract.guide_id,
+            data: {
+              walletId: walletId,
+              userId: contract.guide_id,
+              oldBalance: balanceBefore,
+              newBalance: balanceAfter,
+              amount: Number(contract.fee_amount),
+              transactionType: 'earning',
+              description: `Kontrak ${contract.contract_number || contractId}`,
+              contractId: contractId,
+            },
+          }
+        ).catch((eventError) => {
+          logger.warn('Failed to emit wallet.balance_changed event', eventError);
+        });
+      } catch (eventError) {
+        logger.warn('Event emission error (non-critical)', {
+          error: eventError instanceof Error ? eventError.message : String(eventError),
+        });
+      }
     } catch (error) {
       logger.error('Failed to create wallet transaction', error, { contractId });
       // Don't fail the request, just log the error

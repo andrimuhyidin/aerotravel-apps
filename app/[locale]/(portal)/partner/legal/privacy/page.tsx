@@ -157,8 +157,8 @@ Continued use of portal after changes = acceptance of new terms.`,
     <Container className="py-6">
       {/* Hero */}
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-500/10">
-          <Shield className="h-8 w-8 text-orange-600" />
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+          <Shield className="h-8 w-8 text-primary" />
         </div>
         <h1 className="mb-2 text-2xl font-bold">Kebijakan Privasi</h1>
         <p className="text-sm text-muted-foreground">
@@ -188,7 +188,7 @@ Continued use of portal after changes = acceptance of new terms.`,
       </div>
 
       {/* Contact */}
-      <Card className="mt-6 border-none bg-orange-500/5 shadow-sm">
+      <Card className="mt-6 border-none bg-primary/5 shadow-sm">
         <CardContent className="p-6">
           <p className="text-sm text-foreground">
             <strong>Pertanyaan tentang Privasi?</strong>
@@ -198,7 +198,7 @@ Continued use of portal after changes = acceptance of new terms.`,
             Email:{' '}
             <a
               href="mailto:partner@aerotravel.co.id"
-              className="text-orange-600 underline"
+              className="text-primary underline"
             >
               partner@aerotravel.co.id
             </a>

@@ -8,6 +8,9 @@ import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
+// Initialize event handlers on server startup
+import '@/lib/events/init';
+
 const appUrl = env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export const viewport: Viewport = {

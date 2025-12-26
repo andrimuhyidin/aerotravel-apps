@@ -246,6 +246,44 @@ export const POST = withErrorHandler(async (
 
   logger.info('Crew assigned', { tripId, guideId: payload.guide_id, role: payload.role, guideRole });
 
+  // Emit trip.assigned event (non-blocking)
+  try {
+    const { emitEvent } = await import('@/lib/events/event-bus');
+    
+    // Get trip info for event
+    const { data: trip } = await client
+      .from('trips')
+      .select('trip_code, package_id, start_date')
+      .eq('id', tripId)
+      .single();
+
+    await emitEvent(
+      {
+        type: 'trip.assigned',
+        app: 'guide',
+        userId: payload.guide_id,
+        data: {
+          tripId: tripId,
+          tripCode: trip?.trip_code || tripId,
+          guideId: payload.guide_id,
+          role: payload.role,
+          packageId: trip?.package_id,
+          startDate: trip?.start_date,
+        },
+      },
+      {
+        ipAddress: request.headers.get('x-forwarded-for') || undefined,
+        userAgent: request.headers.get('user-agent') || undefined,
+      }
+    ).catch((eventError) => {
+      logger.warn('Failed to emit trip.assigned event', eventError);
+    });
+  } catch (eventError) {
+    logger.warn('Event emission error (non-critical)', {
+      error: eventError instanceof Error ? eventError.message : String(eventError),
+    });
+  }
+
   // Return mapped format
   return NextResponse.json({
     crew: {

@@ -1,47 +1,54 @@
-/**
- * Partner Dashboard Page
- * Route: /[locale]/partner/dashboard
- */
+import { redirect } from 'next/navigation';
 
-import { Container } from '@/components/layout/container';
-import { Section } from '@/components/layout/section';
-import { locales } from '@/i18n';
-import { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { getDashboardData } from '@/lib/partner/dashboard-service';
+import { createClient } from '@/lib/supabase/server';
+import { getPartnerProfile } from '@/lib/partner/profile-service';
+
 import { PartnerDashboardClient } from './partner-dashboard-client';
 
-type PageProps = {
+export default async function DashboardPage({
+  params,
+}: {
   params: Promise<{ locale: string }>;
-};
-
-export const dynamic = 'force-dynamic';
-
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
-
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+}) {
   const { locale } = await params;
-  setRequestLocale(locale);
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
-  
-  return {
-    title: 'Partner Dashboard - Aero Travel',
-    alternates: {
-      canonical: `${baseUrl}/${locale}/partner/dashboard`,
-    },
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(`/${locale}/auth/login`);
+  }
+
+  // Use getPartnerProfile service to fetch from correct table ('users')
+  const profile = await getPartnerProfile(supabase, user.id);
+
+  // If branch_id is missing (incomplete profile), we use a dummy UUID
+  // to allow the dashboard to render in "Preview Mode"
+  const isProfileIncomplete = !profile?.branchId;
+  const branchId = profile?.branchId || '00000000-0000-0000-0000-000000000000';
+
+  // Fetch dashboard data server-side
+  const dashboardData = await getDashboardData(
+    supabase,
+    user.id,
+    branchId
+  );
+
+  // Prepare profile data for client
+  const profileData = {
+    name: profile?.companyName || profile?.name || 'Partner',
+    tier: (profile?.tier || 'bronze') as 'bronze' | 'silver' | 'gold' | 'platinum',
+    avatar: profile?.avatar || null,
   };
-}
-
-export default async function PartnerDashboardPage({ params }: PageProps) {
-  const { locale } = await params;
-  setRequestLocale(locale);
 
   return (
-    <Section>
-      <Container>
-        <PartnerDashboardClient />
-      </Container>
-    </Section>
+    <PartnerDashboardClient
+      initialData={dashboardData}
+      initialProfile={profileData}
+      isProfileIncomplete={isProfileIncomplete}
+    />
   );
 }

@@ -202,6 +202,11 @@ export function PerformanceClient({ locale: _locale }: PerformanceClientProps) {
                 'recommendations',
                 'predictions',
                 'coaching',
+                'riskAlerts',
+                'quickWins',
+                'comparative',
+                'opportunities',
+                'financialHealth',
               ]}
             />
           </div>

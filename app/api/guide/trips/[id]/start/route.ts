@@ -338,6 +338,44 @@ export const POST = withErrorHandler(async (
 
   logger.info('Trip started', { tripId, guideId: user.id, role: isLeadGuide ? 'lead' : 'admin' });
 
+  // Emit trip.status_changed event (non-blocking)
+  try {
+    const { emitEvent } = await import('@/lib/events/event-bus');
+    
+    // Get trip info for event
+    const { data: tripInfo } = await client
+      .from('trips')
+      .select('trip_code, package_id, start_date, status')
+      .eq('id', tripId)
+      .single();
+
+    await emitEvent(
+      {
+        type: 'trip.status_changed',
+        app: 'guide',
+        userId: user.id,
+        data: {
+          tripId: tripId,
+          tripCode: tripInfo?.trip_code || tripId,
+          oldStatus: trip?.status || 'confirmed',
+          newStatus: 'on_trip',
+          packageId: tripInfo?.package_id,
+          startDate: tripInfo?.start_date,
+        },
+      },
+      {
+        ipAddress: request.headers.get('x-forwarded-for') || undefined,
+        userAgent: request.headers.get('user-agent') || undefined,
+      }
+    ).catch((eventError) => {
+      logger.warn('Failed to emit trip.status_changed event', eventError);
+    });
+  } catch (eventError) {
+    logger.warn('Event emission error (non-critical)', {
+      error: eventError instanceof Error ? eventError.message : String(eventError),
+    });
+  }
+
   // Note: Tracking will be auto-started client-side when trip status changes to 'on_trip'
   // The client-side hook will detect the status change and call startTracking()
   logger.info('Trip status updated to on_trip, tracking should auto-start client-side', { tripId, guideId: user.id });

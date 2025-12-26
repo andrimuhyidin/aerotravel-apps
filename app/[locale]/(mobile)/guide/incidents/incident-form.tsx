@@ -9,15 +9,17 @@ import {
   AlertCircle,
   Bot,
   Camera,
+  CheckCircle2,
   FileText,
   Loader2,
+  Mic,
   Plus,
   Save,
   Sparkles,
   Users,
   X,
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -38,6 +40,7 @@ import {
   type SignatureData,
 } from '@/components/ui/signature-pad';
 import { Textarea } from '@/components/ui/textarea';
+import { useVoiceRecorder } from '@/hooks/use-voice-recorder';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
 
@@ -97,8 +100,103 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
     text: string;
   } | null>(null);
   const [signature, setSignature] = useState<SignatureData | null>(null);
+  const [voiceNoteUrl, setVoiceNoteUrl] = useState<string | null>(null);
+  const [isTranscribingVoice, setIsTranscribingVoice] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Voice recorder hook
+  const {
+    isRecording,
+    isTranscribing,
+    transcript: voiceTranscript,
+    audioBlob,
+    duration: recordingDuration,
+    error: voiceError,
+    startRecording,
+    stopRecording,
+    transcribe,
+    clearTranscript,
+  } = useVoiceRecorder({
+    languageCode: 'id-ID',
+    useWebSpeechAPI: false, // Use server-side for better accuracy
+    onTranscript: (text) => {
+      // Auto-fill chronology when transcript is received
+      if (text && text.trim()) {
+        setChronology((prev) => {
+          // Append to existing text if any, otherwise replace
+          return prev.trim() ? `${prev}\n\n${text}` : text;
+        });
+        toast.success('Transkripsi berhasil, teks telah diisi otomatis');
+      }
+    },
+    onError: (error) => {
+      logger.error('Voice recording error', error);
+      toast.error(`Error: ${error.message}`);
+    },
+  });
+
+  // Handle voice recording stop and auto-transcribe
+  const handleStopRecording = async () => {
+    stopRecording();
+    
+    // Wait for audioBlob to be available (MediaRecorder.onstop fires asynchronously)
+    const maxWait = 2000; // 2 seconds max wait
+    const startWait = Date.now();
+    
+    const waitForBlob = setInterval(async () => {
+      // Access audioBlob from hook state
+      const currentAudioBlob = audioBlob;
+      if (currentAudioBlob || Date.now() - startWait > maxWait) {
+        clearInterval(waitForBlob);
+        if (currentAudioBlob) {
+          // Manually transcribe and get audioFileUrl
+          try {
+            setIsTranscribingVoice(true);
+            const formData = new FormData();
+            formData.append('audio', currentAudioBlob, 'recording.webm');
+            formData.append('languageCode', 'id-ID');
+            if (tripId) {
+              formData.append('incidentId', 'pending');
+            }
+
+            const response = await fetch('/api/guide/voice/transcribe', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({ error: 'Failed to transcribe audio' }));
+              throw new Error(errorData.error || 'Failed to transcribe audio');
+            }
+
+            const data = await response.json();
+            
+            // Store audioFileUrl for submission
+            if (data.audioFileUrl) {
+              setVoiceNoteUrl(data.audioFileUrl);
+            }
+            
+            // Auto-fill chronology with transcript
+            if (data.transcription && data.transcription.trim()) {
+              setChronology((prev) => {
+                return prev.trim() ? `${prev}\n\n${data.transcription}` : data.transcription;
+              });
+              toast.success(`Transkripsi berhasil${data.confidence ? ` (confidence: ${Math.round(data.confidence * 100)}%)` : ''}`);
+            }
+          } catch (error) {
+            const err = error instanceof Error ? error : new Error('Failed to transcribe audio');
+            logger.error('Failed to transcribe audio', { error: err });
+            toast.error(`Gagal mentranskripsi audio: ${err.message}`);
+          } finally {
+            setIsTranscribingVoice(false);
+          }
+        } else {
+          toast.warning('Audio tidak tersedia. Silakan coba lagi.');
+        }
+      }
+    }, 100);
+  };
 
   // Fetch manifest if tripId is provided
   const { data: manifestData } = useQuery<{
@@ -282,6 +380,7 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
           involved_people: involvedPeople,
           injuries: injuries.length > 0 ? injuries : undefined,
           photoUrls,
+          voiceNoteUrl: voiceNoteUrl || undefined,
           tripId: tripId || undefined,
           signature: signature
             ? {
@@ -319,6 +418,8 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
         setPhotoPreviews([]);
         setSignature(null);
         setAiReport(null);
+        setVoiceNoteUrl(null);
+        clearTranscript();
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -373,15 +474,76 @@ export function IncidentForm({ guideId, tripId }: IncidentFormProps) {
 
           {/* Chronology */}
           <div className="space-y-2">
-            <Label
-              htmlFor="chronology"
-              className="text-sm font-medium text-slate-700"
-            >
-              Kronologi Kejadian <span className="text-red-500">*</span>
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label
+                htmlFor="chronology"
+                className="text-sm font-medium text-slate-700"
+              >
+                Kronologi Kejadian <span className="text-red-500">*</span>
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (isRecording) {
+                    await handleStopRecording();
+                  } else {
+                    try {
+                      clearTranscript();
+                      await startRecording();
+                      toast.info('Mulai merekam... Berbicara sekarang');
+                    } catch (error) {
+                      logger.error('Failed to start recording', error);
+                      toast.error('Gagal memulai perekaman. Pastikan mikrofon diizinkan.');
+                    }
+                  }
+                }}
+                disabled={isTranscribing}
+                className={cn(
+                  'text-xs',
+                  isRecording && 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100'
+                )}
+              >
+                {isTranscribing ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Menyalin...
+                  </>
+                ) : isRecording ? (
+                  <>
+                    <Mic className="mr-1.5 h-3.5 w-3.5" />
+                    Berhenti ({Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')})
+                  </>
+                ) : (
+                  <>
+                    <Mic className="mr-1.5 h-3.5 w-3.5" />
+                    Rekam Suara
+                  </>
+                )}
+              </Button>
+            </div>
+            {isRecording && (
+              <div className="flex items-center gap-2 rounded-lg bg-red-50 p-2 text-xs text-red-700">
+                <div className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                <span>Merekam... ({Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')})</span>
+              </div>
+            )}
+            {voiceError && (
+              <div className="flex items-start gap-2 rounded-lg bg-red-50 p-2 text-xs text-red-700">
+                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                <span>{voiceError}</span>
+              </div>
+            )}
+            {voiceTranscript && !isRecording && !isTranscribing && (
+              <div className="flex items-start gap-2 rounded-lg bg-emerald-50 p-2 text-xs text-emerald-700">
+                <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                <span>Transkripsi selesai. Teks telah diisi otomatis.</span>
+              </div>
+            )}
             <Textarea
               id="chronology"
-              placeholder="Jelaskan secara detail apa yang terjadi, kapan, dan dimana..."
+              placeholder="Jelaskan secara detail apa yang terjadi, kapan, dan dimana... Atau gunakan tombol 'Rekam Suara' untuk merekam audio."
               value={chronology}
               onChange={(e) => setChronology(e.target.value)}
               rows={5}

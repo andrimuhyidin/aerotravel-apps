@@ -17,6 +17,7 @@ import {
     Gift,
     GraduationCap,
     HelpCircle,
+    Info,
     MapPin,
     Megaphone,
     MoreHorizontal,
@@ -55,6 +56,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings: Settings,
   Shield: Shield,
   HelpCircle: HelpCircle,
+  Info: Info,
   Wallet: Wallet,
   GraduationCap: GraduationCap,
   Award: Award,
@@ -149,11 +151,11 @@ type MenuItem = {
 
 export function SuperAppMenuGrid({ locale }: SuperAppMenuGridProps) {
   const [showAllMenus, setShowAllMenus] = useState(false);
-  const { data: menuItemsData, isLoading } = useGuideMenuItems();
+  const { data: menuItemsData, isLoading, error: menuError } = useGuideMenuItems();
 
   // Flatten all menu items dan group by category
   const { allItems, categorizedItems } = useMemo(() => {
-    if (!menuItemsData?.menuItems) {
+    if (!menuItemsData?.menuItems || !Array.isArray(menuItemsData.menuItems)) {
       return { allItems: [], categorizedItems: {} };
     }
 
@@ -162,7 +164,17 @@ export function SuperAppMenuGrid({ locale }: SuperAppMenuGridProps) {
 
     // Collect all items from menu items API (only eligible for super app menu)
     menuItemsData.menuItems.forEach((section) => {
+      // Safety check: ensure section and items exist
+      if (!section || !section.items || !Array.isArray(section.items)) {
+        return;
+      }
+      
       section.items.forEach((item: MenuItem) => {
+        // Safety check: ensure item has required fields
+        if (!item || !item.href || !item.label || !item.icon_name) {
+          return;
+        }
+        
         // Filter: Only include items eligible for super app menu
         if (!isSuperAppMenuEligible(item.href)) {
           return;
@@ -179,9 +191,8 @@ export function SuperAppMenuGrid({ locale }: SuperAppMenuGridProps) {
       });
     });
 
-    // Add essential operational items yang mungkin tidak ada di menu items
-    // Hanya fitur operasional/functional, BUKAN profile/settings menus
-    const essentialItems: MenuItem[] = [
+    // Essential items constant (used as fallback)
+    const essentialItemsList: MenuItem[] = [
       // Operasional
       { href: '/guide/attendance', label: 'Absensi', icon_name: 'MapPin', description: 'Check-in/out lokasi' },
       { href: '/guide/trips', label: 'Jadwal Trip', icon_name: 'Calendar', description: 'Daftar trip' },
@@ -198,7 +209,7 @@ export function SuperAppMenuGrid({ locale }: SuperAppMenuGridProps) {
       { href: '/guide/notifications', label: 'Notifikasi', icon_name: 'Megaphone', description: 'Pemberitahuan' },
     ];
 
-    essentialItems.forEach((item) => {
+    essentialItemsList.forEach((item) => {
       if (!items.find((i) => i.href === item.href)) {
         items.push(item);
         const category = getCategoryForHref(item.href);
@@ -216,12 +227,17 @@ export function SuperAppMenuGrid({ locale }: SuperAppMenuGridProps) {
   // Button "Lainnya" akan menjadi item ke-8 jika ada lebih dari 7 menu items
   const displayedItems = useMemo(() => {
     const priority = [
-      ...(categorizedItems.operasional || []).slice(0, 4),
-      ...(categorizedItems.finansial || []).slice(0, 2),
-      ...(categorizedItems.pengembangan || []).slice(0, 1),
-      ...(categorizedItems.dukungan || []).slice(0, 1),
+      ...(Array.isArray(categorizedItems.operasional) ? categorizedItems.operasional : []).slice(0, 4),
+      ...(Array.isArray(categorizedItems.finansial) ? categorizedItems.finansial : []).slice(0, 2),
+      ...(Array.isArray(categorizedItems.pengembangan) ? categorizedItems.pengembangan : []).slice(0, 1),
+      ...(Array.isArray(categorizedItems.dukungan) ? categorizedItems.dukungan : []).slice(0, 1),
     ];
-    return priority.slice(0, 7);
+    // Filter out any invalid items
+    return priority
+      .filter((item): item is MenuItem => {
+        return !!item && !!item.href && !!item.label && !!item.icon_name;
+      })
+      .slice(0, 7);
   }, [categorizedItems]);
 
   const hasMoreItems = allItems.length > 7;
@@ -243,24 +259,29 @@ export function SuperAppMenuGrid({ locale }: SuperAppMenuGridProps) {
     );
   }
 
-  const categoryOrder: (keyof typeof categoryConfig)[] = [
-    'operasional',
-    'finansial',
-    'pengembangan',
-    'dukungan',
-    'lainnya',
-  ];
-
-  return (
-    <>
-      <Card className="border-0 shadow-sm bg-white">
+  // Show error state if API fails (fallback to essential items only)
+  if (menuError && allItems.length === 0) {
+    // Even on error, show essential items as fallback
+    const fallbackItems: MenuItem[] = [
+      { href: '/guide/attendance', label: 'Absensi', icon_name: 'MapPin', description: 'Check-in/out lokasi' },
+      { href: '/guide/trips', label: 'Jadwal Trip', icon_name: 'Calendar', description: 'Daftar trip' },
+      { href: '/guide/crew/directory', label: 'Crew Directory', icon_name: 'Users', description: 'Direktori guide' },
+      { href: '/guide/wallet', label: 'Dompet', icon_name: 'Wallet', description: 'Pendapatan & transaksi' },
+      { href: '/guide/rewards', label: 'Reward Points', icon_name: 'Gift', description: 'Poin reward & katalog' },
+      { href: '/guide/training', label: 'Pelatihan', icon_name: 'GraduationCap', description: 'Modul pelatihan' },
+      { href: '/guide/sos', label: 'SOS', icon_name: 'Shield', description: 'Emergency button' },
+      { href: '/guide/notifications', label: 'Notifikasi', icon_name: 'Megaphone', description: 'Pemberitahuan' },
+    ];
+    
+    return (
+      <Card className="border-0 shadow-sm">
         <CardContent className="p-4">
           <div className="grid grid-cols-4 gap-3">
-            {displayedItems.map((item: MenuItem) => {
+            {fallbackItems.map((item) => {
               const IconComponent = iconMap[item.icon_name] || FileText;
               const category = getCategoryForHref(item.href);
               const config = categoryConfig[category as keyof typeof categoryConfig] || categoryConfig.lainnya;
-
+              
               return (
                 <Link
                   key={item.href}
@@ -277,6 +298,52 @@ export function SuperAppMenuGrid({ locale }: SuperAppMenuGridProps) {
                 </Link>
               );
             })}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const categoryOrder: (keyof typeof categoryConfig)[] = [
+    'operasional',
+    'finansial',
+    'pengembangan',
+    'dukungan',
+    'lainnya',
+  ];
+
+  return (
+    <>
+      <Card className="border-0 shadow-sm bg-white">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-4 gap-3">
+            {displayedItems
+              .filter((item): item is MenuItem => {
+                // Safety check: ensure item has required fields
+                return !!item && !!item.href && !!item.label && !!item.icon_name;
+              })
+              .map((item: MenuItem) => {
+                const IconComponent = iconMap[item.icon_name] || FileText;
+                const category = getCategoryForHref(item.href);
+                const config = categoryConfig[category as keyof typeof categoryConfig];
+                const safeConfig = config || categoryConfig.lainnya;
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={`/${locale}${item.href}`}
+                    className="group flex flex-col items-center gap-2 rounded-lg p-2 transition-all hover:bg-slate-50 active:scale-95"
+                    aria-label={item.label || 'Menu item'}
+                  >
+                    <div className={cn('flex h-14 w-14 items-center justify-center rounded-xl text-white shadow-sm transition-transform group-active:scale-110', safeConfig.bgColor)}>
+                      <IconComponent className="h-6 w-6" />
+                    </div>
+                    <p className="text-center text-[10px] font-medium text-slate-900 leading-tight line-clamp-2">
+                      {item.label || 'Menu'}
+                    </p>
+                  </Link>
+                );
+              })}
 
             {/* "Lainnya" Button */}
             {hasMoreItems && (
@@ -308,9 +375,11 @@ export function SuperAppMenuGrid({ locale }: SuperAppMenuGridProps) {
           <div className="space-y-6">
             {categoryOrder.map((categoryKey) => {
               const items = categorizedItems[categoryKey];
-              if (!items || items.length === 0) return null;
+              if (!items || !Array.isArray(items) || items.length === 0) return null;
 
               const config = categoryConfig[categoryKey];
+              if (!config) return null;
+              
               const CategoryIcon = config.icon;
 
               return (
@@ -325,25 +394,30 @@ export function SuperAppMenuGrid({ locale }: SuperAppMenuGridProps) {
 
                   {/* Menu Grid */}
                   <div className="grid grid-cols-4 gap-3">
-                    {items.map((item: MenuItem) => {
-                      const IconComponent = iconMap[item.icon_name] || FileText;
-                      return (
-                        <Link
-                          key={item.href}
-                          href={`/${locale}${item.href}`}
-                          onClick={() => setShowAllMenus(false)}
-                          className="group flex flex-col items-center gap-2 rounded-lg p-2 transition-all hover:bg-slate-50 active:scale-95"
-                          aria-label={item.label}
-                        >
-                          <div className={cn('flex h-14 w-14 items-center justify-center rounded-xl text-white shadow-sm transition-transform group-active:scale-110', config.bgColor)}>
-                            <IconComponent className="h-6 w-6" />
-                          </div>
-                          <p className="text-center text-[10px] font-medium text-slate-900 leading-tight line-clamp-2">
-                            {item.label}
-                          </p>
-                        </Link>
-                      );
-                    })}
+                    {items
+                      .filter((item): item is MenuItem => {
+                        // Safety check: ensure item has required fields
+                        return !!item && !!item.href && !!item.label && !!item.icon_name;
+                      })
+                      .map((item: MenuItem) => {
+                        const IconComponent = iconMap[item.icon_name] || FileText;
+                        return (
+                          <Link
+                            key={item.href}
+                            href={`/${locale}${item.href}`}
+                            onClick={() => setShowAllMenus(false)}
+                            className="group flex flex-col items-center gap-2 rounded-lg p-2 transition-all hover:bg-slate-50 active:scale-95"
+                            aria-label={item.label || 'Menu item'}
+                          >
+                            <div className={cn('flex h-14 w-14 items-center justify-center rounded-xl text-white shadow-sm transition-transform group-active:scale-110', config.bgColor)}>
+                              <IconComponent className="h-6 w-6" />
+                            </div>
+                            <p className="text-center text-[10px] font-medium text-slate-900 leading-tight line-clamp-2">
+                              {item.label || 'Menu'}
+                            </p>
+                          </Link>
+                        );
+                      })}
                   </div>
                 </div>
               );

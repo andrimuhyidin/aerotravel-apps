@@ -17,6 +17,8 @@
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
+    /* Enhanced contrast for better accessibility */
+    --muted-foreground-enhanced: 215.4 16.3% 35%;
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
@@ -50,17 +52,73 @@
     --spacing-xl: 2rem;      /* 32px */
     --spacing-2xl: 3rem;     /* 48px */
     --spacing-3xl: 4rem;     /* 64px */
+    --spacing-4xl: 6rem;     /* 96px */
+    
+    /* Semantic Spacing */
+    --spacing-card-padding-mobile: 1rem;      /* 16px - Card padding mobile */
+    --spacing-card-padding-desktop: 1.5rem;   /* 24px - Card padding desktop */
+    --spacing-section-mobile: 1.5rem;         /* 24px - Section spacing mobile */
+    --spacing-section-desktop: 2rem;          /* 32px - Section spacing desktop */
+    --spacing-grid-gap-mobile: 1rem;          /* 16px - Grid gap mobile */
+    --spacing-grid-gap-desktop: 1.5rem;      /* 24px - Grid gap desktop */
     
     /* Typography */
     --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-mono: 'Fira Code', 'Courier New', monospace;
     /* Note: --font-inter is set by Next.js font optimization */
     
+    /* Transition Timing */
+    --transition-fast: 150ms;
+    --transition-base: 200ms;
+    --transition-slow: 300ms;
+    --transition-slower: 500ms;
+    
+    /* Transition Easing */
+    --easing-linear: linear;
+    --easing-in: cubic-bezier(0.4, 0, 1, 1);
+    --easing-out: cubic-bezier(0, 0, 0.2, 1);
+    --easing-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Focus Ring */
+    --focus-ring-width: 2px;
+    --focus-ring-offset: 2px;
+    --focus-ring-color: hsl(var(--ring));
+    
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+    
+    /* Elevation */
+    --elevation-none: none;
+    --elevation-sm: var(--shadow-sm);
+    --elevation-md: var(--shadow-md);
+    --elevation-lg: var(--shadow-lg);
+    --elevation-xl: var(--shadow-xl);
+    --elevation-2xl: var(--shadow-2xl);
+  }
+  
+  /* Shimmer Animation untuk loading states */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
+    background: linear-gradient(
+      90deg,
+      rgba(229, 231, 235, 0) 0%,
+      rgba(229, 231, 235, 0.5) 50%,
+      rgba(229, 231, 235, 0) 100%
+    );
+    background-size: 200% 100%;
   }
 
   .dark {
@@ -128,11 +186,17 @@
     text-wrap: balance;
   }
   
-  /* Focus visible */
+  /* Focus Ring Utilities */
   .focus-ring:focus-visible {
     outline: none;
-    ring: 2px solid hsl(var(--ring));
-    ring-offset: 2px;
+    ring: var(--focus-ring-width) solid var(--focus-ring-color);
+    ring-offset: var(--focus-ring-offset);
+  }
+  
+  .focus-ring-inset:focus-visible {
+    outline: none;
+    ring: var(--focus-ring-width) solid var(--focus-ring-color);
+    ring-offset: calc(-1 * var(--focus-ring-offset));
   }
   
   /* Smooth scroll */
@@ -153,17 +217,87 @@
     clip: rect(0, 0, 0, 0);
   }
   
+  /* Transition Utilities */
+  .transition-fast {
+    transition-duration: var(--transition-fast);
+    transition-timing-function: var(--easing-in-out);
+  }
+  
+  .transition-base {
+    transition-duration: var(--transition-base);
+    transition-timing-function: var(--easing-in-out);
+  }
+  
+  .transition-slow {
+    transition-duration: var(--transition-slow);
+    transition-timing-function: var(--easing-in-out);
+  }
+  
+  .transition-all-fast {
+    transition: all var(--transition-fast) var(--easing-in-out);
+  }
+  
+  .transition-all-base {
+    transition: all var(--transition-base) var(--easing-in-out);
+  }
+  
+  .transition-all-slow {
+    transition: all var(--transition-slow) var(--easing-in-out);
+  }
+  
   /* Animation utilities */
   .animate-fade-in {
-    animation: fadeIn 0.3s ease-in-out;
+    animation: fadeIn var(--transition-slow) var(--easing-in-out);
   }
   
   .animate-slide-up {
-    animation: slideUp 0.3s ease-out;
+    animation: slideUp var(--transition-slow) var(--easing-out);
   }
   
   .animate-slide-down {
-    animation: slideDown 0.3s ease-out;
+    animation: slideDown var(--transition-slow) var(--easing-out);
+  }
+  
+  .animate-slide-left {
+    animation: slideLeft var(--transition-slow) var(--easing-out);
+  }
+  
+  .animate-slide-right {
+    animation: slideRight var(--transition-slow) var(--easing-out);
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn var(--transition-base) var(--easing-out);
+  }
+  
+  .animate-scale-out {
+    animation: scaleOut var(--transition-base) var(--easing-in);
+  }
+  
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+  
+  /* Hover elevation */
+  .hover-elevate-sm:hover {
+    box-shadow: var(--elevation-sm);
+  }
+  
+  .hover-elevate-md:hover {
+    box-shadow: var(--elevation-md);
+  }
+  
+  .hover-elevate-lg:hover {
+    box-shadow: var(--elevation-lg);
+  }
+  
+  /* Active scale */
+  .active-scale:active {
+    transform: scale(0.95);
+  }
+  
+  .active-scale-sm:active {
+    transform: scale(0.98);
   }
 }
 
@@ -198,9 +332,70 @@
   }
 }
 
+@keyframes slideLeft {
+  from {
+    transform: translateX(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideRight {
+  from {
+    transform: translateX(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleOut {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
 /* Print styles */
 @media print {
   .no-print {
     display: none !important;
+  }
+}
+
+/* Touch manipulation for better mobile interaction */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe area insets for iOS */
+@supports (padding: max(0px)) {
+  .safe-area-inset-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+  }
+  
+  .safe-area-inset-top {
+    padding-top: max(env(safe-area-inset-top), 1rem);
   }
 }

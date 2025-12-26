@@ -5,7 +5,7 @@
  * Enhanced with danger zones & signal hotspots
  */
 
-import { AlertTriangle, MapPin, Radio, Wifi } from 'lucide-react';
+import { AlertTriangle, Download, MapPin, Radio, Wifi } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { MapNavigationButtons } from '@/components/guide/map-navigation-buttons';
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
 import type { LocationPoint } from '@/lib/utils/maps';
 import { getCachedLocationPoints } from '@/lib/utils/maps';
+import { MapDownloadClient } from './map-download-client';
 
 type OfflineMapClientProps = {
   locale: string;
@@ -58,6 +59,7 @@ export function OfflineMapClient({ locale: _locale }: OfflineMapClientProps) {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [showZones, setShowZones] = useState(true);
   const [showHotspots, setShowHotspots] = useState(true);
+  const [showDownloadSection, setShowDownloadSection] = useState(false);
 
   useEffect(() => {
     const cached = getCachedLocationPoints();
@@ -162,25 +164,53 @@ export function OfflineMapClient({ locale: _locale }: OfflineMapClientProps) {
 
   return (
     <div className="space-y-4 pb-6">
-      {/* Toggle Buttons */}
+      {/* View Toggle */}
       <div className="flex gap-2">
         <Button
-          variant={showZones ? 'default' : 'outline'}
+          variant={!showDownloadSection ? 'default' : 'outline'}
           size="sm"
-          onClick={() => setShowZones(!showZones)}
+          onClick={() => setShowDownloadSection(false)}
+          className="flex-1"
         >
-          <AlertTriangle className="mr-2 h-4 w-4" />
-          Danger Zones ({dangerZones.length})
+          <MapPin className="mr-2 h-4 w-4" />
+          View Map
         </Button>
         <Button
-          variant={showHotspots ? 'default' : 'outline'}
+          variant={showDownloadSection ? 'default' : 'outline'}
           size="sm"
-          onClick={() => setShowHotspots(!showHotspots)}
+          onClick={() => setShowDownloadSection(true)}
+          className="flex-1"
         >
-          <Radio className="mr-2 h-4 w-4" />
-          Signal Hotspots ({signalHotspots.length})
+          <Download className="mr-2 h-4 w-4" />
+          Download Maps
         </Button>
       </div>
+
+      {/* Download Section */}
+      {showDownloadSection && <MapDownloadClient />}
+
+      {/* Map View Section */}
+      {!showDownloadSection && (
+        <>
+          {/* Toggle Buttons */}
+          <div className="flex gap-2">
+            <Button
+              variant={showZones ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowZones(!showZones)}
+            >
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Danger Zones ({dangerZones.length})
+            </Button>
+            <Button
+              variant={showHotspots ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowHotspots(!showHotspots)}
+            >
+              <Radio className="mr-2 h-4 w-4" />
+              Signal Hotspots ({signalHotspots.length})
+            </Button>
+          </div>
 
       {/* Danger Zones */}
       {showZones && dangerZones.length > 0 && (
@@ -311,6 +341,8 @@ export function OfflineMapClient({ locale: _locale }: OfflineMapClientProps) {
           </CardContent>
         </Card>
       ))}
+        </>
+      )}
     </div>
   );
 }

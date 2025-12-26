@@ -1,81 +1,134 @@
 /**
- * Loading State Component
- * Standardized loading state UI with skeleton loaders
+ * Standardized Loading State Component
+ * Provides consistent loading patterns across the application
  */
 
-import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+'use client';
+
 import { Card, CardContent, CardHeader } from './card';
 import { Skeleton } from './skeleton';
+import { cn } from '@/lib/utils';
 
-export type LoadingStateProps = {
-  variant?: 'spinner' | 'skeleton' | 'skeleton-card' | 'inline';
-  lines?: number;
+type LoadingStateProps = {
+  variant?: 'default' | 'card' | 'list' | 'table' | 'minimal' | 'spinner' | 'skeleton' | 'skeleton-card';
   className?: string;
+  rows?: number;
+  lines?: number; // Alias for rows
   message?: string;
-  showCard?: boolean;
 };
 
-export function LoadingState({
-  variant = 'skeleton',
-  lines = 3,
+export function LoadingState({ 
+  variant = 'default', 
   className,
-  message,
-  showCard = false,
+  rows = 3,
+  lines,
+  message
 }: LoadingStateProps) {
-  if (variant === 'spinner') {
+  const rowCount = lines ?? rows;
+  if (variant === 'minimal' || variant === 'spinner') {
     return (
       <div className={cn('flex items-center justify-center py-8', className)}>
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-          {message && (
-            <p className="text-sm text-slate-500">{message}</p>
-          )}
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-foreground/70">{message || 'Memuat...'}</p>
         </div>
       </div>
     );
   }
 
-  if (variant === 'inline') {
+  if (variant === 'skeleton') {
     return (
-      <div className={cn('flex items-center gap-2 py-2', className)}>
-        <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
-        {message && (
-          <p className="text-sm text-slate-500">{message}</p>
-        )}
+      <div className={cn('space-y-4', className)}>
+        {Array.from({ length: rowCount }).map((_, i) => (
+          <Skeleton key={i} className="h-16 w-full" />
+        ))}
       </div>
     );
   }
 
-  if (variant === 'skeleton-card' || showCard) {
+  if (variant === 'skeleton-card') {
     return (
-      <Card className={cn('border-0 shadow-sm', className)}>
-        <CardHeader className="pb-3">
-          <Skeleton className="h-5 w-32" />
+      <div className={cn('grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4', className)}>
+        {Array.from({ length: rowCount }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-4">
+              <Skeleton className="h-4 w-3/4 mb-2" />
+              <Skeleton className="h-4 w-1/2" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (variant === 'card') {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <Skeleton className="h-6 w-32" />
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {Array.from({ length: lines }).map((_, i) => (
-              <Skeleton
-                key={i}
-                className={cn('h-4', i === lines - 1 ? 'w-3/4' : 'w-full')}
-              />
-            ))}
-          </div>
+        <CardContent className="space-y-4">
+          {Array.from({ length: rowCount }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ))}
         </CardContent>
       </Card>
     );
   }
 
-  // Default skeleton variant
+  if (variant === 'list') {
+    return (
+      <div className={cn('space-y-4', className)}>
+        {Array.from({ length: rowCount }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (variant === 'table') {
+    return (
+      <div className={cn('space-y-4', className)}>
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-full" />
+          {Array.from({ length: rowCount }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Default variant
   return (
-    <div className={cn('space-y-2', className)}>
-      {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton
-          key={i}
-          className={cn('h-4', i === lines - 1 ? 'w-3/4' : 'w-full')}
-        />
-      ))}
+    <div className={cn('space-y-6 py-6 px-4', className)}>
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: rows }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-6">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-8 w-32" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

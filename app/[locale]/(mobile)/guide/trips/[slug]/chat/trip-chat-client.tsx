@@ -394,6 +394,11 @@ export function TripChatClient({
       setSelectedFile(null);
       setFilePreview(null);
 
+      // Invalidate query to refresh messages
+      void queryClient.invalidateQueries({
+        queryKey: [...queryKeys.guide.tripsDetail(tripId), 'chat'],
+      });
+
       if (
         data.message &&
         'isPending' in data.message &&
@@ -411,11 +416,32 @@ export function TripChatClient({
   });
 
   const handleSend = () => {
-    if (!messageText.trim() && !selectedFile) return;
-    sendMutation.mutate({
-      text: messageText.trim() || '',
-      file: selectedFile || null,
-    });
+    try {
+      const text = messageText.trim();
+      if (!text && !selectedFile) {
+        toast.error('Pesan tidak boleh kosong');
+        return;
+      }
+      
+      if (!text && selectedFile) {
+        toast.error('Pesan teks diperlukan saat mengirim file');
+        return;
+      }
+      
+      if (!tripId) {
+        toast.error('Trip ID tidak ditemukan');
+        logger.error('Trip ID is missing in handleSend');
+        return;
+      }
+      
+      sendMutation.mutate({
+        text: text || '',
+        file: selectedFile || null,
+      });
+    } catch (error) {
+      logger.error('Error in handleSend', error, { tripId });
+      toast.error('Terjadi error saat mengirim pesan. Silakan coba lagi.');
+    }
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {

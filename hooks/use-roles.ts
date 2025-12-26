@@ -164,15 +164,15 @@ export function useApplyRole() {
   return useMutation<
     { success: boolean; application: unknown; autoApproved: boolean },
     Error,
-    { role: UserRole; message?: string }
+    { role: UserRole; message?: string; companyData?: Record<string, unknown>; legalDocuments?: string[] }
   >({
-    mutationFn: async ({ role, message }) => {
+    mutationFn: async ({ role, message, companyData, legalDocuments }) => {
       const res = await fetch('/api/user/roles/apply', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ role, message }),
+        body: JSON.stringify({ role, message, companyData, legalDocuments }),
       });
 
       if (!res.ok) {

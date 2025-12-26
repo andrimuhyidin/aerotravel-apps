@@ -136,6 +136,35 @@ export async function processTripPayment(
       return { success: false, error: 'Failed to create wallet transaction' };
     }
 
+    // Emit wallet.balance_changed event (non-blocking)
+    try {
+      const { emitEvent } = await import('@/lib/events/event-bus');
+      await emitEvent(
+        {
+          type: 'wallet.balance_changed',
+          app: 'guide',
+          userId: guideId,
+          data: {
+            walletId: walletId,
+            userId: guideId,
+            oldBalance: balanceBefore,
+            newBalance: balanceAfter,
+            amount: feeAmount,
+            transactionType: 'earning',
+            description: `Fee trip ${(assignment.trip as { trip_code?: string })?.trip_code || tripId}`,
+            tripId: tripId,
+            transactionId: transaction.id,
+          },
+        }
+      ).catch((eventError) => {
+        logger.warn('Failed to emit wallet.balance_changed event', eventError);
+      });
+    } catch (eventError) {
+      logger.warn('Event emission error (non-critical)', {
+        error: eventError instanceof Error ? eventError.message : String(eventError),
+      });
+    }
+
     // 7. Link payment to master contract (optional, for tracking)
     if (masterContract) {
       await client

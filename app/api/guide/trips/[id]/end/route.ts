@@ -257,6 +257,112 @@ export const POST = withErrorHandler(async (
     forceComplete: forceComplete || false,
   });
 
+  // PRD 4.4.C: Inventory Auto-Reduce - Reduce stock based on logistics recipe
+  try {
+    // Get trip details with package info
+    let tripQuery = client
+      .from('trips')
+      .select(`
+        id,
+        package_id,
+        branch_id,
+        total_pax,
+        package:packages(
+          id,
+          fuel_per_pax_liter,
+          water_per_pax_bottle
+        )
+      `)
+      .eq('id', tripId);
+
+    // Apply branch filter
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      tripQuery = tripQuery.eq('branch_id', branchContext.branchId);
+    }
+
+    const { data: tripData } = await tripQuery.single();
+
+    if (tripData && tripData.package) {
+      const packageData = tripData.package as {
+        id: string;
+        fuel_per_pax_liter?: number;
+        water_per_pax_bottle?: number;
+      };
+      const totalPax = Number(tripData.total_pax || 0);
+
+      // Get inventory items for fuel and water
+      const { data: inventoryItems } = await client
+        .from('inventory')
+        .select('id, name, item_type')
+        .in('item_type', ['fuel', 'water'])
+        .eq('branch_id', tripData.branch_id)
+        .is('deleted_at', null);
+
+      if (inventoryItems && inventoryItems.length > 0) {
+        const { recordTripUsage } = await import('@/lib/inventory/stock');
+
+        // Reduce fuel stock if recipe exists
+        if (packageData.fuel_per_pax_liter && totalPax > 0) {
+          const fuelItem = inventoryItems.find((item: { item_type: string }) => item.item_type === 'fuel');
+          if (fuelItem) {
+            const expectedFuel = packageData.fuel_per_pax_liter * totalPax;
+            const actualFuel = expectedFuel; // Use expected as actual (can be updated later by admin)
+            
+            await recordTripUsage(
+              fuelItem.id,
+              tripId,
+              actualFuel,
+              expectedFuel,
+              `Auto-reduced saat trip completed. Recipe: ${packageData.fuel_per_pax_liter}L/pax × ${totalPax} pax`,
+              user.id
+            ).catch((inventoryError) => {
+              logger.warn('Failed to auto-reduce fuel inventory', {
+                error: inventoryError instanceof Error ? inventoryError.message : String(inventoryError),
+                tripId,
+              });
+            });
+          }
+        }
+
+        // Reduce water stock if recipe exists
+        if (packageData.water_per_pax_bottle && totalPax > 0) {
+          const waterItem = inventoryItems.find((item: { item_type: string }) => item.item_type === 'water');
+          if (waterItem) {
+            const expectedWater = packageData.water_per_pax_bottle * totalPax;
+            const actualWater = expectedWater; // Use expected as actual
+            
+            await recordTripUsage(
+              waterItem.id,
+              tripId,
+              actualWater,
+              expectedWater,
+              `Auto-reduced saat trip completed. Recipe: ${packageData.water_per_pax_bottle} botol/pax × ${totalPax} pax`,
+              user.id
+            ).catch((inventoryError) => {
+              logger.warn('Failed to auto-reduce water inventory', {
+                error: inventoryError instanceof Error ? inventoryError.message : String(inventoryError),
+                tripId,
+              });
+            });
+          }
+        }
+
+        logger.info('Inventory auto-reduced for completed trip', {
+          tripId,
+          totalPax,
+          fuelReduced: packageData.fuel_per_pax_liter ? packageData.fuel_per_pax_liter * totalPax : 0,
+          waterReduced: packageData.water_per_pax_bottle ? packageData.water_per_pax_bottle * totalPax : 0,
+        });
+      }
+    }
+  } catch (inventoryError) {
+    // Non-critical - log but don't fail trip completion
+    logger.warn('Inventory auto-reduce error (non-critical)', {
+      error: inventoryError instanceof Error ? inventoryError.message : String(inventoryError),
+      tripId,
+    });
+  }
+
   // Invalidate cache for this guide's stats, trips, and leaderboard
   await invalidateUserCache(user.id);
   await invalidateCache(`guide:leaderboard:*`); // Invalidate all leaderboards

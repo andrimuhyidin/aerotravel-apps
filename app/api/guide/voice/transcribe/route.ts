@@ -124,6 +124,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       confidence: result.confidence,
       language: result.language,
       duration: result.duration,
+      audioFileUrl: audioFileUrl || null, // Return audio file URL for storage in incident report
     });
   } catch (error) {
     logger.error('Failed to transcribe audio', error, { guideId: user.id });

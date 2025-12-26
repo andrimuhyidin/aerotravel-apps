@@ -1,54 +1,39 @@
-/**
- * Products Page
- * Route: /[locale]/console/products
- */
-
 import { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
-import { Container } from '@/components/layout/container';
-import { Section } from '@/components/layout/section';
-import { locales } from '@/i18n';
+import { redirect } from 'next/navigation';
 
-type PageProps = {
-  params: Promise<{ locale: string }>;
+import { createClient } from '@/lib/supabase/server';
+
+import { ProductsManagementClient } from './products-management-client';
+
+export const metadata: Metadata = {
+  title: 'Package Management | Admin Console',
+  description: 'Manage travel packages - create, edit, and publish packages',
 };
 
-export const dynamic = 'force-dynamic';
+export default async function ProductsPage() {
+  const supabase = await createClient();
 
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { locale } = await params;
-  setRequestLocale(locale);
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
-  
-  return {
-    title: 'Products - Aero Travel',
-    alternates: {
-      canonical: `${baseUrl}/${locale}/console/products`,
-    },
-  };
-}
+  if (!user) {
+    redirect('/auth/login');
+  }
 
-export default async function ConsoleProductsPage({ params }: PageProps) {
-  const { locale } = await params;
-  setRequestLocale(locale);
+  // Get user role
+  const client = supabase as unknown as any;
+  const { data: userData } = await client
+    .from('users')
+    .select('role, branch_id')
+    .eq('id', user.id)
+    .single();
 
-  return (
-    <Section>
-      <Container>
-        <div className="py-8">
-          <h1 className="text-3xl font-bold mb-6">Products</h1>
-          
-          <div className="bg-muted p-8 rounded-lg">
-            <p className="text-muted-foreground">
-              Products page will be implemented here.
-            </p>
-          </div>
-        </div>
-      </Container>
-    </Section>
-  );
+  // Check if user has permission (admin, marketing, ops_admin)
+  const allowedRoles = ['super_admin', 'marketing', 'ops_admin'];
+  if (!userData || !allowedRoles.includes(userData.role)) {
+    redirect('/console');
+  }
+
+  return <ProductsManagementClient userBranchId={userData.branch_id} userRole={userData.role} />;
 }

@@ -118,7 +118,120 @@ export const designTokens = {
     base: '200ms',
     slow: '300ms',
   },
+
+  // Animation Timing
+  animation: {
+    duration: {
+      fast: '150ms',
+      base: '200ms',
+      slow: '300ms',
+      slower: '500ms',
+    },
+    easing: {
+      linear: 'linear',
+      easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
+      easeOut: 'cubic-bezier(0, 0, 0.2, 1)',
+      easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    },
+  },
+
+  // Elevation/Shadow Scale
+  elevation: {
+    none: 'none',
+    sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+    md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+    lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+    xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+    '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
+  },
 } as const;
 
 export type DesignTokens = typeof designTokens;
+
+/**
+ * Spacing Utilities
+ * Helper functions untuk consistent spacing
+ */
+export const spacingUtils = {
+  /**
+   * Get spacing value dari design tokens
+   */
+  get: (key: keyof typeof designTokens.spacing): string => {
+    return designTokens.spacing[key];
+  },
+
+  /**
+   * Convert spacing key ke Tailwind class
+   */
+  toTailwind: (key: keyof typeof designTokens.spacing): string => {
+    const map: Record<keyof typeof designTokens.spacing, string> = {
+      xs: 'p-1',
+      sm: 'p-2',
+      md: 'p-4',
+      lg: 'p-6',
+      xl: 'p-8',
+      '2xl': 'p-12',
+      '3xl': 'p-16',
+      '4xl': 'p-24',
+    };
+    return map[key] || 'p-4';
+  },
+};
+
+/**
+ * Typography Utilities
+ * Helper functions untuk consistent typography
+ */
+export const typographyUtils = {
+  /**
+   * Get font size dengan line height
+   */
+  getFontSize: (key: keyof typeof designTokens.typography.fontSize): {
+    fontSize: string;
+    lineHeight: string;
+  } => {
+    const [fontSize, { lineHeight }] = designTokens.typography.fontSize[key];
+    return { fontSize, lineHeight };
+  },
+
+  /**
+   * Get font weight
+   */
+  getFontWeight: (key: keyof typeof designTokens.typography.fontWeight): string => {
+    return designTokens.typography.fontWeight[key];
+  },
+};
+
+/**
+ * Animation Utilities
+ * Helper functions untuk consistent animations
+ */
+export const animationUtils = {
+  /**
+   * Get animation duration
+   */
+  getDuration: (key: keyof typeof designTokens.animation.duration): string => {
+    return designTokens.animation.duration[key];
+  },
+
+  /**
+   * Get animation easing
+   */
+  getEasing: (key: keyof typeof designTokens.animation.easing): string => {
+    return designTokens.animation.easing[key];
+  },
+
+  /**
+   * Create transition string
+   */
+  createTransition: (
+    properties: string[],
+    duration: keyof typeof designTokens.animation.duration = 'base',
+    easing: keyof typeof designTokens.animation.easing = 'easeInOut'
+  ): string => {
+    const durationValue = designTokens.animation.duration[duration];
+    const easingValue = designTokens.animation.easing[easing];
+    return properties.map(prop => `${prop} ${durationValue} ${easingValue}`).join(', ');
+  },
+};
 

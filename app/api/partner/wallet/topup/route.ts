@@ -39,26 +39,61 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const externalId = `TOPUP-${mitraId.slice(0, 8)}-${Date.now()}`;
 
   try {
-    // TODO: Implement actual Xendit API call
-    // For now, return mock data
-    const paymentUrl = `https://checkout.xendit.co/web/${externalId}`;
+    const { createInvoice } = await import('@/lib/integrations/xendit');
 
-    // Log topup request
-    logger.info('Partner topup request created', {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
+    
+    const invoice = await createInvoice({
+      externalId,
+      amount,
+      description: `Top-up Wallet - ${mitra.full_name || 'Partner'}`,
+      payerEmail: mitra.email,
+      payerName: mitra.full_name,
+      successRedirectUrl: `${baseUrl}/partner/wallet?topup=success`,
+      failureRedirectUrl: `${baseUrl}/partner/wallet?topup=failed`,
+      paymentMethods: ['QRIS', 'VIRTUAL_ACCOUNT', 'EWALLET', 'RETAIL_OUTLET'],
+      invoiceDuration: 86400, // 24 hours
+    });
+
+    // Store top-up request in database for tracking
+    const client = supabase as unknown as any;
+    await client
+      .from('mitra_wallet_transactions')
+      .insert({
+        mitra_id: mitraId,
+        transaction_type: 'topup_pending',
+        amount: amount,
+        external_id: externalId,
+        xendit_invoice_id: invoice.id,
+        description: `Top-up request - Invoice ${invoice.id}`,
+        status: 'pending',
+      } as Record<string, unknown>)
+      .catch((err: Error) => {
+        // Non-critical - log but continue
+        logger.warn('Failed to record topup transaction', {
+          error: err.message,
+        });
+      });
+
+    logger.info('Partner topup invoice created', {
       mitraId,
       amount,
       externalId,
+      invoiceId: invoice.id,
     });
 
     return NextResponse.json({
       success: true,
-      paymentUrl,
+      paymentUrl: invoice.invoice_url,
+      invoiceId: invoice.id,
       externalId,
+      status: invoice.status,
+      expiryDate: invoice.expiry_date,
     });
   } catch (error) {
     logger.error('Xendit invoice creation failed', error);
     return NextResponse.json(
-      { error: 'Failed to create payment' },
+      { error: 'Failed to create payment. Silakan coba lagi.' },
       { status: 500 }
     );
   }

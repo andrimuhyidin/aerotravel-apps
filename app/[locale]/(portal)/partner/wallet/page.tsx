@@ -3,17 +3,24 @@
  * Route: /[locale]/partner/wallet
  */
 
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
 import { locales } from '@/i18n';
+import { WalletClient } from './wallet-client';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
 };
 
 export const dynamic = 'force-dynamic';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#ea580c',
+};
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -25,7 +32,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
   
   return {
-    title: 'Partner Wallet - Aero Travel',
+    title: 'Wallet - Partner Portal',
+    description: 'Kelola saldo wallet dan transaksi',
     alternates: {
       canonical: `${baseUrl}/${locale}/partner/wallet`,
     },
@@ -39,15 +47,7 @@ export default async function PartnerWalletPage({ params }: PageProps) {
   return (
     <Section>
       <Container>
-        <div className="py-8">
-          <h1 className="text-3xl font-bold mb-6">Partner Wallet</h1>
-          
-          <div className="bg-muted p-8 rounded-lg">
-            <p className="text-muted-foreground">
-              Partner Wallet page will be implemented here.
-            </p>
-          </div>
-        </div>
+        <WalletClient locale={locale} />
       </Container>
     </Section>
   );
