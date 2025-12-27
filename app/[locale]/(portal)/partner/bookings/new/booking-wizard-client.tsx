@@ -236,7 +236,7 @@ export function BookingWizardClient({
       : true;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-muted/30 pb-24">
+    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-muted/30 pb-[180px]">
       {/* Ultra-Compact Sticky Header */}
       <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xl border-b shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
         <div className="px-4 py-2 flex items-center justify-between">
@@ -288,7 +288,7 @@ export function BookingWizardClient({
                 )}>
                   {isCompleted && !isActive ? <Check className="h-2.5 w-2.5" /> : stepNumber}
                 </div>
-                <span className="hidden sm:inline">{step.title}</span>
+                <span>{step.title}</span>
               </button>
             );
           })}
@@ -391,9 +391,9 @@ export function BookingWizardClient({
         </Form>
       </div>
 
-      {/* Floating Collapsible Summary Card - Hide on Step 3 */}
-      {packageData && currentStep < 3 && (
-        <div className="fixed bottom-20 left-0 right-0 z-40 pointer-events-none">
+      {/* Floating Collapsible Summary Card - Always visible, positioned above nav bar */}
+      {packageData && (
+        <div className="fixed bottom-[72px] left-0 right-0 z-40 pointer-events-none">
           <div className="mx-auto max-w-md px-4 pointer-events-auto">
             <Collapsible open={summaryOpen} onOpenChange={setSummaryOpen}>
               <Card className="shadow-[0_-4px_24px_rgba(0,0,0,0.15)] border-primary/20">
