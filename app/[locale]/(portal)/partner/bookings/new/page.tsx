@@ -6,7 +6,7 @@
 import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import { locales } from '@/i18n';
-import { BookingFlowClient } from './booking-flow-client';
+import { BookingWizardClient } from './booking-wizard-client';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   
   return {
     title: 'Buat Booking - Partner Portal',
-    description: 'Buat booking baru untuk customer Anda',
+    description: 'Buat booking baru untuk customer Anda dengan wizard 3 langkah',
     alternates: {
       canonical: `${baseUrl}/${locale}/partner/bookings/new`,
     },
@@ -38,6 +38,6 @@ export default async function NewBookingPage({ params, searchParams }: PageProps
   const { packageId } = await searchParams;
   setRequestLocale(locale);
 
-  return <BookingFlowClient locale={locale} preselectedPackageId={packageId} />;
+  return <BookingWizardClient locale={locale} initialPackageId={packageId} />;
 }
 

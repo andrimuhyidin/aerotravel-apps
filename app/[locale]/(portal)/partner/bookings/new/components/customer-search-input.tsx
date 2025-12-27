@@ -95,12 +95,12 @@ export function CustomerSearchInput({
                     <div className="text-right">
                       {customer.isRepeatingCustomer && (
                         <Badge variant="secondary" className="text-[10px] mb-1">
-                          <Star className="h-3 w-3 mr-0.5 fill-yellow-500 text-yellow-500" />
+                          <Star className="h-4 w-4 mr-0.5 fill-yellow-500 text-yellow-500" />
                           Repeat
                         </Badge>
                       )}
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
+                        <Clock className="h-4 w-4" />
                         {customer.bookingCount} booking
                       </p>
                     </div>

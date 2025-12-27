@@ -29,6 +29,35 @@ export type PackageSummary = {
 };
 
 /**
+ * QuickInfoPackage type for booking flow
+ * Matches the structure returned by /api/partner/packages/:id/quick-info
+ */
+export type QuickInfoPackage = {
+  id: string;
+  name: string;
+  destination: string | null;
+  duration: {
+    days: number;
+    nights: number;
+    label: string;
+  };
+  thumbnailUrl?: string;
+  pricingTiers: PackagePricingTier[];
+  ratings?: {
+    average: number;
+    count: number;
+  };
+  urgency: {
+    bookingCountToday: number;
+    lastBookedAt?: string;
+  };
+  availability: {
+    status: 'high' | 'medium' | 'low';
+    label: string;
+  };
+};
+
+/**
  * Calculate NTA total for booking
  */
 export function calculateNTATotal(

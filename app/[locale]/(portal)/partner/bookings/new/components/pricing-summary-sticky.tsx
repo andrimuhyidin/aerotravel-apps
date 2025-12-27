@@ -74,7 +74,7 @@ export function PricingSummarySticky({
                 <Wallet className="h-4 w-4 mr-2" />
                 <span className="text-xs">Wallet</span>
                 {paymentMethod === 'wallet' && (
-                  <Badge variant="secondary" className="ml-2 bg-green-600 text-white text-[9px]">
+                  <Badge variant="secondary" className="ml-2 bg-green-600 text-white text-[10px]">
                     INSTANT
                   </Badge>
                 )}
@@ -116,9 +116,9 @@ export function PricingSummarySticky({
               className="ml-2 shrink-0"
             >
               {expanded ? (
-                <ChevronDown className="h-5 w-5" />
+                <ChevronDown className="h-6 w-6" />
               ) : (
-                <ChevronUp className="h-5 w-5" />
+                <ChevronUp className="h-6 w-6" />
               )}
             </Button>
           )}

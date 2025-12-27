@@ -57,7 +57,7 @@ export function DateQuickSelector({ value, onChange }: DateQuickSelectorProps) {
               )}
             >
               {isSelected && (
-                <Check className="h-3 w-3 absolute top-1 right-1" />
+                <Check className="h-4 w-4 absolute top-1 right-1" />
               )}
               <div className="flex flex-col items-center gap-0.5">
                 <span className="font-semibold">{quick.label}</span>

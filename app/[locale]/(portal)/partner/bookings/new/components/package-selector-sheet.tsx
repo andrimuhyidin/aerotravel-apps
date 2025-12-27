@@ -203,7 +203,7 @@ export function PackageSelectorSheet({
                     <h3 className="font-bold text-sm mb-1 truncate">{pkg.name}</h3>
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant="secondary" className="text-[10px]">
-                        <MapPin className="h-3 w-3 mr-1" />
+                        <MapPin className="h-4 w-4 mr-1" />
                         {pkg.destination}
                       </Badge>
                       <Badge variant="outline" className="text-[10px]">
@@ -215,14 +215,14 @@ export function PackageSelectorSheet({
                     <div className="flex items-center gap-3 text-xs mb-2">
                       {pkg.ratings && pkg.ratings.count > 0 && (
                         <div className="flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                          <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
                           <span className="font-medium">{pkg.ratings.average}</span>
                           <span className="text-muted-foreground">({pkg.ratings.count})</span>
                         </div>
                       )}
                       {pkg.urgency.bookingCountToday > 0 && (
                         <div className="flex items-center gap-1 text-blue-600">
-                          <Users className="h-3 w-3" />
+                          <Users className="h-4 w-4" />
                           <span>{pkg.urgency.bookingCountToday} booking hari ini</span>
                         </div>
                       )}
@@ -238,7 +238,7 @@ export function PackageSelectorSheet({
                       </div>
                       <div className="text-right">
                         <div className="flex items-center gap-1 text-green-600">
-                          <TrendingUp className="h-3 w-3" />
+                          <TrendingUp className="h-4 w-4" />
                           <span className="text-xs font-semibold">
                             {formatCurrency(pkg.pricingTiers[0]?.margin || 0)}
                           </span>

@@ -291,7 +291,7 @@ export function BookingFlowClient({
 
         {/* Compact Progress Bar */}
         <div className="px-4 py-2">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {[1, 2, 3].map((step) => (
               <div
                 key={step}
