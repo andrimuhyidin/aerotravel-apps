@@ -45,7 +45,7 @@ export function StepCustomer({
   customerName = '',
   customerPhone = '',
   customerEmail = '',
-  adultPax = 2,
+  adultPax = 1,
   childPax = 0,
   infantPax = 0,
   specialRequests = '',

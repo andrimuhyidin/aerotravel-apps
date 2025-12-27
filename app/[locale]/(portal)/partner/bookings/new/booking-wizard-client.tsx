@@ -106,7 +106,7 @@ export function BookingWizardClient({
     resolver: zodResolver(bookingWizardSchema),
     defaultValues: {
       packageId: initialPackageId || '',
-      adultPax: 2,
+      adultPax: 1,
       childPax: 0,
       infantPax: 0,
       paymentMethod: 'wallet',
@@ -162,7 +162,7 @@ export function BookingWizardClient({
   const ntaTotal =
     packageData && packageData.pricingTiers.length > 0
       ? calculateNTATotal(
-          values.adultPax || 2,
+          values.adultPax || 1,
           values.childPax || 0,
           values.infantPax || 0,
           packageData.pricingTiers
@@ -236,7 +236,7 @@ export function BookingWizardClient({
       : true;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-muted/30 pb-32">
+    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-muted/30 pb-24">
       {/* Ultra-Compact Sticky Header */}
       <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xl border-b shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
         <div className="px-4 py-2 flex items-center justify-between">
@@ -258,6 +258,42 @@ export function BookingWizardClient({
             Draft
           </Badge>
         </div>
+        
+        {/* Step Navigation Indicators - Clickable */}
+        <div className="px-4 pb-2 flex items-center justify-center gap-2">
+          {STEPS.map((step, index) => {
+            const stepNumber = index + 1;
+            const isActive = currentStep === stepNumber;
+            const isCompleted = currentStep > stepNumber;
+            const isClickable = stepNumber < currentStep || (stepNumber === currentStep);
+            
+            return (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => isClickable && handleStepChange(stepNumber)}
+                disabled={!isClickable}
+                className={cn(
+                  'flex items-center gap-1.5 px-2 py-1 rounded-full transition-all text-[10px] font-medium',
+                  isActive && 'bg-primary text-primary-foreground',
+                  isCompleted && !isActive && 'bg-green-50 text-green-700 hover:bg-green-100',
+                  !isActive && !isCompleted && 'bg-muted text-muted-foreground cursor-not-allowed',
+                  isClickable && !isActive && 'cursor-pointer active:scale-95'
+                )}
+              >
+                <div className={cn(
+                  'flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold',
+                  isActive && 'bg-white/20',
+                  isCompleted && !isActive && 'bg-green-600 text-white'
+                )}>
+                  {isCompleted && !isActive ? <Check className="h-2.5 w-2.5" /> : stepNumber}
+                </div>
+                <span className="hidden sm:inline">{step.title}</span>
+              </button>
+            );
+          })}
+        </div>
+        
         {/* Animated Gradient Progress Bar */}
         <div className="h-1 bg-muted overflow-hidden">
           <div
@@ -355,8 +391,8 @@ export function BookingWizardClient({
         </Form>
       </div>
 
-      {/* Floating Collapsible Summary Card */}
-      {packageData && (
+      {/* Floating Collapsible Summary Card - Hide on Step 3 */}
+      {packageData && currentStep < 3 && (
         <div className="fixed bottom-20 left-0 right-0 z-40 pointer-events-none">
           <div className="mx-auto max-w-md px-4 pointer-events-auto">
             <Collapsible open={summaryOpen} onOpenChange={setSummaryOpen}>

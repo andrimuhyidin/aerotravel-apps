@@ -18,15 +18,12 @@ export function FloatingActionButton() {
   const params = useParams();
   const locale = params.locale as string;
 
-  // Hide FAB on these pages (already have prominent CTA)
-  const hiddenPaths = [
-    `/${locale}/partner/dashboard`,
-    `/${locale}/partner/bookings/new`,
-  ];
+  // Only show FAB on bookings list page
+  const showPaths = [`/${locale}/partner/bookings`];
 
-  const shouldHide = hiddenPaths.some((path) => pathname.startsWith(path));
+  const shouldShow = showPaths.some((path) => pathname === path);
 
-  if (shouldHide) return null;
+  if (!shouldShow) return null;
 
   return (
     <div className="fixed bottom-20 z-40" style={{ right: 'max(1rem, calc((100vw - 28rem) / 2 + 1rem))' }}>
