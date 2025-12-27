@@ -274,7 +274,7 @@ export function BookingWizardClient({
                 onClick={() => isClickable && handleStepChange(stepNumber)}
                 disabled={!isClickable}
                 className={cn(
-                  'flex items-center gap-1.5 px-2 py-1 rounded-full transition-all text-[10px] font-medium',
+                  'flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-xs font-medium whitespace-nowrap',
                   isActive && 'bg-primary text-primary-foreground',
                   isCompleted && !isActive && 'bg-green-50 text-green-700 hover:bg-green-100',
                   !isActive && !isCompleted && 'bg-muted text-muted-foreground cursor-not-allowed',
@@ -282,13 +282,13 @@ export function BookingWizardClient({
                 )}
               >
                 <div className={cn(
-                  'flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold',
+                  'flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold shrink-0',
                   isActive && 'bg-white/20',
                   isCompleted && !isActive && 'bg-green-600 text-white'
                 )}>
-                  {isCompleted && !isActive ? <Check className="h-2.5 w-2.5" /> : stepNumber}
+                  {isCompleted && !isActive ? <Check className="h-3 w-3" /> : stepNumber}
                 </div>
-                <span>{step.title}</span>
+                <span className="text-xs font-medium">{step.title}</span>
               </button>
             );
           })}
