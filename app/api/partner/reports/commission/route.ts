@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import ExcelJS from 'exceljs';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -21,7 +22,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
+  // Sanitize search params
+  const searchParams = sanitizeSearchParams(request);
   const from = searchParams.get('from'); // YYYY-MM-DD
   const to = searchParams.get('to'); // YYYY-MM-DD
   const groupBy = searchParams.get('groupBy') || 'month'; // 'day', 'month', 'year'

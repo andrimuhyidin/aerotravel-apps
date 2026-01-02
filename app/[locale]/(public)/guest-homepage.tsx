@@ -19,40 +19,57 @@ import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 
-type GuestHomepageProps = {
-  locale: string;
+type FeaturedPackage = {
+  name: string;
+  location: string;
+  price: number;
+  rating: number;
+  reviews: number;
+  emoji: string;
+  tag: string;
+  gradient: string;
+  slug: string;
 };
 
-const featuredDestinations = [
+type GuestHomepageProps = {
+  locale: string;
+  featuredPackages?: FeaturedPackage[];
+};
+
+// Fallback data if no packages from DB
+const defaultFeaturedDestinations: FeaturedPackage[] = [
   {
     name: 'Pahawang',
     location: 'Lampung',
     price: 450000,
-    rating: 4.9,
-    reviews: 234,
+    rating: 0,
+    reviews: 0,
     emoji: '🏝️',
     tag: 'Populer',
     gradient: 'from-blue-500 to-cyan-500',
+    slug: 'pahawang',
   },
   {
     name: 'Kiluan',
     location: 'Lampung',
     price: 550000,
-    rating: 4.8,
-    reviews: 189,
+    rating: 0,
+    reviews: 0,
     emoji: '🐬',
     tag: 'Best Seller',
     gradient: 'from-teal-500 to-emerald-500',
+    slug: 'kiluan',
   },
   {
     name: 'Labuan Bajo',
     location: 'NTT',
     price: 3500000,
-    rating: 4.9,
-    reviews: 567,
+    rating: 0,
+    reviews: 0,
     emoji: '🦎',
     tag: 'Premium',
     gradient: 'from-purple-500 to-pink-500',
+    slug: 'labuan-bajo',
   },
 ];
 
@@ -112,7 +129,16 @@ const openPrograms = [
   },
 ];
 
-export function GuestHomepage({ locale }: GuestHomepageProps) {
+export function GuestHomepage({ locale, featuredPackages }: GuestHomepageProps) {
+  const featuredDestinations = featuredPackages && featuredPackages.length > 0 
+    ? featuredPackages 
+    : defaultFeaturedDestinations;
+
+  // Calculate average rating from featured packages
+  const avgRating = featuredDestinations.length > 0
+    ? featuredDestinations.reduce((sum, p) => sum + p.rating, 0) / featuredDestinations.length
+    : 0;
+
   return (
     <div className="flex flex-col">
       {/* Hero Section - Premium */}
@@ -177,7 +203,7 @@ export function GuestHomepage({ locale }: GuestHomepageProps) {
           <div className="h-auto w-px bg-border" />
           <div className="text-center">
             <p className="flex items-center justify-center gap-1 text-xl font-bold text-foreground">
-              4.9
+              {avgRating > 0 ? avgRating.toFixed(1) : '-'}
               <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
             </p>
             <p className="text-[10px] text-muted-foreground">Rating</p>
@@ -208,7 +234,7 @@ export function GuestHomepage({ locale }: GuestHomepageProps) {
           {featuredDestinations.map((dest, idx) => (
             <Link
               key={idx}
-              href={`/${locale}/packages`}
+              href={`/${locale}/packages/detail/${dest.slug}`}
               className="group w-44 shrink-0 active:scale-95"
             >
               <div className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-slate-100 dark:bg-slate-800 dark:ring-slate-700">
@@ -250,7 +276,7 @@ export function GuestHomepage({ locale }: GuestHomepageProps) {
                       <div className="flex items-center gap-0.5">
                         <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                         <span className="text-xs font-bold text-foreground">
-                          {dest.rating}
+                          {dest.rating.toFixed(1)}
                         </span>
                       </div>
                       <p className="text-[9px] text-muted-foreground">

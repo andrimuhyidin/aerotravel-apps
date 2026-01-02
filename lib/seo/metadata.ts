@@ -10,14 +10,16 @@ export type SEOMetadataParams = {
   description: string;
   keywords?: string[];
   url?: string;
+  locale?: string;
   image?: string;
   type?: 'website' | 'article' | 'product';
   publishedTime?: string;
   modifiedTime?: string;
+  noIndex?: boolean;
 };
 
 /**
- * Generate comprehensive SEO metadata
+ * Generate comprehensive SEO metadata with hreflang support
  */
 export function generateMetadata(params: SEOMetadataParams): Metadata {
   const {
@@ -25,17 +27,27 @@ export function generateMetadata(params: SEOMetadataParams): Metadata {
     description,
     keywords = [],
     url,
+    locale = 'id',
     image,
     type = 'website',
     publishedTime,
     modifiedTime,
+    noIndex = false,
   } = params;
 
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
-  // Ensure URL starts with / and handle locale
-  const cleanUrl = url?.startsWith('/') ? url : url ? `/${url}` : '/';
-  const fullUrl = `${siteUrl}${cleanUrl}`;
+
+  // Extract path without locale prefix for hreflang generation
+  const cleanPath = url?.replace(/^\/(id|en)/, '') || '';
+  const pathWithSlash = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+
+  // Full URL with current locale
+  const fullUrl = `${siteUrl}/${locale}${pathWithSlash === '/' ? '' : pathWithSlash}`;
   const ogImage = image || `${siteUrl}/og-image.jpg`;
+
+  // Generate hreflang alternates
+  const idUrl = `${siteUrl}/id${pathWithSlash === '/' ? '' : pathWithSlash}`;
+  const enUrl = `${siteUrl}/en${pathWithSlash === '/' ? '' : pathWithSlash}`;
 
   return {
     title: {
@@ -50,6 +62,11 @@ export function generateMetadata(params: SEOMetadataParams): Metadata {
     metadataBase: new URL(siteUrl),
     alternates: {
       canonical: fullUrl,
+      languages: {
+        id: idUrl,
+        en: enUrl,
+        'x-default': idUrl, // Default to Indonesian
+      },
     },
     openGraph: {
       type: type === 'product' ? 'website' : type,
@@ -67,7 +84,7 @@ export function generateMetadata(params: SEOMetadataParams): Metadata {
       ],
       publishedTime,
       modifiedTime,
-      locale: 'id_ID',
+      locale: locale === 'id' ? 'id_ID' : 'en_US',
     },
     twitter: {
       card: 'summary_large_image',
@@ -75,17 +92,19 @@ export function generateMetadata(params: SEOMetadataParams): Metadata {
       description,
       images: [ogImage],
     },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-      },
-    },
+    robots: noIndex
+      ? { index: false, follow: false }
+      : {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            'max-video-preview': -1,
+            'max-image-preview': 'large',
+            'max-snippet': -1,
+          },
+        },
   };
 }
 

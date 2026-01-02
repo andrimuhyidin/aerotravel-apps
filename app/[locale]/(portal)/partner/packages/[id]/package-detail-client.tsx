@@ -17,6 +17,7 @@ import { EnhancedBookingWidget } from '@/components/partner/enhanced-booking-wid
 import { PackageReviewsSection } from '@/components/partner/package-reviews-section';
 import { SimilarPackagesCarousel } from '@/components/partner/similar-packages-carousel';
 import { PackageFAQSection } from '@/components/partner/package-faq-section';
+import { PackageQAWidget } from '@/components/partner/package-qa-widget';
 import { formatCurrency } from '@/lib/partner/package-utils';
 import { logger } from '@/lib/utils/logger';
 import { cn } from '@/lib/utils';
@@ -465,6 +466,11 @@ export function PackageDetailClient({
                 <PackageFAQSection packageId={packageId} />
               </TabsContent>
             </Tabs>
+
+            {/* AI Q&A Widget */}
+            <div className="pt-4">
+              <PackageQAWidget packageId={packageId} packageName={packageData.name} />
+            </div>
 
             {/* Similar Packages */}
             <div className="pt-6">

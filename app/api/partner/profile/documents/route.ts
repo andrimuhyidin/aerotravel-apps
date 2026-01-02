@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -33,13 +34,19 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   try {
     const client = supabase as unknown as any;
 
     const { data: documents, error } = await client
       .from('partner_legal_documents')
       .select('*')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
@@ -78,9 +85,16 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
-    const validated = uploadDocumentSchema.parse(body);
+    const sanitizedBody = sanitizeRequestBody(body, { strings: ['documentNumber', 'fileName'], urls: ['documentUrl'] });
+    const validated = uploadDocumentSchema.parse(sanitizedBody);
 
     const client = supabase as unknown as any;
 
@@ -88,7 +102,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const { data: document, error: insertError } = await client
       .from('partner_legal_documents')
       .insert({
-        partner_id: user.id,
+        partner_id: partnerId,
         document_type: validated.documentType,
         document_number: validated.documentNumber || null,
         document_url: validated.documentUrl,

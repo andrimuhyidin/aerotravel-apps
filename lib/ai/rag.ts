@@ -47,13 +47,69 @@ export async function retrieveContext(query: string): Promise<RAGContext> {
     .limit(3);
 
   // Check availability jika query tentang tanggal/ketersediaan
-  if (query.includes('kosong') || query.includes('tersedia')) {
-    // TODO: Implement availability check
+  let availability: unknown = null;
+  if (query.includes('kosong') || query.includes('tersedia') || query.includes('available') || query.includes('jadwal')) {
+    // Try to extract date from query
+    const datePatterns = [
+      /(\d{1,2})\s*(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)/i,
+      /(\d{1,2})\s*(jan|feb|mar|apr|mei|jun|jul|agu|sep|okt|nov|des)/i,
+      /(\d{4}-\d{2}-\d{2})/,
+      /(\d{1,2})\/(\d{1,2})\/(\d{4})/,
+    ];
+
+    let targetDate: Date | null = null;
+    for (const pattern of datePatterns) {
+      const match = query.match(pattern);
+      if (match) {
+        // Parse Indonesian month names
+        const monthMap: Record<string, number> = {
+          januari: 0, jan: 0, februari: 1, feb: 1, maret: 2, mar: 2,
+          april: 3, apr: 3, mei: 4, juni: 5, jun: 5, juli: 6, jul: 6,
+          agustus: 7, agu: 7, september: 8, sep: 8, oktober: 9, okt: 9,
+          november: 10, nov: 10, desember: 11, des: 11,
+        };
+
+        if (match[2] && monthMap[match[2].toLowerCase()] !== undefined) {
+          const day = parseInt(match[1] || '1', 10);
+          const month = monthMap[match[2].toLowerCase()];
+          const year = new Date().getFullYear();
+          targetDate = new Date(year, month || 0, day);
+        } else if (match[0]?.includes('-')) {
+          targetDate = new Date(match[0]);
+        }
+        break;
+      }
+    }
+
+    // Query trips for next 30 days or specific date
+    const startDate = targetDate || new Date();
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + (targetDate ? 7 : 30)); // 7 days if specific date, 30 if general
+
+    const { data: trips } = await supabase
+      .from('trips')
+      .select('id, trip_code, trip_date, status, available_slots, packages(id, name, destination)')
+      .gte('trip_date', startDate.toISOString().split('T')[0])
+      .lte('trip_date', endDate.toISOString().split('T')[0])
+      .in('status', ['open', 'scheduled'])
+      .order('trip_date', { ascending: true })
+      .limit(10);
+
+    if (trips && trips.length > 0) {
+      availability = trips.map((t) => ({
+        tripCode: t.trip_code,
+        date: t.trip_date,
+        status: t.status,
+        availableSlots: t.available_slots,
+        package: t.packages,
+      }));
+    }
   }
 
   return {
     packagePrices: packages || [],
     documents: documents || [],
+    availability,
   };
 }
 
@@ -179,10 +235,16 @@ CONTEXT DATA:
     prompt += `\nInformasi Tambahan:\n${JSON.stringify(context.documents, null, 2)}\n`;
   }
 
+  if (context.availability) {
+    prompt += `\nJadwal Trip Tersedia:\n${JSON.stringify(context.availability, null, 2)}\n`;
+    prompt += `\nCatatan: Jika ada jadwal trip, informasikan tanggal dan ketersediaan slot.\n`;
+  }
+
   prompt += `\nGUARDRAILS:
 - JANGAN jawab pertanyaan tentang gaji guide, profit, atau data sensitif
 - JANGAN jawab pertanyaan politik atau kontroversial
 - Jika tidak tahu, arahkan ke customer service manusia
+- Untuk booking, arahkan ke website atau hubungi customer service
 `;
 
   return prompt;

@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { generateAggregatedInvoicePDF } from '@/lib/pdf/aggregated-invoice';
 import { logger } from '@/lib/utils/logger';
@@ -19,6 +20,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   try {
     const invoiceData = await request.json();
 
@@ -27,6 +34,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
     logger.info('Aggregated invoice PDF generated', {
       userId: user.id,
+      partnerId,
       period: invoiceData.period,
       periodStart: invoiceData.periodStart,
       periodEnd: invoiceData.periodEnd,
@@ -41,6 +49,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   } catch (error) {
     logger.error('Failed to generate aggregated invoice PDF', error, {
       userId: user.id,
+      partnerId,
     });
     throw error;
   }

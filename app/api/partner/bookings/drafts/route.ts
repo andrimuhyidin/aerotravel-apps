@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -20,8 +21,15 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get('limit') || '10');
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
+  // Sanitize search params
+  const searchParams = sanitizeSearchParams(request);
+  const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
 
   const client = supabase as unknown as any;
 
@@ -51,7 +59,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
           thumbnail_url
         )
       `)
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .gt('expires_at', new Date().toISOString())
       .order('updated_at', { ascending: false })
       .limit(limit);
@@ -79,7 +87,21 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
+  
+  // Sanitize input
+  const sanitizedBody = sanitizeRequestBody(body, {
+    strings: ['customerName', 'specialRequests'],
+    emails: ['customerEmail'],
+    phones: ['customerPhone'],
+  });
+  
   const {
     draftId,
     packageId,
@@ -93,7 +115,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     infantPax = 0,
     specialRequests,
     formData, // Complete form state
-  } = body;
+  } = sanitizedBody;
 
   const client = supabase as unknown as any;
 
@@ -107,7 +129,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     }
 
     const draftData = {
-      partner_id: user.id,
+      partner_id: partnerId,
       package_id: packageId || null,
       trip_date: tripDate || null,
       customer_id: customerId || null,
@@ -131,7 +153,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         .from('booking_drafts')
         .update(draftData)
         .eq('id', draftId)
-        .eq('partner_id', user.id)
+        .eq('partner_id', partnerId)
         .select()
         .single();
 

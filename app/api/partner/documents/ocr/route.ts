@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 import { scanSIUP, scanNPWP } from '@/lib/ai/document-scanner';
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -28,6 +29,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Verify partner access
+  const { isPartner } = await verifyPartnerAccess(user.id);
+  if (!isPartner) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
   }
 
   try {

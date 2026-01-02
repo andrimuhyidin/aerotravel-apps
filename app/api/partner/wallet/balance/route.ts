@@ -3,10 +3,12 @@
  * GET /api/partner/wallet/balance
  */
 
+import { NextRequest, NextResponse } from 'next/server';
+
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
-import { NextRequest, NextResponse } from 'next/server';
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
@@ -19,13 +21,22 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   const client = supabase as unknown as any;
 
   try {
     const { data, error } = await client
       .from('mitra_wallets')
       .select('balance, credit_limit, credit_used')
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId) // Use verified partnerId
       .maybeSingle();
 
     if (error) {

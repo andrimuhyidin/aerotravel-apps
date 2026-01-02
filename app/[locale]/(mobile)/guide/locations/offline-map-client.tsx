@@ -27,6 +27,9 @@ const LOCATION_TYPE_LABELS: Record<LocationPoint['type'], string> = {
   snorkeling_spot: 'Spot Snorkeling',
   backup_dock: 'Dermaga Cadangan',
   landmark: 'Landmark',
+  activity: 'Aktivitas',
+  island: 'Pulau',
+  restaurant: 'Restoran',
 };
 
 const LOCATION_TYPE_COLORS: Record<LocationPoint['type'], string> = {
@@ -34,6 +37,9 @@ const LOCATION_TYPE_COLORS: Record<LocationPoint['type'], string> = {
   snorkeling_spot: 'bg-blue-500',
   backup_dock: 'bg-amber-500',
   landmark: 'bg-purple-500',
+  activity: 'bg-orange-500',
+  island: 'bg-teal-500',
+  restaurant: 'bg-rose-500',
 };
 
 type DangerZone = {

@@ -4,7 +4,9 @@ import { logger } from '@/lib/utils/logger';
 import {
   parseWebhookPayload,
   verifyWebhookSignature,
+  sendTextMessage,
 } from '@/lib/integrations/whatsapp';
+import { processWhatsAppMessage } from '@/lib/ai/whatsapp-bot';
 
 /**
  * Webhook handler untuk Meta WhatsApp Cloud API
@@ -58,9 +60,20 @@ export async function POST(request: NextRequest) {
         messageId: message.messageId,
       });
 
-      // TODO: Process message dengan AeroBot (Gemini)
-      // const response = await generateRAGResponse(message.message, message.from);
-      // await sendTextMessage(message.from, response);
+      // Process message with AI bot
+      const botResponse = await processWhatsAppMessage(message.message, message.from);
+      
+      // Send response via WhatsApp
+      await sendTextMessage(message.from, botResponse.text);
+      
+      // If needs human attention, send additional message
+      if (botResponse.needsHuman) {
+        await sendTextMessage(
+          message.from,
+          'Admin kami akan segera menghubungi Anda untuk membantu lebih lanjut. Mohon tunggu ya! 🙏'
+        );
+        logger.info('WhatsApp message escalated to human', { from: message.from });
+      }
     }
 
     // Always return 200 to acknowledge receipt

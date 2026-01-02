@@ -3,12 +3,16 @@
 /**
  * Guide Trips List Client
  * Menampilkan daftar trip dengan filter berdasarkan status
+ * 
+ * Performance Optimizations:
+ * - TripCard: Memoized to prevent re-renders on filter changes
+ * - useMemo: For date filtering and trip filtering
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Calendar, CheckCircle2, ChevronRight, Clock, DollarSign, RefreshCw, Users, XCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 
 import { HorizontalDatePicker } from '@/components/guide/horizontal-date-picker';
 import { Button } from '@/components/ui/button';
@@ -103,6 +107,174 @@ const REJECTION_REASONS = [
   { value: 'not_available', label: 'Tidak Tersedia' },
   { value: 'other', label: 'Lainnya' },
 ];
+
+// Countdown timer for pending trips
+function getTimeRemaining(deadline: string | null | undefined): string | null {
+  if (!deadline) return null;
+  const now = new Date();
+  const deadlineDate = new Date(deadline);
+  const diff = deadlineDate.getTime() - now.getTime();
+
+  if (diff <= 0) return 'Deadline lewat';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} menit lagi`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} jam lagi`;
+  return `${Math.floor(diff / 86400000)} hari lagi`;
+}
+
+// Memoized TripCard component for performance
+type TripCardProps = {
+  trip: TripItem;
+  locale: string;
+  onConfirmClick: (trip: TripItem) => void;
+};
+
+const TripCard = memo(function TripCard({ trip, locale, onConfirmClick }: TripCardProps) {
+  const tripStatus = trip.status || 'upcoming';
+  const status = getStatusLabel(tripStatus);
+  let tripDate: Date;
+  try {
+    tripDate = new Date(trip.date);
+    if (isNaN(tripDate.getTime())) {
+      tripDate = new Date();
+    }
+  } catch {
+    tripDate = new Date();
+  }
+  const day = tripDate.getDate().toString().padStart(2, '0');
+  const month = tripDate.toLocaleDateString('id-ID', { month: 'short' });
+  const formattedDate = tripDate.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  const tripName = trip.name || trip.code || 'Trip';
+  const tripCode = trip.code || trip.id;
+
+  return (
+    <Card className="group border-0 bg-white shadow-sm ring-1 ring-slate-100 transition-all duration-300 hover:shadow-lg hover:ring-emerald-200/50 active:scale-[0.98]">
+      <CardContent className="p-5">
+        <div className="flex items-start gap-4">
+          {/* Date Badge - Enhanced */}
+          <div className="relative flex h-16 w-16 flex-shrink-0 flex-col items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-400 to-teal-500 shadow-md shadow-emerald-200/50 transition-transform duration-300 group-hover:scale-105">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+            <span className="relative text-xl font-bold text-white drop-shadow-sm">{day}</span>
+            <span className="relative text-[10px] font-semibold uppercase text-emerald-50 drop-shadow-sm">
+              {month}
+            </span>
+          </div>
+
+          {/* Trip Info */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate text-base font-bold leading-tight text-slate-900 group-hover:text-emerald-700 transition-colors">
+                  {tripName}
+                </h3>
+                <p className="mt-1 text-xs font-medium text-slate-500">Kode: {tripCode}</p>
+              </div>
+              <div className="flex flex-col items-end gap-1.5">
+                {trip.assignment_status === 'pending_confirmation' && (
+                  <span className="flex-shrink-0 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 px-3 py-1 text-[10px] font-semibold text-amber-800 shadow-sm ring-1 ring-amber-200/50">
+                    Butuh Konfirmasi
+                  </span>
+                )}
+                <span
+                  className={cn(
+                    'flex-shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold shadow-sm ring-1',
+                    status.className,
+                    'ring-opacity-50',
+                  )}
+                >
+                  {status.text}
+                </span>
+              </div>
+            </div>
+
+            {/* Pending Confirmation Info */}
+            {trip.assignment_status === 'pending_confirmation' && trip.confirmation_deadline && (
+              <div className="mt-3 space-y-2">
+                {/* Fee Info - Prominent for transparency */}
+                {trip.fee_amount && (
+                  <div className="rounded-xl border border-emerald-200/60 bg-gradient-to-r from-emerald-50/80 to-teal-50/50 p-3 shadow-sm ring-1 ring-emerald-100/50">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
+                        <DollarSign className="h-4 w-4 text-emerald-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-emerald-900">Estimasi Fee</p>
+                        <p className="mt-0.5 text-sm font-bold text-emerald-700">
+                          Rp {Number(trip.fee_amount).toLocaleString('id-ID')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* Deadline Info */}
+                <div className="rounded-xl border border-amber-200/60 bg-gradient-to-r from-amber-50/80 to-orange-50/50 p-3 shadow-sm ring-1 ring-amber-100/50">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
+                        <Clock className="h-4 w-4 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-amber-900">
+                          {getTimeRemaining(trip.confirmation_deadline) || 'Deadline lewat'}
+                        </p>
+                        <p className="text-[10px] text-amber-700/70">Batas konfirmasi</p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="h-8 bg-amber-600 text-xs font-semibold text-white shadow-sm hover:bg-amber-700"
+                      onClick={() => onConfirmClick(trip)}
+                    >
+                      Konfirmasi
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+              <div className="flex flex-wrap items-center gap-4 text-xs">
+                <div className="flex items-center gap-2 text-slate-600">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-100">
+                    <Clock className="h-3.5 w-3.5 text-slate-500" />
+                  </div>
+                  <span className="font-medium">{formattedDate}</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-600">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-100">
+                    <Users className="h-3.5 w-3.5 text-slate-500" />
+                  </div>
+                  <span className="font-medium">{trip.guests} tamu</span>
+                </div>
+                {/* Fee Display - Always visible for transparency */}
+                {trip.fee_amount && (
+                  <div className="flex items-center gap-2 text-emerald-600">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-100">
+                      <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
+                    </div>
+                    <span className="font-semibold">
+                      Rp {Number(trip.fee_amount).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <Link
+                href={`/${locale}/guide/trips/${trip.code}`}
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 transition-all hover:bg-emerald-100 hover:scale-110 active:scale-95"
+              >
+                <ChevronRight className="h-5 w-5" aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
 
 export function TripsClient({ locale }: TripsClientProps) {
   const [filter, setFilter] = useState<FilterStatus>('all');
@@ -200,18 +372,11 @@ export function TripsClient({ locale }: TripsClientProps) {
       ? dateFilteredTrips
       : dateFilteredTrips.filter((trip) => trip.status === filter);
 
-  // Countdown timer for pending trips
-  const getTimeRemaining = (deadline: string | null | undefined): string | null => {
-    if (!deadline) return null;
-    const now = new Date();
-    const deadlineDate = new Date(deadline);
-    const diff = deadlineDate.getTime() - now.getTime();
-
-    if (diff <= 0) return 'Deadline lewat';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)} menit lagi`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)} jam lagi`;
-    return `${Math.floor(diff / 86400000)} hari lagi`;
-  };
+  // Memoized handler for confirm dialog
+  const handleConfirmClick = useCallback((trip: TripItem) => {
+    setSelectedTrip(trip);
+    setConfirmDialogOpen(true);
+  }, []);
 
   const refetchTrips = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.guide.trips.all() });
@@ -318,7 +483,7 @@ export function TripsClient({ locale }: TripsClientProps) {
         })}
       </div>
 
-      {/* Trips List */}
+      {/* Trips List - Using memoized TripCard for performance */}
       {filteredTrips.length === 0 ? (
         <EmptyState
           icon={Calendar}
@@ -338,156 +503,13 @@ export function TripsClient({ locale }: TripsClientProps) {
         <div className="space-y-3">
           {filteredTrips.map((trip) => {
             if (!trip || !trip.id || !trip.date) return null;
-            const tripStatus = trip.status || 'upcoming';
-            const status = getStatusLabel(tripStatus);
-            let tripDate: Date;
-            try {
-              tripDate = new Date(trip.date);
-              if (isNaN(tripDate.getTime())) {
-                tripDate = new Date();
-              }
-            } catch {
-              tripDate = new Date();
-            }
-            const day = tripDate.getDate().toString().padStart(2, '0');
-            const month = tripDate.toLocaleDateString('id-ID', { month: 'short' });
-            const formattedDate = tripDate.toLocaleDateString('id-ID', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            });
-            const tripName = trip.name || trip.code || 'Trip';
-            const tripCode = trip.code || trip.id;
-            const tripGuests = trip.guests ?? 0;
-
             return (
-              <Card
+              <TripCard
                 key={trip.id}
-                className="group border-0 bg-white shadow-sm ring-1 ring-slate-100 transition-all duration-300 hover:shadow-lg hover:ring-emerald-200/50 active:scale-[0.98]"
-              >
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-4">
-                    {/* Date Badge - Enhanced */}
-                    <div className="relative flex h-16 w-16 flex-shrink-0 flex-col items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-400 to-teal-500 shadow-md shadow-emerald-200/50 transition-transform duration-300 group-hover:scale-105">
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
-                      <span className="relative text-xl font-bold text-white drop-shadow-sm">{day}</span>
-                      <span className="relative text-[10px] font-semibold uppercase text-emerald-50 drop-shadow-sm">
-                        {month}
-                      </span>
-                    </div>
-
-                    {/* Trip Info */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <h3 className="truncate text-base font-bold leading-tight text-slate-900 group-hover:text-emerald-700 transition-colors">
-                            {tripName}
-                          </h3>
-                          <p className="mt-1 text-xs font-medium text-slate-500">Kode: {tripCode}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1.5">
-                          {trip.assignment_status === 'pending_confirmation' && (
-                            <span className="flex-shrink-0 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 px-3 py-1 text-[10px] font-semibold text-amber-800 shadow-sm ring-1 ring-amber-200/50">
-                              Butuh Konfirmasi
-                            </span>
-                          )}
-                          <span
-                            className={cn(
-                              'flex-shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold shadow-sm ring-1',
-                              status.className,
-                              'ring-opacity-50',
-                            )}
-                          >
-                            {status.text}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Pending Confirmation Info */}
-                      {trip.assignment_status === 'pending_confirmation' && trip.confirmation_deadline && (
-                        <div className="mt-3 space-y-2">
-                          {/* Fee Info - Prominent for transparency */}
-                          {trip.fee_amount && (
-                            <div className="rounded-xl border border-emerald-200/60 bg-gradient-to-r from-emerald-50/80 to-teal-50/50 p-3 shadow-sm ring-1 ring-emerald-100/50">
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
-                                  <DollarSign className="h-4 w-4 text-emerald-600" />
-                                </div>
-                                <div className="flex-1">
-                                  <p className="text-xs font-semibold text-emerald-900">Estimasi Fee</p>
-                                  <p className="mt-0.5 text-sm font-bold text-emerald-700">
-                                    Rp {Number(trip.fee_amount).toLocaleString('id-ID')}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          {/* Deadline Info */}
-                          <div className="rounded-xl border border-amber-200/60 bg-gradient-to-r from-amber-50/80 to-orange-50/50 p-3 shadow-sm ring-1 ring-amber-100/50">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
-                                  <Clock className="h-4 w-4 text-amber-600" />
-                                </div>
-                                <div>
-                                  <p className="text-xs font-semibold text-amber-900">
-                                    {getTimeRemaining(trip.confirmation_deadline) || 'Deadline lewat'}
-                                  </p>
-                                  <p className="text-[10px] text-amber-700/70">Batas konfirmasi</p>
-                                </div>
-                              </div>
-                              <Button
-                                size="sm"
-                                className="h-8 bg-amber-600 text-xs font-semibold text-white shadow-sm hover:bg-amber-700"
-                                onClick={() => {
-                                  setSelectedTrip(trip);
-                                  setConfirmDialogOpen(true);
-                                }}
-                              >
-                                Konfirmasi
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-                        <div className="flex flex-wrap items-center gap-4 text-xs">
-                          <div className="flex items-center gap-2 text-slate-600">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-100">
-                              <Clock className="h-3.5 w-3.5 text-slate-500" />
-                            </div>
-                            <span className="font-medium">{formattedDate}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-slate-600">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-100">
-                              <Users className="h-3.5 w-3.5 text-slate-500" />
-                            </div>
-                            <span className="font-medium">{trip.guests} tamu</span>
-                          </div>
-                          {/* Fee Display - Always visible for transparency */}
-                          {trip.fee_amount && (
-                            <div className="flex items-center gap-2 text-emerald-600">
-                              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-100">
-                                <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
-                              </div>
-                              <span className="font-semibold">
-                                Rp {Number(trip.fee_amount).toLocaleString('id-ID')}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <Link
-                          href={`/${locale}/guide/trips/${trip.code}`}
-                          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 transition-all hover:bg-emerald-100 hover:scale-110 active:scale-95"
-                        >
-                          <ChevronRight className="h-5 w-5" aria-hidden="true" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                trip={trip}
+                locale={locale}
+                onConfirmClick={handleConfirmClick}
+              />
             );
           })}
         </div>

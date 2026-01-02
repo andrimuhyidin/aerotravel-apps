@@ -30,6 +30,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { extractEXIFFromFile } from '@/lib/utils/exif-extractor';
 import { logger } from '@/lib/utils/logger';
+import { EquipmentPredictorCard } from './equipment-predictor-card';
 
 type EquipmentChecklistClientProps = {
   tripId: string;
@@ -522,6 +523,9 @@ export function EquipmentChecklistClient({
           </div>
         </CardContent>
       </Card>
+
+      {/* AI Predictive Maintenance */}
+      <EquipmentPredictorCard tripId={tripId} locale={locale} />
 
       {/* Equipment Items */}
       <div className="space-y-3">

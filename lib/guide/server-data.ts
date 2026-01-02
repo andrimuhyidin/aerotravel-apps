@@ -410,14 +410,40 @@ export async function fetchGuideStats(userId: string) {
             return key === yearMonthKey;
           }).length ?? 0;
 
+        // Get complaints count from guide_feedbacks
+        let complaintsCount = 0;
+        try {
+          const { count: complaintsTotal } = await client
+            .from('guide_feedbacks')
+            .select('id', { count: 'exact', head: true })
+            .eq('guide_id', userId)
+            .eq('feedback_type', 'complaint');
+          complaintsCount = complaintsTotal || 0;
+        } catch {
+          // Table might not exist
+        }
+
+        // Get penalties count from salary_deductions
+        let penaltiesCount = 0;
+        try {
+          const { count: penaltiesTotal } = await client
+            .from('salary_deductions')
+            .select('id', { count: 'exact', head: true })
+            .eq('guide_id', userId)
+            .eq('is_applied', true);
+          penaltiesCount = penaltiesTotal || 0;
+        } catch {
+          // Table might not exist
+        }
+
         // Calculate level and badges
         const level = calculateLevel(totalTrips ?? 0);
         const badges = calculateBadges({
           totalTrips: totalTrips ?? 0,
           averageRating,
           totalRatings,
-          complaints: 0, // TODO: Calculate from complaints table
-          penalties: 0, // TODO: Calculate from penalties table
+          complaints: complaintsCount,
+          penalties: penaltiesCount,
         });
         const levelProgress = calculateLevelProgress(totalTrips ?? 0, level);
         const tripsNeededForNextLevel = getTripsNeededForNextLevel(

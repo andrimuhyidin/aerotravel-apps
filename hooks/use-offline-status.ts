@@ -56,5 +56,9 @@ export function useOfflineStatus() {
     };
   }, []);
 
-  return { online, pending };
+  // Alias for compatibility with PWA settings
+  const isOnline = online;
+  const isOfflineReady = typeof window !== 'undefined' && 'serviceWorker' in navigator;
+
+  return { online, pending, isOnline, isOfflineReady };
 }

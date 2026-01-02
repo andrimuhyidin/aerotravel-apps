@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -26,6 +27,12 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
 
   try {
@@ -33,7 +40,7 @@ export const GET = withErrorHandler(async (
       .from('partner_support_tickets')
       .select('id, subject, description, category, status, priority, messages, submitted_at, first_response_at, resolved_at, response_sla_hours, created_at, updated_at')
       .eq('id', ticketId)
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .single();
 
     if (error || !ticket) {
@@ -68,6 +75,12 @@ export const PUT = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
   const { status, priority } = body;
 
@@ -79,7 +92,7 @@ export const PUT = withErrorHandler(async (
       .from('partner_support_tickets')
       .select('id, status')
       .eq('id', ticketId)
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .single();
 
     if (!existingTicket) {

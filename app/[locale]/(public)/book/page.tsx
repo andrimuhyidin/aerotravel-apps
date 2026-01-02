@@ -25,12 +25,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   setRequestLocale(locale);
   const t = await getTranslations('booking');
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
-  
+
+  const title = `${t('title')} - Aero Travel`;
+  const description = 'Book your travel package with our easy booking wizard.';
+
   return {
-    title: `${t('title')} - Aero Travel`,
-    description: 'Book your travel package with our easy booking wizard.',
+    title,
+    description,
     alternates: {
       canonical: `${baseUrl}/${locale}/book`,
+      languages: {
+        id: `${baseUrl}/id/book`,
+        en: `${baseUrl}/en/book`,
+        'x-default': `${baseUrl}/id/book`,
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${baseUrl}/${locale}/book`,
+      siteName: 'MyAeroTravel ID',
+      images: [{ url: `${baseUrl}/og-image.jpg`, width: 1200, height: 630 }],
+      locale: locale === 'id' ? 'id_ID' : 'en_US',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`${baseUrl}/og-image.jpg`],
     },
   };
 }

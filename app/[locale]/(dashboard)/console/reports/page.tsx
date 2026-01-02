@@ -5,9 +5,12 @@
 
 import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
+
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
 import { locales } from '@/i18n';
+
+import { ReportsClient } from './reports-client';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -39,14 +42,8 @@ export default async function ConsoleReportsPage({ params }: PageProps) {
   return (
     <Section>
       <Container>
-        <div className="py-8">
-          <h1 className="text-3xl font-bold mb-6">Reports</h1>
-          
-          <div className="bg-muted p-8 rounded-lg">
-            <p className="text-muted-foreground">
-              Reports page will be implemented here.
-            </p>
-          </div>
+        <div className="py-6">
+          <ReportsClient />
         </div>
       </Container>
     </Section>

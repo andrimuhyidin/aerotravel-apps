@@ -6,6 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkPackageAvailability, getNextAvailableDates } from '@/lib/availability/availability-service';
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
+import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { z } from 'zod';
 
@@ -22,10 +24,23 @@ export const GET = withErrorHandler(
     request: NextRequest,
     context: { params: Promise<{ id: string }> }
   ) => {
-    const { id: packageId } = await context.params;
-    const { searchParams } = new URL(request.url);
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    logger.info('GET /api/partner/packages/[id]/availability', { packageId });
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify partner access
+    const { isPartner } = await verifyPartnerAccess(user.id);
+    if (!isPartner) {
+      return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+    }
+
+    const { id: packageId } = await context.params;
+    const searchParams = sanitizeSearchParams(request);
+
+    logger.info('GET /api/partner/packages/[id]/availability', { packageId, userId: user.id });
 
     try {
       // Parse and validate query params

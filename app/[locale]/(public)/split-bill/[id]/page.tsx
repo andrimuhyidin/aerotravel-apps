@@ -3,21 +3,20 @@
  * PRD 5.1.A - Split Bill (Digital Group Payment)
  *
  * Route: /split-bill/[id]
- * Access: Public (via unique link) or Protected (if logged in)
+ * Access: Public (via unique link)
  */
 
 import { Metadata } from 'next';
-import { Container } from '@/components/layout/container';
-import { Section } from '@/components/layout/section';
-import { locales } from '@/i18n';
+import { setRequestLocale } from 'next-intl/server';
 
-type PageProps = {
-  params: Promise<{ locale: string }>;
-};
+import { locales } from '@/i18n';
+import { SplitBillClient } from './split-bill-client';
 
 type Props = {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 };
+
+export const dynamic = 'force-dynamic';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -26,39 +25,14 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   return {
-    title: `Split Bill Trip #${id} - Aero Travel`,
+    title: `Split Bill #${id.slice(0, 8)} - Aero Travel`,
+    description: 'Patungan bayar trip bareng teman dengan mudah',
   };
 }
 
 export default async function SplitBillPage({ params }: Props) {
-  const { id } = await params;
+  const { locale, id } = await params;
+  setRequestLocale(locale);
 
-  // TODO: Fetch split bill data
-  // TODO: Show group leader info */}
-  // TODO: Show payment status per person (real-time tracking) */}
-  // TODO: Show countdown timer (24 hours) */}
-  // TODO: Payment link per person */}
-  // TODO: Group leader actions (pay remainder, cancel) */}
-
-  return (
-    <Section>
-      <Container>
-        <div className="py-8">
-          <h1 className="mb-6 text-3xl font-bold">Split Bill Trip #{id}</h1>
-
-          {/* TODO: Group info */}
-          {/* TODO: Payment status grid (who paid, who hasn't) */}
-          {/* TODO: Individual payment links */}
-          {/* TODO: Timer countdown */}
-          {/* TODO: Group leader controls */}
-
-          <div className="rounded-lg bg-muted p-8">
-            <p className="text-muted-foreground">
-              Split bill page will be implemented here.
-            </p>
-          </div>
-        </div>
-      </Container>
-    </Section>
-  );
+  return <SplitBillClient splitBillId={id} locale={locale} />;
 }

@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run type check before commit
+echo "Running TypeScript type check..."
+npm run type-check
+
+# If type check fails, prevent commit
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript errors found! Please fix them before committing."
+  echo "To skip this check (not recommended), use: git commit --no-verify"
+  exit 1
+fi
+
+echo "✅ TypeScript type check passed!"
+

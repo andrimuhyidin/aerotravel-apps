@@ -6,6 +6,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -27,6 +28,12 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
 
   try {
@@ -34,7 +41,7 @@ export const GET = withErrorHandler(async (
       .from('partner_users')
       .select('*')
       .eq('id', teamMemberId)
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .is('deleted_at', null)
       .single();
 
@@ -50,7 +57,7 @@ export const GET = withErrorHandler(async (
       const { data: bookings } = await client
         .from('bookings')
         .select('id, total_amount, nta_total, created_at')
-        .eq('mitra_id', user.id)
+        .eq('mitra_id', partnerId)
         .eq('created_by', teamMember.user_id || teamMember.id)
         .is('deleted_at', null);
 
@@ -99,8 +106,15 @@ export const PUT = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
-  const { name, phone, role, permissions, is_active } = body;
+  const sanitizedBody = sanitizeRequestBody(body, { strings: ['name'], phones: ['phone'] });
+  const { name, phone, role, permissions, is_active } = sanitizedBody;
 
   const client = supabase as unknown as any;
 
@@ -118,7 +132,7 @@ export const PUT = withErrorHandler(async (
     const { data: currentUser } = await client
       .from('partner_users')
       .select('role')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .eq('user_id', user.id)
       .is('deleted_at', null)
       .maybeSingle();
@@ -138,7 +152,7 @@ export const PUT = withErrorHandler(async (
       .from('partner_users')
       .select('id')
       .eq('id', teamMemberId)
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .is('deleted_at', null)
       .single();
 
@@ -208,6 +222,12 @@ export const DELETE = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
 
   try {
@@ -224,7 +244,7 @@ export const DELETE = withErrorHandler(async (
     const { data: currentUser } = await client
       .from('partner_users')
       .select('role')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .eq('user_id', user.id)
       .is('deleted_at', null)
       .maybeSingle();
@@ -244,7 +264,7 @@ export const DELETE = withErrorHandler(async (
       .from('partner_users')
       .select('id')
       .eq('id', teamMemberId)
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .is('deleted_at', null)
       .single();
 

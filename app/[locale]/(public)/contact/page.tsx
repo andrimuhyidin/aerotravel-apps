@@ -8,6 +8,7 @@ import { Metadata, Viewport } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 
 import { Container } from '@/components/layout/container';
+import { JsonLd } from '@/components/seo/json-ld';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,12 +38,42 @@ export async function generateMetadata({
   setRequestLocale(locale);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
 
+  const title = 'Hubungi Kami - Aero Travel';
+  const description =
+    'Hubungi tim Aero Travel untuk informasi paket wisata, booking, atau pertanyaan lainnya.';
+
   return {
-    title: 'Hubungi Kami - Aero Travel',
-    description:
-      'Hubungi tim Aero Travel untuk informasi paket wisata, booking, atau pertanyaan lainnya.',
+    title,
+    description,
     alternates: {
       canonical: `${baseUrl}/${locale}/contact`,
+      languages: {
+        id: `${baseUrl}/id/contact`,
+        en: `${baseUrl}/en/contact`,
+        'x-default': `${baseUrl}/id/contact`,
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${baseUrl}/${locale}/contact`,
+      siteName: 'MyAeroTravel ID',
+      images: [
+        {
+          url: `${baseUrl}/og-image.jpg`,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+      locale: locale === 'id' ? 'id_ID' : 'en_US',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`${baseUrl}/og-image.jpg`],
     },
   };
 }
@@ -78,9 +109,48 @@ export default async function ContactPage({ params }: PageProps) {
     },
   ];
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
+
+  // ContactPage structured data
+  const contactPageSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    name: 'Hubungi Aero Travel',
+    description:
+      'Hubungi tim Aero Travel untuk informasi paket wisata, booking, atau pertanyaan lainnya.',
+    url: `${baseUrl}/${locale}/contact`,
+    mainEntity: {
+      '@type': 'TravelAgency',
+      name: 'Aero Travel',
+      telephone: '+62 812 3456 7890',
+      email: 'info@aerotravel.co.id',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Bandar Lampung',
+        addressCountry: 'ID',
+      },
+      openingHoursSpecification: {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: [
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+          'Sunday',
+        ],
+        opens: '08:00',
+        closes: '21:00',
+      },
+    },
+  };
+
   return (
-    <Container className="py-6">
-      {/* Hero */}
+    <>
+      <JsonLd data={contactPageSchema} />
+      <Container className="py-6">
+        {/* Hero */}
       <div className="mb-6 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
           <MessageCircle className="h-8 w-8 text-primary" />
@@ -206,5 +276,6 @@ export default async function ContactPage({ params }: PageProps) {
         </CardContent>
       </Card>
     </Container>
+    </>
   );
 }

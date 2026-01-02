@@ -7,6 +7,7 @@ import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { trackLogin } from '@/lib/analytics/identity';
 import { resendConfirmation, signInWithGoogle } from '@/lib/actions/auth';
 
 type LoginFormProps = {
@@ -45,6 +46,9 @@ export function LoginForm({ locale }: LoginFormProps) {
             setShowResend(true);
           }
         } else if (result.success) {
+          // Track successful login
+          trackLogin(result.userId || 'unknown', 'customer', 'email');
+          
           // Redirect on success
           window.location.href = result.redirectPath;
         }

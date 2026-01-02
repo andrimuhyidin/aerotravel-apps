@@ -4,12 +4,14 @@
  * POST /api/partner/travel-circle - Create travel circle
  */
 
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { sanitizeRequestBody, sanitizeSearchParams, verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createTravelCircle, getTravelCircle } from '@/lib/partner/travel-circle';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 
 const createCircleSchema = z.object({
   name: z.string().min(3).max(255),
@@ -31,16 +33,26 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
-  const status = searchParams.get('status'); // 'active', 'completed', 'cancelled'
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '20');
+  const sanitizedParams = sanitizeSearchParams(searchParams);
+  const status = sanitizedParams.status || null; // 'active', 'completed', 'cancelled'
+  const page = parseInt(sanitizedParams.page || '1');
+  const limit = Math.min(parseInt(sanitizedParams.limit || '20'), 100);
   const offset = (page - 1) * limit;
 
   const client = supabase as unknown as any;
 
   try {
-    // Get circles where user is creator or member
+    // Get circles where user is creator or member (use verified partnerId)
     let query = client
       .from('travel_circles')
       .select(
@@ -50,7 +62,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       `,
         { count: 'exact' }
       )
-      .or(`created_by.eq.${user.id},members.user_id.eq.${user.id}`);
+      .or(`created_by.eq.${partnerId},members.user_id.eq.${partnerId}`);
 
     // Filter by status
     if (status && status !== 'all') {
@@ -141,15 +153,29 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   const body = await request.json();
-  const data = createCircleSchema.parse(body);
+  const validated = createCircleSchema.parse(body);
+
+  // Sanitize validated data
+  const data = sanitizeRequestBody(validated, {
+    strings: ['name', 'description', 'preferredDestination'],
+  });
 
   try {
-    // Get partner branch_id
+    // Get partner branch_id using verified partnerId
     const { data: partner } = await supabase
       .from('users')
       .select('id, branch_id')
-      .eq('id', user.id)
+      .eq('id', partnerId)
       .single();
 
     // Validate target date is in the future
@@ -163,7 +189,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       );
     }
 
-    // Create circle
+    // Create circle using verified partnerId
     const result = await createTravelCircle({
       name: data.name,
       description: data.description,
@@ -171,7 +197,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       targetDate: data.targetDate,
       packageId: data.packageId,
       preferredDestination: data.preferredDestination,
-      createdBy: user.id,
+      createdBy: partnerId,
       branchId: partner?.branch_id || null,
     });
 

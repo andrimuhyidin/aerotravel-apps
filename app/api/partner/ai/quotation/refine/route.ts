@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { refineQuotation, type RefinementRequest } from '@/lib/ai/quotation-refinement';
 import { aiChatRateLimit } from '@/lib/integrations/rate-limit';
 import { createClient } from '@/lib/supabase/server';
@@ -32,8 +33,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner } = await verifyPartnerAccess(user.id);
+  if (!isPartner) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
-  const { originalQuotation, refinementPrompt, conversationHistory } = refineSchema.parse(body);
+  const sanitizedBody = sanitizeRequestBody(body, { strings: ['refinementPrompt'] });
+  const { originalQuotation, refinementPrompt, conversationHistory } = refineSchema.parse(sanitizedBody);
 
   // Rate limiting
   const { success, limit, remaining } = await aiChatRateLimit.limit(user.id);

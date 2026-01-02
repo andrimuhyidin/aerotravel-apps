@@ -8,17 +8,21 @@ import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 
+import { BrowsePackagesTracker } from '@/components/analytics/page-journey-tracker';
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
+import { JsonLd } from '@/components/seo/json-ld';
 import { Button } from '@/components/ui/button';
 // Filter removed - search is in header
 import { locales } from '@/i18n';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ q?: string; category?: string }>;
 };
 
-export const dynamic = 'force-dynamic';
+// ISR - Revalidate every 5 minutes for better performance
+export const revalidate = 300;
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -31,18 +35,49 @@ export async function generateMetadata({
   setRequestLocale(locale);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
 
+  const title = 'Paket Wisata - Aero Travel';
+  const description =
+    'Pilih paket wisata bahari terbaik. Pahawang, Kiluan, Labuan Bajo, dan destinasi eksotis lainnya.';
+
   return {
-    title: 'Paket Wisata - Aero Travel',
-    description:
-      'Pilih paket wisata bahari terbaik. Pahawang, Kiluan, Labuan Bajo, dan destinasi eksotis lainnya.',
+    title,
+    description,
     alternates: {
       canonical: `${baseUrl}/${locale}/packages`,
+      languages: {
+        id: `${baseUrl}/id/packages`,
+        en: `${baseUrl}/en/packages`,
+        'x-default': `${baseUrl}/id/packages`,
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${baseUrl}/${locale}/packages`,
+      siteName: 'MyAeroTravel ID',
+      images: [
+        {
+          url: `${baseUrl}/og-image-packages.jpg`,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+      locale: locale === 'id' ? 'id_ID' : 'en_US',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`${baseUrl}/og-image-packages.jpg`],
     },
   };
 }
 
-export default async function PackagesPage({ params }: PageProps) {
+export default async function PackagesPage({ params, searchParams }: PageProps) {
   const { locale } = await params;
+  const { q: searchQuery, category } = await searchParams;
   setRequestLocale(locale);
 
   // Fetch packages from database
@@ -57,10 +92,13 @@ export default async function PackagesPage({ params }: PageProps) {
     province: string;
     duration_days: number;
     duration_nights: number;
+    average_rating: number | null;
+    review_count: number | null;
     package_prices: { price_publish: number }[];
   };
 
-  const { data } = await supabase
+  // Build query with filters
+  let query = supabase
     .from('packages')
     .select(
       `
@@ -71,13 +109,35 @@ export default async function PackagesPage({ params }: PageProps) {
       province,
       duration_days,
       duration_nights,
+      average_rating,
+      review_count,
       package_prices (
         price_publish
       )
     `
     )
-    .eq('status', 'published')
-    .order('created_at', { ascending: false });
+    .eq('status', 'published');
+
+  // Apply search filter
+  if (searchQuery) {
+    query = query.or(`name.ilike.%${searchQuery}%,destination.ilike.%${searchQuery}%,province.ilike.%${searchQuery}%`);
+  }
+
+  // Apply category filter
+  if (category && category !== 'semua') {
+    const categoryMap: Record<string, string> = {
+      lampung: 'Lampung',
+      ntt: 'Nusa Tenggara Timur',
+      papua: 'Papua',
+      jawa: 'Jawa',
+    };
+    const provinceName = categoryMap[category.toLowerCase()];
+    if (provinceName) {
+      query = query.ilike('province', `%${provinceName}%`);
+    }
+  }
+
+  const { data } = await query.order('created_at', { ascending: false });
 
   const dbPackages = data as PackageRow[] | null;
 
@@ -90,8 +150,8 @@ export default async function PackagesPage({ params }: PageProps) {
       name: pkg.name,
       location: pkg.province || 'Indonesia',
       price: lowestPrice,
-      rating: 4.8 + Math.random() * 0.2, // Placeholder
-      reviews: Math.floor(50 + Math.random() * 150), // Placeholder
+      rating: pkg.average_rating || 0,
+      reviews: pkg.review_count || 0,
       image: getPackageEmoji(pkg.destination),
       duration: `${pkg.duration_days} Hari ${pkg.duration_nights} Malam`,
     };
@@ -119,33 +179,91 @@ export default async function PackagesPage({ params }: PageProps) {
 
   // Destination categories
   const categories = [
-    { label: 'Semua', emoji: '🌊', active: true },
-    { label: 'Lampung', emoji: '🏝️', active: false },
-    { label: 'NTT', emoji: '🦎', active: false },
-    { label: 'Papua', emoji: '🪸', active: false },
-    { label: 'Jawa', emoji: '⛵', active: false },
+    { label: 'Semua', emoji: '🌊', value: 'semua' },
+    { label: 'Lampung', emoji: '🏝️', value: 'lampung' },
+    { label: 'NTT', emoji: '🦎', value: 'ntt' },
+    { label: 'Papua', emoji: '🪸', value: 'papua' },
+    { label: 'Jawa', emoji: '⛵', value: 'jawa' },
   ];
+  
+  const activeCategory = category?.toLowerCase() || 'semua';
+
+  // Generate ItemList schema for SEO
+  const itemListSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Paket Wisata Aero Travel',
+    description:
+      'Daftar paket wisata bahari terbaik di Indonesia',
+    numberOfItems: packages.length,
+    itemListElement: packages.slice(0, 10).map((pkg, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      item: {
+        '@type': 'Product',
+        name: pkg.name,
+        url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id'}/${locale}/packages/detail/${pkg.slug}`,
+        offers: {
+          '@type': 'Offer',
+          price: pkg.price,
+          priceCurrency: 'IDR',
+          availability: 'https://schema.org/InStock',
+        },
+        aggregateRating:
+          pkg.reviews > 0
+            ? {
+                '@type': 'AggregateRating',
+                ratingValue: pkg.rating,
+                reviewCount: pkg.reviews,
+              }
+            : undefined,
+      },
+    })),
+  };
 
   return (
-    <Section className="bg-slate-50 dark:bg-slate-950">
+    <>
+      <JsonLd data={itemListSchema} />
+      <BrowsePackagesTracker />
+      <Section className="bg-slate-50 dark:bg-slate-950">
       <Container className="p-0">
         <div className="flex min-h-screen flex-col">
+          {/* Search Bar */}
+          {searchQuery && (
+            <div className="bg-slate-50 px-4 py-2 dark:bg-slate-950">
+              <p className="text-xs text-muted-foreground">
+                Hasil pencarian: &quot;{searchQuery}&quot;
+                <Link href={`/${locale}/packages`} className="ml-2 text-primary hover:underline">
+                  Hapus
+                </Link>
+              </p>
+            </div>
+          )}
+
           {/* Category Chips - Sticky */}
           <div className="no-scrollbar sticky top-14 z-40 flex gap-2 overflow-x-auto bg-slate-50 px-4 py-3 dark:bg-slate-950">
-        {categories.map((cat) => (
-          <button
-            key={cat.label}
-            className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
-              cat.active
-                ? 'bg-primary text-white shadow-md shadow-primary/25'
-                : 'bg-white text-muted-foreground shadow-sm dark:bg-slate-800'
-            }`}
-          >
-            <span>{cat.emoji}</span>
-            {cat.label}
-          </button>
-        ))}
-      </div>
+            {categories.map((cat) => {
+              const isActive = cat.value === activeCategory;
+              const href = cat.value === 'semua' 
+                ? `/${locale}/packages${searchQuery ? `?q=${searchQuery}` : ''}`
+                : `/${locale}/packages?category=${cat.value}${searchQuery ? `&q=${searchQuery}` : ''}`;
+              
+              return (
+                <Link
+                  key={cat.label}
+                  href={href}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
+                    isActive
+                      ? 'bg-primary text-white shadow-md shadow-primary/25'
+                      : 'bg-white text-muted-foreground shadow-sm hover:bg-muted dark:bg-slate-800'
+                  }`}
+                >
+                  <span>{cat.emoji}</span>
+                  {cat.label}
+                </Link>
+              );
+            })}
+          </div>
 
       {/* Results Header */}
       <div className="flex items-center justify-between px-4 pb-3">
@@ -160,8 +278,21 @@ export default async function PackagesPage({ params }: PageProps) {
 
       {/* Package Cards - Premium Style */}
       <div className="px-4 pb-24">
+        {packages.length === 0 && (
+          <div className="py-12 text-center">
+            <p className="text-lg text-muted-foreground">Tidak ada paket yang ditemukan</p>
+            <Link href={`/${locale}/packages`} className="mt-2 inline-block text-sm text-primary hover:underline">
+              Lihat semua paket
+            </Link>
+          </div>
+        )}
         {packages.map((pkg, idx) => (
-          <Link key={pkg.id} href={`/${locale}/packages/detail/${pkg.slug}`} className="mb-6 block last:mb-0">
+          <Link 
+            key={pkg.id} 
+            href={`/${locale}/packages/detail/${pkg.slug}`} 
+            className="mb-6 block last:mb-0"
+            data-testid="package-card"
+          >
             <div className="group overflow-hidden rounded-2xl bg-white shadow-lg transition-all active:scale-[0.98] dark:bg-slate-800">
               {/* Image Header with Gradient Overlay */}
               <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-primary/20 to-blue-500/20">
@@ -216,5 +347,6 @@ export default async function PackagesPage({ params }: PageProps) {
         </div>
       </Container>
     </Section>
+    </>
   );
 }

@@ -46,8 +46,17 @@ export function InventoryClient() {
     setLoading(true);
     const itemsData = await getInventoryItems(branchId);
     setItems(itemsData);
-    // TODO: Implement anomaly detection when types are generated
-    setAnomalyCount(0);
+    
+    // Anomaly detection: count items with negative stock or critical low stock
+    // Negative stock = data integrity issue (anomaly)
+    // Critical low stock = below 50% of min_stock (potential missed restocking)
+    const anomalies = itemsData.filter((item) => {
+      const hasNegativeStock = item.currentStock < 0;
+      const hasCriticalLowStock = item.currentStock < item.minStock * 0.5 && item.minStock > 0;
+      return hasNegativeStock || hasCriticalLowStock;
+    });
+    setAnomalyCount(anomalies.length);
+    
     setLoading(false);
   };
 

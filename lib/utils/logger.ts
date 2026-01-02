@@ -1,6 +1,7 @@
 /**
  * Structured Logging Helper
  * Wrapper untuk console.log dengan log levels dan structured format
+ * Supports log aggregation to external services (Axiom, Logtail, etc.)
  *
  * Usage:
  * import { logger } from '@/lib/utils/logger';
@@ -14,9 +15,26 @@ interface LogContext {
   [key: string]: unknown;
 }
 
+interface LogEntry {
+  timestamp: string;
+  level: LogLevel;
+  message: string;
+  context?: LogContext;
+  environment?: string;
+  service?: string;
+}
+
+// Log buffer for batch shipping
+const logBuffer: LogEntry[] = [];
+const LOG_BUFFER_SIZE = 10;
+const LOG_FLUSH_INTERVAL = 5000; // 5 seconds
+
 class Logger {
   private isDevelopment = process.env.NODE_ENV === 'development';
   private isProduction = process.env.NODE_ENV === 'production';
+  private logServiceUrl = process.env.LOG_SERVICE_URL;
+  private logServiceToken = process.env.LOG_SERVICE_TOKEN;
+  private flushTimer: NodeJS.Timeout | null = null;
 
   /**
    * Safe JSON stringify with circular reference handling
@@ -63,15 +81,94 @@ class Logger {
   }
 
   /**
+   * Ship logs to external aggregation service
+   * Supports Axiom, Logtail, Datadog, or any service with HTTP ingest
+   */
+  private async shipLogs(entries: LogEntry[]): Promise<void> {
+    if (!this.logServiceUrl || !this.logServiceToken) {
+      return;
+    }
+
+    try {
+      await fetch(this.logServiceUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.logServiceToken}`,
+        },
+        body: JSON.stringify(entries),
+      });
+    } catch {
+      // Silently fail - don't break the app for logging issues
+      // Log to console as fallback
+      console.warn('[Logger] Failed to ship logs to external service');
+    }
+  }
+
+  /**
+   * Add log to buffer and flush if needed
+   */
+  private bufferLog(level: LogLevel, message: string, context?: LogContext): void {
+    if (!this.isProduction || !this.logServiceUrl) {
+      return;
+    }
+
+    const entry: LogEntry = {
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      context,
+      environment: process.env.NODE_ENV,
+      service: 'aero-apps',
+    };
+
+    logBuffer.push(entry);
+
+    // Flush if buffer is full
+    if (logBuffer.length >= LOG_BUFFER_SIZE) {
+      this.flushLogs();
+    }
+
+    // Set up timer for periodic flush
+    if (!this.flushTimer) {
+      this.flushTimer = setTimeout(() => {
+        this.flushLogs();
+      }, LOG_FLUSH_INTERVAL);
+    }
+  }
+
+  /**
+   * Flush buffered logs to external service
+   */
+  flushLogs(): void {
+    if (logBuffer.length === 0) {
+      return;
+    }
+
+    const logsToShip = [...logBuffer];
+    logBuffer.length = 0;
+
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+
+    // Ship async without blocking
+    this.shipLogs(logsToShip).catch(() => {
+      // Silently fail
+    });
+  }
+
+  /**
    * Info logs
    */
   info(message: string, context?: LogContext): void {
     if (this.isDevelopment) {
       console.info(this.formatMessage('info', message, context));
     } else if (this.isProduction) {
-      // In production, send to monitoring service
-      // TODO: Integrate with log aggregation service (e.g., Datadog, LogRocket)
       console.log(this.formatMessage('info', message, context));
+      // Ship to external log aggregation service
+      this.bufferLog('info', message, context);
     }
   }
 
@@ -80,6 +177,9 @@ class Logger {
    */
   warn(message: string, context?: LogContext): void {
     console.warn(this.formatMessage('warn', message, context));
+
+    // Ship to external log aggregation service
+    this.bufferLog('warn', message, context);
 
     // In production, send warnings to monitoring
     if (this.isProduction && typeof window !== 'undefined' && window.Sentry) {

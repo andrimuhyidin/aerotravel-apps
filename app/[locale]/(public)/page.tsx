@@ -31,12 +31,42 @@ export async function generateMetadata({
   const t = await getTranslations('common');
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
 
+  const title = `${t('app_name')} - Integrated Travel Ecosystem`;
+  const description =
+    'Best marine travel packages with high safety standards. Pahawang, Labuan Bajo, and other exotic destinations.';
+
   return {
-    title: `${t('app_name')} - Integrated Travel Ecosystem`,
-    description:
-      'Best marine travel packages with high safety standards. Pahawang, Labuan Bajo, and other exotic destinations.',
+    title,
+    description,
     alternates: {
       canonical: `${baseUrl}/${locale}`,
+      languages: {
+        id: `${baseUrl}/id`,
+        en: `${baseUrl}/en`,
+        'x-default': `${baseUrl}/id`,
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${baseUrl}/${locale}`,
+      siteName: 'MyAeroTravel ID',
+      images: [
+        {
+          url: `${baseUrl}/og-image.jpg`,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+      locale: locale === 'id' ? 'id_ID' : 'en_US',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`${baseUrl}/og-image.jpg`],
     },
   };
 }
@@ -119,6 +149,56 @@ export default async function HomePage({ params }: PageProps) {
     return <CustomerDashboard locale={locale} userName={userName} />;
   }
 
-  // Guest: Show marketing page
-  return <GuestHomepage locale={locale} />;
+  // Guest: Show marketing page with featured packages from database
+  const { createClient } = await import('@/lib/supabase/server');
+  const supabase = await createClient();
+  
+  const { data: featuredPackages } = await supabase
+    .from('packages')
+    .select(`
+      id,
+      slug,
+      name,
+      destination,
+      province,
+      average_rating,
+      review_count,
+      package_prices (
+        price_publish
+      )
+    `)
+    .eq('status', 'published')
+    .order('review_count', { ascending: false })
+    .limit(3);
+
+  const formattedPackages = (featuredPackages || []).map((pkg, idx) => {
+    const prices = pkg.package_prices as { price_publish: number }[] | null;
+    const lowestPrice = prices?.[0]?.price_publish || 0;
+    const gradients = [
+      'from-blue-500 to-cyan-500',
+      'from-teal-500 to-emerald-500',
+      'from-purple-500 to-pink-500',
+    ];
+    const tags = ['Populer', 'Best Seller', 'Premium'];
+    const emojis: Record<string, string> = {
+      'Pulau Pahawang': '🏝️',
+      'Teluk Kiluan': '🐬',
+      'Labuan Bajo': '🦎',
+      'Raja Ampat': '🪸',
+    };
+    
+    return {
+      name: pkg.name,
+      location: pkg.province || 'Indonesia',
+      price: lowestPrice,
+      rating: pkg.average_rating || 0,
+      reviews: pkg.review_count || 0,
+      emoji: emojis[pkg.destination] || '🌊',
+      tag: tags[idx] || 'Populer',
+      gradient: gradients[idx] || 'from-blue-500 to-cyan-500',
+      slug: pkg.slug,
+    };
+  });
+
+  return <GuestHomepage locale={locale} featuredPackages={formattedPackages} />;
 }

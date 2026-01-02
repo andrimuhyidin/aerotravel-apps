@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -18,6 +19,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
   }
 
   try {
@@ -55,7 +62,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
     // Generate unique filename
     const fileExt = file.name.split('.').pop();
-    const fileName = `partner-${user.id}-${Date.now()}.${fileExt}`;
+    const fileName = `partner-${partnerId}-${Date.now()}.${fileExt}`;
     const filePath = `partner-logos/${fileName}`;
 
     // Upload to Supabase Storage

@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -32,16 +33,25 @@ export const PUT = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const validated = updatePresetSchema.parse(body);
+    const sanitizedBody = sanitizeRequestBody(validated, {
+      strings: ['name'],
+    });
 
     // Check if preset exists and belongs to user
     const { data: existing, error: checkError } = await supabase
       .from('partner_search_presets')
       .select('id, partner_id')
       .eq('id', presetId)
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .single();
 
     if (checkError || !existing) {
@@ -54,17 +64,18 @@ export const PUT = withErrorHandler(async (
     const { data: preset, error } = await supabase
       .from('partner_search_presets')
       .update({
-        ...validated,
+        ...sanitizedBody,
         updated_at: new Date().toISOString(),
       })
       .eq('id', presetId)
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .select('id, name, filters, created_at, updated_at')
       .single();
 
     if (error) {
       logger.error('Failed to update search preset', error, {
         userId: user.id,
+        partnerId,
         presetId,
       });
       throw error;
@@ -81,6 +92,7 @@ export const PUT = withErrorHandler(async (
 
     logger.error('Failed to update search preset', error, {
       userId: user.id,
+      partnerId,
       presetId,
     });
     throw error;
@@ -103,13 +115,19 @@ export const DELETE = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   try {
     // Check if preset exists and belongs to user
     const { data: existing, error: checkError } = await supabase
       .from('partner_search_presets')
       .select('id, partner_id')
       .eq('id', presetId)
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .single();
 
     if (checkError || !existing) {
@@ -123,11 +141,12 @@ export const DELETE = withErrorHandler(async (
       .from('partner_search_presets')
       .delete()
       .eq('id', presetId)
-      .eq('partner_id', user.id);
+      .eq('partner_id', partnerId);
 
     if (error) {
       logger.error('Failed to delete search preset', error, {
         userId: user.id,
+        partnerId,
         presetId,
       });
       throw error;
@@ -137,6 +156,7 @@ export const DELETE = withErrorHandler(async (
   } catch (error) {
     logger.error('Failed to delete search preset', error, {
       userId: user.id,
+      partnerId,
       presetId,
     });
     throw error;

@@ -1,8 +1,9 @@
 /**
  * Image Sentiment Analysis
- * Analyze image to detect happiness/emotion/sentiment
+ * Analyze image to detect happiness/emotion/sentiment using Gemini Vision
  */
 
+import { analyzeImage } from '@/lib/gemini';
 import { logger } from '@/lib/utils/logger';
 
 export type SentimentResult = {
@@ -16,37 +17,77 @@ export type SentimentResult = {
   detectedEmotions?: string[];
 };
 
+type GeminiSentimentResponse = {
+  sentiment: string;
+  confidence: number;
+  emotions: string[];
+};
+
+const SENTIMENT_PROMPT = `Analyze this image and detect the emotional sentiment/mood of the people in it.
+
+Consider:
+- Facial expressions (smiling, frowning, neutral)
+- Body language and posture
+- Overall atmosphere and environment
+- Group dynamics if multiple people
+
+Return ONLY a JSON object in this exact format, no other text:
+{
+  "sentiment": "very_positive" | "positive" | "neutral" | "negative" | "very_negative",
+  "confidence": 0.0-1.0,
+  "emotions": ["happy", "excited", "relaxed", etc.]
+}
+
+Guidelines:
+- very_positive: Big smiles, excitement, celebration
+- positive: Smiling, content, enjoying
+- neutral: No clear emotion, calm
+- negative: Frowning, upset, uncomfortable
+- very_negative: Angry, crying, distressed
+
+If no people are visible, analyze the overall mood of the scene.`;
+
 /**
- * Analyze image sentiment using AI vision
- * This is a simplified version - in production, you might use:
- * - DeepSeek Vision API with prompt for sentiment detection
- * - Or a dedicated emotion recognition model
+ * Analyze image sentiment using Gemini Vision AI
+ * Uses Google AI Studio (Gemini) for emotion/sentiment detection
  */
 export async function analyzeImageSentiment(
-  _base64Image: string
+  base64Image: string,
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' = 'image/jpeg'
 ): Promise<SentimentResult> {
   try {
-    // For now, we'll use a simple heuristic-based approach
-    // In production, integrate with DeepSeek Vision or similar AI service
+    logger.info('[Vision] Analyzing image sentiment with Gemini');
 
-    // TODO: Integrate with actual AI vision service
-    // For now, return neutral sentiment as placeholder
-    // This should be replaced with actual AI vision API call
+    const result = await analyzeImage(base64Image, mimeType, SENTIMENT_PROMPT);
 
-    logger.info('[Vision] Analyzing image sentiment (placeholder)');
+    // Parse the JSON response
+    const cleaned = result.replace(/```json\n?|\n?```/g, '').trim();
+    const parsed = JSON.parse(cleaned) as GeminiSentimentResponse;
 
-    // Placeholder: return neutral sentiment
-    // In production, call DeepSeek Vision API with prompt like:
-    // "Analyze this image and determine the overall sentiment/happiness level (1-5 scale).
-    // Consider facial expressions, environment, lighting, and overall mood."
+    // Validate and normalize sentiment value
+    const validSentiments = ['very_positive', 'positive', 'neutral', 'negative', 'very_negative'] as const;
+    const sentiment = validSentiments.includes(parsed.sentiment as typeof validSentiments[number])
+      ? (parsed.sentiment as SentimentResult['sentiment'])
+      : 'neutral';
+
+    // Normalize confidence to 0-1 range
+    const confidence = Math.max(0, Math.min(1, parsed.confidence || 0.5));
+
+    logger.info('[Vision] Sentiment analysis complete', {
+      sentiment,
+      confidence,
+      emotionsCount: parsed.emotions?.length || 0,
+    });
 
     return {
-      sentiment: 'neutral',
-      confidence: 0.5,
-      detectedEmotions: [],
+      sentiment,
+      confidence,
+      detectedEmotions: parsed.emotions || [],
     };
   } catch (error) {
     logger.error('[Vision] Failed to analyze sentiment', error);
+    
+    // Return neutral as fallback on error
     return {
       sentiment: 'neutral',
       confidence: 0.3,

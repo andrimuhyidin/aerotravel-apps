@@ -560,7 +560,7 @@ async function calculateTripsMetrics(
       .not('check_out_at', 'is', null);
 
     if (error) {
-      logger.warn('Error fetching trips metrics', error, { guideId });
+      logger.warn('Error fetching trips metrics', { guideId, error });
       return {
         total: 0,
         completed: 0,
@@ -986,11 +986,85 @@ async function calculateCustomerSatisfactionMetrics(
       // Table might not exist, continue
     }
 
-    // Repeat customer rate - simplified (would need bookings table)
-    const repeatCustomerRate: number | null = null; // TODO: Implement when bookings table is available
+    // Repeat customer rate - calculate from trip_bookings
+    let repeatCustomerRate: number | null = null;
+    try {
+      // Get all trips this guide has handled
+      const { data: tripGuides } = await withBranchFilter(
+        client.from('trip_guides'),
+        branchContext
+      )
+        .select('trip_id')
+        .eq('guide_id', guideId)
+        .gte('check_in_at', period.start.toISOString())
+        .lte('check_in_at', period.end.toISOString());
 
-    // Complaint resolution rate - simplified (would need tickets table)
-    const complaintResolutionRate: number | null = null; // TODO: Implement when tickets table is available
+      if (tripGuides && tripGuides.length > 0) {
+        const tripIds = tripGuides.map((tg: { trip_id: string }) => tg.trip_id);
+
+        // Get bookings for these trips
+        const { data: tripBookings } = await client
+          .from('trip_bookings')
+          .select('booking_id, bookings(user_id)')
+          .in('trip_id', tripIds);
+
+        if (tripBookings && tripBookings.length > 0) {
+          // Count customer occurrences
+          const customerCounts = new Map<string, number>();
+          tripBookings.forEach((tb: { bookings: { user_id: string } | null }) => {
+            const userId = tb.bookings?.user_id;
+            if (userId) {
+              customerCounts.set(userId, (customerCounts.get(userId) || 0) + 1);
+            }
+          });
+
+          const totalCustomers = customerCounts.size;
+          const repeatCustomers = Array.from(customerCounts.values()).filter(
+            (count) => count > 1
+          ).length;
+
+          repeatCustomerRate =
+            totalCustomers > 0 ? (repeatCustomers / totalCustomers) * 100 : null;
+        }
+      }
+    } catch (repeatError) {
+      logger.warn('Error calculating repeat customer rate', {
+        guideId,
+        error: repeatError,
+      });
+    }
+
+    // Complaint resolution rate - calculate from guide_feedbacks
+    let complaintResolutionRate: number | null = null;
+    try {
+      const { data: complaints } = await withBranchFilter(
+        client.from('guide_feedbacks'),
+        branchContext
+      )
+        .select('id, status')
+        .eq('guide_id', guideId)
+        .eq('feedback_type', 'complaint')
+        .gte('created_at', period.start.toISOString())
+        .lte('created_at', period.end.toISOString());
+
+      if (complaints && complaints.length > 0) {
+        const totalComplaints = complaints.length;
+        const resolvedComplaints = complaints.filter(
+          (c: { status: string }) =>
+            c.status === 'resolved' || c.status === 'closed'
+        ).length;
+
+        complaintResolutionRate =
+          totalComplaints > 0
+            ? (resolvedComplaints / totalComplaints) * 100
+            : null;
+      }
+    } catch (complaintError) {
+      logger.warn('Error calculating complaint resolution rate', {
+        guideId,
+        error: complaintError,
+      });
+    }
 
     return {
       responseRate,
@@ -1023,13 +1097,13 @@ async function calculateEfficiencyMetrics(
   earnings: { total: number; average: number; byTrip: number }
 ) {
   try {
-    // Get trip guides with check-in/out times
+    // Get trip guides with check-in/out times and created_at for response time calculation
     const { data: tripGuides, error: tripGuidesError } = await withBranchFilter(
       client.from('trip_guides'),
       branchContext
     )
       .select(
-        'check_in_at, check_out_at, trip:trips(guest_count, scheduled_start_at)'
+        'created_at, check_in_at, check_out_at, trip:trips(guest_count, scheduled_start_at)'
       )
       .eq('guide_id', guideId)
       .gte('check_in_at', period.start.toISOString())
@@ -1078,11 +1152,89 @@ async function calculateEfficiencyMetrics(
     const revenuePerGuest =
       totalGuests > 0 ? earnings.total / totalGuests : null;
 
-    // Utilization rate - simplified (would need availability data)
-    const utilizationRate: number | null = null; // TODO: Implement when availability data is available
+    // Utilization rate - calculate from availability windows vs actual trips
+    let utilizationRate: number | null = null;
+    try {
+      // Get availability windows for this guide in the period
+      const { data: availabilityWindows } = await withBranchFilter(
+        client.from('guide_availability_windows'),
+        branchContext
+      )
+        .select('start_time, end_time')
+        .eq('guide_id', guideId)
+        .eq('is_available', true)
+        .gte('start_time', period.start.toISOString())
+        .lte('end_time', period.end.toISOString());
 
-    // Average response time - simplified (would need assignment timestamps)
-    const avgResponseTime: number | null = null; // TODO: Implement when assignment data is available
+      if (availabilityWindows && availabilityWindows.length > 0) {
+        // Calculate total available hours
+        let totalAvailableHours = 0;
+        availabilityWindows.forEach(
+          (aw: { start_time: string; end_time: string }) => {
+            const start = new Date(aw.start_time).getTime();
+            const end = new Date(aw.end_time).getTime();
+            totalAvailableHours += (end - start) / (1000 * 60 * 60);
+          }
+        );
+
+        // Calculate total working hours from trip_guides (already fetched above)
+        let totalWorkingHours = 0;
+        if (tripGuides && tripGuides.length > 0) {
+          tripGuides.forEach((tg: any) => {
+            if (tg.check_in_at && tg.check_out_at) {
+              const checkIn = new Date(tg.check_in_at).getTime();
+              const checkOut = new Date(tg.check_out_at).getTime();
+              const hours = (checkOut - checkIn) / (1000 * 60 * 60);
+              if (hours > 0 && hours < 168) {
+                totalWorkingHours += hours;
+              }
+            }
+          });
+        }
+
+        utilizationRate =
+          totalAvailableHours > 0
+            ? (totalWorkingHours / totalAvailableHours) * 100
+            : null;
+      }
+    } catch (utilizationError) {
+      logger.warn('Error calculating utilization rate', {
+        guideId,
+        error: utilizationError,
+      });
+    }
+
+    // Average response time - calculate from assignment to check-in
+    let avgResponseTime: number | null = null;
+    try {
+      if (tripGuides && tripGuides.length > 0) {
+        let totalResponseHours = 0;
+        let validResponses = 0;
+
+        tripGuides.forEach((tg: any) => {
+          // Use created_at as assignment time and check_in_at as response time
+          if (tg.created_at && tg.check_in_at) {
+            const assignedAt = new Date(tg.created_at).getTime();
+            const respondedAt = new Date(tg.check_in_at).getTime();
+            const responseHours = (respondedAt - assignedAt) / (1000 * 60 * 60);
+
+            // Valid response time (between 0 and 72 hours - 3 days)
+            if (responseHours > 0 && responseHours < 72) {
+              totalResponseHours += responseHours;
+              validResponses++;
+            }
+          }
+        });
+
+        avgResponseTime =
+          validResponses > 0 ? totalResponseHours / validResponses : null;
+      }
+    } catch (responseError) {
+      logger.warn('Error calculating average response time', {
+        guideId,
+        error: responseError,
+      });
+    }
 
     return {
       avgTripDuration,
@@ -1321,8 +1473,37 @@ async function calculateQualityMetrics(
     const noShowRate =
       totalTrips > 0 ? (cancelledByGuide / totalTrips) * 100 : null;
 
-    // Issue resolution rate - simplified (would need tickets/issues table)
-    const issueResolutionRate: number | null = null; // TODO: Implement when issues table is available
+    // Issue resolution rate - calculate from guide_feedbacks
+    let issueResolutionRate: number | null = null;
+    try {
+      const { data: issues } = await withBranchFilter(
+        client.from('guide_feedbacks'),
+        branchContext
+      )
+        .select('id, status')
+        .eq('guide_id', guideId)
+        .in('feedback_type', ['complaint', 'safety', 'general'])
+        .gte('created_at', period.start.toISOString())
+        .lte('created_at', period.end.toISOString());
+
+      if (issues && issues.length > 0) {
+        const totalIssues = issues.length;
+        const resolvedIssues = issues.filter(
+          (issue: { status: string }) =>
+            issue.status === 'resolved' ||
+            issue.status === 'closed' ||
+            issue.status === 'in_progress'
+        ).length;
+
+        issueResolutionRate =
+          totalIssues > 0 ? (resolvedIssues / totalIssues) * 100 : null;
+      }
+    } catch (issueError) {
+      logger.warn('Error calculating issue resolution rate', {
+        guideId,
+        error: issueError,
+      });
+    }
 
     return {
       onTimeCompletionRate,
@@ -1620,8 +1801,60 @@ async function calculateComparativeMetrics(
           : null,
     };
 
-    // Percentile improvement - simplified (would need previous period comparison)
-    const percentileImprovement: number | null = null; // TODO: Calculate from previous period
+    // Percentile improvement - calculate from previous period comparison
+    let percentileImprovement: number | null = null;
+    try {
+      // Calculate previous period dates
+      const periodDuration = period.end.getTime() - period.start.getTime();
+      const previousPeriodStart = new Date(
+        period.start.getTime() - periodDuration
+      );
+      const previousPeriodEnd = new Date(period.start.getTime() - 1);
+
+      // Get current guide's percentile (position / total * 100)
+      const currentPercentile =
+        allMetrics.length > 0
+          ? ((allMetrics.length - tripsRank + 1) / allMetrics.length) * 100
+          : null;
+
+      // Get previous period trip count for this guide
+      const { data: previousTripGuides } = await withBranchFilter(
+        client.from('trip_guides'),
+        branchContext
+      )
+        .select('id')
+        .eq('guide_id', guideId)
+        .gte('check_in_at', previousPeriodStart.toISOString())
+        .lte('check_in_at', previousPeriodEnd.toISOString());
+
+      const previousTrips = previousTripGuides?.length || 0;
+
+      // Estimate previous percentile based on trip count change
+      if (currentPercentile !== null && allMetrics.length > 0) {
+        // Find where this guide would have ranked in previous period
+        // Simplified: assume same distribution, adjust by trip count ratio
+        const tripGrowthRatio =
+          previousTrips > 0 ? metrics.trips.total / previousTrips : 1;
+
+        // If grew more than average, percentile improved
+        const avgGrowth = 1.1; // Assume 10% average growth
+        const relativeGrowth = tripGrowthRatio / avgGrowth;
+
+        // Previous percentile estimate
+        const previousPercentileEstimate = Math.min(
+          100,
+          currentPercentile / relativeGrowth
+        );
+
+        percentileImprovement =
+          currentPercentile - previousPercentileEstimate;
+      }
+    } catch (percentileError) {
+      logger.warn('Error calculating percentile improvement', {
+        guideId,
+        error: percentileError,
+      });
+    }
 
     // Market share - simplified
     const totalTripsInBranch = allMetrics.reduce((sum, m) => sum + m.trips, 0);

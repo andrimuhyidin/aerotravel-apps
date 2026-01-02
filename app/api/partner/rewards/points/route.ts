@@ -4,7 +4,11 @@
  * POST /api/partner/rewards/points - Manual award (admin only)
  */
 
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { sanitizeRequestBody, sanitizeSearchParams, verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import {
   getPointsBalance,
   getPointsHistory,
@@ -12,8 +16,6 @@ import {
 } from '@/lib/partner/reward-points';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 
 const manualAwardSchema = z.object({
   partnerId: z.string().uuid(),
@@ -32,42 +34,20 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access using helper
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Not a partner' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
-  const includeHistory = searchParams.get('includeHistory') === 'true';
-  const limit = parseInt(searchParams.get('limit') || '20', 10);
-  const offset = parseInt(searchParams.get('offset') || '0', 10);
+  const sanitizedParams = sanitizeSearchParams(searchParams);
+  const includeHistory = sanitizedParams.includeHistory === 'true';
+  const limit = Math.min(parseInt(sanitizedParams.limit || '20', 10), 100);
+  const offset = parseInt(sanitizedParams.offset || '0', 10);
 
   try {
-    // Get partner ID (could be direct partner or team member)
-    const client = supabase as unknown as any;
-    const { data: userProfile } = await client
-      .from('users')
-      .select('id, role')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (!userProfile) {
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
-    }
-
-    let partnerId = user.id;
-    if (userProfile.role !== 'mitra') {
-      const { data: partnerUser } = await client
-        .from('partner_users')
-        .select('partner_id')
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (partnerUser) {
-        partnerId = partnerUser.partner_id;
-      } else {
-        return NextResponse.json({ error: 'Not a partner' }, { status: 403 });
-      }
-    }
-
-    // Get balance
+    // Get balance using verified partnerId
     const balance = await getPointsBalance(partnerId);
 
     if (!balance) {
@@ -124,7 +104,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   const body = await request.json();
-  const { partnerId, points, description } = manualAwardSchema.parse(body);
+  const validated = manualAwardSchema.parse(body);
+
+  // Sanitize validated data
+  const sanitized = sanitizeRequestBody(validated, {
+    strings: ['description'],
+  });
+
+  const { partnerId, points, description } = sanitized;
 
   try {
     const { awardPoints } = await import('@/lib/partner/reward-points');

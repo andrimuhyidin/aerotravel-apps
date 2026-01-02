@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -30,9 +31,18 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const validated = testEmailSchema.parse(body);
+    const sanitizedBody = sanitizeRequestBody(validated, {
+      emails: ['testEmail'],
+    });
 
     const client = supabase as unknown as any;
 
@@ -40,7 +50,7 @@ export const POST = withErrorHandler(async (
     const { data: template, error: templateError } = await client
       .from('partner_email_templates')
       .select('subject, body_html, body_text')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .eq('template_type', type)
       .eq('is_active', true)
       .single();
@@ -86,7 +96,7 @@ export const POST = withErrorHandler(async (
       const { sendEmail } = await import('@/lib/integrations/resend');
       
       await sendEmail({
-        to: validated.testEmail,
+        to: sanitizedBody.testEmail,
         subject: `[TEST] ${subject}`,
         html: bodyHtml,
         text: bodyText,
@@ -94,8 +104,9 @@ export const POST = withErrorHandler(async (
 
       logger.info('Test email sent', {
         userId: user.id,
+        partnerId,
         templateType: type,
-        testEmail: validated.testEmail,
+        testEmail: sanitizedBody.testEmail,
       });
 
       return NextResponse.json({
@@ -105,6 +116,7 @@ export const POST = withErrorHandler(async (
     } catch (emailError) {
       logger.error('Failed to send test email', emailError, {
         userId: user.id,
+        partnerId,
         templateType: type,
       });
       return NextResponse.json(
@@ -122,6 +134,7 @@ export const POST = withErrorHandler(async (
 
     logger.error('Failed to send test email', error, {
       userId: user.id,
+      partnerId,
     });
     throw error;
   }

@@ -25,7 +25,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 type Booking = {
@@ -65,11 +65,8 @@ export function BookingsListClient({ locale }: { locale: string }) {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   
-  useEffect(() => {
-    loadBookings();
-  }, [activeTab, searchQuery]);
-
-  const loadBookings = async () => {
+  // Memoize loadBookings to prevent recreating on every render
+  const loadBookings = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -88,7 +85,11 @@ export function BookingsListClient({ locale }: { locale: string }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, searchQuery]);
+
+  useEffect(() => {
+    loadBookings();
+  }, [loadBookings]);
 
   const statusTabs = [
     { id: 'all', label: 'Semua' },

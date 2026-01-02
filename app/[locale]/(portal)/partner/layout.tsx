@@ -12,6 +12,7 @@ import { PartnerBottomNavigation } from '@/components/partner/partner-bottom-nav
 import { PartnerHeader } from '@/components/partner/partner-header';
 import { PushNotificationInit } from '@/components/partner/push-notification-init';
 import { FloatingActionButton } from '@/components/partner/floating-action-button';
+import { AiChatWidget } from '@/components/partner/ai-chat-widget';
 import { getCurrentUser } from '@/lib/supabase/server';
 
 type PartnerLayoutProps = {
@@ -59,6 +60,9 @@ export default async function PartnerLayout({
 
           {/* Floating Action Button */}
           <FloatingActionButton />
+
+          {/* AI Chat Widget */}
+          <AiChatWidget />
 
           {/* Bottom Navigation - Fixed at bottom */}
           <div className="fixed bottom-0 left-0 right-0 z-50">

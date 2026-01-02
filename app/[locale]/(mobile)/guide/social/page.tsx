@@ -12,6 +12,7 @@ import { locales } from '@/i18n';
 import { getCurrentUser } from '@/lib/supabase/server';
 
 import { SocialFeedClient } from './social-feed-client';
+import { StoriesCarousel } from './stories-carousel';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -53,6 +54,12 @@ export default async function GuideSocialPage({ params }: PageProps) {
           Bagikan pengalaman trip Anda dengan guide lainnya
         </p>
       </div>
+      
+      {/* Stories Carousel */}
+      <div className="mb-4 -mx-4 px-4 border-b border-slate-200 pb-4">
+        <StoriesCarousel locale={locale} currentUserId={user.id} />
+      </div>
+      
       <SocialFeedClient locale={locale} />
     </Container>
   );

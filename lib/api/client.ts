@@ -32,25 +32,24 @@ class ApiClient {
 
   /**
    * Get auth token from Supabase session
+   * Note: This client is designed for CLIENT-SIDE use only.
+   * For server-side API calls, use the Supabase server client directly.
    */
   private async getAuthToken(): Promise<string | null> {
+    // This client should only be used client-side
+    // Server-side code should use Supabase server client directly
     if (typeof window === 'undefined') {
-      // Server-side: get from cookies
-      const { createClient } = await import('@/lib/supabase/server');
-      const supabase = await createClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      return session?.access_token || null;
-    } else {
-      // Client-side: get from Supabase client
-      const { createClient } = await import('@/lib/supabase/client');
-      const supabase = createClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      return session?.access_token || null;
+      // Server-side: return null (APIs should use Supabase server client directly)
+      return null;
     }
+    
+    // Client-side: get from Supabase client
+    const { createClient } = await import('@/lib/supabase/client');
+    const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    return session?.access_token || null;
   }
 
   /**

@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -33,13 +34,19 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
 
   try {
     const { data: settings, error } = await client
       .from('partner_whitelabel_settings')
       .select('*')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .maybeSingle();
 
     if (error) {
@@ -96,8 +103,23 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
-  const validated = whitelabelSchema.parse(body);
+  
+  // Sanitize input
+  const sanitizedBody = sanitizeRequestBody(body, {
+    strings: ['companyName', 'companyAddress', 'invoiceFooterText'],
+    emails: ['companyEmail'],
+    phones: ['companyPhone'],
+    urls: ['companyLogoUrl'],
+  });
+  
+  const validated = whitelabelSchema.parse(sanitizedBody);
 
   const client = supabase as unknown as any;
 
@@ -106,11 +128,11 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     const { data: existing } = await client
       .from('partner_whitelabel_settings')
       .select('id')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .maybeSingle();
 
     const settingsData = {
-      partner_id: user.id,
+      partner_id: partnerId,
       company_name: validated.companyName || null,
       company_logo_url: validated.companyLogoUrl || null,
       company_address: validated.companyAddress || null,
@@ -128,7 +150,7 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
       const { data, error } = await client
         .from('partner_whitelabel_settings')
         .update(settingsData)
-        .eq('partner_id', user.id)
+        .eq('partner_id', partnerId)
         .select()
         .single();
 

@@ -20,8 +20,17 @@ import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { ViewPackageTracker } from '@/components/analytics/page-journey-tracker';
+import { PackageReviewList } from '@/components/public/package-review-list';
+import { AISummary } from '@/components/seo/ai-summary';
+import { AuthorByline } from '@/components/seo/author-bio';
+import { JsonLd } from '@/components/seo/json-ld';
+import { RelatedContent } from '@/components/seo/related-content';
+import { TrustBar } from '@/components/seo/trust-signals';
 import { Button } from '@/components/ui/button';
 import { locales } from '@/i18n';
+import { getDefaultAuthor } from '@/lib/seo/authors';
+import { generatePackageSchema, generateBreadcrumbSchema } from '@/lib/seo/structured-data';
 import { createClient } from '@/lib/supabase/server';
 
 type Props = {
@@ -37,10 +46,11 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const supabase = await createClient();
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
 
   const { data } = await supabase
     .from('packages')
-    .select('name, description, destination')
+    .select('name, description, destination, image_url')
     .eq('slug', slug)
     .single();
 
@@ -48,15 +58,51 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     name: string;
     description: string | null;
     destination: string;
+    image_url?: string | null;
   } | null;
 
   if (!pkg) {
     return { title: 'Package Not Found' };
   }
 
+  const title = `${pkg.name} - Aero Travel`;
+  const description = pkg.description || `Paket wisata ${pkg.destination}`;
+  const pageUrl = `${baseUrl}/packages/detail/${slug}`;
+  const imageUrl = pkg.image_url || `${baseUrl}/og-default.jpg`;
+
   return {
-    title: `${pkg.name} - Aero Travel`,
-    description: pkg.description || `Paket wisata ${pkg.destination}`,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: pageUrl,
+      siteName: 'MyAeroTravel',
+      type: 'website',
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: pkg.name,
+        },
+      ],
+      locale: 'id_ID',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [imageUrl],
+    },
+    alternates: {
+      canonical: pageUrl,
+      languages: {
+        id: `${baseUrl}/id/packages/detail/${slug}`,
+        en: `${baseUrl}/en/packages/detail/${slug}`,
+        'x-default': `${baseUrl}/id/packages/detail/${slug}`,
+      },
+    },
   };
 }
 
@@ -78,6 +124,8 @@ export default async function PackageDetailPage({ params }: Props) {
     min_pax: number;
     max_pax: number;
     package_type: string;
+    average_rating: number | null;
+    review_count: number | null;
     inclusions: string[] | null;
     exclusions: string[] | null;
     package_prices: {
@@ -123,8 +171,67 @@ export default async function PackageDetailPage({ params }: Props) {
       minimumFractionDigits: 0,
     }).format(price);
 
+  // Generate structured data
+  const packageSchema = generatePackageSchema({
+    name: pkg.name,
+    description: pkg.description || `Paket wisata ${pkg.destination}`,
+    slug: pkg.slug,
+    price: lowestPrice,
+    destination: pkg.destination,
+    duration: `${pkg.duration_days} hari ${pkg.duration_nights} malam`,
+  });
+
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Beranda', url: '/' },
+    { name: 'Paket Wisata', url: '/packages' },
+    { name: pkg.name, url: `/packages/detail/${pkg.slug}` },
+  ]);
+
+  // Generate AI Summary from description
+  const aiSummary =
+    pkg.description ||
+    `${pkg.name} adalah paket wisata ${pkg.package_type === 'open_trip' ? 'open trip' : 'private'} ke ${pkg.destination}, ${pkg.province}. Trip ini berlangsung selama ${pkg.duration_days} hari ${pkg.duration_nights} malam, cocok untuk ${pkg.min_pax}-${pkg.max_pax} orang.`;
+
+  const aiKeyPoints = [
+    `Durasi: ${pkg.duration_days} hari ${pkg.duration_nights} malam`,
+    `Lokasi: ${pkg.destination}, ${pkg.province}`,
+    `Kapasitas: ${pkg.min_pax}-${pkg.max_pax} peserta`,
+    lowestPrice > 0 ? `Harga mulai ${formatPrice(lowestPrice)}/orang` : null,
+    pkg.package_type === 'open_trip'
+      ? 'Open Trip - bergabung dengan peserta lain'
+      : 'Private Trip - eksklusif untuk grup Anda',
+  ].filter(Boolean) as string[];
+
+  // Get default author (trip curator)
+  const author = getDefaultAuthor();
+
+  // Related packages query
+  const { data: relatedPackages } = await supabase
+    .from('packages')
+    .select('name, slug')
+    .eq('destination', pkg.destination)
+    .neq('slug', slug)
+    .limit(4);
+
+  const relatedLinks = (relatedPackages || []).map((p) => ({
+    title: p.name,
+    href: `/${locale}/packages/detail/${p.slug}`,
+  }));
+
   return (
-    <div className="flex flex-col pb-24">
+    <>
+      {/* Structured Data */}
+      <JsonLd data={[packageSchema, breadcrumbSchema]} />
+      
+      {/* Journey Tracking */}
+      <ViewPackageTracker
+        packageId={pkg.id}
+        packageName={pkg.name}
+        price={lowestPrice}
+        category={pkg.package_type}
+      />
+      
+      <div className="flex flex-col pb-24">
       {/* Hero Image */}
       <div className="relative">
         <div className="aspect-[4/3] bg-gradient-to-br from-primary/30 to-aero-teal/30">
@@ -155,7 +262,7 @@ export default async function PackageDetailPage({ params }: Props) {
           </span>
           <span className="flex items-center gap-1 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white backdrop-blur">
             <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-            4.9
+            {(pkg.average_rating || 0).toFixed(1)}
           </span>
         </div>
       </div>
@@ -187,6 +294,21 @@ export default async function PackageDetailPage({ params }: Props) {
             <Calendar className="h-4 w-4 text-primary" />
             <span className="text-xs font-medium">Setiap Hari</span>
           </div>
+        </div>
+
+        {/* AI Summary - Optimized for AI extraction */}
+        <div className="mb-6">
+          <AISummary summary={aiSummary} bulletPoints={aiKeyPoints} />
+        </div>
+
+        {/* Author/Curator Info */}
+        <div className="mb-6">
+          <AuthorByline
+            name={author.name}
+            role={author.role}
+            image={author.image}
+            date="Trip Curator"
+          />
         </div>
 
         {/* Description */}
@@ -257,8 +379,26 @@ export default async function PackageDetailPage({ params }: Props) {
           </div>
         )}
 
+        {/* Reviews Section */}
+        <PackageReviewList slug={slug} initialLimit={3} />
+
+        {/* Trust Signals */}
+        <div className="my-6">
+          <TrustBar />
+        </div>
+
+        {/* Related Packages */}
+        {relatedLinks.length > 0 && (
+          <div className="my-6">
+            <RelatedContent
+              title="Paket Serupa"
+              links={relatedLinks}
+            />
+          </div>
+        )}
+
         {/* Contact */}
-        <div className="rounded-2xl bg-muted/50 p-4">
+        <div className="mt-6 rounded-2xl bg-muted/50 p-4">
           <p className="mb-2 text-sm font-semibold">Ada Pertanyaan?</p>
           <p className="mb-3 text-xs text-muted-foreground">
             Hubungi tim kami untuk info lebih lanjut
@@ -294,6 +434,7 @@ export default async function PackageDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

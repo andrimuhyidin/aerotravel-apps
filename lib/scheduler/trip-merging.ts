@@ -3,10 +3,48 @@
  * PRD 4.4.B - Trip Merging (Konsolidasi Open Trip)
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Booking = any; // TODO: Regenerate types after DB migration
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type TripSchedule = any; // TODO: Regenerate types after DB migration
+// Local type definitions for trip merging
+// These match the database schema for trips and bookings tables
+
+export type TripSchedule = {
+  id: string;
+  trip_code: string;
+  package_id: string;
+  branch_id?: string;
+  trip_date: string;
+  start_date?: string;
+  end_date?: string;
+  status: string;
+  max_pax?: number;
+  available_slots?: number;
+  created_at?: string;
+  updated_at?: string;
+  packages?: {
+    id: string;
+    name: string;
+    destination?: string;
+  };
+};
+
+export type Booking = {
+  id: string;
+  booking_code?: string;
+  code?: string;
+  customer_name?: string;
+  customer_email?: string;
+  customer_phone?: string;
+  package_id?: string;
+  trip_id?: string;
+  trip_date?: string;
+  adult_pax?: number;
+  child_pax?: number;
+  infant_pax?: number;
+  total_pax?: number;
+  total_amount?: number;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+};
 
 export type MergeCandidate = {
   tripId: string;

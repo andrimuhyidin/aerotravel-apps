@@ -3,10 +3,12 @@
  * GET /api/partner/invoices - List invoices with filter & pagination
  */
 
+import { NextRequest, NextResponse } from 'next/server';
+
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { sanitizeSearchParams, verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
-import { NextRequest, NextResponse } from 'next/server';
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
@@ -19,19 +21,30 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
-  const status = searchParams.get('status'); // paid, pending, overdue
-  const from = searchParams.get('from');
-  const to = searchParams.get('to');
-  const search = searchParams.get('search');
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '20');
+  // Sanitize search params
+  const sanitizedParams = sanitizeSearchParams(searchParams);
+  const status = sanitizedParams.status || null; // paid, pending, overdue
+  const from = sanitizedParams.from || null;
+  const to = sanitizedParams.to || null;
+  const search = sanitizedParams.search || null;
+  const page = parseInt(sanitizedParams.page || '1');
+  const limit = Math.min(parseInt(sanitizedParams.limit || '20'), 100); // Max 100
   const offset = (page - 1) * limit;
 
   const client = supabase as unknown as any;
 
   try {
-    // Build query with payments join
+    // Build query with payments join using verified partnerId
     let query = client
       .from('bookings')
       .select(
@@ -54,7 +67,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       `,
         { count: 'exact' }
       )
-      .eq('mitra_id', user.id);
+      .eq('mitra_id', partnerId);
 
     // Filter by payment status
     if (status && status !== 'all') {
@@ -146,7 +159,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const summaryQuery = client
       .from('bookings')
       .select('id, status, total_amount, nta_total')
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId) // Use verified partnerId
       .gte('created_at', firstDayOfMonth.toISOString());
 
     const { data: allMonthBookings } = await summaryQuery;

@@ -169,13 +169,21 @@ export async function proxy(request: NextRequest) {
       }
 
       // Partner routes - only allow if active role is mitra
-      // Note: /partner is public landing page, /partner/dashboard/* is protected
+      // Note: /partner is public landing page, /partner/* (except landing/apply) is protected
+      const partnerPublicPaths = [
+        '/partner',
+        '/partner/apply',
+        '/partner/help',
+        '/partner/legal',
+        '/partner/about',
+      ];
+      const isPartnerPublicPath = partnerPublicPaths.some((path) =>
+        pathWithoutLocale === path || pathWithoutLocale.startsWith(`${path}/`)
+      );
+
       if (
-        pathWithoutLocale.startsWith('/partner/dashboard') ||
-        pathWithoutLocale.startsWith('/partner/bookings') ||
-        pathWithoutLocale.startsWith('/partner/invoices') ||
-        pathWithoutLocale.startsWith('/partner/wallet') ||
-        pathWithoutLocale.startsWith('/partner/whitelabel')
+        pathWithoutLocale.startsWith('/partner') &&
+        !isPartnerPublicPath
       ) {
         if (userRole !== 'mitra') {
           return NextResponse.redirect(

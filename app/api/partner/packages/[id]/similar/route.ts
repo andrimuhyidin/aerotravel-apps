@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -19,7 +20,13 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
+  // Verify partner access
+  const { isPartner } = await verifyPartnerAccess(user.id);
+  if (!isPartner) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
+  const searchParams = sanitizeSearchParams(request);
   const limit = parseInt(searchParams.get('limit') || '6');
   const { id: packageId } = await params;
 
@@ -39,7 +46,7 @@ export const GET = withErrorHandler(async (
     }
 
     // Get price range for current package
-    const currentPrices = currentPackage.package_prices as any[];
+    const currentPrices = (currentPackage.package_prices as unknown) as any[];
     const currentPrice = currentPrices.length > 0 
       ? Math.min(...currentPrices.map(p => p.price_nta))
       : 0;
@@ -57,6 +64,7 @@ export const GET = withErrorHandler(async (
         duration_days,
         duration_nights,
         thumbnail_url,
+        inclusions,
         package_prices(
           min_pax,
           max_pax,
@@ -107,7 +115,7 @@ export const GET = withErrorHandler(async (
             nta: { min: minNTAPrice, max: maxNTAPrice },
             publish: { min: minPublishPrice, max: maxPublishPrice },
           },
-          facilities: ['meals', 'hotel', 'transport'], // TODO: Get from DB when available
+          facilities: pkg.inclusions || [],
           similarity: {
             sameDestination: pkg.destination === currentPackage.destination,
             priceDiff: Math.abs(minNTAPrice - currentPrice),

@@ -120,6 +120,11 @@ export type ContractData = {
   companySignatureUrl?: string | null;
   guideSignedAt?: string | null;
   companySignedAt?: string | null;
+  // Audit Trail (Legal Compliance)
+  guideSignerIp?: string | null;
+  guideSignerUserAgent?: string | null;
+  companySignerIp?: string | null;
+  companySignerUserAgent?: string | null;
 };
 
 export function ContractPDF({ data }: { data: ContractData }) {
@@ -292,6 +297,27 @@ export function ContractPDF({ data }: { data: ContractData }) {
             </View>
           </View>
         </View>
+
+        {/* Audit Trail - Legal Compliance */}
+        {(data.guideSignerIp || data.companySignerIp) && (
+          <View style={{ marginTop: 20, padding: 10, backgroundColor: '#f5f5f5', borderRadius: 4 }}>
+            <Text style={{ fontSize: 8, fontWeight: 'bold', marginBottom: 5 }}>
+              AUDIT TRAIL (Untuk Keperluan Legal)
+            </Text>
+            {data.guideSignedAt && (
+              <Text style={{ fontSize: 7, color: '#666' }}>
+                Guide Sign: {formatDate(data.guideSignedAt)}
+                {data.guideSignerIp && ` | IP: ${data.guideSignerIp}`}
+              </Text>
+            )}
+            {data.companySignedAt && (
+              <Text style={{ fontSize: 7, color: '#666' }}>
+                Company Sign: {formatDate(data.companySignedAt)}
+                {data.companySignerIp && ` | IP: ${data.companySignerIp}`}
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Footer */}
         <View style={styles.footer}>

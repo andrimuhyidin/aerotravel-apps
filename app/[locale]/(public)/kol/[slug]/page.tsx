@@ -1,16 +1,21 @@
 /**
- * KOL Trip Page
+ * KOL Trip Detail Page
  * Route: /[locale]/kol/[slug]
+ * Shows detailed KOL trip info with booking capability
  */
 
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
 import { setRequestLocale } from 'next-intl/server';
+
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
 import { locales } from '@/i18n';
+import { createClient } from '@/lib/supabase/server';
+
+import { KolTripDetailClient } from './kol-trip-detail-client';
 
 type PageProps = {
-  params: Promise<{ locale: string; slug?: string }>;
+  params: Promise<{ locale: string; slug: string }>;
 };
 
 export const dynamic = 'force-dynamic';
@@ -19,38 +24,72 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#000000',
+};
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { locale } = await params;
+  const { locale, slug } = await params;
   setRequestLocale(locale);
+
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
-  
+
+  // Fetch KOL trip data for metadata
+  const supabase = await createClient();
+  const { data: kolTrip } = await supabase
+    .from('kol_trips')
+    .select(
+      `
+      kol_name,
+      hero_image_url,
+      packages (
+        name,
+        destination
+      )
+    `
+    )
+    .eq('slug', slug)
+    .single();
+
+  const pkg = kolTrip?.packages as { name: string; destination: string } | null;
+  const title = kolTrip
+    ? `Trip Bareng ${kolTrip.kol_name} ke ${pkg?.destination || 'destinasi seru'} - Aero Travel`
+    : 'KOL Trip - Aero Travel';
+  const description = kolTrip
+    ? `Gabung trip eksklusif bareng ${kolTrip.kol_name}! ${pkg?.name || 'Pengalaman liburan premium'} dengan komunitas yang asik.`
+    : 'Trip eksklusif bareng KOL favorit kamu';
+
   return {
-    title: 'KOL Trip - Aero Travel',
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: `${baseUrl}/${locale}/kol/${slug}`,
+      type: 'website',
+      images: kolTrip?.hero_image_url
+        ? [{ url: kolTrip.hero_image_url, width: 1200, height: 630 }]
+        : undefined,
+    },
     alternates: {
-      canonical: `${baseUrl}/${locale}/kol/`,
+      canonical: `${baseUrl}/${locale}/kol/${slug}`,
     },
   };
 }
 
-export default async function KolSlugPage({ params }: PageProps) {
-  const { locale } = await params;
+export default async function KolTripDetailPage({ params }: PageProps) {
+  const { locale, slug } = await params;
   setRequestLocale(locale);
 
   return (
-    <Section>
-      <Container>
-        <div className="py-8">
-          <h1 className="text-3xl font-bold mb-6">KOL Trip</h1>
-          
-          {/* TODO: Implement KOL Trip features */}
-          
-          <div className="bg-muted p-8 rounded-lg">
-            <p className="text-muted-foreground">
-              KOL Trip page will be implemented here.
-            </p>
-          </div>
-        </div>
-      </Container>
-    </Section>
+    <div className="min-h-screen bg-background">
+      <Section spacing="none">
+        <Container className="px-0 sm:px-4">
+          <KolTripDetailClient locale={locale} slug={slug} />
+        </Container>
+      </Section>
+    </div>
   );
 }

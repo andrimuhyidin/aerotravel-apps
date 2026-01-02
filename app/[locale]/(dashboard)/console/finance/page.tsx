@@ -8,6 +8,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
 import { locales } from '@/i18n';
+import { FinanceDashboardClient } from './finance-dashboard-client';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -25,7 +26,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
   
   return {
-    title: 'Finance - Aero Travel',
+    title: 'Finance Dashboard - Aero Travel',
+    description: 'Finance dashboard dengan P&L summary, revenue trends, dan trip performance',
     alternates: {
       canonical: `${baseUrl}/${locale}/console/finance`,
     },
@@ -39,14 +41,8 @@ export default async function ConsoleFinancePage({ params }: PageProps) {
   return (
     <Section>
       <Container>
-        <div className="py-8">
-          <h1 className="text-3xl font-bold mb-6">Finance</h1>
-          
-          <div className="bg-muted p-8 rounded-lg">
-            <p className="text-muted-foreground">
-              Finance page will be implemented here.
-            </p>
-          </div>
+        <div className="py-6">
+          <FinanceDashboardClient />
         </div>
       </Container>
     </Section>

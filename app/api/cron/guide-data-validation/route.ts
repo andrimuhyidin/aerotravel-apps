@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { sendAdminAlert } from '@/lib/notifications/admin-alerts';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -92,9 +93,22 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         logId: log.id,
       });
 
-      // TODO: Send alert via email/Slack if critical issues found
-      // This can be implemented later when alerting system is ready
-      // await sendValidationAlert(log);
+      // Send alert to admins for critical issues
+      await sendAdminAlert({
+        type: 'data_validation_failure',
+        title: 'Guide Data Validation Alert',
+        message: `Daily validation check found ${log.criticals} critical issue(s) and ${log.warnings} warning(s). Total checks: ${log.total_checks}, Passed: ${log.passed}, Failed: ${log.failed}. Please review the validation log for details.`,
+        severity: hasCriticalIssues ? 'high' : 'medium',
+        metadata: {
+          logId: log.id,
+          totalChecks: log.total_checks,
+          passed: log.passed,
+          failed: log.failed,
+          warnings: log.warnings,
+          criticals: log.criticals,
+          runAt: log.run_at,
+        },
+      });
     }
 
     return NextResponse.json({

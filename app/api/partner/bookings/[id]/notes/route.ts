@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -32,6 +33,12 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access using centralized helper
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
 
   try {
@@ -40,32 +47,13 @@ export const GET = withErrorHandler(async (
       .from('bookings')
       .select('id, mitra_id')
       .eq('id', bookingId)
+      .eq('mitra_id', partnerId)
       .single();
 
     if (bookingError || !booking) {
       return NextResponse.json(
         { error: 'Booking not found' },
         { status: 404 }
-      );
-    }
-
-    // Check if user is partner owner or team member
-    const isOwner = booking.mitra_id === user.id;
-    const { data: teamMember } = isOwner
-      ? { data: null }
-      : await client
-          .from('partner_users')
-          .select('id, partner_id, role')
-          .eq('user_id', user.id)
-          .eq('partner_id', booking.mitra_id)
-          .eq('is_active', true)
-          .is('deleted_at', null)
-          .single();
-
-    if (!isOwner && !teamMember) {
-      return NextResponse.json(
-        { error: 'Unauthorized access to booking' },
-        { status: 403 }
       );
     }
 
@@ -82,7 +70,7 @@ export const GET = withErrorHandler(async (
         user:users!partner_booking_notes_user_id_fkey(id, full_name, email)
       `)
       .eq('booking_id', bookingId)
-      .eq('partner_id', booking.mitra_id)
+      .eq('partner_id', partnerId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
@@ -132,8 +120,15 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access using centralized helper
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
-  const validation = createNoteSchema.safeParse(body);
+  const sanitizedBody = sanitizeRequestBody(body, { strings: ['noteText'] });
+  const validation = createNoteSchema.safeParse(sanitizedBody);
 
   if (!validation.success) {
     return NextResponse.json(
@@ -151,6 +146,7 @@ export const POST = withErrorHandler(async (
       .from('bookings')
       .select('id, mitra_id')
       .eq('id', bookingId)
+      .eq('mitra_id', partnerId)
       .single();
 
     if (bookingError || !booking) {
@@ -160,32 +156,12 @@ export const POST = withErrorHandler(async (
       );
     }
 
-    // Check if user is partner owner or team member
-    const isOwner = booking.mitra_id === user.id;
-    const { data: teamMember } = isOwner
-      ? { data: null }
-      : await client
-          .from('partner_users')
-          .select('id, partner_id, role')
-          .eq('user_id', user.id)
-          .eq('partner_id', booking.mitra_id)
-          .eq('is_active', true)
-          .is('deleted_at', null)
-          .single();
-
-    if (!isOwner && !teamMember) {
-      return NextResponse.json(
-        { error: 'Unauthorized access to booking' },
-        { status: 403 }
-      );
-    }
-
     // Create note
     const { data: note, error: noteError } = await client
       .from('partner_booking_notes')
       .insert({
         booking_id: bookingId,
-        partner_id: booking.mitra_id,
+        partner_id: partnerId,
         user_id: user.id,
         note_text: noteText,
         is_internal: isInternal ?? true,

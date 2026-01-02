@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -25,6 +26,12 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const validated = domainSchema.parse(body);
@@ -41,7 +48,7 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     const { data: existing } = await client
       .from('partner_whitelabel_settings')
       .select('id')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .maybeSingle();
 
     const updateData: Record<string, any> = {
@@ -54,7 +61,7 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
       const { data, error } = await client
         .from('partner_whitelabel_settings')
         .update(updateData)
-        .eq('partner_id', user.id)
+        .eq('partner_id', partnerId)
         .select('custom_domain, custom_domain_verified, custom_domain_verification_token')
         .single();
 
@@ -62,6 +69,7 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
 
       logger.info('Custom domain updated', {
         userId: user.id,
+        partnerId,
         domain: validated.customDomain,
       });
 
@@ -76,7 +84,7 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
       const { data, error } = await client
         .from('partner_whitelabel_settings')
         .insert({
-          partner_id: user.id,
+          partner_id: partnerId,
           ...updateData,
         })
         .select('custom_domain, custom_domain_verified, custom_domain_verification_token')

@@ -263,9 +263,18 @@ export async function creditWallet(
     .update({ balance: newBalance })
     .eq('id', wallet.id);
 
-  // TODO: Emit wallet.balance_changed event via API endpoint
-  // Event emission disabled to avoid server-only import in client components
-  // Should be moved to server-side API endpoint
+  // Emit wallet balance changed event via server-side API
+  try {
+    await emitWalletEvent({
+      eventType: 'balance_changed',
+      walletId: wallet.id,
+      amount: -amount, // Negative for debit
+      balanceAfter: newBalance,
+    });
+  } catch (eventError) {
+    // Non-critical - log and continue
+    logger.warn('Failed to emit wallet balance changed event', { error: eventError, walletId: wallet.id });
+  }
 
   return { success: true };
 }
@@ -335,4 +344,42 @@ export function formatCurrency(amount: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+/**
+ * Emit wallet event via server-side API
+ * This allows client-side code to trigger events without importing server-only modules
+ */
+export async function emitWalletEvent(params: {
+  eventType: 'balance_changed' | 'topup_completed' | 'withdrawal_requested' | 'credit_used' | 'credit_repaid';
+  walletId: string;
+  amount: number;
+  balanceAfter?: number;
+  transactionId?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<{ success: boolean }> {
+  try {
+    const response = await fetch('/api/partner/wallet/events', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      logger.warn('Failed to emit wallet event via API', { 
+        status: response.status, 
+        error,
+        eventType: params.eventType,
+      });
+      return { success: false };
+    }
+
+    return { success: true };
+  } catch (error) {
+    logger.warn('Error calling wallet events API', { error, eventType: params.eventType });
+    return { success: false };
+  }
 }

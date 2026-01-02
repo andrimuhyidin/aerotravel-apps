@@ -8,6 +8,7 @@
  */
 
 import { chat } from '@/lib/gemini';
+import { logger } from '@/lib/utils/logger';
 
 export type ContentSpinnerParams = {
   packageName: string;
@@ -70,7 +71,10 @@ Format output: JSON dengan struktur:
 
     return spun;
   } catch (error) {
-    console.error('Content spinner parsing error:', error);
+    logger.error('Content spinner parsing error', error, {
+      packageName: params.packageName,
+      originCity: params.originCity,
+    });
     // Fallback content
     return generateFallbackContent(params);
   }
@@ -136,7 +140,7 @@ export async function batchSpinContent(
         });
         results.set(key, content);
       } catch (error) {
-        console.error(`Error spinning content for ${key}:`, error);
+        logger.error('Error spinning content', error, { key, packageName: pkg.name, city });
       }
     }
   }

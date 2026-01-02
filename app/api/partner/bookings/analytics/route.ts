@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -25,7 +26,19 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
+  
+  // Sanitize input
+  const sanitizedBody = sanitizeRequestBody(body, {
+    strings: ['eventType', 'stepName'],
+  });
+  
   const {
     bookingId,
     draftId,
@@ -33,7 +46,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     stepName,
     timeSpentSeconds,
     metadata = {},
-  } = body;
+  } = sanitizedBody;
 
   // Validate event type
   const validEvents = ['started', 'step_completed', 'abandoned', 'completed'];
@@ -51,7 +64,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const { data: event, error } = await client
       .from('booking_analytics')
       .insert({
-        partner_id: user.id,
+        partner_id: partnerId,
         booking_id: bookingId || null,
         draft_id: draftId || null,
         event_type: eventType,

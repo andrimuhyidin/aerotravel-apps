@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { MIN_REDEMPTION_POINTS } from '@/lib/partner/reward-rules';
 import { redeemPoints } from '@/lib/partner/reward-points';
 import { createClient } from '@/lib/supabase/server';
@@ -27,38 +28,17 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access using centralized helper
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Not a partner' }, { status: 403 });
+  }
+
   const body = await request.json();
-  const { points, description } = redeemSchema.parse(body);
+  const sanitizedBody = sanitizeRequestBody(body, { strings: ['description'] });
+  const { points, description } = redeemSchema.parse(sanitizedBody);
 
   try {
-    // Get partner ID
-    const client = supabase as unknown as any;
-    const { data: userProfile } = await client
-      .from('users')
-      .select('id, role')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (!userProfile) {
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
-    }
-
-    let partnerId = user.id;
-    if (userProfile.role !== 'mitra') {
-      const { data: partnerUser } = await client
-        .from('partner_users')
-        .select('partner_id')
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (partnerUser) {
-        partnerId = partnerUser.partner_id;
-      } else {
-        return NextResponse.json({ error: 'Not a partner' }, { status: 403 });
-      }
-    }
 
     // Check balance first
     const { getPointsBalance } = await import('@/lib/partner/reward-points');

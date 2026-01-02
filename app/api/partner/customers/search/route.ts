@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -24,9 +25,16 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
+  // Sanitize search params
+  const searchParams = sanitizeSearchParams(request);
   const query = searchParams.get('q') || '';
-  const limit = parseInt(searchParams.get('limit') || '10');
+  const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
 
   if (!query || query.length < 2) {
     return NextResponse.json(
@@ -42,7 +50,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const { data: historyResults, error: historyError } = await client
       .from('customer_booking_history')
       .select('*')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .or(
         `customer_phone.ilike.%${query}%,customer_name.ilike.%${query}%`
       )

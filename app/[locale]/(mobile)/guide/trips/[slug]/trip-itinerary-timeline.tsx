@@ -2,6 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, Copy, Edit2, MapPin, Plus, Share2 } from 'lucide-react';
+import { RouteOptimizerWidget } from './route-optimizer-widget';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -284,6 +285,7 @@ export function TripItineraryTimeline({ tripId, locale = 'id' }: TripItineraryTi
             Timeline Trip
           </CardTitle>
           <div className="flex items-center gap-2">
+            <RouteOptimizerWidget tripId={tripId} locale={locale} className="h-8 text-xs" />
             <Button
               size="sm"
               variant="outline"

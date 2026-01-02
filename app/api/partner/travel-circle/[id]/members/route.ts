@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { addCircleMember } from '@/lib/partner/travel-circle';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -36,6 +37,12 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
 
   try {
@@ -53,12 +60,12 @@ export const GET = withErrorHandler(async (
       );
     }
 
-    const isCreator = circle.created_by === user.id;
+    const isCreator = circle.created_by === partnerId;
     const { data: member } = await client
       .from('travel_circle_members')
       .select('id')
       .eq('circle_id', circleId)
-      .eq('user_id', user.id)
+      .eq('user_id', partnerId)
       .maybeSingle();
 
     if (!isCreator && !member) {
@@ -138,8 +145,19 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
   const data = addMemberSchema.parse(body);
+  const sanitizedData = sanitizeRequestBody(data, {
+    strings: ['memberName'],
+    emails: ['memberEmail'],
+    phones: ['memberPhone'],
+  });
 
   const client = supabase as unknown as any;
 
@@ -151,7 +169,7 @@ export const POST = withErrorHandler(async (
       .eq('id', circleId)
       .single();
 
-    if (!circle || circle.created_by !== user.id) {
+    if (!circle || circle.created_by !== partnerId) {
       return NextResponse.json(
         { error: 'Unauthorized - hanya creator yang bisa menambah member' },
         { status: 403 }
@@ -168,11 +186,11 @@ export const POST = withErrorHandler(async (
     // Add member
     const result = await addCircleMember({
       circleId,
-      userId: data.userId,
-      memberName: data.memberName,
-      memberEmail: data.memberEmail,
-      memberPhone: data.memberPhone,
-      targetContribution: data.targetContribution,
+      userId: sanitizedData.userId,
+      memberName: sanitizedData.memberName,
+      memberEmail: sanitizedData.memberEmail,
+      memberPhone: sanitizedData.memberPhone,
+      targetContribution: data.targetContribution, // Use original for number
     });
 
     if (!result.success) {

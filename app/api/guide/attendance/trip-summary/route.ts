@@ -121,6 +121,36 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   const { data: trip } = await tripQuery;
 
+  // Get actual passenger count from manifest_checks
+  let actualPax = 0;
+  let expectedPax = trip?.total_pax || 0;
+  try {
+    let manifestQuery = supabase
+      .from('manifest_checks')
+      .select('id, passenger_id, boarded_at')
+      .eq('trip_id', tripId);
+
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      manifestQuery = manifestQuery.eq('branch_id', branchContext.branchId);
+    }
+
+    const { data: manifestChecks } = await manifestQuery;
+
+    if (manifestChecks && manifestChecks.length > 0) {
+      // Count passengers who actually boarded (have boarded_at timestamp)
+      actualPax = manifestChecks.filter(
+        (check: { boarded_at: string | null }) => check.boarded_at !== null
+      ).length;
+
+      // If expected pax is 0, use manifest count as expected
+      if (expectedPax === 0) {
+        expectedPax = manifestChecks.length;
+      }
+    }
+  } catch {
+    // Ignore error, keep counts at default
+  }
+
   // Get incidents if any
   let incidentsQuery = supabase
     .from('incident_reports')
@@ -148,8 +178,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       formatted: `${Math.round(totalDistanceKm * 10) / 10} km`,
     },
     pax: {
+      expected: expectedPax,
+      actual: actualPax,
       total: trip?.total_pax || 0,
-      // TODO: Add actual passenger count confirmation from manifest
+      allBoarded: actualPax >= expectedPax,
+      missingCount: Math.max(0, expectedPax - actualPax),
     },
     status: trip?.status || 'completed',
     incidents: {

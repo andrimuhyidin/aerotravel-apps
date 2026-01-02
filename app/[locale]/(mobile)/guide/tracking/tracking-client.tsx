@@ -21,8 +21,18 @@ import {
     watchPosition,
 } from '@/lib/guide/geofencing';
 
-// Dynamically import map component (no SSR)
-const MapComponent = dynamic(() => import('./map-component'), { ssr: false });
+// Dynamically import map component (no SSR) with loading state for better UX
+const MapComponent = dynamic(() => import('./map-component'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-slate-100">
+      <div className="flex flex-col items-center gap-2">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+        <span className="text-sm text-slate-500">Memuat peta...</span>
+      </div>
+    </div>
+  ),
+});
 
 type TrackingClientProps = {
   locale: string;

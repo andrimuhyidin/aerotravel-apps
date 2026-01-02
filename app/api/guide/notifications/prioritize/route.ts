@@ -3,6 +3,7 @@
  * POST /api/guide/notifications/prioritize
  * 
  * Priority scoring, smart grouping, action suggestions
+ * Rate Limited: 10 requests per minute per user
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,6 +11,7 @@ import { z } from 'zod';
 
 import { groupNotifications, prioritizeNotifications } from '@/lib/ai/notification-prioritizer';
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { checkGuideRateLimit, createRateLimitHeaders, guideAiRateLimit } from '@/lib/rate-limit/guide-limits';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -27,6 +29,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit check
+  const rateLimit = await checkGuideRateLimit(guideAiRateLimit, user.id, 'prioritas notifikasi');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: rateLimit.error },
+      { status: 429, headers: createRateLimitHeaders(rateLimit.remaining, rateLimit.reset) }
+    );
   }
 
   const payload = prioritizeSchema.parse(await request.json());

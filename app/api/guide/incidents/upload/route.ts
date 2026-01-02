@@ -1,11 +1,13 @@
 /**
  * API: Incident Report Photo Upload
  * POST /api/guide/incidents/upload - Upload photos for incident report
+ * Rate Limited: 5 uploads per minute per user
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { checkGuideRateLimit, createRateLimitHeaders, guideUploadRateLimit } from '@/lib/rate-limit/guide-limits';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -18,6 +20,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit check
+  const rateLimit = await checkGuideRateLimit(guideUploadRateLimit, user.id, 'upload insiden');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: rateLimit.error },
+      { status: 429, headers: createRateLimitHeaders(rateLimit.remaining, rateLimit.reset) }
+    );
   }
 
   const formData = await request.formData();

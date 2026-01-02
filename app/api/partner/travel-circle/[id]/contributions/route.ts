@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { recordContribution } from '@/lib/partner/travel-circle';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -36,6 +37,12 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
 
   try {
@@ -53,12 +60,12 @@ export const GET = withErrorHandler(async (
       );
     }
 
-    const isCreator = circle.created_by === user.id;
+    const isCreator = circle.created_by === partnerId;
     const { data: member } = await client
       .from('travel_circle_members')
       .select('id')
       .eq('circle_id', circleId)
-      .eq('user_id', user.id)
+      .eq('user_id', partnerId)
       .maybeSingle();
 
     if (!isCreator && !member) {
@@ -141,6 +148,12 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
   const data = contributionSchema.parse(body);
 
@@ -155,7 +168,7 @@ export const POST = withErrorHandler(async (
       .eq('circle_id', circleId)
       .single();
 
-    if (!member || member.user_id !== user.id) {
+    if (!member || member.user_id !== partnerId) {
       return NextResponse.json(
         { error: 'Member tidak ditemukan atau tidak memiliki akses' },
         { status: 403 }
@@ -167,7 +180,7 @@ export const POST = withErrorHandler(async (
       const { data: wallet } = await client
         .from('mitra_wallets')
         .select('balance, credit_limit')
-        .eq('mitra_id', user.id)
+        .eq('mitra_id', partnerId)
         .single();
 
       if (!wallet) {

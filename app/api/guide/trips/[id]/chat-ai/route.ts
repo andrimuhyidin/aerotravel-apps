@@ -3,6 +3,7 @@
  * POST /api/guide/trips/[id]/chat-ai
  * 
  * Context-aware AI assistant untuk trip-specific queries
+ * Rate Limited: 10 requests per minute per user
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,6 +13,7 @@ import { chatTripAssistant, getTripSuggestions, type TripContext } from '@/lib/a
 import { trackAiUsage } from '@/lib/analytics/ai-usage';
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
+import { checkGuideRateLimit, createRateLimitHeaders, guideAiRateLimit } from '@/lib/rate-limit/guide-limits';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -34,6 +36,15 @@ export const POST = withErrorHandler(async (
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit check
+  const rateLimit = await checkGuideRateLimit(guideAiRateLimit, user.id, 'chat AI');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: rateLimit.error },
+      { status: 429, headers: createRateLimitHeaders(rateLimit.remaining, rateLimit.reset) }
+    );
   }
 
   const branchContext = await getBranchContext(user.id);

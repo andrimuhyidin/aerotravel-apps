@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient, hasRole } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -30,6 +31,12 @@ export const GET = withErrorHandler(async (
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
   }
 
   const client = supabase as unknown as any;
@@ -67,7 +74,7 @@ export const GET = withErrorHandler(async (
     }
 
     // Verify ownership (refund belongs to partner's booking)
-    if (refund.booking?.mitra_id !== user.id) {
+    if (refund.booking?.mitra_id !== partnerId) {
       return NextResponse.json(
         { error: 'Unauthorized access to refund' },
         { status: 403 }

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { sanitizeSearchParams, verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -21,24 +22,35 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
-  const type = searchParams.get('type'); // topup, booking_debit, refund, etc.
-  const from = searchParams.get('from'); // YYYY-MM-DD
-  const to = searchParams.get('to'); // YYYY-MM-DD
-  const search = searchParams.get('search'); // Search by description/booking_code
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '20');
+  // Sanitize search params
+  const sanitizedParams = sanitizeSearchParams(searchParams);
+  const type = sanitizedParams.type || null; // topup, booking_debit, refund, etc.
+  const from = sanitizedParams.from || null; // YYYY-MM-DD
+  const to = sanitizedParams.to || null; // YYYY-MM-DD
+  const search = sanitizedParams.search || null; // Search by description/booking_code
+  const page = parseInt(sanitizedParams.page || '1');
+  const limit = Math.min(parseInt(sanitizedParams.limit || '20'), 100); // Max 100
   const offset = (page - 1) * limit;
-  const exportFormat = searchParams.get('export'); // csv
+  const exportFormat = sanitizedParams.export || null; // csv
 
   const client = supabase as unknown as any;
 
   try {
-    // Get wallet ID
+    // Get wallet ID using verified partnerId
     const { data: wallet, error: walletError } = await client
       .from('mitra_wallets')
       .select('id')
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .single();
 
     if (walletError || !wallet) {

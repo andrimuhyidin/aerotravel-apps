@@ -23,8 +23,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { logger } from '@/lib/utils/logger';
+import queryKeys from '@/lib/queries/query-keys';
 import {
-  FileText,
   Loader2,
   RefreshCw,
   Search,
@@ -32,6 +32,7 @@ import {
   History,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 
@@ -59,6 +60,14 @@ type ActivityLogsResponse = {
   };
 };
 
+type TeamMember = {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+};
+
 export function ActivityLogClient({ locale }: { locale: string }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,6 +84,21 @@ export function ActivityLogClient({ locale }: { locale: string }) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Load team members for user filter dropdown
+  const { data: teamMembersData } = useQuery({
+    queryKey: queryKeys.partner.team.list(),
+    queryFn: async () => {
+      const res = await fetch('/api/partner/team');
+      if (!res.ok) {
+        throw new Error('Failed to fetch team members');
+      }
+      return res.json() as Promise<{ teamMembers: TeamMember[] }>;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const teamMembers = teamMembersData?.teamMembers || [];
 
   useEffect(() => {
     loadActivityLogs();
@@ -324,7 +348,11 @@ export function ActivityLogClient({ locale }: { locale: string }) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua</SelectItem>
-                  {/* TODO: Load team members dynamically */}
+                  {teamMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.user_id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

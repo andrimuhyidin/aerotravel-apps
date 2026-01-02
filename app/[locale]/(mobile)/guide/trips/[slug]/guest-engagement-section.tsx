@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingState } from '@/components/ui/loading-state';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
+import { MusicPlaylistCard } from './music-playlist-card';
 
 type GuestEngagementSectionProps = {
   tripId: string;
@@ -33,15 +34,7 @@ type QuizQuestion = {
   explanation?: string;
 };
 
-type MusicReference = {
-  id: string;
-  name: string;
-  category: string;
-  description?: string;
-  genre?: string;
-  mood?: string;
-  suitable_for?: string[];
-};
+// MusicReference type moved to music-playlist-card.tsx
 
 export function GuestEngagementSection({
   tripId,
@@ -53,7 +46,22 @@ export function GuestEngagementSection({
   const [selectedAnswers, setSelectedAnswers] = useState<
     Record<string, string>
   >({});
+  const [selectedPassengerId, setSelectedPassengerId] = useState<string | null>(
+    null
+  );
   const queryClient = useQueryClient();
+
+  // Fetch passengers for this trip to enable passenger selection
+  const { data: passengersData } = useQuery<{
+    passengers: Array<{ id: string; name: string }>;
+  }>({
+    queryKey: queryKeys.guide.trips.manifest(tripId),
+    queryFn: async () => {
+      const res = await fetch(`/api/guide/trips/${tripId}/manifest`);
+      if (!res.ok) return { passengers: [] };
+      return res.json();
+    },
+  });
 
   // Fetch quiz questions
   const {
@@ -96,23 +104,7 @@ export function GuestEngagementSection({
     },
   });
 
-  // Fetch music references (AI-generated)
-  const {
-    data: musicData,
-    isLoading: musicLoading,
-    refetch: refetchMusic,
-  } = useQuery<{
-    playlists: MusicReference[];
-    generated_at?: string;
-    note?: string;
-  }>({
-    queryKey: queryKeys.guide.trips.engagement.music(tripId),
-    queryFn: async () => {
-      const res = await fetch(`/api/guide/trips/${tripId}/engagement/music`);
-      if (!res.ok) throw new Error('Failed to fetch music references');
-      return res.json();
-    },
-  });
+  // Music references now handled by MusicPlaylistCard component
 
   // Fetch photo challenges
   const { data: photoData, isLoading: photoLoading } = useQuery<{
@@ -163,7 +155,7 @@ export function GuestEngagementSection({
 
   const handleSubmitAnswer = async (
     questionId: string,
-    question: QuizQuestion
+    _question: QuizQuestion
   ) => {
     const answer = selectedAnswers[questionId];
     if (!answer) {
@@ -177,7 +169,10 @@ export function GuestEngagementSection({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question_id: questionId,
-          passenger_id: 'current-passenger', // TODO: Get from context when passenger selection is implemented
+          passenger_id:
+            selectedPassengerId ||
+            passengersData?.passengers?.[0]?.id ||
+            'anonymous-participant',
           answer,
         }),
       });
@@ -197,7 +192,7 @@ export function GuestEngagementSection({
         delete next[questionId];
         return next;
       });
-    } catch (_error) {
+    } catch {
       toast.error('Gagal submit jawaban');
     }
   };
@@ -207,7 +202,6 @@ export function GuestEngagementSection({
   };
 
   const questions = quizData?.questions || [];
-  const musicReferences = musicData?.playlists || [];
 
   return (
     <div className="space-y-4">
@@ -265,6 +259,29 @@ export function GuestEngagementSection({
       {/* Quiz Tab */}
       {activeTab === 'quiz' && (
         <div className="space-y-4">
+          {/* Passenger Selector */}
+          {passengersData?.passengers && passengersData.passengers.length > 0 && (
+            <Card className="border-slate-200">
+              <CardContent className="p-3">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Pilih Peserta
+                </label>
+                <select
+                  value={selectedPassengerId || ''}
+                  onChange={(e) => setSelectedPassengerId(e.target.value || null)}
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">-- Pilih peserta --</option>
+                  {passengersData.passengers.map((passenger) => (
+                    <option key={passenger.id} value={passenger.id}>
+                      {passenger.name}
+                    </option>
+                  ))}
+                </select>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Generate Quiz Button */}
           <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 to-indigo-50/50">
             <CardContent className="p-4">
@@ -436,131 +453,9 @@ export function GuestEngagementSection({
         </div>
       )}
 
-      {/* Music Tab - AI-Generated Reference */}
+      {/* Music Tab - Enhanced with Spotify Deep-links */}
       {activeTab === 'music' && (
-        <div className="space-y-4">
-          {/* Generate Music Reference Button */}
-          <Card className="border-purple-200 bg-gradient-to-br from-purple-50/50 to-pink-50/50">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex-1">
-                  <h3 className="flex items-center gap-2 font-semibold text-slate-900">
-                    <Bot className="h-4 w-4 text-purple-600" />
-                    Generate Referensi Musik dengan AI
-                  </h3>
-                  <p className="mt-1 text-xs text-slate-600">
-                    AI akan membuat referensi playlist musik berdasarkan
-                    informasi trip ini
-                  </p>
-                </div>
-                <Button
-                  onClick={() => refetchMusic()}
-                  disabled={musicLoading}
-                  size="sm"
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  {musicLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <Music className="mr-2 h-4 w-4" />
-                      Generate
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Music References */}
-          {musicLoading ? (
-            <LoadingState message="Memuat referensi musik..." />
-          ) : musicReferences.length === 0 ? (
-            <EmptyState
-              icon={Music}
-              title="Belum ada referensi musik"
-              description="Klik tombol Generate untuk membuat referensi musik dengan AI"
-            />
-          ) : (
-            <div className="space-y-3">
-              <Card className="border-amber-200 bg-amber-50/50">
-                <CardContent className="p-4">
-                  <p className="text-sm text-amber-800">
-                    <strong>Catatan:</strong> Referensi musik berikut
-                    di-generate oleh AI dan hanya sebagai panduan. Guide dapat
-                    memutar musik sesuai preferensi dengan aplikasi musik yang
-                    tersedia.
-                  </p>
-                  {musicData?.generated_at && (
-                    <p className="mt-2 text-xs text-amber-700">
-                      Generated:{' '}
-                      {new Date(musicData.generated_at).toLocaleString('id-ID')}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {musicReferences.map((ref) => (
-                <Card key={ref.id} className="border-0 shadow-sm">
-                  <CardContent className="p-4">
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <h3 className="flex items-center gap-2 font-semibold text-slate-900">
-                            <Music className="h-4 w-4 text-slate-600" />
-                            {ref.name}
-                          </h3>
-                          {ref.category && (
-                            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">
-                              {ref.category}
-                            </span>
-                          )}
-                        </div>
-                        {ref.description && (
-                          <p className="mt-2 text-sm text-slate-600">
-                            {ref.description}
-                          </p>
-                        )}
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {ref.genre && (
-                            <span className="text-xs text-slate-500">
-                              Genre: {ref.genre}
-                            </span>
-                          )}
-                          {ref.mood && (
-                            <span className="text-xs text-slate-500">
-                              Mood: {ref.mood}
-                            </span>
-                          )}
-                        </div>
-                        {ref.suitable_for && ref.suitable_for.length > 0 && (
-                          <div className="mt-2">
-                            <p className="mb-1 text-xs font-medium text-slate-700">
-                              Cocok untuk:
-                            </p>
-                            <div className="flex flex-wrap gap-1">
-                              {ref.suitable_for.map((suitable, idx) => (
-                                <span
-                                  key={idx}
-                                  className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600"
-                                >
-                                  {suitable}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
+        <MusicPlaylistCard tripId={tripId} />
       )}
 
       {/* Photo Challenge Tab */}

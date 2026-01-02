@@ -6,6 +6,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -21,7 +22,23 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({
+      summary: {
+        totalBookings: 0,
+        totalRevenue: 0,
+        totalCommission: 0,
+        averageCommission: 0,
+      },
+      revenueTrend: [],
+      topPackages: [],
+      statusBreakdown: {},
+    });
+  }
+
+  const searchParams = sanitizeSearchParams(request);
   const period = searchParams.get('period') || '30'; // '7', '30', '90', 'custom'
   const from = searchParams.get('from');
   const to = searchParams.get('to');
@@ -45,73 +62,6 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
     const endDate = period === 'custom' && to ? new Date(to) : today;
     endDate.setHours(23, 59, 59, 999);
-
-    // Check if user is a partner (mitra) or partner team member
-    const { data: userProfile, error: userProfileError } = await client
-      .from('users')
-      .select('id, role')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (userProfileError) {
-      logger.error('Failed to fetch user profile', userProfileError, {
-        userId: user.id,
-        errorMessage: userProfileError.message,
-        errorDetails: userProfileError.details,
-        errorHint: userProfileError.hint,
-      });
-      return NextResponse.json(
-        { error: 'Failed to fetch user profile', details: userProfileError.message },
-        { status: 500 }
-      );
-    }
-
-    if (!userProfile) {
-      logger.warn('User profile not found', { userId: user.id });
-      // Return empty analytics instead of error
-      return NextResponse.json({
-        summary: {
-          totalBookings: 0,
-          totalRevenue: 0,
-          totalCommission: 0,
-          averageCommission: 0,
-        },
-        revenueTrend: [],
-        topPackages: [],
-        statusBreakdown: {},
-      });
-    }
-
-    // Determine partner_id (mitra_id)
-    let partnerId = user.id;
-    
-    // If user is not a mitra, check if they're a team member
-    if (userProfile.role !== 'mitra') {
-      const { data: partnerUser } = await client
-        .from('partner_users')
-        .select('partner_id')
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (partnerUser) {
-        partnerId = partnerUser.partner_id;
-      } else {
-        // User is not a partner or team member - return empty analytics
-        return NextResponse.json({
-          summary: {
-            totalBookings: 0,
-            totalRevenue: 0,
-            totalCommission: 0,
-            averageCommission: 0,
-          },
-          revenueTrend: [],
-          topPackages: [],
-          statusBreakdown: {},
-        });
-      }
-    }
 
     // Get bookings with commission data
     const { data: bookings, error: bookingsError } = await client

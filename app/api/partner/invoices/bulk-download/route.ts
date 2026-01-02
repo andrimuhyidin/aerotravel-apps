@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import React from 'react';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import type { InvoiceData } from '@/lib/pdf/invoice';
 import { InvoicePDF } from '@/lib/pdf/invoice';
@@ -23,6 +24,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
   }
 
   const body = await request.json();
@@ -68,7 +75,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         package:packages(name, destination)
       `
       )
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .in('id', bookingIds);
 
     if (bookingsError || !bookings || bookings.length === 0) {
@@ -82,14 +89,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const { data: whitelabelSettings } = await client
       .from('partner_whitelabel_settings')
       .select('*')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .maybeSingle();
 
     // Get partner profile for fallback
     const { data: partnerProfile } = await client
       .from('users')
       .select('full_name, email, phone')
-      .eq('id', user.id)
+      .eq('id', partnerId)
       .single();
 
     // Determine company info

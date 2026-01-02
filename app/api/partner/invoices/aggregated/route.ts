@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -19,7 +20,14 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
+  // Sanitize search params
+  const searchParams = sanitizeSearchParams(request);
   const period = searchParams.get('period') || 'monthly'; // 'weekly' or 'monthly'
   const from = searchParams.get('from'); // YYYY-MM-DD
   const to = searchParams.get('to'); // YYYY-MM-DD
@@ -72,7 +80,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         package:packages(id, name, destination)
       `
       )
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString());
 

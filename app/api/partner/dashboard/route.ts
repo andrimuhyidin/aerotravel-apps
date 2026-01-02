@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { getDashboardData } from '@/lib/partner/dashboard-service';
 import { getPartnerProfile } from '@/lib/partner/profile-service';
 import { createClient } from '@/lib/supabase/server';
@@ -28,8 +29,17 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Get partner profile using correct service
-  const profile = await getPartnerProfile(supabase, user.id);
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
+  // Get partner profile using verified partnerId
+  const profile = await getPartnerProfile(supabase, partnerId);
 
   if (!profile) {
     logger.error('Partner profile not found', { userId: user.id });
@@ -44,7 +54,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   try {
     const dashboardData = await getDashboardData(
       supabase,
-      user.id,
+      partnerId, // Use verified partnerId
       branchId
     );
 

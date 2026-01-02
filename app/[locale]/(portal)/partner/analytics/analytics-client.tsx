@@ -15,6 +15,7 @@ import { logger } from '@/lib/utils/logger';
 import { DollarSign, TrendingUp, Calendar, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { AiSalesInsights } from '@/components/partner/ai-sales-insights';
 
 type AnalyticsData = {
   revenue: { value: number; trend: number };
@@ -98,6 +99,11 @@ export function AnalyticsClient({ locale }: { locale: string }) {
             />
           </>
         ) : null}
+
+        {/* AI Sales Insights */}
+        <div className="col-span-full mt-4">
+          <AiSalesInsights period={period === '7d' ? 'week' : period === '90d' ? 'quarter' : 'month'} />
+        </div>
       </div>
     </div>
   );

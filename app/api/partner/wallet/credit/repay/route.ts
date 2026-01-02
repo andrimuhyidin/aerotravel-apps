@@ -3,11 +3,13 @@
  * POST /api/partner/wallet/credit/repay
  */
 
-import { withErrorHandler } from '@/lib/api/error-handler';
-import { createClient } from '@/lib/supabase/server';
-import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+
+import { withErrorHandler } from '@/lib/api/error-handler';
+import { sanitizeRequestBody, verifyPartnerAccess } from '@/lib/api/partner-helpers';
+import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
 
 const repaySchema = z.object({
   amount: z.number().min(1),
@@ -25,17 +27,31 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   const body = await request.json();
-  const { amount, description } = repaySchema.parse(body);
+  const validated = repaySchema.parse(body);
+
+  // Sanitize validated data
+  const { amount, description } = sanitizeRequestBody(validated, {
+    strings: ['description'],
+  });
 
   const client = supabase as unknown as any;
 
   try {
-    // Get wallet
+    // Get wallet using verified partnerId
     const { data: wallet, error: walletError } = await client
       .from('mitra_wallets')
       .select('id, credit_used')
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .maybeSingle();
 
     if (walletError) {

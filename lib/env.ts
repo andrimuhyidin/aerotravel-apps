@@ -55,6 +55,11 @@ export const env = createEnv({
     CLOUDFLARE_API_TOKEN: z.string().min(1).optional(),
     CLOUDFLARE_ZONE_ID: z.string().min(1).optional(),
 
+    // Meta WhatsApp Business API (optional)
+    META_ACCESS_TOKEN: z.string().min(1).optional(),
+    META_BUSINESS_ID: z.string().min(1).optional(),
+    META_PHONE_NUMBER_ID: z.string().min(1).optional(),
+
     // Node Environment
     NODE_ENV: z
       .enum(['development', 'test', 'production'])
@@ -77,6 +82,9 @@ export const env = createEnv({
 
     // GA4
     NEXT_PUBLIC_GA4_MEASUREMENT_ID: z.string().optional(),
+
+    // Microsoft Clarity
+    NEXT_PUBLIC_CLARITY_PROJECT_ID: z.string().min(1).optional(),
 
     // Sentry
     NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
@@ -113,6 +121,9 @@ export const env = createEnv({
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
     CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN,
     CLOUDFLARE_ZONE_ID: process.env.CLOUDFLARE_ZONE_ID,
+    META_ACCESS_TOKEN: process.env.META_ACCESS_TOKEN,
+    META_BUSINESS_ID: process.env.META_BUSINESS_ID,
+    META_PHONE_NUMBER_ID: process.env.META_PHONE_NUMBER_ID,
     NODE_ENV: process.env.NODE_ENV,
 
     // Client
@@ -121,6 +132,7 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
     NEXT_PUBLIC_GA4_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID,
+    NEXT_PUBLIC_CLARITY_PROJECT_ID: process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,

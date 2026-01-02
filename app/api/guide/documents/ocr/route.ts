@@ -3,6 +3,7 @@
  * POST /api/guide/documents/ocr
  * 
  * Uses Google Gemini Vision API to extract data from ID cards
+ * Rate Limited: 5 requests per minute per user (higher cost)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,11 +11,12 @@ import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { analyzeImage } from '@/lib/gemini';
+import { checkGuideRateLimit, createRateLimitHeaders, guideOcrRateLimit } from '@/lib/rate-limit/guide-limits';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 const ocrSchema = z.object({
-  imageBase64: z.string().min(1),
+  imageBase64: z.string().min(1).max(15_000_000), // Max ~10MB base64 encoded
   mimeType: z.enum(['image/png', 'image/jpeg', 'image/webp']),
   documentType: z.enum(['ktp', 'sim']).default('ktp'),
 });
@@ -28,6 +30,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit check (OCR is more restrictive due to higher cost)
+  const rateLimit = await checkGuideRateLimit(guideOcrRateLimit, user.id, 'scan dokumen');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: rateLimit.error },
+      { status: 429, headers: createRateLimitHeaders(rateLimit.remaining, rateLimit.reset) }
+    );
   }
 
   const payload = ocrSchema.parse(await request.json());

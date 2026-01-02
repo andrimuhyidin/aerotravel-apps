@@ -12,7 +12,8 @@ import { fileURLToPath, URL } from 'node:url';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
+    environment: 'jsdom',
+    setupFiles: ['./tests/vitest.setup.ts'],
     include: ['tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: ['node_modules', 'dist', '.next', 'tests/e2e'],
     coverage: {

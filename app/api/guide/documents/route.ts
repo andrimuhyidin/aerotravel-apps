@@ -2,12 +2,14 @@
  * API: Guide Documents
  * GET /api/guide/documents - Get all guide documents
  * POST /api/guide/documents - Upload new document
+ * Rate Limited (POST): 5 uploads per minute per user
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { checkGuideRateLimit, createRateLimitHeaders, guideUploadRateLimit } from '@/lib/rate-limit/guide-limits';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -275,6 +277,21 @@ const uploadSchema = z.object({
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
+
+  // Rate limit check for uploads
+  const {
+    data: { user: rateLimitUser },
+  } = await supabase.auth.getUser();
+
+  if (rateLimitUser) {
+    const rateLimit = await checkGuideRateLimit(guideUploadRateLimit, rateLimitUser.id, 'upload dokumen');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: rateLimit.error },
+        { status: 429, headers: createRateLimitHeaders(rateLimit.remaining, rateLimit.reset) }
+      );
+    }
+  }
 
   const {
     data: { user },

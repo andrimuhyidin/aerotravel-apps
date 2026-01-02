@@ -3,6 +3,7 @@
  * POST /api/guide/incidents/ai-assist
  * 
  * Auto-generate report dari foto + voice, extract key info
+ * Rate Limited: 10 requests per minute per user
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,6 +14,7 @@ import {
     generateIncidentReport,
 } from '@/lib/ai/incident-assistant';
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { checkGuideRateLimit, createRateLimitHeaders, guideAiRateLimit } from '@/lib/rate-limit/guide-limits';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -39,6 +41,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit check
+  const rateLimit = await checkGuideRateLimit(guideAiRateLimit, user.id, 'AI assist');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: rateLimit.error },
+      { status: 429, headers: createRateLimitHeaders(rateLimit.remaining, rateLimit.reset) }
+    );
   }
 
   const payload = assistSchema.parse(await request.json());

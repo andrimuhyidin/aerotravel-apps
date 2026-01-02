@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { getBranchContext } from '@/lib/branch/branch-injection';
 import { getPackageAvailabilityBatch } from '@/lib/partner/package-availability';
 import { fetchPackageRatingsBatch } from '@/lib/partner/package-ratings';
@@ -29,6 +30,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   // Get partner branch context
   let branchContext;
   try {
@@ -43,8 +50,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
   const client = supabase as unknown as any;
 
-  // Get query params
-  const { searchParams } = new URL(request.url);
+  // Get query params with sanitization
+  const searchParams = sanitizeSearchParams(request);
   const search = searchParams.get('search') || '';
   const destination = searchParams.get('destination');
   const packageType = searchParams.get('packageType');
@@ -86,6 +93,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         min_pax,
         max_pax,
         created_at,
+        inclusions,
         prices:package_prices(
           min_pax,
           max_pax,
@@ -285,7 +293,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         packageType: pkg.package_type,
         isActive: pkg.is_active,
         createdAt: pkg.created_at || new Date().toISOString(),
-        facilities: ['meals', 'hotel', 'transport'], // TODO: Get from package data when available
+        facilities: pkg.inclusions || [],
         // Pricing summary
         baseNTAPrice: basePriceTier ? Number(basePriceTier.price_nta) : null,
         basePublishPrice: basePriceTier ? Number(basePriceTier.price_publish) : null,

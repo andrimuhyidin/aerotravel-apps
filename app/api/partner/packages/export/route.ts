@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { getBranchContext } from '@/lib/branch/branch-injection';
 import { generateCatalogExcel, generateCatalogPDF } from '@/lib/partner/catalog-export';
 import { getPackageAvailabilityBatch } from '@/lib/partner/package-availability';
@@ -24,10 +25,16 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner } = await verifyPartnerAccess(user.id);
+  if (!isPartner) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const branchContext = await getBranchContext(user.id);
   const client = supabase as unknown as any;
 
-  const { searchParams } = new URL(request.url);
+  const searchParams = sanitizeSearchParams(request);
   const format = searchParams.get('format') || 'excel'; // 'pdf' or 'excel'
 
   if (!['pdf', 'excel'].includes(format)) {

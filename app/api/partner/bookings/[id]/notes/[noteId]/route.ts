@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -31,6 +32,12 @@ export const PUT = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
   const validation = updateNoteSchema.safeParse(body);
 
@@ -41,7 +48,10 @@ export const PUT = withErrorHandler(async (
     );
   }
 
-  const { noteText } = validation.data;
+  const sanitizedBody = sanitizeRequestBody(validation.data, {
+    strings: ['noteText'],
+  });
+  const { noteText } = sanitizedBody;
   const client = supabase as unknown as any;
 
   try {
@@ -155,6 +165,12 @@ export const DELETE = withErrorHandler(async (
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
   }
 
   const client = supabase as unknown as any;

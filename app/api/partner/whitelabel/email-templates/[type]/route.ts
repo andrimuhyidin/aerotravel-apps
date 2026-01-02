@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -74,6 +75,12 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   if (!TEMPLATE_VARIABLES[type]) {
     return NextResponse.json(
       { error: 'Invalid template type' },
@@ -87,7 +94,7 @@ export const GET = withErrorHandler(async (
     const { data: template, error } = await client
       .from('partner_email_templates')
       .select('*')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .eq('template_type', type)
       .eq('is_active', true)
       .maybeSingle();
@@ -95,6 +102,7 @@ export const GET = withErrorHandler(async (
     if (error) {
       logger.error('Failed to fetch email template', error, {
         userId: user.id,
+        partnerId,
         templateType: type,
       });
       throw error;
@@ -137,6 +145,12 @@ export const PUT = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   if (!TEMPLATE_VARIABLES[type]) {
     return NextResponse.json(
       { error: 'Invalid template type' },
@@ -147,15 +161,18 @@ export const PUT = withErrorHandler(async (
   try {
     const body = await request.json();
     const validated = emailTemplateSchema.parse(body);
+    const sanitizedBody = sanitizeRequestBody(validated, {
+      strings: ['subject'],
+    });
 
     const client = supabase as unknown as any;
 
     // Deactivate other templates of the same type if this one is being activated
-    if (validated.isActive) {
+    if (sanitizedBody.isActive) {
       await client
         .from('partner_email_templates')
         .update({ is_active: false })
-        .eq('partner_id', user.id)
+        .eq('partner_id', partnerId)
         .eq('template_type', type);
     }
 
@@ -163,17 +180,17 @@ export const PUT = withErrorHandler(async (
     const { data: existing } = await client
       .from('partner_email_templates')
       .select('id')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .eq('template_type', type)
       .maybeSingle();
 
     const templateData = {
-      partner_id: user.id,
+      partner_id: partnerId,
       template_type: type,
-      subject: validated.subject,
-      body_html: validated.bodyHtml,
+      subject: sanitizedBody.subject,
+      body_html: validated.bodyHtml, // HTML is already escaped by React
       body_text: validated.bodyText || null,
-      is_active: validated.isActive,
+      is_active: sanitizedBody.isActive,
       variables: TEMPLATE_VARIABLES[type],
     };
 
@@ -203,6 +220,7 @@ export const PUT = withErrorHandler(async (
 
     logger.info('Email template updated', {
       userId: user.id,
+      partnerId,
       templateType: type,
       templateId: result.id,
     });
@@ -229,6 +247,7 @@ export const PUT = withErrorHandler(async (
 
     logger.error('Failed to update email template', error, {
       userId: user.id,
+      partnerId,
     });
     throw error;
   }

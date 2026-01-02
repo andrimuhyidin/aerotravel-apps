@@ -333,12 +333,92 @@ export function isWeekend(date: Date): boolean {
 }
 
 /**
- * Check if a date is Indonesian holiday (simplified)
+ * Indonesian National Holidays
+ * Includes fixed holidays and major religious holidays (dates may vary by year)
+ * Format: 'YYYY-MM-DD'
+ */
+const INDONESIAN_HOLIDAYS: Record<number, string[]> = {
+  2025: [
+    '2025-01-01', // Tahun Baru Masehi
+    '2025-01-29', // Tahun Baru Imlek 2576
+    '2025-03-29', // Hari Raya Nyepi
+    '2025-03-30', // Hari Raya Idul Fitri 1446 H (cuti bersama)
+    '2025-03-31', // Hari Raya Idul Fitri 1446 H
+    '2025-04-01', // Hari Raya Idul Fitri 1446 H
+    '2025-04-18', // Wafat Isa Almasih
+    '2025-05-01', // Hari Buruh Internasional
+    '2025-05-12', // Hari Raya Waisak 2569
+    '2025-05-29', // Kenaikan Isa Almasih
+    '2025-06-01', // Hari Lahir Pancasila
+    '2025-06-06', // Hari Raya Idul Adha 1446 H
+    '2025-06-27', // Tahun Baru Islam 1447 H
+    '2025-08-17', // Hari Kemerdekaan RI
+    '2025-09-05', // Maulid Nabi Muhammad SAW
+    '2025-12-25', // Hari Raya Natal
+  ],
+  2026: [
+    '2026-01-01', // Tahun Baru Masehi
+    '2026-02-17', // Tahun Baru Imlek 2577
+    '2026-03-19', // Hari Raya Nyepi
+    '2026-03-20', // Hari Raya Idul Fitri 1447 H (cuti bersama)
+    '2026-03-21', // Hari Raya Idul Fitri 1447 H
+    '2026-03-22', // Hari Raya Idul Fitri 1447 H
+    '2026-04-03', // Wafat Isa Almasih
+    '2026-05-01', // Hari Buruh Internasional
+    '2026-05-13', // Kenaikan Isa Almasih
+    '2026-05-31', // Hari Raya Waisak 2570
+    '2026-05-27', // Hari Raya Idul Adha 1447 H
+    '2026-06-01', // Hari Lahir Pancasila
+    '2026-06-16', // Tahun Baru Islam 1448 H
+    '2026-08-17', // Hari Kemerdekaan RI
+    '2026-08-26', // Maulid Nabi Muhammad SAW
+    '2026-12-25', // Hari Raya Natal
+  ],
+  2027: [
+    '2027-01-01', // Tahun Baru Masehi
+    '2027-02-06', // Tahun Baru Imlek 2578
+    '2027-03-09', // Hari Raya Nyepi
+    '2027-03-10', // Hari Raya Idul Fitri 1448 H
+    '2027-03-11', // Hari Raya Idul Fitri 1448 H
+    '2027-03-26', // Wafat Isa Almasih
+    '2027-05-01', // Hari Buruh Internasional
+    '2027-05-06', // Kenaikan Isa Almasih
+    '2027-05-16', // Hari Raya Idul Adha 1448 H
+    '2027-05-20', // Hari Raya Waisak 2571
+    '2027-06-01', // Hari Lahir Pancasila
+    '2027-06-06', // Tahun Baru Islam 1449 H
+    '2027-08-15', // Maulid Nabi Muhammad SAW
+    '2027-08-17', // Hari Kemerdekaan RI
+    '2027-12-25', // Hari Raya Natal
+  ],
+};
+
+/**
+ * Check if a date is Indonesian holiday
+ * Checks against a predefined list of national holidays
  */
 export function isHoliday(date: Date): boolean {
-  // TODO: Implement Indonesian holiday checking
-  // This should check against a holiday calendar API or database table
-  return false;
+  const year = date.getFullYear();
+  const dateStr = date.toISOString().split('T')[0];
+  
+  // Check if we have holidays for this year
+  const yearHolidays = INDONESIAN_HOLIDAYS[year];
+  if (!yearHolidays) {
+    // For years not in our list, only check fixed holidays
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    
+    // Fixed holidays (same date every year)
+    if (month === 1 && day === 1) return true;  // Tahun Baru
+    if (month === 5 && day === 1) return true;  // Hari Buruh
+    if (month === 6 && day === 1) return true;  // Hari Lahir Pancasila
+    if (month === 8 && day === 17) return true; // Kemerdekaan RI
+    if (month === 12 && day === 25) return true; // Natal
+    
+    return false;
+  }
+  
+  return yearHolidays.includes(dateStr || '');
 }
 
 /**

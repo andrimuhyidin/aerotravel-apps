@@ -1,23 +1,20 @@
 /**
- * Travel Circle Detail
- * Circle details and member management
- *
+ * Travel Circle Detail Page
  * Route: /travel-circle/[id]
  * Access: Protected (Circle members only)
  */
 
 import { Metadata } from 'next';
-import { Container } from '@/components/layout/container';
-import { Section } from '@/components/layout/section';
-import { locales } from '@/i18n';
+import { setRequestLocale } from 'next-intl/server';
 
-type PageProps = {
-  params: Promise<{ locale: string }>;
-};
+import { locales } from '@/i18n';
+import { TravelCircleDetailClient } from './travel-circle-detail-client';
 
 type Props = {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 };
+
+export const dynamic = 'force-dynamic';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -26,36 +23,14 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   return {
-    title: `Travel Circle #${id} - Aero Travel`,
+    title: `Travel Circle #${id.slice(0, 8)} - Aero Travel`,
+    description: 'Lihat progress nabung bareng dan kontribusi anggota',
   };
 }
 
 export default async function TravelCircleDetailPage({ params }: Props) {
-  const { id } = await params;
+  const { locale, id } = await params;
+  setRequestLocale(locale);
 
-  // TODO: Fetch circle data
-  // TODO: Verify user is member
-  // TODO: Show circle dashboard
-
-  return (
-    <Section>
-      <Container>
-        <div className="py-8">
-          <h1 className="mb-6 text-3xl font-bold">Travel Circle #{id}</h1>
-
-          {/* TODO: Circle info card */}
-          {/* TODO: Balance progress */}
-          {/* TODO: Member list */}
-          {/* TODO: Payment history */}
-          {/* TODO: Admin controls (if user is admin) */}
-
-          <div className="rounded-lg bg-muted p-8">
-            <p className="text-muted-foreground">
-              Travel Circle details will be displayed here.
-            </p>
-          </div>
-        </div>
-      </Container>
-    </Section>
-  );
+  return <TravelCircleDetailClient circleId={id} locale={locale} />;
 }

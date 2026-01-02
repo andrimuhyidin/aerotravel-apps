@@ -4,10 +4,24 @@
  * POST /api/partner/customers - Create new customer
  */
 
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { sanitizeRequestBody, sanitizeSearchParams, verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
-import { NextRequest, NextResponse } from 'next/server';
+
+const createCustomerSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email().optional().nullable(),
+  phone: z.string().min(10).optional().nullable(),
+  address: z.string().optional().nullable(),
+  birthdate: z.string().optional().nullable(),
+  segment: z.string().optional().nullable(),
+  preferences: z.record(z.unknown()).optional(),
+  special_notes: z.string().optional().nullable(),
+});
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
@@ -20,11 +34,22 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
-  const search = searchParams.get('search');
-  const segment = searchParams.get('segment');
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '20');
+  // Sanitize search params
+  const sanitizedParams = sanitizeSearchParams(searchParams);
+  const search = sanitizedParams.search || null;
+  const segment = sanitizedParams.segment || null;
+  const page = parseInt(sanitizedParams.page || '1');
+  const limit = Math.min(parseInt(sanitizedParams.limit || '20'), 100); // Max 100
   const offset = (page - 1) * limit;
 
   const client = supabase as unknown as any;
@@ -33,7 +58,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     let query = client
       .from('partner_customers')
       .select('*', { count: 'exact' })
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId) // Use verified partnerId
       .is('deleted_at', null);
 
     // Search filter
@@ -95,7 +120,32 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   const body = await request.json();
+  const validation = createCustomerSchema.safeParse(body);
+
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: validation.error.errors[0]?.message || 'Validation failed' },
+      { status: 400 }
+    );
+  }
+
+  // Sanitize validated data
+  const sanitizedData = sanitizeRequestBody(validation.data, {
+    strings: ['name', 'address', 'segment', 'special_notes'],
+    emails: ['email'],
+    phones: ['phone'],
+  });
+
   const {
     name,
     email,
@@ -105,14 +155,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     segment,
     preferences,
     special_notes,
-  } = body;
-
-  if (!name) {
-    return NextResponse.json(
-      { error: 'Name is required' },
-      { status: 400 }
-    );
-  }
+  } = sanitizedData;
 
   const client = supabase as unknown as any;
 
@@ -120,7 +163,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const { data: customer, error } = await client
       .from('partner_customers')
       .insert({
-        partner_id: user.id,
+        partner_id: partnerId, // Use verified partnerId
         name,
         email: email || null,
         phone: phone || null,

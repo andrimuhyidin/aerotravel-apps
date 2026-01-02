@@ -3,11 +3,13 @@
  * POST /api/partner/wallet/withdraw/request
  */
 
-import { withErrorHandler } from '@/lib/api/error-handler';
-import { createClient } from '@/lib/supabase/server';
-import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+
+import { withErrorHandler } from '@/lib/api/error-handler';
+import { sanitizeRequestBody, verifyPartnerAccess } from '@/lib/api/partner-helpers';
+import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
 
 const withdrawalRequestSchema = z.object({
   amount: z.number().min(100000, 'Minimum penarikan adalah Rp 100.000'),
@@ -30,9 +32,23 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
     const validatedData = withdrawalRequestSchema.parse(body);
+
+    // Sanitize validated data
+    const sanitizedData = sanitizeRequestBody(validatedData, {
+      strings: ['bankName', 'accountName', 'notes'],
+    });
 
     // Check minimum withdrawal
     if (validatedData.amount < MINIMUM_WITHDRAWAL) {
@@ -44,11 +60,11 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
     const client = supabase as unknown as any;
 
-    // Get wallet balance
+    // Get wallet balance using verified partnerId
     const { data: wallet, error: walletError } = await client
       .from('mitra_wallets')
       .select('id, balance, credit_limit')
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .single();
 
     if (walletError || !wallet) {
@@ -61,7 +77,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const availableBalance = Number(wallet.balance || 0) + Number(wallet.credit_limit || 0);
 
     // Check if balance is sufficient
-    if (validatedData.amount > availableBalance) {
+    if (sanitizedData.amount > availableBalance) {
       return NextResponse.json(
         { error: 'Saldo tidak mencukupi untuk melakukan penarikan' },
         { status: 400 }
@@ -72,7 +88,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const { data: pendingRequest } = await client
       .from('mitra_withdrawal_requests')
       .select('id')
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .eq('status', 'pending')
       .maybeSingle();
 
@@ -83,16 +99,16 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       );
     }
 
-    // Create withdrawal request
+    // Create withdrawal request using verified partnerId and sanitized data
     const { data: withdrawalRequest, error: createError } = await client
       .from('mitra_withdrawal_requests')
       .insert({
-        mitra_id: user.id,
-        amount: validatedData.amount,
-        bank_name: validatedData.bankName,
-        account_number: validatedData.accountNumber,
-        account_name: validatedData.accountName,
-        notes: validatedData.notes || null,
+        mitra_id: partnerId,
+        amount: sanitizedData.amount,
+        bank_name: sanitizedData.bankName,
+        account_number: sanitizedData.accountNumber,
+        account_name: sanitizedData.accountName,
+        notes: sanitizedData.notes || null,
         status: 'pending',
       })
       .select('id, amount, status, created_at')
@@ -110,9 +126,9 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     }
 
     logger.info('Withdrawal request created', {
-      userId: user.id,
+      partnerId,
       requestId: withdrawalRequest.id,
-      amount: validatedData.amount,
+      amount: sanitizedData.amount,
     });
 
     return NextResponse.json({

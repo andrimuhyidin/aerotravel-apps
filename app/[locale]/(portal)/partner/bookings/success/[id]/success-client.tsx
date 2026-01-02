@@ -34,6 +34,7 @@ import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { logger } from '@/lib/utils/logger';
 
 type SuccessClientProps = {
   locale: string;
@@ -64,22 +65,25 @@ export function SuccessClient({ locale, bookingId }: SuccessClientProps) {
   const loadBookingData = async () => {
     setLoading(true);
     try {
-      // This will be connected to real API
-      // For now, mock data
-      const mockBooking: BookingData = {
-        bookingCode: 'BK-2024-001',
-        packageName: 'Bali Paradise 4D3N',
-        destination: 'Bali',
-        tripDate: '2024-12-31',
-        customerName: 'Budi Santoso',
-        totalPax: 4,
-        totalAmount: 14000000,
-        commission: 2000000,
-        status: 'confirmed',
-      };
-      setBooking(mockBooking);
+      const res = await fetch(`/api/partner/bookings/${bookingId}`);
+      if (!res.ok) throw new Error('Failed to load booking');
+      const data = await res.json();
+      
+      if (data.booking) {
+        setBooking({
+          bookingCode: data.booking.booking_code || bookingId,
+          packageName: data.booking.package?.name || 'Paket Wisata',
+          destination: data.booking.package?.destination || '-',
+          tripDate: data.booking.trip_date || new Date().toISOString(),
+          customerName: data.booking.customer?.name || data.booking.customer_name || 'Customer',
+          totalPax: data.booking.total_pax || 1,
+          totalAmount: data.booking.total_amount || 0,
+          commission: data.booking.commission_amount || 0,
+          status: data.booking.status || 'pending',
+        });
+      }
     } catch (error) {
-      console.error('Failed to load booking:', error);
+      logger.error('Failed to load booking', error, { bookingId });
     } finally {
       setLoading(false);
     }

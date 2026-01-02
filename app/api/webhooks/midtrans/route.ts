@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { sendAdminAlert } from '@/lib/notifications/admin-alerts';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -415,11 +416,24 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     // Transaction is safe
   } else if (fraud_status === 'deny' || fraud_status === 'challenge') {
     // Transaction flagged - manual review needed
-    // TODO: Notify admin for manual review
     logger.warn('Transaction flagged for review', {
       order_id,
       fraud_status,
       transaction_status,
+    });
+
+    // Send admin alert for fraud detection
+    await sendAdminAlert({
+      type: 'payment_fraud',
+      title: 'Payment Fraud Alert',
+      message: `Transaction flagged with status: ${fraud_status}. Transaction status: ${transaction_status}. Amount: Rp ${Number(gross_amount || 0).toLocaleString('id-ID')}. Manual review required.`,
+      orderId: order_id,
+      severity: fraud_status === 'deny' ? 'critical' : 'high',
+      metadata: {
+        fraud_status,
+        transaction_status,
+        gross_amount,
+      },
     });
   }
 

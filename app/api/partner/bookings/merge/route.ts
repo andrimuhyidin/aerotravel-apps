@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { validateBookingMerge, mergeBookings } from '@/lib/partner/trip-merger';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -27,12 +28,18 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
   const { bookingIds, mergeInto } = mergeSchema.parse(body);
 
   try {
     // Validate merge
-    const validation = await validateBookingMerge(bookingIds, user.id);
+    const validation = await validateBookingMerge(bookingIds, partnerId);
     if (!validation.canMerge) {
       return NextResponse.json(
         { error: validation.reason || 'Tidak bisa merge bookings' },
@@ -49,7 +56,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     }
 
     // Perform merge
-    const result = await mergeBookings(bookingIds, mergeInto, user.id);
+    const result = await mergeBookings(bookingIds, mergeInto, partnerId);
 
     if (!result.success) {
       return NextResponse.json(
@@ -100,7 +107,14 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
+  // Sanitize search params
+  const searchParams = sanitizeSearchParams(request);
   const bookingIdsParam = searchParams.get('bookingIds');
 
   if (!bookingIdsParam) {
@@ -120,7 +134,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
 
   try {
-    const validation = await validateBookingMerge(bookingIds, user.id);
+    const validation = await validateBookingMerge(bookingIds, partnerId);
 
     return NextResponse.json({
       canMerge: validation.canMerge,

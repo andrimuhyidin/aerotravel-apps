@@ -3,13 +3,15 @@
 /**
  * Safety Checklist Pre-Trip Dialog
  * Checklist yang harus diselesaikan sebelum guide bisa mengubah status ke "On Trip"
+ * Includes Risk Scoring System
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, CheckCircle2, Loader2, X } from 'lucide-react';
-import { useState } from 'react';
+import { AlertTriangle, CheckCircle2, Loader2, Shield, X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -19,9 +21,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  getRiskLevelColor,
+  getRiskLevelLabel,
+  type RiskAssessment,
+  type RiskLevel,
+} from '@/lib/guide/risk-scoring';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/utils/logger';
 
 type SafetyChecklistDialogProps = {
   open: boolean;
@@ -46,6 +56,8 @@ export function SafetyChecklistDialog({
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [riskAssessment, setRiskAssessment] = useState<RiskAssessment | null>(null);
+  const [calculatingRisk, setCalculatingRisk] = useState(false);
 
   // Fetch checklist templates from API
   const { data: templatesData, isLoading: templatesLoading } = useQuery<{ data: { templates: ChecklistItem[] } }>({
@@ -63,6 +75,51 @@ export function SafetyChecklistDialog({
 
   const requiredItems = checklistItems.filter((item) => item.required);
   const allRequiredChecked = requiredItems.every((item) => checkedItems.has(item.id));
+
+  // Calculate risk score when checklist changes
+  const calculateRisk = useCallback(async () => {
+    if (!tripId || checkedItems.size === 0) {
+      setRiskAssessment(null);
+      return;
+    }
+
+    setCalculatingRisk(true);
+    try {
+      const responses = Array.from(checkedItems).map(itemId => ({
+        itemId,
+        checked: true,
+      }));
+
+      const res = await fetch('/api/guide/safety-checklist/risk-score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tripId,
+          checklistResponses: responses,
+          includeWeather: true,
+          includeEquipment: true,
+          includeCertifications: true,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setRiskAssessment(data.assessment);
+      }
+    } catch (err) {
+      logger.warn('Failed to calculate risk score', { tripId, error: err });
+    } finally {
+      setCalculatingRisk(false);
+    }
+  }, [tripId, checkedItems]);
+
+  // Debounce risk calculation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void calculateRisk();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [calculateRisk]);
 
   const toggleItem = (id: string) => {
     setCheckedItems((prev) => {
@@ -190,6 +247,51 @@ export function SafetyChecklistDialog({
           )}
         </div>
 
+        {/* Risk Score Display */}
+        {riskAssessment && (
+          <div className={cn(
+            'rounded-lg border p-4 space-y-3',
+            getRiskLevelColor(riskAssessment.level)
+          )}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                <span className="font-semibold">Risk Score</span>
+              </div>
+              <Badge className={cn('text-sm', getRiskLevelColor(riskAssessment.level))}>
+                {riskAssessment.score}/100 - {getRiskLevelLabel(riskAssessment.level)}
+              </Badge>
+            </div>
+            <Progress 
+              value={riskAssessment.score} 
+              className="h-2"
+            />
+            {riskAssessment.recommendations.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium">Rekomendasi:</p>
+                <ul className="text-xs space-y-1 list-disc list-inside">
+                  {riskAssessment.recommendations.slice(0, 3).map((rec, idx) => (
+                    <li key={idx}>{rec}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {riskAssessment.blocked && (
+              <div className="flex items-center gap-2 rounded bg-red-100 p-2 text-red-800 text-xs">
+                <AlertTriangle className="h-4 w-4" />
+                <span>{riskAssessment.blockReason}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {calculatingRisk && (
+          <div className="flex items-center justify-center gap-2 py-2">
+            <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+            <span className="text-xs text-slate-500">Menghitung risk score...</span>
+          </div>
+        )}
+
         {error && (
           <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
         )}
@@ -201,13 +303,22 @@ export function SafetyChecklistDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!allRequiredChecked || submitting}
-            className="bg-emerald-600 hover:bg-emerald-700"
+            disabled={!allRequiredChecked || submitting || riskAssessment?.blocked}
+            className={cn(
+              riskAssessment?.blocked 
+                ? 'bg-red-600 hover:bg-red-700 cursor-not-allowed' 
+                : 'bg-emerald-600 hover:bg-emerald-700'
+            )}
           >
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Menyimpan...
+              </>
+            ) : riskAssessment?.blocked ? (
+              <>
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                Trip Diblokir (Risk Tinggi)
               </>
             ) : (
               <>

@@ -25,6 +25,12 @@ export type NotificationType =
   | 'support.ticket_resolved'
   | 'system.announcement'
   | 'system.maintenance'
+  | 'corporate.approval_requested'
+  | 'corporate.approval_approved'
+  | 'corporate.approval_rejected'
+  | 'corporate.budget_threshold'
+  | 'corporate.booking_reminder'
+  | 'corporate.employee_invited'
   | 'custom';
 
 export type UnifiedNotification = {

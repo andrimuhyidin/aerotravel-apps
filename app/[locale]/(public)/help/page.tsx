@@ -17,6 +17,10 @@ import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 
 import { Container } from '@/components/layout/container';
+import { AISummary } from '@/components/seo/ai-summary';
+import { JsonLd } from '@/components/seo/json-ld';
+import { RelatedContent } from '@/components/seo/related-content';
+import { generateFAQSchema, generateContactPageSchema } from '@/lib/seo/structured-data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { locales } from '@/i18n';
@@ -49,12 +53,42 @@ export async function generateMetadata({
   setRequestLocale(locale);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
 
+  const title = 'Bantuan - Aero Travel';
+  const description =
+    'Pusat bantuan Aero Travel. Dapatkan panduan penggunaan, FAQ, dan kontak support.';
+
   return {
-    title: 'Bantuan - Guide App',
-    description:
-      'Pusat bantuan untuk Guide App. Dapatkan panduan penggunaan, FAQ, dan kontak support.',
+    title,
+    description,
     alternates: {
       canonical: `${baseUrl}/${locale}/help`,
+      languages: {
+        id: `${baseUrl}/id/help`,
+        en: `${baseUrl}/en/help`,
+        'x-default': `${baseUrl}/id/help`,
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${baseUrl}/${locale}/help`,
+      siteName: 'MyAeroTravel ID',
+      images: [
+        {
+          url: `${baseUrl}/og-image.jpg`,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+      locale: locale === 'id' ? 'id_ID' : 'en_US',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`${baseUrl}/og-image.jpg`],
     },
   };
 }
@@ -167,9 +201,46 @@ export default async function HelpPage({ params }: PageProps) {
     },
   ];
 
+  // Generate FAQ schema for SEO
+  const faqSchema = generateFAQSchema(faqItems);
+
+  // Generate Contact schema
+  const contactSchema = generateContactPageSchema({
+    telephone: '+62 812 3456 7890',
+    email: 'support@aerotravel.co.id',
+    openingHours: 'Mo-Su 08:00-21:00',
+  });
+
+  // AI Summary for help page
+  const helpSummary =
+    'Pusat bantuan MyAeroTravel menyediakan panduan lengkap penggunaan aplikasi, FAQ untuk pertanyaan umum, dan kontak support 24/7. Hubungi tim kami via WhatsApp, telepon, atau email untuk bantuan cepat.';
+
+  const helpKeyPoints = [
+    'Panduan penggunaan lengkap untuk semua fitur',
+    'FAQ menjawab pertanyaan yang sering diajukan',
+    'Support tersedia Senin-Minggu 08:00-21:00 WIB',
+    'Kontak via WhatsApp, telepon, atau email',
+  ];
+
+  // Related help links
+  const relatedHelpLinks = [
+    { title: 'Tentang Kami', href: `/${locale}/about` },
+    { title: 'Kebijakan Privasi', href: `/${locale}/legal/privacy` },
+    { title: 'Syarat & Ketentuan', href: `/${locale}/legal/terms` },
+    { title: 'Hubungi Kami', href: `/${locale}/contact` },
+  ];
+
   return (
-    <Container className="py-4">
-      {/* Hero */}
+    <>
+      <JsonLd data={faqSchema} />
+      <JsonLd data={contactSchema} />
+      <Container className="py-4">
+        {/* AI Summary */}
+        <div className="mb-4">
+          <AISummary summary={helpSummary} bulletPoints={helpKeyPoints} />
+        </div>
+
+        {/* Hero */}
       <div className="mb-4 text-center">
         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
           <HelpCircle className="h-6 w-6 text-primary" />
@@ -306,6 +377,11 @@ export default async function HelpPage({ params }: PageProps) {
         </div>
       )}
 
+      {/* Related Content */}
+      <div className="mb-6">
+        <RelatedContent title="Halaman Terkait" links={relatedHelpLinks} />
+      </div>
+
       {/* Operating Hours */}
       <Card className="border-none bg-primary/5 shadow-sm">
         <CardContent className="p-4">
@@ -321,5 +397,6 @@ export default async function HelpPage({ params }: PageProps) {
         </CardContent>
       </Card>
     </Container>
+    </>
   );
 }

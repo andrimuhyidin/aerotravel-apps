@@ -4,10 +4,21 @@
  * POST /api/partner/team - Create/invite team member
  */
 
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { sanitizeRequestBody, verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
-import { NextRequest, NextResponse } from 'next/server';
+
+const createTeamMemberSchema = z.object({
+  name: z.string().min(2, 'Name is required'),
+  email: z.string().email('Invalid email'),
+  phone: z.string().min(10).optional().nullable(),
+  role: z.enum(['admin', 'staff', 'viewer']),
+  permissions: z.array(z.string()).optional(),
+});
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
@@ -20,44 +31,15 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access using helper
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ teamMembers: [] });
+  }
+
   const client = supabase as unknown as any;
 
   try {
-    // Check if user is a partner (mitra) or partner team member
-    const { data: userProfile } = await client
-      .from('users')
-      .select('id, role')
-      .eq('id', user.id)
-      .single();
-
-    if (!userProfile) {
-      return NextResponse.json(
-        { error: 'User profile not found' },
-        { status: 404 }
-      );
-    }
-
-    // Determine partner_id
-    let partnerId = user.id;
-    
-    // If user is not a mitra, check if they're a team member
-    if (userProfile.role !== 'mitra') {
-      const { data: partnerUser } = await client
-        .from('partner_users')
-        .select('partner_id')
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (partnerUser) {
-        partnerId = partnerUser.partner_id;
-      } else {
-        // User is not a partner or team member
-        return NextResponse.json({ teamMembers: [] });
-      }
-    }
-
     const { data: teamMembers, error } = await client
       .from('partner_users')
       .select('*')
@@ -99,40 +81,46 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
-  const { name, email, phone, role, permissions } = body;
-
-  if (!name || !email || !role) {
+  // Verify partner access - only main partner can add team members
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
     return NextResponse.json(
-      { error: 'Name, email, and role are required' },
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
+  const body = await request.json();
+  const validation = createTeamMemberSchema.safeParse(body);
+
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: validation.error.errors[0]?.message || 'Validation failed' },
       { status: 400 }
     );
   }
 
-  // Check if user is owner
+  // Sanitize validated data
+  const sanitizedData = sanitizeRequestBody(validation.data, {
+    strings: ['name'],
+    emails: ['email'],
+    phones: ['phone'],
+  });
+
+  const { name, email, phone, role, permissions } = sanitizedData;
+
   const client = supabase as unknown as any;
-  
-  // Check if user is the main partner (mitra) - they are owner by default
+
+  // Check if user is owner (only owner can add team members)
+  // Main partner (mitra) is owner by default
   const { data: partnerUser } = await client
     .from('users')
     .select('id, role')
-    .eq('id', user.id)
+    .eq('id', partnerId)
     .eq('role', 'mitra')
     .single();
 
-  // Also check if they have owner role in partner_users
-  const { data: currentUser } = await client
-    .from('partner_users')
-    .select('role')
-    .eq('partner_id', user.id)
-    .eq('user_id', user.id)
-    .is('deleted_at', null)
-    .maybeSingle();
-
-  // Main partner (mitra) is owner by default, or if they have owner role in partner_users
-  const isOwner = partnerUser || currentUser?.role === 'owner';
-
-  if (!isOwner) {
+  if (!partnerUser) {
     return NextResponse.json(
       { error: 'Only owners can invite team members' },
       { status: 403 }
@@ -155,17 +143,17 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       );
     }
 
-    // Create team member (without auth user for now - invitation flow can be added later)
+    // Create team member using verified partnerId
     const { data: teamMember, error } = await client
       .from('partner_users')
       .insert({
-        partner_id: user.id,
+        partner_id: partnerId,
         name,
         email,
         phone: phone || null,
         role,
         permissions: permissions || [],
-        created_by: user.id,
+        created_by: partnerId, // Use verified partnerId
       })
       .select()
       .single();

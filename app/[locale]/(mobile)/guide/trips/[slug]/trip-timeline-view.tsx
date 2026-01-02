@@ -32,6 +32,7 @@ import { CrewSection } from './crew-section';
 import { DocumentationSection } from './documentation-section';
 import { ExpensesClient } from './expenses/expenses-client';
 import { GuestEngagementSection } from './guest-engagement-section';
+import { SentimentIndicatorWidget } from './sentiment-indicator-widget';
 import { LogisticsHandoverSection } from './logistics-handover-section';
 import { ManifestSection } from './manifest-section';
 import { PassengerConsentSection } from './passenger-consent-section';
@@ -548,6 +549,7 @@ function PhaseContent({
             icon={Users}
           />
           <div className="space-y-4">
+            <SentimentIndicatorWidget tripId={tripId} locale={locale} />
             <GuestEngagementSection tripId={tripId} locale={locale} />
             <TippingSection tripId={tripId} locale={locale} />
           </div>

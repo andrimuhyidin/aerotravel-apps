@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { generateDraftQuotation, type QuotationRequest } from '@/lib/ai/quotation-copilot';
 import { aiChatRateLimit } from '@/lib/integrations/rate-limit';
 import { createClient } from '@/lib/supabase/server';
@@ -27,8 +28,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
-  const { prompt } = quotationSchema.parse(body);
+  const sanitizedBody = sanitizeRequestBody(body, { strings: ['prompt'] });
+  const { prompt } = quotationSchema.parse(sanitizedBody);
 
   // Rate limiting
   const { success, limit, remaining } = await aiChatRateLimit.limit(user.id);

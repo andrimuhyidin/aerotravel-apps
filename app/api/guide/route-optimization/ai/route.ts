@@ -3,6 +3,7 @@
  * POST /api/guide/route-optimization/ai
  * 
  * Dynamic suggestions, time optimization, alternative routes
+ * Rate Limited: 10 requests per minute per user
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,6 +12,7 @@ import { z } from 'zod';
 import { optimizeItinerary, type ItineraryItem } from '@/lib/ai/route-optimizer';
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
+import { checkGuideRateLimit, createRateLimitHeaders, guideAiRateLimit } from '@/lib/rate-limit/guide-limits';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -32,6 +34,15 @@ export const POST = withErrorHandler(async (
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit check
+  const rateLimit = await checkGuideRateLimit(guideAiRateLimit, user.id, 'optimisasi rute');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: rateLimit.error },
+      { status: 429, headers: createRateLimitHeaders(rateLimit.remaining, rateLimit.reset) }
+    );
   }
 
   if (!tripId) {

@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { getBranchContext } from '@/lib/branch/branch-injection';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -21,10 +22,16 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const branchContext = await getBranchContext(user.id);
   const client = supabase as unknown as any;
 
-  const { searchParams } = new URL(request.url);
+  const searchParams = sanitizeSearchParams(request);
   const packageId = searchParams.get('packageId');
   const limit = parseInt(searchParams.get('limit') || '5');
 
@@ -58,7 +65,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const { data: bookings, error: bookingsError } = await client
       .from('bookings')
       .select('package_id, package:packages(destination, package_type)')
-      .eq('partner_id', user.id)
+      .eq('mitra_id', partnerId)
       .in('status', ['confirmed', 'paid', 'ongoing', 'completed'])
       .neq('package_id', packageId)
       .limit(50);

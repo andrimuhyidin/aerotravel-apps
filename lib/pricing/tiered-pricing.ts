@@ -3,6 +3,8 @@
  * PRD 4.2 - Dynamic pricing based on pax count
  */
 
+import { calculateDiscount, type DiscountType } from './discount-codes';
+
 export type PriceTier = {
   min_pax: number;
   max_pax: number;
@@ -16,9 +18,17 @@ export type PricingResult = {
   pricePerChild: number;
   subtotal: number;
   discountAmount: number;
+  discountCode?: string;
   total: number;
   tier: PriceTier | null;
   isWeekend: boolean;
+};
+
+export type DiscountInfo = {
+  code: string;
+  type: DiscountType;
+  value: number;
+  maxAmount?: number;
 };
 
 export type PricingInput = {
@@ -29,6 +39,8 @@ export type PricingInput = {
   tripDate?: Date;
   childDiscountPercent?: number; // Default 30%
   discountCode?: string;
+  // Pre-validated discount info (from server validation)
+  discountInfo?: DiscountInfo;
 };
 
 /**
@@ -70,9 +82,10 @@ export function calculatePricing(input: PricingInput): PricingResult {
     priceTiers,
     adultPax,
     childPax = 0,
-    infantPax = 0,
     tripDate,
     childDiscountPercent = 30,
+    discountCode,
+    discountInfo,
   } = input;
 
   const totalPax = adultPax + childPax; // Infants don't count for pricing tier
@@ -104,14 +117,23 @@ export function calculatePricing(input: PricingInput): PricingResult {
   // Calculate subtotal
   const subtotal = basePrice * adultPax + pricePerChild * childPax;
 
-  // TODO: Apply discount code if provided
-  const discountAmount = 0;
+  // Apply discount code if provided and validated
+  let discountAmount = 0;
+  if (discountInfo) {
+    discountAmount = calculateDiscount(
+      subtotal,
+      discountInfo.type,
+      discountInfo.value,
+      discountInfo.maxAmount
+    );
+  }
 
   return {
     pricePerAdult: basePrice,
     pricePerChild,
     subtotal,
     discountAmount,
+    discountCode: discountInfo ? discountCode : undefined,
     total: subtotal - discountAmount,
     tier,
     isWeekend: checkWeekend,

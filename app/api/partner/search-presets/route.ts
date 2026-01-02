@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -31,11 +32,17 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   try {
     const { data: presets, error } = await supabase
       .from('partner_search_presets')
       .select('id, name, filters, created_at, updated_at')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -66,14 +73,21 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
-    const validated = createPresetSchema.parse(body);
+    const sanitizedBody = sanitizeRequestBody(body, { strings: ['name'] });
+    const validated = createPresetSchema.parse(sanitizedBody);
 
     const { data: preset, error } = await supabase
       .from('partner_search_presets')
       .insert({
-        partner_id: user.id,
+        partner_id: partnerId,
         name: validated.name,
         filters: validated.filters,
       })

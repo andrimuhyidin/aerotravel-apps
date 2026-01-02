@@ -4,10 +4,20 @@
  * POST /api/partner/support/tickets - Create new ticket
  */
 
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { sanitizeRequestBody, sanitizeSearchParams, verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
-import { NextRequest, NextResponse } from 'next/server';
+
+const createTicketSchema = z.object({
+  subject: z.string().min(5, 'Subject minimal 5 karakter'),
+  description: z.string().min(10, 'Description minimal 10 karakter'),
+  category: z.string().optional(),
+  priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+});
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
@@ -20,12 +30,22 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
-  const status = searchParams.get('status');
-  const category = searchParams.get('category');
-  const priority = searchParams.get('priority');
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '20');
+  const sanitizedParams = sanitizeSearchParams(searchParams);
+  const status = sanitizedParams.status || null;
+  const category = sanitizedParams.category || null;
+  const priority = sanitizedParams.priority || null;
+  const page = parseInt(sanitizedParams.page || '1');
+  const limit = Math.min(parseInt(sanitizedParams.limit || '20'), 100);
   const offset = (page - 1) * limit;
 
   const client = supabase as unknown as any;
@@ -34,7 +54,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     let query = client
       .from('partner_support_tickets')
       .select('*', { count: 'exact' })
-      .eq('partner_id', user.id);
+      .eq('partner_id', partnerId); // Use verified partnerId
 
     if (status) {
       query = query.eq('status', status);
@@ -90,15 +110,31 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
-  const { subject, description, category, priority } = body;
-
-  if (!subject || !description) {
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
     return NextResponse.json(
-      { error: 'Subject and description are required' },
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
+  const body = await request.json();
+  const validation = createTicketSchema.safeParse(body);
+
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: validation.error.errors[0]?.message || 'Validation failed' },
       { status: 400 }
     );
   }
+
+  // Sanitize validated data
+  const sanitizedData = sanitizeRequestBody(validation.data, {
+    strings: ['subject', 'description', 'category'],
+  });
+
+  const { subject, description, category, priority } = sanitizedData;
 
   const client = supabase as unknown as any;
 
@@ -106,7 +142,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const { data: ticket, error } = await client
       .from('partner_support_tickets')
       .insert({
-        partner_id: user.id,
+        partner_id: partnerId, // Use verified partnerId
         user_id: user.id,
         subject,
         description,

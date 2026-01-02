@@ -30,7 +30,7 @@ import {
   Grid3x3,
   List,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
   Sheet,
@@ -88,11 +88,8 @@ export function PackagesClient({ locale }: { locale: string }) {
     { value: 'newest', label: 'Terbaru' },
   ];
 
-  useEffect(() => {
-    fetchPackages();
-  }, [searchQuery, filters, sortBy, page]);
-
-  const fetchPackages = async () => {
+  // Memoize fetchPackages to prevent recreating on every render
+  const fetchPackages = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -142,15 +139,21 @@ export function PackagesClient({ locale }: { locale: string }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery, filters, sortBy, page, viewMode]);
 
-  const handleClearFilters = () => {
+  useEffect(() => {
+    fetchPackages();
+  }, [fetchPackages]);
+
+  // Memoize handleClearFilters
+  const handleClearFilters = useCallback(() => {
     setFilters(DEFAULT_FILTERS);
     setSearchQuery('');
     setPage(1);
-  };
+  }, []);
 
-  const getActiveFilterCount = () => {
+  // Memoize active filter count calculation
+  const activeFilterCount = useMemo(() => {
     let count = 0;
     if (filters.priceRange[0] > 0 || filters.priceRange[1] < 10000000) count++;
     if (filters.durations.length > 0) count += filters.durations.length;
@@ -159,10 +162,12 @@ export function PackagesClient({ locale }: { locale: string }) {
     if (filters.facilities.length > 0) count += filters.facilities.length;
     if (filters.minRating > 0) count++;
     return count;
-  };
+  }, [filters]);
 
-  const activeFilterCount = getActiveFilterCount();
-  const hasActiveFilters = activeFilterCount > 0 || searchQuery;
+  const hasActiveFilters = useMemo(
+    () => activeFilterCount > 0 || searchQuery,
+    [activeFilterCount, searchQuery]
+  );
 
   return (
     <div className="min-h-screen bg-gray-50/50">

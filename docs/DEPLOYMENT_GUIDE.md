@@ -1,440 +1,367 @@
-# 🚀 READY TO DEPLOY - Migration & Seeding Guide
+# Deployment Guide
 
-**Status:** ✅ **ALL FILES GENERATED**  
-**Date:** December 25, 2025
+## Overview
 
----
-
-## 📦 **Files Generated**
-
-### 1. Combined Migration File
-**File:** `supabase/migrations/COMBINED_MIGRATION.sql`  
-**Size:** 27.30 KB  
-**Lines:** 749  
-**Contains:**
-- ✅ Package Reviews System (tables, views, triggers)
-- ✅ Analytics & Feedback System (tables, functions, RLS)
-
-### 2. Sample Data Seed
-**File:** `supabase/migrations/SAMPLE_DATA_SEED.sql`  
-**Contains:**
-- ✅ 3 A/B Test Experiments (ready to run)
-- ✅ 6 Feature Flags (all enabled)
-- ✅ ~25 Sample Reviews (with ratings)
-- ✅ ~50 Analytics Events (for testing)
-- ✅ ~30 Performance Metrics (for charts)
+This guide covers deploying the MyAeroTravel Guide App to production.
 
 ---
 
-## 🎯 **EXECUTION STEPS**
+## Table of Contents
 
-### Step 1: Open Supabase SQL Editor
-
-**URL:** https://supabase.com/dashboard/project/mjzukilsgkdqmcusjdut/sql/new
-
-1. Login ke Supabase Dashboard
-2. Pilih project: `mjzukilsgkdqmcusjdut`
-3. Navigate ke: **SQL Editor** → **New Query**
-
----
-
-### Step 2: Run Main Migrations
-
-1. **Open file:** `supabase/migrations/COMBINED_MIGRATION.sql`
-2. **Copy ALL content** (Ctrl+A, Ctrl+C)
-3. **Paste** ke SQL Editor
-4. **Click "Run"** (atau Ctrl+Enter)
-5. **Wait** untuk eksekusi (~10-15 detik)
-6. **Verify** - Harus muncul pesan sukses hijau ✅
-
-**Expected Output:**
-```
-✓ CREATE TABLE package_reviews
-✓ CREATE TABLE review_helpful_votes
-✓ CREATE MATERIALIZED VIEW package_rating_stats
-✓ CREATE TABLE feature_analytics_events
-✓ CREATE TABLE ab_test_experiments
-✓ CREATE TABLE ab_test_assignments
-✓ CREATE TABLE performance_metrics
-✓ CREATE TABLE user_feedback
-✓ CREATE TABLE feature_flags
-✓ CREATE FUNCTION get_ab_test_variant
-✓ RLS policies created
-```
+1. [Prerequisites](#prerequisites)
+2. [Environment Variables](#environment-variables)
+3. [Supabase Setup](#supabase-setup)
+4. [External Services](#external-services)
+5. [Build & Deploy](#build--deploy)
+6. [Monitoring Setup](#monitoring-setup)
+7. [Post-Deployment Checklist](#post-deployment-checklist)
 
 ---
 
-### Step 3: Seed Sample Data (Optional but Recommended)
+## Prerequisites
 
-1. **Open file:** `supabase/migrations/SAMPLE_DATA_SEED.sql`
-2. **Copy ALL content**
-3. **Paste** ke SQL Editor (new query)
-4. **Click "Run"**
-5. **Wait** untuk seeding (~5-10 detik)
-6. **Check output** - Harus muncul summary
+### Required Tools
 
-**Expected Output:**
-```
-NOTICE: ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-NOTICE: ✅ Sample Data Seeded Successfully!
-NOTICE: ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-NOTICE:
-NOTICE: 📊 Records Created:
-NOTICE:    A/B Experiments: 3
-NOTICE:    Feature Flags: 6
-NOTICE:    Package Reviews: 25
-NOTICE:    Analytics Events: 50
-NOTICE:    Performance Metrics: 30
-NOTICE:
-NOTICE: 🎉 Database is ready for testing!
-```
+- Node.js >= 20.19.0
+- pnpm >= 8.0.0
+- Docker (for containerized deployment)
+- Vercel CLI (optional, for Vercel deployment)
+
+### Accounts Required
+
+- Supabase (Database & Auth)
+- Vercel (Hosting) or similar
+- Upstash (Redis for rate limiting)
+- Resend (Email notifications)
+- PostHog (Analytics)
+- Sentry (Error tracking)
+- Google Cloud (Speech-to-Text, Gemini AI)
 
 ---
 
-### Step 4: Verify Tables Created
+## Environment Variables
 
-Run this query untuk verify semua tables berhasil dibuat:
+### Required Variables
 
-```sql
-SELECT 
-  schemaname,
-  tablename
-FROM pg_tables
-WHERE schemaname = 'public'
-  AND tablename IN (
-    'package_reviews',
-    'review_helpful_votes',
-    'feature_analytics_events',
-    'ab_test_experiments',
-    'ab_test_assignments',
-    'performance_metrics',
-    'user_feedback',
-    'feature_flags'
-  )
-ORDER BY tablename;
-```
+Create `.env.production` with the following:
 
-**Expected:** 8 rows returned ✅
-
----
-
-### Step 5: Verify Materialized Views
-
-```sql
-SELECT 
-  schemaname,
-  matviewname
-FROM pg_matviews
-WHERE schemaname = 'public'
-  AND matviewname IN (
-    'package_rating_stats',
-    'feature_usage_stats'
-  );
-```
-
-**Expected:** 2 rows returned ✅
-
----
-
-### Step 6: Verify Functions
-
-```sql
-SELECT 
-  routine_name,
-  routine_type
-FROM information_schema.routines
-WHERE routine_schema = 'public'
-  AND routine_name = 'get_ab_test_variant';
-```
-
-**Expected:** 1 row (FUNCTION) ✅
-
----
-
-### Step 7: Test Data Queries
-
-#### Check Reviews
-```sql
-SELECT 
-  COUNT(*) as total_reviews,
-  AVG(overall_rating) as avg_rating
-FROM package_reviews
-WHERE status = 'approved';
-```
-
-#### Check A/B Experiments
-```sql
-SELECT 
-  experiment_name,
-  status,
-  variants
-FROM ab_test_experiments;
-```
-
-#### Check Feature Flags
-```sql
-SELECT 
-  flag_name,
-  is_enabled,
-  rollout_percentage
-FROM feature_flags;
-```
-
----
-
-## 🧪 **Testing the Features**
-
-### Test 1: Analytics Tracking
-
-1. Visit: http://localhost:3000/id/partner/packages/[any-package-id]
-2. Open Browser DevTools → Console
-3. Look for logs like:
-   ```
-   [Analytics] Page view tracked
-   [Analytics] Feature usage tracked: booking_widget
-   ```
-
-4. Verify in database:
-```sql
-SELECT 
-  event_name,
-  event_category,
-  feature_name,
-  created_at
-FROM feature_analytics_events
-ORDER BY created_at DESC
-LIMIT 10;
-```
-
----
-
-### Test 2: Feedback Widget
-
-1. Click floating "Feedback" button (bottom-right)
-2. Fill form dan submit
-3. Verify in database:
-```sql
-SELECT 
-  feedback_type,
-  title,
-  status,
-  created_at
-FROM user_feedback
-ORDER BY created_at DESC
-LIMIT 5;
-```
-
----
-
-### Test 3: A/B Testing
-
-Test dari browser console:
-```javascript
-// In browser console
-const { getABTestingService } = await import('/lib/analytics/ab-testing');
-const service = getABTestingService();
-const variant = await service.getVariant('package_card_layout');
-console.log('My variant:', variant);
-```
-
-Verify in database:
-```sql
-SELECT 
-  e.experiment_name,
-  a.variant_key,
-  COUNT(*) as assignments
-FROM ab_test_assignments a
-JOIN ab_test_experiments e ON e.id = a.experiment_id
-GROUP BY e.experiment_name, a.variant_key;
-```
-
----
-
-### Test 4: Performance Monitoring
-
-1. Reload page: http://localhost:3000/id/partner/packages
-2. Wait 10 seconds
-3. Check database:
-```sql
-SELECT 
-  page_type,
-  lcp,
-  fid,
-  cls,
-  page_load_time,
-  created_at
-FROM performance_metrics
-ORDER BY created_at DESC
-LIMIT 10;
-```
-
----
-
-### Test 5: Package Reviews
-
-Check if reviews appear on package detail page:
-```sql
-SELECT 
-  p.name as package_name,
-  prs.total_reviews,
-  prs.average_rating,
-  prs.verified_reviews_count
-FROM package_rating_stats prs
-JOIN packages p ON p.id = prs.package_id
-WHERE prs.total_reviews > 0
-ORDER BY prs.average_rating DESC
-LIMIT 5;
-```
-
----
-
-### Test 6: Availability API
-
-Test API endpoint:
 ```bash
-curl "http://localhost:3000/api/partner/packages/[package-id]/availability?date=2025-03-15&adult=2"
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Rate Limiting (Upstash)
+UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-token
+
+# AI Services
+GOOGLE_GEMINI_API_KEY=your-gemini-key
+GOOGLE_SPEECH_API_KEY=your-speech-key
+
+# Notifications
+RESEND_API_KEY=your-resend-key
+RESEND_FROM_EMAIL=noreply@myaerotravel.id
+
+# WhatsApp (for SOS)
+WHATSAPP_API_URL=https://api.whatsapp.com/...
+WHATSAPP_ACCESS_TOKEN=your-token
+WHATSAPP_PHONE_NUMBER_ID=your-phone-id
+
+# Analytics
+NEXT_PUBLIC_POSTHOG_KEY=your-posthog-key
+NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+
+# Error Tracking
+SENTRY_DSN=https://...@sentry.io/...
+SENTRY_AUTH_TOKEN=your-auth-token
+
+# App Settings
+NEXT_PUBLIC_APP_URL=https://app.myaerotravel.id
+NODE_ENV=production
 ```
 
-**Expected Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "packageId": "...",
-    "available": true,
-    "remainingSlots": 15,
-    "maxCapacity": 20,
-    "priceInfo": { ... }
-  }
-}
+### Optional Variables
+
+```bash
+# Feature Flags
+ENABLE_AI_FEATURES=true
+ENABLE_OFFLINE_MODE=true
+
+# Performance
+EDGE_RUNTIME=true
+
+# Logging
+LOG_LEVEL=info
 ```
 
 ---
 
-## 📊 **Analytics Dashboard Queries**
+## Supabase Setup
 
-### Most Used Features (Last 7 Days)
+### 1. Create Project
+
+1. Go to [supabase.com](https://supabase.com)
+2. Create new project
+3. Note the Project URL and API keys
+
+### 2. Run Migrations
+
+```bash
+# Install Supabase CLI
+npm install -g supabase
+
+# Link to project
+supabase link --project-ref your-project-ref
+
+# Push migrations
+supabase db push
+```
+
+### 3. Configure RLS Policies
+
+Ensure all tables have appropriate Row Level Security policies:
+
 ```sql
-SELECT 
-  feature_name,
-  COUNT(*) as uses,
-  COUNT(DISTINCT user_id) as unique_users
-FROM feature_analytics_events
-WHERE created_at >= NOW() - INTERVAL '7 days'
-  AND feature_name IS NOT NULL
-GROUP BY feature_name
-ORDER BY uses DESC
-LIMIT 10;
+-- Example: guides table
+ALTER TABLE guides ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Guides can view own data"
+  ON guides FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE POLICY "Guides can update own data"
+  ON guides FOR UPDATE
+  USING (auth.uid() = id);
 ```
 
-### Performance Summary (Last 24 Hours)
+### 4. Storage Buckets
+
+Create required storage buckets:
+
+- `guide-uploads` - For guide documents and photos
+- `trip-photos` - For trip photos
+- `incident-evidence` - For incident report files
+
 ```sql
-SELECT 
-  page_type,
-  ROUND(AVG(lcp)::NUMERIC, 2) as avg_lcp,
-  ROUND(AVG(fid)::NUMERIC, 2) as avg_fid,
-  ROUND(AVG(cls)::NUMERIC, 3) as avg_cls,
-  COUNT(*) as samples
-FROM performance_metrics
-WHERE created_at >= NOW() - INTERVAL '24 hours'
-GROUP BY page_type;
+INSERT INTO storage.buckets (id, name, public)
+VALUES 
+  ('guide-uploads', 'guide-uploads', false),
+  ('trip-photos', 'trip-photos', false),
+  ('incident-evidence', 'incident-evidence', false);
 ```
 
-### A/B Test Conversion Rates
-```sql
-SELECT 
-  e.experiment_name,
-  a.variant_key,
-  COUNT(DISTINCT a.user_id) as users,
-  COUNT(CASE WHEN ae.event_name = 'ab_test_conversion' THEN 1 END) as conversions,
-  ROUND(
-    COUNT(CASE WHEN ae.event_name = 'ab_test_conversion' THEN 1 END)::NUMERIC / 
-    NULLIF(COUNT(DISTINCT a.user_id), 0) * 100, 
-    2
-  ) as conversion_rate_percent
-FROM ab_test_assignments a
-JOIN ab_test_experiments e ON e.id = a.experiment_id
-LEFT JOIN feature_analytics_events ae ON 
-  ae.user_id = a.user_id AND
-  ae.properties->>'experimentKey' = e.experiment_key AND
-  ae.properties->>'variant' = a.variant_key
-GROUP BY e.experiment_name, a.variant_key
-ORDER BY e.experiment_name, a.variant_key;
-```
+### 5. Edge Functions (Optional)
 
-### Top Rated Packages
-```sql
-SELECT 
-  p.name,
-  prs.total_reviews,
-  prs.average_rating,
-  prs.rating_5_count,
-  prs.rating_4_count,
-  prs.verified_reviews_count
-FROM package_rating_stats prs
-JOIN packages p ON p.id = prs.package_id
-WHERE prs.total_reviews >= 3
-ORDER BY prs.average_rating DESC, prs.total_reviews DESC
-LIMIT 10;
+Deploy any edge functions:
+
+```bash
+supabase functions deploy function-name
 ```
 
 ---
 
-## 🔧 **Troubleshooting**
+## External Services
 
-### Error: "relation already exists"
-**Solution:** Tables sudah ada. Aman untuk skip atau gunakan `DROP TABLE IF EXISTS` sebelum `CREATE TABLE`.
+### Upstash Redis (Rate Limiting)
 
-### Error: "permission denied"
-**Solution:** Pastikan menggunakan service_role_key, bukan anon_key.
+1. Create account at [upstash.com](https://upstash.com)
+2. Create new Redis database
+3. Copy REST URL and Token
 
-### Error: "function does not exist"
-**Solution:** Jalankan migration lengkap, pastikan semua CREATE FUNCTION statements dieksekusi.
+### Resend (Email)
 
-### Data tidak muncul di UI
-**Solution:**
-1. Check RLS policies: `SELECT * FROM pg_policies WHERE tablename = 'package_reviews';`
-2. Verify user role: `SELECT role FROM users WHERE id = auth.uid();`
-3. Check browser console for errors
+1. Create account at [resend.com](https://resend.com)
+2. Verify your domain
+3. Create API key
 
----
+### Google Cloud (AI Services)
 
-## 🎉 **Success Criteria**
+1. Create project in [Google Cloud Console](https://console.cloud.google.com)
+2. Enable Speech-to-Text API
+3. Enable Generative AI API (Gemini)
+4. Create API keys with appropriate restrictions
 
-✅ All 10 tables created  
-✅ 2 materialized views created  
-✅ 4 database functions created  
-✅ RLS policies active  
-✅ Sample data seeded (25+ reviews, 3 experiments, 6 feature flags)  
-✅ Analytics tracking working  
-✅ Feedback button visible  
-✅ Performance monitoring active  
-✅ API endpoint responding  
+### PostHog (Analytics)
 
----
+1. Create account at [posthog.com](https://posthog.com)
+2. Create project
+3. Copy project API key
 
-## 📞 **Next Steps After Migration**
+### Sentry (Error Tracking)
 
-1. ✅ **Test all features** (use testing guide above)
-2. ✅ **Monitor analytics** (check dashboard queries)
-3. ✅ **Create admin panel** (optional - untuk view analytics)
-4. ✅ **Set up alerts** (optional - untuk feedback & performance issues)
-5. ✅ **Document workflows** (untuk tim)
+1. Create account at [sentry.io](https://sentry.io)
+2. Create Next.js project
+3. Copy DSN and auth token
 
 ---
 
-## 🚀 **READY TO EXECUTE!**
+## Build & Deploy
 
-Semua files sudah generated dan siap untuk dieksekusi:
+### Local Build Test
 
-1. **COMBINED_MIGRATION.sql** - Main migrations
-2. **SAMPLE_DATA_SEED.sql** - Sample data
+```bash
+# Install dependencies
+pnpm install
 
-**Estimated Time:** 5-10 minutes total  
-**Risk Level:** LOW (all migrations use `IF NOT EXISTS`)  
-**Rollback:** Not needed (idempotent migrations)
+# Build
+pnpm build
+
+# Test production build locally
+pnpm start
+```
+
+### Deploy to Vercel
+
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Deploy
+vercel --prod
+
+# Set environment variables
+vercel env add SUPABASE_URL production
+# ... repeat for all variables
+```
+
+### Deploy with Docker
+
+```dockerfile
+# Dockerfile
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm && pnpm install --frozen-lockfile
+
+COPY . .
+RUN pnpm build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+```bash
+# Build and run
+docker build -t myaerotravel-guide .
+docker run -p 3000:3000 --env-file .env.production myaerotravel-guide
+```
 
 ---
 
-**🎯 Start with Step 1 above!**
+## Monitoring Setup
 
+### 1. Sentry Configuration
+
+Sentry is pre-configured. Verify it's working:
+
+```typescript
+// Test error reporting
+Sentry.captureMessage('Deployment test');
+```
+
+### 2. PostHog Analytics
+
+Verify analytics are tracking:
+
+1. Open app in browser
+2. Navigate through pages
+3. Check PostHog dashboard for events
+
+### 3. Uptime Monitoring
+
+Set up uptime monitoring for critical endpoints:
+
+- `/api/health` - Health check endpoint
+- `/api/guide/trips` - Core API endpoint
+- `/id/guide/dashboard` - Main app page
+
+### 4. Log Aggregation
+
+Configure log forwarding to your preferred service:
+
+- Vercel Logs (if using Vercel)
+- Papertrail
+- Datadog
+- LogDNA
+
+---
+
+## Post-Deployment Checklist
+
+### Immediate (Day 1)
+
+- [ ] Verify all environment variables are set
+- [ ] Test authentication flow
+- [ ] Test critical flows (check-in, SOS, trips)
+- [ ] Verify rate limiting is working
+- [ ] Check Sentry for any initial errors
+- [ ] Verify email notifications (Resend)
+- [ ] Test WhatsApp SOS notifications
+
+### First Week
+
+- [ ] Monitor error rates in Sentry
+- [ ] Review PostHog analytics
+- [ ] Check API response times
+- [ ] Verify offline sync is working
+- [ ] Test on multiple devices (iOS, Android)
+- [ ] Load test critical endpoints
+
+### Ongoing
+
+- [ ] Weekly security review
+- [ ] Monthly dependency updates
+- [ ] Quarterly performance review
+- [ ] Regular backup verification
+
+---
+
+## Rollback Procedure
+
+### Vercel
+
+```bash
+# List deployments
+vercel ls
+
+# Rollback to previous
+vercel rollback
+```
+
+### Docker
+
+```bash
+# Tag previous version
+docker tag myaerotravel-guide:previous myaerotravel-guide:latest
+
+# Restart container
+docker-compose up -d
+```
+
+### Database Rollback
+
+```bash
+# Revert last migration
+supabase db reset --to-version previous_version
+```
+
+---
+
+## Support
+
+For deployment issues:
+- Check Vercel/hosting logs first
+- Review Sentry for errors
+- Check Supabase logs for database issues
+- Contact DevOps team for infrastructure issues

@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { fetchPackageReviews } from '@/lib/partner/package-ratings';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -29,6 +30,12 @@ export const GET = withErrorHandler(async (
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Verify partner access
+  const { isPartner } = await verifyPartnerAccess(user.id);
+  if (!isPartner) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
   }
 
   const client = supabase as unknown as any;

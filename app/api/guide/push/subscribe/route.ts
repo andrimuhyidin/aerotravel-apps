@@ -1,12 +1,14 @@
 /**
  * API: Web Push Subscription
  * POST /api/guide/push/subscribe - Subscribe to push notifications
+ * Rate Limited: 20 subscriptions per minute per user
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { checkGuideRateLimit, createRateLimitHeaders, guidePushRateLimit } from '@/lib/rate-limit/guide-limits';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -27,6 +29,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit check
+  const rateLimit = await checkGuideRateLimit(guidePushRateLimit, user.id, 'push subscriptions');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: rateLimit.error },
+      { status: 429, headers: createRateLimitHeaders(rateLimit.remaining, rateLimit.reset) }
+    );
   }
 
   const payload = subscribeSchema.parse(await request.json());

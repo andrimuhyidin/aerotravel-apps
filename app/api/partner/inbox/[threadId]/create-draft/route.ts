@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -32,39 +33,18 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
   const { parsedData, packageId, overrideData } = createDraftSchema.parse(body);
 
   const client = supabase as unknown as any;
 
   try {
-    // Get partner ID
-    const { data: userProfile } = await client
-      .from('users')
-      .select('id, role')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (!userProfile) {
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
-    }
-
-    let partnerId = user.id;
-    if (userProfile.role !== 'mitra') {
-      const { data: partnerUser } = await client
-        .from('partner_users')
-        .select('partner_id')
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (partnerUser) {
-        partnerId = partnerUser.partner_id;
-      } else {
-        return NextResponse.json({ error: 'Not a partner' }, { status: 403 });
-      }
-    }
 
     // Merge parsed data with overrides
     const finalData = { ...parsedData, ...overrideData };
@@ -179,17 +159,10 @@ export const POST = withErrorHandler(async (
       );
     }
 
-    // Link draft booking to thread
-    await client
-      .from('inbox_threads')
-      .update({
-        draft_booking_id: booking.id,
-      })
-      .eq('id', threadId);
-
-    // Also update message if exists
+    // Link draft booking to messages in this thread
+    // Note: partner_inbox_messages uses thread_id for threading (no separate threads table)
     const { data: threadMessages } = await client
-      .from('inbox_messages')
+      .from('partner_inbox_messages')
       .select('id')
       .eq('thread_id', threadId)
       .order('created_at', { ascending: false })
@@ -197,7 +170,7 @@ export const POST = withErrorHandler(async (
 
     if (threadMessages && threadMessages.length > 0) {
       await client
-        .from('inbox_messages')
+        .from('partner_inbox_messages')
         .update({
           draft_booking_id: booking.id,
         })

@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { generateSalesInsights } from '@/lib/ai/sales-insights';
 import { aiChatRateLimit } from '@/lib/integrations/rate-limit';
 import { createClient } from '@/lib/supabase/server';
@@ -22,7 +23,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
+  // Verify partner access
+  const { isPartner } = await verifyPartnerAccess(user.id);
+  if (!isPartner) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
+  const searchParams = sanitizeSearchParams(request);
   const period = searchParams.get('period') || '30'; // '7', '30', '90'
 
   // Rate limiting

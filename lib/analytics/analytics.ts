@@ -20,15 +20,27 @@
  * Standard Analytics Event Names
  */
 export const AnalyticsEvents = {
-  // E-commerce Events
+  // E-commerce Events (GA4 Standard)
   VIEW_ITEM: 'view_item',
   ADD_TO_CART: 'add_to_cart',
   REMOVE_FROM_CART: 'remove_from_cart',
+  VIEW_CART: 'view_cart',
   BEGIN_CHECKOUT: 'begin_checkout',
+  ADD_SHIPPING_INFO: 'add_shipping_info',
+  ADD_PAYMENT_INFO: 'add_payment_info',
   PURCHASE: 'purchase',
+  REFUND: 'refund',
   SEARCH: 'search',
   VIEW_ITEM_LIST: 'view_item_list',
   SELECT_ITEM: 'select_item',
+  SELECT_PROMOTION: 'select_promotion',
+  VIEW_PROMOTION: 'view_promotion',
+  
+  // Checkout Progress Events
+  CHECKOUT_STEP_1: 'checkout_step_1',
+  CHECKOUT_STEP_2: 'checkout_step_2',
+  CHECKOUT_STEP_3: 'checkout_step_3',
+  CHECKOUT_PROGRESS: 'checkout_progress',
   
   // Custom Events
   BOOKING_STARTED: 'booking_started',
@@ -36,9 +48,24 @@ export const AnalyticsEvents = {
   PACKAGE_VIEWED: 'package_viewed',
   PAYMENT_INITIATED: 'payment_initiated',
   PAYMENT_COMPLETED: 'payment_completed',
+  PAYMENT_FAILED: 'payment_failed',
   LOGIN: 'login',
   REGISTER: 'register',
+  LOGOUT: 'logout',
   PAGE_VIEW: 'page_view',
+  
+  // Journey Events
+  FUNNEL_STEP: 'funnel_step',
+  SCROLL_DEPTH: 'scroll_depth',
+  TIME_ON_PAGE: 'time_on_page',
+  PAGE_EXIT: 'page_exit',
+  
+  // Engagement Events
+  SHARE: 'share',
+  WISHLIST_ADD: 'wishlist_add',
+  WISHLIST_REMOVE: 'wishlist_remove',
+  REVIEW_SUBMITTED: 'review_submitted',
+  CONTACT_FORM_SUBMITTED: 'contact_form_submitted',
 } as const;
 
 export type AnalyticsEventName = typeof AnalyticsEvents[keyof typeof AnalyticsEvents];
@@ -206,3 +233,129 @@ export function trackSearch(searchTerm: string): void {
   });
 }
 
+/**
+ * Track view cart
+ */
+export function trackViewCart(params: {
+  items: Array<{
+    itemId: string;
+    itemName: string;
+    price: number;
+    quantity: number;
+  }>;
+  value: number;
+  currency?: string;
+}): void {
+  trackEvent(AnalyticsEvents.VIEW_CART, {
+    value: params.value,
+    currency: params.currency || 'IDR',
+    items: params.items,
+  });
+}
+
+/**
+ * Track add shipping info
+ */
+export function trackAddShippingInfo(params: {
+  transactionId?: string;
+  value: number;
+  currency?: string;
+  shippingTier?: string;
+}): void {
+  trackEvent(AnalyticsEvents.ADD_SHIPPING_INFO, {
+    transaction_id: params.transactionId,
+    value: params.value,
+    currency: params.currency || 'IDR',
+    shipping_tier: params.shippingTier,
+  });
+}
+
+/**
+ * Track add payment info
+ */
+export function trackAddPaymentInfo(params: {
+  transactionId?: string;
+  value: number;
+  currency?: string;
+  paymentType?: string;
+}): void {
+  trackEvent(AnalyticsEvents.ADD_PAYMENT_INFO, {
+    transaction_id: params.transactionId,
+    value: params.value,
+    currency: params.currency || 'IDR',
+    payment_type: params.paymentType,
+  });
+}
+
+/**
+ * Track checkout progress
+ */
+export function trackCheckoutProgress(params: {
+  step: number;
+  stepName: string;
+  value?: number;
+  currency?: string;
+  items?: Array<{
+    itemId: string;
+    itemName: string;
+    price: number;
+    quantity: number;
+  }>;
+}): void {
+  trackEvent(AnalyticsEvents.CHECKOUT_PROGRESS, {
+    checkout_step: params.step,
+    checkout_step_name: params.stepName,
+    value: params.value,
+    currency: params.currency || 'IDR',
+    items: params.items,
+  });
+}
+
+/**
+ * Track payment failure
+ */
+export function trackPaymentFailed(params: {
+  transactionId?: string;
+  value: number;
+  currency?: string;
+  errorCode?: string;
+  errorMessage?: string;
+}): void {
+  trackEvent(AnalyticsEvents.PAYMENT_FAILED, {
+    transaction_id: params.transactionId,
+    value: params.value,
+    currency: params.currency || 'IDR',
+    error_code: params.errorCode,
+    error_message: params.errorMessage,
+  });
+}
+
+/**
+ * Track share
+ */
+export function trackShare(params: {
+  method: string;
+  contentType: string;
+  itemId?: string;
+}): void {
+  trackEvent(AnalyticsEvents.SHARE, {
+    method: params.method,
+    content_type: params.contentType,
+    item_id: params.itemId,
+  });
+}
+
+/**
+ * Track review submission
+ */
+export function trackReviewSubmitted(params: {
+  itemId: string;
+  itemName: string;
+  rating: number;
+}): void {
+  trackEvent(AnalyticsEvents.REVIEW_SUBMITTED, {
+    item_id: params.itemId,
+    item_name: params.itemName,
+    rating: params.rating,
+  });
+}

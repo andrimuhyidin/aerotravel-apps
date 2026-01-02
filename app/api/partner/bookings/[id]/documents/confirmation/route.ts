@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { generateConfirmationLetterPDF } from '@/lib/pdf/confirmation-letter';
 import { logger } from '@/lib/utils/logger';
@@ -26,7 +27,13 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
+  const searchParams = sanitizeSearchParams(request);
   const language = (searchParams.get('language') || 'id') as 'id' | 'en';
 
   const client = supabase as unknown as any;
@@ -65,7 +72,7 @@ export const GET = withErrorHandler(async (
         )
       `)
       .eq('id', bookingId)
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .single();
 
     if (bookingError || !booking) {

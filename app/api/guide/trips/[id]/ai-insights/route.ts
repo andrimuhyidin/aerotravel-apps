@@ -3,6 +3,7 @@
  * GET /api/guide/trips/[id]/ai-insights
  * 
  * Prediksi masalah, resource planning, route optimization
+ * Rate Limited: 10 requests per minute per user
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -14,6 +15,7 @@ import {
 } from '@/lib/ai/trip-insights';
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
+import { checkGuideRateLimit, createRateLimitHeaders, guideAiRateLimit } from '@/lib/rate-limit/guide-limits';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -31,6 +33,15 @@ export const GET = withErrorHandler(async (
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit check
+  const rateLimit = await checkGuideRateLimit(guideAiRateLimit, user.id, 'AI insights');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: rateLimit.error },
+      { status: 429, headers: createRateLimitHeaders(rateLimit.remaining, rateLimit.reset) }
+    );
   }
 
   const branchContext = await getBranchContext(user.id);

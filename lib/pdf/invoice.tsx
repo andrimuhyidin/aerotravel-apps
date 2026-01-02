@@ -8,6 +8,8 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+import { ASITABadge, type ASITABadgeData } from './asita-badge';
+
 // Register fonts (if custom fonts needed)
 // Font.register({
 //   family: 'Roboto',
@@ -121,6 +123,8 @@ export type InvoiceData = {
   paymentStatus?: 'pending' | 'paid' | 'overdue';
   // Notes
   notes?: string;
+  // ASITA Membership (optional)
+  asitaMembership?: ASITABadgeData;
 };
 
 export function InvoicePDF({ data }: { data: InvoiceData }) {
@@ -143,6 +147,12 @@ export function InvoicePDF({ data }: { data: InvoiceData }) {
             <Text style={styles.companyAddress}>
               Email: {data.companyEmail}
             </Text>
+          )}
+          {/* ASITA Badge */}
+          {data.asitaMembership && (
+            <View style={{ marginTop: 10 }}>
+              <ASITABadge data={data.asitaMembership} />
+            </View>
           )}
         </View>
 

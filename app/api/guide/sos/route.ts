@@ -2,6 +2,7 @@
  * API: SOS Emergency
  * POST /api/guide/sos - Trigger SOS alert
  * PRD 6.1.A: Panic Button (SOS Alert System)
+ * Rate Limited: 3 triggers per hour per user
  * 
  * Features:
  * - GPS location capture
@@ -17,6 +18,7 @@ import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
 import { sendEmail } from '@/lib/integrations/resend';
 import { sendTextMessage } from '@/lib/integrations/whatsapp';
+import { checkGuideRateLimit, createRateLimitHeaders, guideSosRateLimit } from '@/lib/rate-limit/guide-limits';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -24,7 +26,7 @@ const sosSchema = z.object({
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   notify_nearby_crew: z.boolean().default(false),
-  message: z.string().optional(),
+  message: z.string().max(500).optional(),
   incident_type: z.enum(['medical', 'security', 'weather', 'accident', 'other']).optional(),
 });
 
@@ -42,6 +44,16 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit check (3/hour to prevent accidental spam while allowing emergencies)
+  const rateLimit = await checkGuideRateLimit(guideSosRateLimit, user.id, 'SOS alerts');
+  if (!rateLimit.success) {
+    logger.warn('SOS rate limited', { guideId: user.id, remaining: rateLimit.remaining });
+    return NextResponse.json(
+      { error: rateLimit.error },
+      { status: 429, headers: createRateLimitHeaders(rateLimit.remaining, rateLimit.reset) }
+    );
   }
 
   const branchContext = await getBranchContext(user.id);

@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/integrations/resend';
 import { generateBookingReminderEmail } from '@/lib/partner/email-templates/booking-reminder';
@@ -28,6 +29,12 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
 
   try {
@@ -36,7 +43,7 @@ export const GET = withErrorHandler(async (
       .from('bookings')
       .select('id, booking_code, trip_date, mitra_id')
       .eq('id', bookingId)
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .single();
 
     if (bookingError || !booking) {
@@ -131,8 +138,15 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json().catch(() => ({}));
-  const { reminderType } = body as { reminderType?: 'H-7' | 'H-3' | 'H-1' };
+  const sanitizedBody = sanitizeRequestBody(body, { strings: ['reminderType'] });
+  const { reminderType } = sanitizedBody as { reminderType?: 'H-7' | 'H-3' | 'H-1' };
 
   if (!reminderType || !['H-7', 'H-3', 'H-1'].includes(reminderType)) {
     return NextResponse.json(
@@ -161,7 +175,7 @@ export const POST = withErrorHandler(async (
         mitra:users!bookings_mitra_id_fkey(email, full_name)
       `)
       .eq('id', bookingId)
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .single();
 
     if (bookingError || !booking) {

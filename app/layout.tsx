@@ -1,5 +1,7 @@
 import { ErrorBoundary } from '@/components/error-boundary';
 import { WebVitalsTracker } from '@/components/analytics/web-vitals-tracker';
+import { CookieConsentBanner } from '@/components/gdpr/cookie-consent';
+import { ClarityScript } from '@/lib/analytics/clarity-script';
 import { PostHogProvider } from '@/lib/analytics/posthog';
 import { env } from '@/lib/env';
 import { QueryProvider } from '@/lib/providers/query-provider';
@@ -86,11 +88,15 @@ export default function RootLayout({
             <PostHogProvider>
               {children}
               <WebVitalsTracker />
+              <CookieConsentBanner />
             </PostHogProvider>
           </QueryProvider>
         </ErrorBoundary>
         {env.NEXT_PUBLIC_GA4_MEASUREMENT_ID && (
           <GoogleAnalytics gaId={env.NEXT_PUBLIC_GA4_MEASUREMENT_ID} />
+        )}
+        {env.NEXT_PUBLIC_CLARITY_PROJECT_ID && (
+          <ClarityScript projectId={env.NEXT_PUBLIC_CLARITY_PROJECT_ID} />
         )}
       </body>
     </html>

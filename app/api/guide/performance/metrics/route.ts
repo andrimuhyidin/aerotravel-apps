@@ -126,6 +126,68 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const averagePerTrip =
       completedTrips > 0 ? totalEarnings / completedTrips : 0;
 
+    // Calculate on-time rate from trip_guides
+    let onTimeRate = 100.0;
+    const { data: tripGuidesData } = await (supabase as any)
+      .from('trip_guides')
+      .select('is_late, check_in_at')
+      .eq('guide_id', user.id)
+      .gte('check_in_at', periodStart.toISOString())
+      .lte('check_in_at', periodEnd.toISOString())
+      .not('check_in_at', 'is', null);
+
+    if (tripGuidesData && tripGuidesData.length > 0) {
+      const totalCheckIns = tripGuidesData.length;
+      const onTimeCheckIns = tripGuidesData.filter(
+        (tg: { is_late: boolean | null }) => tg.is_late !== true
+      ).length;
+      onTimeRate =
+        totalCheckIns > 0 ? (onTimeCheckIns / totalCheckIns) * 100 : 100.0;
+    }
+
+    // Calculate skills improved from guide_skills
+    let skillsImproved = 0;
+    try {
+      const { data: skillsData } = await (supabase as any)
+        .from('guide_skills')
+        .select('id, skill_level, updated_at, created_at')
+        .eq('guide_id', user.id);
+
+      if (skillsData) {
+        // Count skills where level increased during the period
+        skillsImproved = skillsData.filter(
+          (skill: { updated_at: string; created_at: string; skill_level: number }) => {
+            const updatedAt = new Date(skill.updated_at);
+            const createdAt = new Date(skill.created_at);
+            // If updated during period and updated != created (meaning it was improved)
+            return (
+              updatedAt >= periodStart &&
+              updatedAt <= periodEnd &&
+              updatedAt.getTime() !== createdAt.getTime()
+            );
+          }
+        ).length;
+      }
+    } catch {
+      // Table might not exist
+    }
+
+    // Calculate assessments completed from guide_assessment_results
+    let assessmentsCompleted = 0;
+    try {
+      const { count: assessmentsCount } = await (supabase as any)
+        .from('guide_assessment_results')
+        .select('id', { count: 'exact', head: true })
+        .eq('guide_id', user.id)
+        .eq('passed', true)
+        .gte('completed_at', periodStart.toISOString())
+        .lte('completed_at', periodEnd.toISOString());
+
+      assessmentsCompleted = assessmentsCount || 0;
+    } catch {
+      // Table might not exist
+    }
+
     // Calculate overall score (simplified)
     const ratingScore = averageRating ? (averageRating / 5) * 40 : 0;
     const tripsScore = Math.min((completedTrips / 10) * 30, 30); // Max 10 trips = 30 points
@@ -149,12 +211,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       cancelled_trips: cancelledTrips,
       average_rating: averageRating ? Number(averageRating.toFixed(2)) : null,
       total_ratings: ratings.length,
-      on_time_rate: 95.0, // TODO: Calculate from actual data
+      on_time_rate: Number(onTimeRate.toFixed(2)),
       customer_satisfaction_score: averageRating
         ? Number(averageRating.toFixed(2))
         : null,
-      skills_improved: 0, // TODO: Calculate from skills data
-      assessments_completed: 0, // TODO: Calculate from assessments
+      skills_improved: skillsImproved,
+      assessments_completed: assessmentsCompleted,
       total_earnings: Number(totalEarnings.toFixed(2)),
       average_per_trip: Number(averagePerTrip.toFixed(2)),
       overall_score: Number(overallScore.toFixed(2)),

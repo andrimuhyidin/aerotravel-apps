@@ -3,6 +3,7 @@
  * POST /api/guide/documents/scan-enhanced
  * 
  * Multi-document OCR, auto-fill forms, expiry detection
+ * Rate Limited: 5 requests per minute per user (OCR cost)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,6 +11,7 @@ import { z } from 'zod';
 
 import { checkDocumentExpiry, scanDocument, type DocumentType } from '@/lib/ai/document-scanner';
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { checkGuideRateLimit, createRateLimitHeaders, guideOcrRateLimit } from '@/lib/rate-limit/guide-limits';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -27,6 +29,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit check (OCR is more restrictive due to higher cost)
+  const rateLimit = await checkGuideRateLimit(guideOcrRateLimit, user.id, 'scan dokumen');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: rateLimit.error },
+      { status: 429, headers: createRateLimitHeaders(rateLimit.remaining, rateLimit.reset) }
+    );
   }
 
   try {

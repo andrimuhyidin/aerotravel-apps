@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { sanitizeRequestBody, verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -33,16 +34,25 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   try {
     const client = supabase as unknown as any;
 
-    // Get user profile
+    // Get user profile using verified partnerId
     const { data: profile, error: profileError } = await client
       .from('users')
       .select(
         'id, company_name, company_address, npwp, phone, siup_number, siup_document_url, bank_name, bank_account_number, bank_account_name, partner_tier'
       )
-      .eq('id', user.id)
+      .eq('id', partnerId)
       .eq('role', 'mitra')
       .single();
 
@@ -61,11 +71,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       );
     }
 
-    // Get legal documents
+    // Get legal documents using verified partnerId
     const { data: documents, error: documentsError } = await client
       .from('partner_legal_documents')
       .select('*')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
@@ -111,29 +121,44 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
     const validated = updateProfileSchema.parse(body);
 
+    // Sanitize validated data
+    const sanitized = sanitizeRequestBody(validated, {
+      strings: ['companyName', 'companyAddress', 'npwp', 'siupNumber', 'bankName', 'bankAccountNumber', 'bankAccountName'],
+      phones: ['phone'],
+    });
+
     const client = supabase as unknown as any;
 
-    // Build update object
+    // Build update object using sanitized data
     const updateData: Record<string, unknown> = {};
-    if (validated.companyName !== undefined) updateData.company_name = validated.companyName;
-    if (validated.companyAddress !== undefined) updateData.company_address = validated.companyAddress;
-    if (validated.npwp !== undefined) updateData.npwp = validated.npwp;
-    if (validated.phone !== undefined) updateData.phone = validated.phone;
-    if (validated.siupNumber !== undefined) updateData.siup_number = validated.siupNumber;
-    if (validated.bankName !== undefined) updateData.bank_name = validated.bankName;
-    if (validated.bankAccountNumber !== undefined) updateData.bank_account_number = validated.bankAccountNumber;
-    if (validated.bankAccountName !== undefined) updateData.bank_account_name = validated.bankAccountName;
+    if (sanitized.companyName !== undefined) updateData.company_name = sanitized.companyName;
+    if (sanitized.companyAddress !== undefined) updateData.company_address = sanitized.companyAddress;
+    if (sanitized.npwp !== undefined) updateData.npwp = sanitized.npwp;
+    if (sanitized.phone !== undefined) updateData.phone = sanitized.phone;
+    if (sanitized.siupNumber !== undefined) updateData.siup_number = sanitized.siupNumber;
+    if (sanitized.bankName !== undefined) updateData.bank_name = sanitized.bankName;
+    if (sanitized.bankAccountNumber !== undefined) updateData.bank_account_number = sanitized.bankAccountNumber;
+    if (sanitized.bankAccountName !== undefined) updateData.bank_account_name = sanitized.bankAccountName;
 
     updateData.updated_at = new Date().toISOString();
 
     const { data: updated, error: updateError } = await client
       .from('users')
       .update(updateData)
-      .eq('id', user.id)
+      .eq('id', partnerId) // Use verified partnerId
       .eq('role', 'mitra')
       .select()
       .single();

@@ -6,6 +6,7 @@
 
 import { GuideBottomNavigation } from './guide-bottom-navigation';
 import { GuideHeader } from './guide-header';
+import { VoiceCommandFAB } from '@/components/guide/voice-command-fab';
 
 type GuideShellProps = {
   children: React.ReactNode;
@@ -44,6 +45,9 @@ export function GuideShell({
             <GuideBottomNavigation locale={locale} />
           </div>
         )}
+
+        {/* Voice Command FAB - Global floating button */}
+        <VoiceCommandFAB locale={locale} />
       </div>
     </div>
   );

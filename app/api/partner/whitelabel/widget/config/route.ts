@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,8 +13,16 @@ import { z } from 'zod';
 
 const widgetConfigSchema = z.object({
   enabled: z.boolean().optional(),
-  primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().or(z.literal('')),
-  secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().or(z.literal('')),
+  primaryColor: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional()
+    .or(z.literal('')),
+  secondaryColor: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional()
+    .or(z.literal('')),
   packageIds: z.array(z.string()).optional(),
   showAllPackages: z.boolean().optional(),
 });
@@ -29,13 +38,22 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'Partner access required' },
+      { status: 403 }
+    );
+  }
+
   const client = supabase as unknown as any;
 
   try {
     const { data: settings, error } = await client
       .from('partner_whitelabel_settings')
       .select('widget_enabled, widget_api_key, widget_config')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .maybeSingle();
 
     if (error) {
@@ -46,7 +64,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     }
 
     const config = settings?.widget_config || {};
-    
+
     return NextResponse.json({
       enabled: settings?.widget_enabled || false,
       apiKey: settings?.widget_api_key || null,
@@ -76,6 +94,15 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'Partner access required' },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
     const validated = widgetConfigSchema.parse(body);
@@ -86,18 +113,24 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     const { data: existing } = await client
       .from('partner_whitelabel_settings')
       .select('widget_config')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .maybeSingle();
 
     const currentConfig = existing?.widget_config || {};
-    
+
     // Merge config
     const newConfig = {
       ...currentConfig,
       ...(validated.primaryColor && { primaryColor: validated.primaryColor }),
-      ...(validated.secondaryColor && { secondaryColor: validated.secondaryColor }),
-      ...(validated.packageIds !== undefined && { packageIds: validated.packageIds }),
-      ...(validated.showAllPackages !== undefined && { showAllPackages: validated.showAllPackages }),
+      ...(validated.secondaryColor && {
+        secondaryColor: validated.secondaryColor,
+      }),
+      ...(validated.packageIds !== undefined && {
+        packageIds: validated.packageIds,
+      }),
+      ...(validated.showAllPackages !== undefined && {
+        showAllPackages: validated.showAllPackages,
+      }),
     };
 
     // Update settings
@@ -112,21 +145,21 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     const { data: existingSettings } = await client
       .from('partner_whitelabel_settings')
       .select('id')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .maybeSingle();
 
     if (existingSettings) {
       const { error } = await client
         .from('partner_whitelabel_settings')
         .update(updateData)
-        .eq('partner_id', user.id);
+        .eq('partner_id', partnerId);
 
       if (error) throw error;
     } else {
       const { error } = await client
         .from('partner_whitelabel_settings')
         .insert({
-          partner_id: user.id,
+          partner_id: partnerId,
           ...updateData,
         });
 
@@ -155,4 +188,3 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     throw error;
   }
 });
-

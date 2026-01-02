@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -20,6 +21,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
 
   try {
@@ -27,7 +34,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const { data: settings, error: settingsError } = await client
       .from('partner_whitelabel_settings')
       .select('custom_domain, custom_domain_verification_token')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .single();
 
     if (settingsError || !settings) {
@@ -61,7 +68,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
           .update({
             custom_domain_verified: true,
           })
-          .eq('partner_id', user.id);
+          .eq('partner_id', partnerId);
 
         logger.info('Custom domain verified', {
           userId: user.id,

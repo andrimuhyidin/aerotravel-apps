@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -20,6 +21,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
   }
 
   try {
@@ -104,7 +111,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(7);
     const fileName = `${documentType}-${timestamp}-${randomStr}.${fileExt}`;
-    const filePath = `partner-documents/${user.id}/${documentType}/${fileName}`;
+    const filePath = `partner-documents/${partnerId}/${documentType}/${fileName}`;
 
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage

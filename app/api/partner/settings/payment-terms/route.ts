@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -29,6 +30,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   try {
     const client = supabase as unknown as any;
 
@@ -38,7 +45,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       .select(
         'payment_terms_type, payment_terms_days, auto_invoice, invoice_due_days'
       )
-      .eq('id', user.id)
+      .eq('id', partnerId)
       .single();
 
     if (profileError) {
@@ -77,6 +84,12 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const validated = updatePaymentTermsSchema.parse(body);
@@ -108,7 +121,7 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     const { data: updated, error: updateError } = await client
       .from('users')
       .update(updateData)
-      .eq('id', user.id)
+      .eq('id', partnerId)
       .select('payment_terms_type, payment_terms_days, auto_invoice, invoice_due_days')
       .single();
 

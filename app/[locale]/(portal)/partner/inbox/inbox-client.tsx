@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { InboxAiParser } from '@/components/partner/inbox-ai-parser';
 
 type InboxMessage = {
   id: string;
@@ -569,6 +570,21 @@ export function InboxClient({ locale }: { locale: string }) {
               );
             })
           )}
+        </div>
+
+        {/* AI Parser Widget */}
+        <div className="px-4 py-2">
+          <InboxAiParser
+            threadId={selectedThread.threadId || selectedThread.id}
+            onCreateBooking={(parsed) => {
+              // Navigate to booking creation with pre-filled data
+              const params = new URLSearchParams();
+              if (parsed.destination) params.set('destination', parsed.destination);
+              if (parsed.paxCount?.adults) params.set('paxCount', parsed.paxCount.adults.toString());
+              if (parsed.dateRange?.start) params.set('tripDate', parsed.dateRange.start);
+              window.location.href = `/partner/bookings/new?${params.toString()}`;
+            }}
+          />
         </div>
 
         {/* Reply Button */}

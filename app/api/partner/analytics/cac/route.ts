@@ -7,6 +7,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -22,7 +23,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
+  const searchParams = sanitizeSearchParams(request);
   const period = searchParams.get('period') || '30'; // '7', '30', '90', 'custom'
   const from = searchParams.get('from');
   const to = searchParams.get('to');
@@ -51,7 +58,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const { data: wallet } = await client
       .from('mitra_wallets')
       .select('id')
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .single();
 
     // Get marketing spend from wallet transactions
@@ -91,7 +98,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         total_amount,
         nta_total
       `)
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString())
       .in('status', ['paid', 'confirmed', 'ongoing', 'completed']);
@@ -103,7 +110,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const { data: previousBookings } = await client
       .from('bookings')
       .select('customer_name, customer_email, customer_phone')
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .lt('created_at', startDate.toISOString())
       .in('status', ['paid', 'confirmed', 'ongoing', 'completed']);
 
@@ -191,7 +198,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       const { data: periodBookings } = await client
         .from('bookings')
         .select('customer_name, customer_email, customer_phone')
-        .eq('mitra_id', user.id)
+        .eq('mitra_id', partnerId)
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
         .in('status', ['paid', 'confirmed', 'ongoing', 'completed']);
@@ -201,7 +208,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         const { data: prevBookings } = await client
           .from('bookings')
           .select('customer_name, customer_email, customer_phone')
-          .eq('mitra_id', user.id)
+          .eq('mitra_id', partnerId)
           .lt('created_at', dateStart.toISOString())
           .in('status', ['paid', 'confirmed', 'ongoing', 'completed']);
 

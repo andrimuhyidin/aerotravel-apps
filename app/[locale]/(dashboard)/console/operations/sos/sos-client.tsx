@@ -8,11 +8,19 @@ import { useEffect, useState } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-// Dynamic import untuk map component
+// Dynamic import untuk map component dengan loading state
 const MapComponent = dynamic(
   () => import('@/app/[locale]/(mobile)/guide/tracking/map-component'),
   {
     ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full items-center justify-center bg-slate-100 rounded-lg">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-red-500 border-t-transparent" />
+          <span className="text-sm text-slate-500">Memuat peta...</span>
+        </div>
+      </div>
+    ),
   }
 );
 

@@ -3,10 +3,39 @@
  * PRD 4.4.A - Resource Scheduler & Maintenance Blocker
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Asset = any; // TODO: Regenerate types after DB migration
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type TripSchedule = any; // TODO: Regenerate types after DB migration
+// Local type definitions for resource scheduling
+// These match the database schema for assets and trips tables
+
+export type Asset = {
+  id: string;
+  code?: string;
+  name: string;
+  type: string;
+  branch_id?: string;
+  status: string;
+  capacity?: number;
+  specifications?: Record<string, unknown>;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type TripSchedule = {
+  id: string;
+  trip_code: string;
+  package_id: string;
+  branch_id?: string;
+  trip_date: string;
+  start_date?: string;
+  end_date?: string;
+  status: string;
+  boat_id?: string;
+  guide_ids?: string[];
+  max_pax?: number;
+  available_slots?: number;
+  created_at?: string;
+  updated_at?: string;
+};
 
 export type ResourceType = 'boat' | 'guide' | 'vehicle';
 

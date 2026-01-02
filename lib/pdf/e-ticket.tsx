@@ -8,6 +8,8 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+import { ASITABadgeCompact, type ASITABadgeData } from './asita-badge';
+
 const styles = StyleSheet.create({
   page: {
     padding: 30,
@@ -109,6 +111,8 @@ export type ETicketData = {
   notes?: string[];
   // QR Code (base64)
   qrCode?: string;
+  // ASITA Membership (optional)
+  asitaMembership?: ASITABadgeData;
 };
 
 export function ETicketPDF({ data }: { data: ETicketData }) {
@@ -121,6 +125,13 @@ export function ETicketPDF({ data }: { data: ETicketData }) {
           <Text style={styles.ticketNumber}>Ticket No: {data.ticketNumber}</Text>
           <Text style={styles.ticketNumber}>Booking ID: {data.bookingId}</Text>
         </View>
+
+        {/* ASITA Badge (if member) */}
+        {data.asitaMembership && (
+          <View style={{ marginBottom: 15 }}>
+            <ASITABadgeCompact data={data.asitaMembership} />
+          </View>
+        )}
 
         {/* Trip Info */}
         <View style={styles.section}>

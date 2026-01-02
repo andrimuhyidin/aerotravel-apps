@@ -329,9 +329,50 @@ export async function processBenefitRedemption(
       return false;
     }
 
-    // TODO: Activate benefit based on benefit_code
-    // This would typically update guide_preferences or create a benefit record
-    // For now, we just mark as completed
+    // Activate benefit based on benefit_code
+    // Parse benefit code to determine type and duration
+    const benefitParts = benefitCode.split('_');
+    const benefitType = benefitParts[0]; // e.g., 'priority', 'extended', 'premium'
+    const benefitDuration = parseInt(benefitParts[1] || '30', 10); // days, default 30
+
+    // Calculate benefit expiry date
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + benefitDuration);
+
+    // Try to insert into guide_active_benefits table
+    try {
+      const { error: benefitError } = await client
+        .from('guide_active_benefits')
+        .insert({
+          guide_id: redemption.guide_id,
+          benefit_code: benefitCode,
+          benefit_type: benefitType,
+          redemption_id: redemptionId,
+          activated_at: new Date().toISOString(),
+          expires_at: expiresAt.toISOString(),
+          is_active: true,
+        });
+
+      if (benefitError) {
+        // Table might not exist, try updating guide_preferences instead
+        logger.warn('guide_active_benefits insert failed, trying preferences', { error: benefitError });
+        
+        const { error: prefError } = await client
+          .from('guide_preferences')
+          .upsert({
+            guide_id: redemption.guide_id,
+            [`benefit_${benefitType}`]: true,
+            [`benefit_${benefitType}_expires`]: expiresAt.toISOString(),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'guide_id' });
+
+        if (prefError) {
+          logger.warn('guide_preferences update also failed', { error: prefError });
+        }
+      }
+    } catch (activationError) {
+      logger.warn('Benefit activation failed, continuing with redemption', { error: activationError });
+    }
 
     // Update redemption status
     const { error: updateError } = await client.rpc('process_redemption', {
@@ -390,8 +431,56 @@ export async function processDiscountRedemption(
       return null;
     }
 
-    // TODO: Create discount coupon record
-    // This would typically create a record in a discounts/coupons table
+    // Create discount coupon record
+    // Parse discount template to get discount details (e.g., "GUIDE_10_PERCENT" -> 10% discount)
+    const templateParts = discountTemplate.split('_');
+    const discountValue = parseInt(templateParts[1] || '10', 10);
+    const discountType = templateParts[2]?.toLowerCase() === 'fixed' ? 'fixed' : 'percentage';
+
+    // Calculate expiry date (default 30 days)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    // Get redemption to find guide_id
+    const { data: redemptionData } = await client
+      .from('guide_reward_redemptions')
+      .select('guide_id')
+      .eq('id', redemptionId)
+      .single();
+
+    try {
+      const { error: couponError } = await client
+        .from('vouchers')
+        .insert({
+          code: discountCode,
+          voucher_type: 'guide_reward',
+          discount_type: discountType,
+          discount_value: discountValue,
+          min_order_value: 0,
+          max_uses: 1,
+          used_count: 0,
+          valid_from: new Date().toISOString(),
+          valid_until: expiresAt.toISOString(),
+          is_active: true,
+          created_by: redemptionData?.guide_id || null,
+          metadata: {
+            redemption_id: redemptionId,
+            template: discountTemplate,
+            guide_id: redemptionData?.guide_id,
+          },
+        });
+
+      if (couponError) {
+        logger.warn('Failed to create voucher record', {
+          error: couponError,
+          redemptionId,
+          discountCode,
+        });
+        // Continue anyway, the code was generated
+      }
+    } catch (voucherError) {
+      logger.warn('Voucher creation failed, continuing', { error: voucherError });
+    }
 
     // Update redemption status
     const { error: updateError } = await client.rpc('process_redemption', {

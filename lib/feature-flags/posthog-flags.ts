@@ -16,7 +16,10 @@ export type FeatureFlag =
   | 'split-bill'
   | 'travel-circle'
   | 'vision-ai'
-  | 'programmatic-seo';
+  | 'programmatic-seo'
+  | 'customer-aeropoints'
+  | 'referral-program'
+  | 'corporate-portal';
 
 /**
  * Check if feature flag is enabled

@@ -5,14 +5,18 @@
  * Simpan link Google Drive dokumentasi trip (bukan upload file langsung)
  */
 
-import { CheckCircle, Link as LinkIcon } from 'lucide-react';
-import { useState } from 'react';
+import { CheckCircle, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import { saveTripDocumentationUrl, queueMutation } from '@/lib/guide';
+import { logger } from '@/lib/utils/logger';
 
 type EvidenceClientProps = {
   tripId: string;
@@ -26,6 +30,15 @@ type EvidenceItem = {
   url: string;
 };
 
+type TripInfo = {
+  trip_code: string | null;
+  trip_date: string | null;
+  total_pax: number | null;
+  package?: {
+    name: string | null;
+  } | null;
+};
+
 export function EvidenceClient({ tripId }: EvidenceClientProps) {
   const [items, setItems] = useState<EvidenceItem[]>([
     { id: '1', label: 'Folder Utama Dokumentasi (Drive)', required: true, url: '' },
@@ -35,6 +48,26 @@ export function EvidenceClient({ tripId }: EvidenceClientProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tripInfo, setTripInfo] = useState<TripInfo | null>(null);
+  const [loadingTrip, setLoadingTrip] = useState(true);
+
+  // Fetch trip info on mount
+  useEffect(() => {
+    const fetchTripInfo = async () => {
+      try {
+        const res = await fetch(`/api/guide/trips/${tripId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setTripInfo(data.trip || null);
+        }
+      } catch (err) {
+        logger.error('Failed to fetch trip info', err, { tripId });
+      } finally {
+        setLoadingTrip(false);
+      }
+    };
+    fetchTripInfo();
+  }, [tripId]);
 
   const requiredComplete = items
     .filter((i) => i.required)
@@ -107,14 +140,30 @@ export function EvidenceClient({ tripId }: EvidenceClientProps) {
         </CardContent>
       </Card>
 
-      {/* Trip Info (mock) */}
+      {/* Trip Info */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Trip #{tripId}</CardTitle>
+          <CardTitle className="text-base">
+            Trip #{tripInfo?.trip_code || tripId}
+          </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-slate-500">
-          <p>Pahawang Island Tour</p>
-          <p>17 Desember 2024 • 12 tamu</p>
+          {loadingTrip ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+          ) : (
+            <>
+              <p>{tripInfo?.package?.name || 'Trip'}</p>
+              <p>
+                {tripInfo?.trip_date
+                  ? format(new Date(tripInfo.trip_date), 'd MMMM yyyy', { locale: localeId })
+                  : '-'}{' '}
+                • {tripInfo?.total_pax || 0} tamu
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
 

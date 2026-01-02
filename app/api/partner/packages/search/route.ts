@@ -6,11 +6,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
-  const { searchParams } = new URL(request.url);
+  const searchParams = sanitizeSearchParams(request);
   const query = searchParams.get('q');
   const limit = parseInt(searchParams.get('limit') || '10', 10);
 
@@ -28,6 +29,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   if (userError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Verify partner access
+  const { isPartner } = await verifyPartnerAccess(user.id);
+  if (!isPartner) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
   }
 
   const { data: profile } = await supabase

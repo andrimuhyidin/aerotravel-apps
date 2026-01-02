@@ -6,6 +6,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { getTravelCircle } from '@/lib/partner/travel-circle';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -28,8 +29,14 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   try {
-    const circle = await getTravelCircle(circleId, user.id);
+    const circle = await getTravelCircle(circleId, partnerId);
 
     if (!circle) {
       return NextResponse.json(
@@ -63,8 +70,17 @@ export const PUT = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
-  const { name, description, targetDate } = body;
+  const sanitizedBody = sanitizeRequestBody(body, {
+    strings: ['name', 'description'],
+  });
+  const { name, description, targetDate } = sanitizedBody;
 
   const client = supabase as unknown as any;
 
@@ -76,7 +92,7 @@ export const PUT = withErrorHandler(async (
       .eq('id', circleId)
       .single();
 
-    if (!circle || circle.created_by !== user.id) {
+    if (!circle || circle.created_by !== partnerId) {
       return NextResponse.json(
         { error: 'Unauthorized - hanya creator yang bisa update' },
         { status: 403 }
@@ -149,6 +165,12 @@ export const DELETE = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
 
   try {
@@ -159,7 +181,7 @@ export const DELETE = withErrorHandler(async (
       .eq('id', circleId)
       .single();
 
-    if (!circle || circle.created_by !== user.id) {
+    if (!circle || circle.created_by !== partnerId) {
       return NextResponse.json(
         { error: 'Unauthorized - hanya creator yang bisa cancel' },
         { status: 403 }

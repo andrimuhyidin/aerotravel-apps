@@ -3,29 +3,55 @@
  * POST /api/partner/wallet/topup
  */
 
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
-import { NextRequest, NextResponse } from 'next/server';
+
+const topupSchema = z.object({
+  amount: z.number().min(100000, 'Minimum top-up is Rp 100.000'),
+});
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
-  const body = await request.json();
 
-  const { mitraId, amount } = body;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!mitraId || !amount || amount < 100000) {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
     return NextResponse.json(
-      { error: 'Invalid request. Minimum top-up is Rp 100.000' },
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
+  const body = await request.json();
+  const validation = topupSchema.safeParse(body);
+
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: validation.error.errors[0]?.message || 'Validation failed' },
       { status: 400 }
     );
   }
 
-  // Get mitra info
+  const { amount } = validation.data;
+
+  // Get mitra info using verified partnerId
   const { data: mitra } = await supabase
     .from('users')
     .select('email, full_name')
-    .eq('id', mitraId)
+    .eq('id', partnerId)
     .single();
 
   if (!mitra) {
@@ -36,7 +62,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Create Xendit invoice
-  const externalId = `TOPUP-${mitraId.slice(0, 8)}-${Date.now()}`;
+  const externalId = `TOPUP-${partnerId.slice(0, 8)}-${Date.now()}`;
 
   try {
     const { createInvoice } = await import('@/lib/integrations/xendit');
@@ -60,7 +86,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     await client
       .from('mitra_wallet_transactions')
       .insert({
-        mitra_id: mitraId,
+        mitra_id: partnerId, // Use verified partnerId
         transaction_type: 'topup_pending',
         amount: amount,
         external_id: externalId,
@@ -76,7 +102,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       });
 
     logger.info('Partner topup invoice created', {
-      mitraId,
+      partnerId,
       amount,
       externalId,
       invoiceId: invoice.id,

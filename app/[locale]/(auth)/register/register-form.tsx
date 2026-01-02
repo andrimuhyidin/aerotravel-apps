@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { trackSignup } from '@/lib/analytics/identity';
 import { signUp } from '@/lib/actions/auth';
 
 type RegisterFormProps = {
@@ -28,6 +29,9 @@ export function RegisterForm({ locale }: RegisterFormProps) {
       setError(result.error);
       setLoading(false);
     } else if (result?.success) {
+      // Track successful signup
+      trackSignup(result.userId || 'pending', 'customer', 'email');
+      
       setSuccess(true);
       setLoading(false);
     }

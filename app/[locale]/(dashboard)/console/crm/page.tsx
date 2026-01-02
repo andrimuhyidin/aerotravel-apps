@@ -5,9 +5,12 @@
 
 import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
+
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
 import { locales } from '@/i18n';
+
+import { CrmClient } from './crm-client';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -39,16 +42,8 @@ export default async function ConsoleCrmPage({ params }: PageProps) {
   return (
     <Section>
       <Container>
-        <div className="py-8">
-          <h1 className="text-3xl font-bold mb-6">CRM</h1>
-          
-          {/* TODO: Implement CRM features */}
-          
-          <div className="bg-muted p-8 rounded-lg">
-            <p className="text-muted-foreground">
-              CRM page will be implemented here.
-            </p>
-          </div>
+        <div className="py-6">
+          <CrmClient />
         </div>
       </Container>
     </Section>

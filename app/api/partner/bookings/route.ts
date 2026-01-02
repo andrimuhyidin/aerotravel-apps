@@ -7,6 +7,8 @@
 import { format } from 'date-fns';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
+import { sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createTransaction } from '@/lib/integrations/midtrans';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -129,7 +131,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       `,
         { count: 'exact' }
       )
-      .eq('mitra_id', partnerId)
+      .eq('mitra_id', partnerId) // Using verified partnerId
       .is('deleted_at', null);
 
     // Filter by status
@@ -238,10 +240,33 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 export const POST = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
   const client = supabase as unknown as any;
-  const body = await request.json();
 
   const {
-    partnerId,
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Verify partner access
+  const { isPartner, partnerId: verifiedPartnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !verifiedPartnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner or team member' },
+      { status: 403 }
+    );
+  }
+
+  const body = await request.json();
+
+  // Sanitize request body
+  const sanitizedBody = sanitizeRequestBody(body, {
+    strings: ['customerName', 'customerPhone', 'customerSegment', 'roomPreference', 'specialRequests', 'conversionSource'],
+    emails: ['customerEmail'],
+  });
+
+  const {
     packageId,
     tripDate,
     adultPax,
@@ -263,13 +288,16 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     draftId,
     conversionSource = 'direct', // 'fast_booking', 'package_detail', 'draft_resume', 'direct'
     timeToComplete, // Time in seconds
-  } = body;
+  } = sanitizedBody;
 
-  if (!partnerId || !packageId || !tripDate || !adultPax || !customerName || !customerPhone) {
+  if (!packageId || !tripDate || !adultPax || !customerName || !customerPhone) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  // Get package pricing and branch config
+  // Use verified partner ID (from helper, prevents unauthorized access)
+  const partnerId = verifiedPartnerId;
+
+  // Get package pricing and branch config (use verified partner ID)
   const { data: pkg } = (await supabase
     .from('packages')
     .select(`
@@ -459,7 +487,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const { data: walletData, error: walletError } = await client
       .from('mitra_wallets')
       .select('balance, credit_limit')
-      .eq('mitra_id', partnerId)
+      .eq('mitra_id', partnerId) // Using verified partnerId
       .single();
 
     if (walletError || !walletData) {
@@ -678,7 +706,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       const { data: wallet, error: walletFetchError } = await client
         .from('mitra_wallets')
         .select('id, balance')
-        .eq('mitra_id', partnerId)
+        .eq('mitra_id', partnerId) // Using verified partnerId
         .single();
 
       if (walletFetchError || !wallet) {

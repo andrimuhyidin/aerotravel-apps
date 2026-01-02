@@ -10,7 +10,14 @@ export type LocationPoint = {
   name: string;
   latitude: number;
   longitude: number;
-  type: 'meeting_point' | 'snorkeling_spot' | 'backup_dock' | 'landmark';
+  type:
+    | 'meeting_point'
+    | 'snorkeling_spot'
+    | 'backup_dock'
+    | 'landmark'
+    | 'activity'
+    | 'island'
+    | 'restaurant';
   description?: string;
 };
 

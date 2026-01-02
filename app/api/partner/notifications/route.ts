@@ -4,10 +4,12 @@
  * POST /api/partner/notifications/read - Mark as read
  */
 
+import { NextRequest, NextResponse } from 'next/server';
+
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { sanitizeSearchParams, verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
-import { NextRequest, NextResponse } from 'next/server';
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
@@ -20,9 +22,19 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get('limit') || '50');
-  const unreadOnly = searchParams.get('unreadOnly') === 'true';
+  const sanitizedParams = sanitizeSearchParams(searchParams);
+  const limit = Math.min(parseInt(sanitizedParams.limit || '50'), 100);
+  const unreadOnly = sanitizedParams.unreadOnly === 'true';
 
   const client = supabase as unknown as any;
 
@@ -30,7 +42,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     let query = client
       .from('partner_notifications')
       .select('*')
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId) // Use verified partnerId
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -45,11 +57,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       throw error;
     }
 
-    // Get unread count
+    // Get unread count using verified partnerId
     const { count: unreadCount } = await client
       .from('partner_notifications')
       .select('*', { count: 'exact', head: true })
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .eq('is_read', false);
 
     return NextResponse.json({
@@ -75,6 +87,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   const body = await request.json().catch(() => ({}));
   const { notificationId, markAll } = body;
 
@@ -82,21 +103,21 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   try {
     if (markAll) {
-      // Mark all as read
+      // Mark all as read using verified partnerId
       const { error } = await client
         .from('partner_notifications')
         .update({
           is_read: true,
           read_at: new Date().toISOString(),
         })
-        .eq('partner_id', user.id)
+        .eq('partner_id', partnerId)
         .eq('is_read', false);
 
       if (error) throw error;
 
       return NextResponse.json({ success: true });
     } else if (notificationId) {
-      // Mark single notification as read
+      // Mark single notification as read using verified partnerId
       const { error } = await client
         .from('partner_notifications')
         .update({
@@ -104,7 +125,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
           read_at: new Date().toISOString(),
         })
         .eq('id', notificationId)
-        .eq('partner_id', user.id);
+        .eq('partner_id', partnerId);
 
       if (error) throw error;
 

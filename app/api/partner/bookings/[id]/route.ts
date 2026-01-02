@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -25,6 +26,12 @@ export const GET = withErrorHandler(async (
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
   }
 
   const client = supabase as unknown as any;
@@ -66,7 +73,7 @@ export const GET = withErrorHandler(async (
         )
       `)
       .eq('id', bookingId)
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .single();
 
     if (error || !booking) {
@@ -121,14 +128,28 @@ export const PUT = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
+  
+  // Sanitize input
+  const sanitizedBody = sanitizeRequestBody(body, {
+    strings: ['customerName', 'specialRequests'],
+    emails: ['customerEmail'],
+    phones: ['customerPhone'],
+  });
+  
   const {
     customerName,
     customerPhone,
     customerEmail,
     specialRequests,
     passengers, // Array of passenger details for update
-  } = body;
+  } = sanitizedBody;
 
   const client = supabase as unknown as any;
 
@@ -138,7 +159,7 @@ export const PUT = withErrorHandler(async (
       .from('bookings')
       .select('id, status')
       .eq('id', bookingId)
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .single();
 
     if (!existingBooking) {

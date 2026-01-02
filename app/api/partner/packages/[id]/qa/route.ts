@@ -5,6 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { answerProductQuestion, type ProductQuestion } from '@/lib/ai/product-qa';
 import { aiChatRateLimit } from '@/lib/integrations/rate-limit';
 import { createClient } from '@/lib/supabase/server';
@@ -33,6 +34,12 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
   const { question } = qaSchema.parse(body);
 
@@ -54,7 +61,7 @@ export const POST = withErrorHandler(async (
     const { data: partner } = await supabase
       .from('users')
       .select('id, branch_id')
-      .eq('id', user.id)
+      .eq('id', partnerId)
       .single();
 
     // Answer question
@@ -62,7 +69,7 @@ export const POST = withErrorHandler(async (
       question,
       packageId,
       context: {
-        partnerId: user.id,
+        partnerId,
         branchId: partner?.branch_id || null,
       },
     };
@@ -71,6 +78,7 @@ export const POST = withErrorHandler(async (
 
     logger.info('Product Q&A request processed', {
       userId: user.id,
+      partnerId,
       packageId,
       questionLength: question.length,
       confidence: answer.confidence,
@@ -90,6 +98,7 @@ export const POST = withErrorHandler(async (
 
     logger.error('Product Q&A error', error, {
       userId: user.id,
+      partnerId,
       packageId,
     });
     throw error;

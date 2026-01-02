@@ -89,9 +89,131 @@ export const GET = withErrorHandler(async (
     });
   }
 
-  // TODO: In future, fetch snorkeling spots and backup docks from package_itineraries or package_locations table
-  // For now, return just the meeting point
-  // Additional locations (snorkeling spots, backup docks) can be added here when those tables exist
+  // Fetch snorkeling spots and backup docks from package_itineraries
+  const packageId = packageData?.id;
+  if (packageId) {
+    // Use any client for flexible schema access
+    const flexClient = supabase as unknown as {
+      from: (table: string) => {
+        select: (cols: string) => {
+          eq: (col: string, val: string) => {
+            not: (
+              col: string,
+              op: string,
+              val: null
+            ) => {
+              not: (
+                col: string,
+                op: string,
+                val: null
+              ) => Promise<{ data: unknown[] | null }>;
+            };
+          };
+        };
+      };
+    };
+
+    try {
+      // Try to get locations from package_itineraries
+      const { data: itineraries } = await flexClient
+        .from('package_itineraries')
+        .select('id, activity_name, latitude, longitude, activity_type, description')
+        .eq('package_id', packageId)
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null);
+
+      type ItineraryItem = {
+        id: string;
+        activity_name?: string;
+        name?: string;
+        latitude: number | null;
+        longitude: number | null;
+        activity_type: string | null;
+        description: string | null;
+      };
+
+      if (itineraries && Array.isArray(itineraries) && itineraries.length > 0) {
+        (itineraries as ItineraryItem[]).forEach((itinerary) => {
+          // Map activity_type to LocationPoint type
+          let locationType: LocationPoint['type'] = 'activity';
+          const actType = itinerary.activity_type?.toLowerCase() || '';
+
+          if (actType.includes('snorkel') || actType.includes('diving')) {
+            locationType = 'snorkeling_spot';
+          } else if (actType.includes('dock') || actType.includes('dermaga')) {
+            locationType = 'backup_dock';
+          } else if (actType.includes('island') || actType.includes('pulau')) {
+            locationType = 'island';
+          } else if (actType.includes('restaurant') || actType.includes('food')) {
+            locationType = 'restaurant';
+          }
+
+          const activityName = itinerary.activity_name || itinerary.name || 'Lokasi';
+          if (itinerary.latitude && itinerary.longitude) {
+            locations.push({
+              id: `itinerary-${itinerary.id}`,
+              name: activityName,
+              latitude: Number(itinerary.latitude),
+              longitude: Number(itinerary.longitude),
+              type: locationType,
+              description: itinerary.description || undefined,
+            });
+          }
+        });
+      }
+    } catch {
+      // package_itineraries table might not have location columns, try package_locations
+      try {
+        const { data: packageLocations } = await flexClient
+          .from('package_locations')
+          .select('id, name, latitude, longitude, location_type, description')
+          .eq('package_id', packageId)
+          .not('latitude', 'is', null)
+          .not('longitude', 'is', null);
+
+        type LocationItem = {
+          id: string;
+          name: string;
+          latitude: number | null;
+          longitude: number | null;
+          location_type: string | null;
+          description: string | null;
+        };
+
+        if (packageLocations && Array.isArray(packageLocations) && packageLocations.length > 0) {
+          (packageLocations as LocationItem[]).forEach((loc) => {
+            // Map location_type to LocationPoint type
+            let locationType: LocationPoint['type'] = 'activity';
+            const locType = loc.location_type?.toLowerCase() || '';
+
+            if (locType.includes('snorkel') || locType === 'snorkeling_spot') {
+              locationType = 'snorkeling_spot';
+            } else if (locType.includes('dock') || locType === 'backup_dock') {
+              locationType = 'backup_dock';
+            } else if (locType.includes('island')) {
+              locationType = 'island';
+            } else if (locType.includes('restaurant')) {
+              locationType = 'restaurant';
+            }
+
+            if (loc.latitude && loc.longitude) {
+              locations.push({
+                id: `location-${loc.id}`,
+                name: loc.name,
+                latitude: Number(loc.latitude),
+                longitude: Number(loc.longitude),
+                type: locationType,
+                description: loc.description || undefined,
+              });
+            }
+          });
+        }
+      } catch {
+        // Tables don't exist, continue with just meeting point
+        logger.debug('Package location tables not available', { packageId });
+      }
+    }
+  }
 
   return NextResponse.json({ locations });
 });

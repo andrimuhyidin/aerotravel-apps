@@ -26,6 +26,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { PartnerProfile } from '@/lib/partner/profile-service';
+import queryKeys from '@/lib/queries/query-keys';
 
 // Import from central config
 import {
@@ -95,10 +96,21 @@ export function AccountClient({
   // Combine Legal + Support
   const supportLegalItems = [...supportMenuItems, ...legalMenuItems];
 
-  // Mock wallet data
+  // Fetch wallet balance
+  const { data: walletBalance } = useQuery({
+    queryKey: queryKeys.partner.wallet.balance(),
+    queryFn: async () => {
+      const res = await fetch('/api/partner/wallet/balance');
+      if (!res.ok) return { balance: 0, pendingBalance: 0 };
+      return res.json();
+    },
+    staleTime: 30000,
+  });
+
+  // Wallet data from API or fallback to 0
   const walletData = {
-    balance: (profileData as any)?.walletBalance || 2850000,
-    pendingBalance: (profileData as any)?.pendingBalance || 450000,
+    balance: walletBalance?.balance || (profileData as any)?.walletBalance || 0,
+    pendingBalance: walletBalance?.pendingBalance || (profileData as any)?.pendingBalance || 0,
   };
 
   return (

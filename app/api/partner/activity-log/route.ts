@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -19,7 +20,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
+  const searchParams = sanitizeSearchParams(request);
   const actionType = searchParams.get('actionType'); // Filter by action type
   const entityType = searchParams.get('entityType'); // Filter by entity type
   const userId = searchParams.get('userId'); // Filter by user (team member)
@@ -33,22 +40,6 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const client = supabase as unknown as any;
 
   try {
-    // Determine partner_id (user might be partner owner or team member)
-    const isOwner = true; // Assume user is owner for now, will check team membership
-    let partnerId = user.id;
-
-    // Check if user is a team member
-    const { data: teamMember } = await client
-      .from('partner_users')
-      .select('partner_id')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .is('deleted_at', null)
-      .single();
-
-    if (teamMember) {
-      partnerId = teamMember.partner_id;
-    }
 
     // Build query
     let query = client

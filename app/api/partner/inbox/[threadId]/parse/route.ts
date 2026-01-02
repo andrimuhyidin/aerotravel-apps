@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { parseBookingInquiry } from '@/lib/ai/inbox-parser';
 import { aiChatRateLimit } from '@/lib/integrations/rate-limit';
 import { createClient } from '@/lib/supabase/server';
@@ -33,6 +34,12 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
   const { messageId, parseThread } = parseSchema.parse(body);
 
@@ -59,10 +66,10 @@ export const POST = withErrorHandler(async (
     if (messageId) {
       // Parse specific message
       const { data: message, error: messageError } = await client
-        .from('inbox_messages')
+        .from('partner_inbox_messages')
         .select('id, message_text, thread_id, partner_id')
         .eq('id', messageId)
-        .eq('partner_id', user.id)
+        .eq('partner_id', partnerId)
         .maybeSingle();
 
       if (messageError || !message) {
@@ -78,10 +85,10 @@ export const POST = withErrorHandler(async (
     } else if (parseThread) {
       // Parse thread (get latest message or combine all messages)
       const { data: messages, error: messagesError } = await client
-        .from('inbox_messages')
+        .from('partner_inbox_messages')
         .select('id, message_text')
         .eq('thread_id', threadId)
-        .eq('partner_id', user.id)
+        .eq('partner_id', partnerId)
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -114,10 +121,11 @@ export const POST = withErrorHandler(async (
     // Parse with AI
     const parsed = await parseBookingInquiry(messageText);
 
-    // Store parsed data
+    // Store parsed data in the message
+    // Note: partner_inbox_messages uses thread_id for threading (no separate threads table)
     if (targetMessageId) {
       await client
-        .from('inbox_messages')
+        .from('partner_inbox_messages')
         .update({
           parsed_data: parsed,
           parsing_status: 'parsed',
@@ -125,18 +133,6 @@ export const POST = withErrorHandler(async (
           parsed_at: new Date().toISOString(),
         })
         .eq('id', targetMessageId);
-    }
-
-    if (targetThreadId) {
-      await client
-        .from('inbox_threads')
-        .update({
-          parsed_data: parsed,
-          parsing_status: 'parsed',
-          parsing_confidence: parsed.confidence,
-          parsed_at: new Date().toISOString(),
-        })
-        .eq('id', targetThreadId);
     }
 
     logger.info('Inbox message parsed', {
@@ -161,7 +157,7 @@ export const POST = withErrorHandler(async (
     // Update status to failed
     if (messageId) {
       await client
-        .from('inbox_messages')
+        .from('partner_inbox_messages')
         .update({
           parsing_status: 'failed',
           parsed_at: new Date().toISOString(),

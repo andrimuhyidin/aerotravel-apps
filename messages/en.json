@@ -143,7 +143,96 @@
     },
     "invoices": {
       "title": "Corporate Invoices"
+    },
+    "budget": {
+      "title": "Budget Management",
+      "description": "Manage department travel budgets",
+      "allocated": "Allocated",
+      "spent": "Spent",
+      "pending": "Pending",
+      "remaining": "Remaining",
+      "usage": "Usage",
+      "department": "Department",
+      "add_budget": "Add Budget",
+      "alert_threshold": "Alert Threshold"
     }
+  },
+  "settings": {
+    "title": "Settings",
+    "notifications": {
+      "title": "Notification Settings",
+      "description": "Manage your notification preferences",
+      "channels": "Notification Channels",
+      "email": "Email",
+      "whatsapp": "WhatsApp",
+      "push": "Push Notification",
+      "frequency": "Frequency",
+      "immediate": "Immediate (Real-time)",
+      "digest": "Daily Digest",
+      "weekly": "Weekly Summary",
+      "categories": "Notification Categories",
+      "bookings": "Booking & Trip",
+      "reminders": "Reminders",
+      "promotions": "Promos & Offers",
+      "updates": "System Updates",
+      "quiet_hours": "Quiet Hours",
+      "save_changes": "Save Changes"
+    },
+    "integrations": {
+      "title": "Integrations",
+      "description": "Manage third-party API integrations",
+      "configure": "Configure",
+      "active": "Active",
+      "inactive": "Inactive",
+      "whatsapp": "WhatsApp",
+      "payment": "Payment",
+      "email": "Email",
+      "analytics": "Analytics"
+    }
+  },
+  "waiver": {
+    "title": "Liability Waiver",
+    "description": "Please read and sign the liability waiver before the trip",
+    "signed": "Waiver Signed",
+    "not_signed": "Waiver Not Signed",
+    "signed_at": "Signed at",
+    "agree_terms": "I have read, understood, and agree to all terms and conditions above",
+    "sign_button": "Sign Waiver"
+  },
+  "invoice": {
+    "title": "Invoice",
+    "download": "Download Invoice",
+    "invoice_number": "Invoice Number",
+    "date": "Date",
+    "due_date": "Due Date",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "paid": "Paid",
+    "pending": "Pending"
+  },
+  "seasons": {
+    "title": "Season Calendar",
+    "description": "Manage seasonal pricing periods",
+    "add_season": "Add Season",
+    "name": "Season Name",
+    "start_date": "Start Date",
+    "end_date": "End Date",
+    "multiplier": "Price Multiplier",
+    "color": "Color",
+    "active": "Active"
+  },
+  "reports": {
+    "title": "Reports",
+    "export_excel": "Export to Excel",
+    "export_pdf": "Export to PDF",
+    "date_range": "Date Range",
+    "today": "Today",
+    "last_7_days": "Last 7 Days",
+    "last_30_days": "Last 30 Days",
+    "this_month": "This Month",
+    "last_month": "Last Month",
+    "this_year": "This Year",
+    "custom": "Custom Range"
   }
 }
 

@@ -6,6 +6,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { creditWallet } from '@/lib/partner/wallet';
 import { canCancelBooking, calculateRefund } from '@/lib/partner/refund-calculator';
 import { createClient } from '@/lib/supabase/server';
@@ -29,8 +30,15 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json().catch(() => ({}));
-  const { reason } = body;
+  const sanitizedBody = sanitizeRequestBody(body, { strings: ['reason'] });
+  const { reason } = sanitizedBody;
 
   const client = supabase as unknown as any;
 
@@ -50,7 +58,7 @@ export const POST = withErrorHandler(async (
         source
       `)
       .eq('id', bookingId)
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .single();
 
     if (bookingError || !booking) {

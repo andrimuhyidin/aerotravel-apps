@@ -3,10 +3,12 @@
  * GET /api/partner/refunds - List refunds for partner bookings
  */
 
+import { NextRequest, NextResponse } from 'next/server';
+
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { sanitizeSearchParams, verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
-import { NextRequest, NextResponse } from 'next/server';
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
@@ -19,23 +21,33 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json(
+      { error: 'User is not a partner' },
+      { status: 403 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
-  const status = searchParams.get('status'); // Filter by refund status
-  const from = searchParams.get('from'); // Date range start
-  const to = searchParams.get('to'); // Date range end
-  const search = searchParams.get('search'); // Search by booking code
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '20');
+  const sanitizedParams = sanitizeSearchParams(searchParams);
+  const status = sanitizedParams.status || null; // Filter by refund status
+  const from = sanitizedParams.from || null; // Date range start
+  const to = sanitizedParams.to || null; // Date range end
+  const search = sanitizedParams.search || null; // Search by booking code
+  const page = parseInt(sanitizedParams.page || '1');
+  const limit = Math.min(parseInt(sanitizedParams.limit || '20'), 100);
   const offset = (page - 1) * limit;
 
   const client = supabase as unknown as any;
 
   try {
-    // First, get all booking IDs for this partner
+    // First, get all booking IDs for this partner using verified partnerId
     const { data: partnerBookings, error: bookingsError } = await client
       .from('bookings')
       .select('id')
-      .eq('mitra_id', user.id);
+      .eq('mitra_id', partnerId);
 
     if (bookingsError) {
       logger.error('Failed to fetch partner bookings', bookingsError, { userId: user.id });

@@ -8,8 +8,14 @@ import { Metadata, Viewport } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 
 import { Container } from '@/components/layout/container';
+import { AISummary } from '@/components/seo/ai-summary';
+import { AuthorCard } from '@/components/seo/author-bio';
+import { JsonLd } from '@/components/seo/json-ld';
+import { TrustSignals } from '@/components/seo/trust-signals';
 import { Card, CardContent } from '@/components/ui/card';
 import { locales } from '@/i18n';
+import { getAllAuthors } from '@/lib/seo/authors';
+import { generateAuthorSchema, generateAboutPageSchema } from '@/lib/seo/structured-data';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -34,12 +40,42 @@ export async function generateMetadata({
   setRequestLocale(locale);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
 
+  const title = 'Tentang Kami - Aero Travel';
+  const description =
+    'Aero Travel adalah travel agency terpercaya yang menyediakan paket wisata bahari terbaik di Indonesia.';
+
   return {
-    title: 'Tentang Kami - Aero Travel',
-    description:
-      'Aero Travel adalah travel agency terpercaya yang menyediakan paket wisata bahari terbaik di Indonesia.',
+    title,
+    description,
     alternates: {
       canonical: `${baseUrl}/${locale}/about`,
+      languages: {
+        id: `${baseUrl}/id/about`,
+        en: `${baseUrl}/en/about`,
+        'x-default': `${baseUrl}/id/about`,
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${baseUrl}/${locale}/about`,
+      siteName: 'MyAeroTravel ID',
+      images: [
+        {
+          url: `${baseUrl}/og-image.jpg`,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+      locale: locale === 'id' ? 'id_ID' : 'en_US',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`${baseUrl}/og-image.jpg`],
     },
   };
 }
@@ -80,9 +116,60 @@ export default async function AboutPage({ params }: PageProps) {
     { value: '4.9', label: 'Rating Rata-rata' },
   ];
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
+
+  // Get team authors for schema
+  const teamAuthors = getAllAuthors();
+
+  // AboutPage structured data
+  const aboutPageSchema = generateAboutPageSchema({
+    name: 'Tentang Aero Travel',
+    description:
+      'Aero Travel adalah travel agency terpercaya yang menyediakan paket wisata bahari terbaik di Indonesia.',
+    url: `/${locale}/about`,
+    foundingDate: '2019-01-01',
+    founders: [teamAuthors[0]], // Founder
+    awards: ['Member ASITA', 'Registered Travel Agency'],
+  });
+
+  // Generate author schemas for team members
+  const teamSchemas = teamAuthors.map((author) =>
+    generateAuthorSchema({
+      name: author.name,
+      jobTitle: author.jobTitle,
+      description: author.description,
+      image: author.image,
+      url: author.url,
+      sameAs: author.sameAs,
+      worksFor: author.worksFor,
+    })
+  );
+
+  // AI Summary for the about page
+  const aboutSummary =
+    'MyAeroTravel adalah travel agency terpercaya di Indonesia yang menyediakan paket wisata bahari terbaik. Didirikan pada 2019, kami telah melayani lebih dari 10.000 traveler dengan rating rata-rata 4.9/5. Tim profesional kami berkomitmen pada keamanan, kualitas layanan, dan pengalaman wisata yang tak terlupakan.';
+
+  const aboutKeyPoints = [
+    '5+ tahun pengalaman di industri travel',
+    '500+ trip sukses dijalankan',
+    '10.000+ traveler puas',
+    'Rating rata-rata 4.9/5',
+    'Member ASITA resmi',
+  ];
+
   return (
-    <Container className="py-6">
-      {/* Hero */}
+    <>
+      <JsonLd data={aboutPageSchema} />
+      {teamSchemas.map((schema, idx) => (
+        <JsonLd key={idx} data={schema} />
+      ))}
+      <Container className="py-6">
+        {/* AI Summary */}
+        <div className="mb-6">
+          <AISummary summary={aboutSummary} bulletPoints={aboutKeyPoints} />
+        </div>
+
+        {/* Hero */}
       <div className="mb-6 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-4xl">
           🌊
@@ -186,6 +273,38 @@ export default async function AboutPage({ params }: PageProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Trust Signals */}
+      <div className="my-8">
+        <h2 className="mb-4 text-center text-base font-semibold">
+          Dipercaya oleh Ribuan Traveler
+        </h2>
+        <TrustSignals />
+      </div>
+
+      {/* Team Section */}
+      <div className="mt-8">
+        <div className="mb-4 text-center">
+          <h2 className="mb-2 text-base font-semibold">Tim Kami</h2>
+          <p className="text-sm text-muted-foreground">
+            Profesional berpengalaman yang siap melayani Anda
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {teamAuthors.slice(0, 4).map((author) => (
+            <AuthorCard
+              key={author.id}
+              name={author.name}
+              role={author.role}
+              image={author.image}
+              bio={author.shortBio}
+              linkedIn={author.sameAs?.[0]}
+              verified={author.verified}
+            />
+          ))}
+        </div>
+      </div>
     </Container>
+    </>
   );
 }

@@ -155,6 +155,18 @@ const queryKeys = {
     social: {
       feed: (page?: number) =>
         [...queryKeys.guide.all, 'social', 'feed', page] as const,
+      stories: () => [...queryKeys.guide.all, 'social', 'stories'] as const,
+      storyDetail: (id: string) =>
+        [...queryKeys.guide.all, 'social', 'stories', id] as const,
+    },
+    mentorship: {
+      all: () => [...queryKeys.guide.all, 'mentorship'] as const,
+      asMentor: () => [...queryKeys.guide.all, 'mentorship', 'as-mentor'] as const,
+      asMentee: () => [...queryKeys.guide.all, 'mentorship', 'as-mentee'] as const,
+      detail: (id: string) =>
+        [...queryKeys.guide.all, 'mentorship', 'detail', id] as const,
+      availableMentors: () =>
+        [...queryKeys.guide.all, 'mentorship', 'available-mentors'] as const,
     },
     aiInsights: () => [...queryKeys.guide.all, 'ai-insights'] as const,
     onboarding: {
@@ -349,6 +361,14 @@ const queryKeys = {
       all: () => [...queryKeys.guide.all, 'trips'] as const,
       riskAssessment: (tripId: string) =>
         [...queryKeys.guide.trips.all(), tripId, 'risk-assessment'] as const,
+      destinationRisk: (tripId: string) =>
+        [...queryKeys.guide.trips.all(), tripId, 'destination-risk'] as const,
+      wasteLog: (tripId: string) =>
+        [...queryKeys.guide.trips.all(), tripId, 'waste-log'] as const,
+      waterUsage: (tripId: string) =>
+        [...queryKeys.guide.trips.all(), tripId, 'water-usage'] as const,
+      zoneCompliance: (tripId: string) =>
+        [...queryKeys.guide.trips.all(), tripId, 'zone-compliance'] as const,
       riskTrend: (params?: {
         tripId?: string;
         days?: number;
@@ -395,6 +415,8 @@ const queryKeys = {
             'music',
           ] as const,
       },
+      manifest: (tripId: string) =>
+        [...queryKeys.guide.trips.all(), tripId, 'manifest'] as const,
       facilityChecklist: (tripId: string) =>
         [...queryKeys.guide.trips.all(), tripId, 'facility-checklist'] as const,
       wasteLog: (tripId: string) =>
@@ -467,6 +489,146 @@ const queryKeys = {
       detail: (key: string) =>
         [...queryKeys.admin.settings.all(), key] as const,
     },
+    compliance: {
+      all: () => [...queryKeys.admin.all, 'compliance'] as const,
+      dashboard: () => [...queryKeys.admin.all, 'compliance', 'dashboard'] as const,
+      licenses: (filters?: Record<string, unknown>) =>
+        ['admin', 'compliance', 'licenses', filters] as const,
+      license: (id: string) =>
+        [...queryKeys.admin.all, 'compliance', 'licenses', id] as const,
+      alerts: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.all, 'compliance', 'alerts', filters] as const,
+      reports: (year?: number) =>
+        [...queryKeys.admin.all, 'compliance', 'reports', year] as const,
+      audits: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.all, 'compliance', 'audits', filters] as const,
+      auditDetail: (id: string) =>
+        [...queryKeys.admin.all, 'compliance', 'audit', id] as const,
+    },
+    // Risk Management (ISO 31030)
+    risk: {
+      all: () => [...queryKeys.admin.all, 'risk'] as const,
+      destinations: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.all, 'risk', 'destinations', filters] as const,
+      destination: (id: string) =>
+        [...queryKeys.admin.all, 'risk', 'destination', id] as const,
+      advisories: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.all, 'risk', 'advisories', filters] as const,
+      crisisPlans: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.all, 'risk', 'crisis-plans', filters] as const,
+      crisisPlan: (id: string) =>
+        [...queryKeys.admin.all, 'risk', 'crisis-plan', id] as const,
+      trmMetrics: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.all, 'risk', 'trm-metrics', filters] as const,
+    },
+    // Sustainability (GSTC)
+    sustainability: {
+      all: () => [...queryKeys.admin.all, 'sustainability'] as const,
+      goals: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.all, 'sustainability', 'goals', filters] as const,
+      community: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.all, 'sustainability', 'community', filters] as const,
+      marineZones: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.all, 'sustainability', 'marine-zones', filters] as const,
+      waterUsage: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.all, 'sustainability', 'water-usage', filters] as const,
+      employment: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.all, 'sustainability', 'employment', filters] as const,
+    },
+  },
+
+  // Loyalty / AeroPoints
+  loyalty: {
+    all: ['loyalty'] as const,
+    balance: (userId?: string) =>
+      [...queryKeys.loyalty.all, 'balance', userId] as const,
+    history: (userId?: string, page?: number) =>
+      [...queryKeys.loyalty.all, 'history', userId, page] as const,
+    estimate: (bookingValue?: number) =>
+      [...queryKeys.loyalty.all, 'estimate', bookingValue] as const,
+  },
+
+  // Referral
+  referral: {
+    all: ['referral'] as const,
+    code: (userId?: string) =>
+      [...queryKeys.referral.all, 'code', userId] as const,
+    stats: (userId?: string) =>
+      [...queryKeys.referral.all, 'stats', userId] as const,
+    validate: (code: string) =>
+      [...queryKeys.referral.all, 'validate', code] as const,
+  },
+
+  // Corporate
+  corporate: {
+    all: ['corporate'] as const,
+    dashboard: (corpId?: string) =>
+      [...queryKeys.corporate.all, 'dashboard', corpId] as const,
+    employees: {
+      all: (corpId?: string) =>
+        [...queryKeys.corporate.all, 'employees', corpId] as const,
+      detail: (empId: string) =>
+        [...queryKeys.corporate.all, 'employee', empId] as const,
+      list: (corpId?: string, filters?: Record<string, unknown>) =>
+        [...queryKeys.corporate.all, 'employees', corpId, 'list', filters] as const,
+    },
+    invoices: {
+      all: (corpId?: string) =>
+        [...queryKeys.corporate.all, 'invoices', corpId] as const,
+      detail: (invId: string) =>
+        [...queryKeys.corporate.all, 'invoice', invId] as const,
+      list: (corpId?: string, filters?: Record<string, unknown>) =>
+        [...queryKeys.corporate.all, 'invoices', corpId, 'list', filters] as const,
+    },
+    bookings: {
+      all: (corpId?: string) =>
+        [...queryKeys.corporate.all, 'bookings', corpId] as const,
+      list: (corpId?: string, filters?: Record<string, unknown>) =>
+        [...queryKeys.corporate.all, 'bookings', corpId, 'list', filters] as const,
+      detail: (bookingId: string) =>
+        [...queryKeys.corporate.all, 'booking', bookingId] as const,
+    },
+    reports: {
+      all: (corpId?: string) =>
+        [...queryKeys.corporate.all, 'reports', corpId] as const,
+      department: (corpId?: string, period?: string) =>
+        [...queryKeys.corporate.all, 'reports', corpId, 'department', period] as const,
+    },
+    // NEW: Approvals
+    approvals: {
+      all: (corpId?: string) =>
+        [...queryKeys.corporate.all, 'approvals', corpId] as const,
+      list: (status?: string, page?: number) =>
+        [...queryKeys.corporate.all, 'approvals', 'list', status, page] as const,
+      detail: (approvalId: string) =>
+        [...queryKeys.corporate.all, 'approval', approvalId] as const,
+      pending: (corpId?: string) =>
+        [...queryKeys.corporate.all, 'approvals', corpId, 'pending'] as const,
+    },
+    // NEW: Packages
+    packages: {
+      all: () => [...queryKeys.corporate.all, 'packages'] as const,
+      list: (search?: string, destination?: string, page?: number) =>
+        [...queryKeys.corporate.all, 'packages', 'list', search, destination, page] as const,
+      detail: (packageId: string) =>
+        [...queryKeys.corporate.all, 'package', packageId] as const,
+    },
+    // NEW: Budget
+    budget: {
+      all: (corpId?: string) =>
+        [...queryKeys.corporate.all, 'budget', corpId] as const,
+      summary: (corpId?: string, fiscalYear?: number) =>
+        [...queryKeys.corporate.all, 'budget', corpId, 'summary', fiscalYear] as const,
+      departments: (corpId?: string) =>
+        [...queryKeys.corporate.all, 'budget', corpId, 'departments'] as const,
+    },
+    // NEW: AI Assistant
+    ai: {
+      all: () => [...queryKeys.corporate.all, 'ai'] as const,
+      context: () => [...queryKeys.corporate.all, 'ai', 'context'] as const,
+      chat: (sessionId?: string) =>
+        [...queryKeys.corporate.all, 'ai', 'chat', sessionId] as const,
+    },
   },
 
   // Partner
@@ -534,6 +696,52 @@ const queryKeys = {
         detail: (id: string) =>
           [...queryKeys.partner.support.tickets.all(), 'detail', id] as const,
       },
+    },
+    // Referrals
+    referrals: {
+      all: () => [...queryKeys.partner.all, 'referrals'] as const,
+      list: () => [...queryKeys.partner.all, 'referrals', 'list'] as const,
+      stats: () => [...queryKeys.partner.all, 'referrals', 'stats'] as const,
+    },
+    // Broadcasts
+    broadcasts: {
+      all: () => [...queryKeys.partner.all, 'broadcasts'] as const,
+      list: () => [...queryKeys.partner.all, 'broadcasts', 'list'] as const,
+      stats: () => [...queryKeys.partner.all, 'broadcasts', 'stats'] as const,
+      templates: () => [...queryKeys.partner.all, 'broadcasts', 'templates'] as const,
+    },
+    // CLV
+    clv: {
+      all: () => [...queryKeys.partner.all, 'clv'] as const,
+      dashboard: () => [...queryKeys.partner.all, 'clv', 'dashboard'] as const,
+      customers: () => [...queryKeys.partner.all, 'clv', 'customers'] as const,
+    },
+    // Vouchers
+    vouchers: {
+      all: () => [...queryKeys.partner.all, 'vouchers'] as const,
+      list: () => [...queryKeys.partner.all, 'vouchers', 'list'] as const,
+    },
+    // Branches
+    branches: {
+      all: () => [...queryKeys.partner.all, 'branches'] as const,
+      list: () => [...queryKeys.partner.all, 'branches', 'list'] as const,
+    },
+    // Contracts
+    contracts: {
+      all: () => [...queryKeys.partner.all, 'contracts'] as const,
+      list: () => [...queryKeys.partner.all, 'contracts', 'list'] as const,
+      detail: (id: string) => [...queryKeys.partner.all, 'contracts', 'detail', id] as const,
+    },
+    // Custom Reports
+    customReports: {
+      all: () => [...queryKeys.partner.all, 'custom-reports'] as const,
+      list: () => [...queryKeys.partner.all, 'custom-reports', 'list'] as const,
+    },
+    // Market Intelligence
+    marketIntel: {
+      all: () => ['partner', 'market-intel'] as const,
+      summary: () => ['partner', 'market-intel', 'summary'] as const,
+      competitors: () => ['partner', 'market-intel', 'competitors'] as const,
     },
   },
 } as const;

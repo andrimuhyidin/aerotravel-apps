@@ -6,6 +6,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -27,6 +28,12 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
 
   try {
@@ -35,7 +42,7 @@ export const GET = withErrorHandler(async (
       .from('partner_customers')
       .select('*')
       .eq('id', customerId)
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .is('deleted_at', null)
       .single();
 
@@ -68,7 +75,7 @@ export const GET = withErrorHandler(async (
         )
       `
       )
-      .eq('mitra_id', user.id);
+      .eq('mitra_id', partnerId);
 
     // Build OR condition safely
     const conditions: string[] = [];
@@ -175,7 +182,21 @@ export const PUT = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const body = await request.json();
+  
+  // Sanitize input
+  const sanitizedBody = sanitizeRequestBody(body, {
+    strings: ['name', 'address', 'segment', 'special_notes'],
+    emails: ['email'],
+    phones: ['phone'],
+  });
+  
   const {
     name,
     email,
@@ -185,7 +206,7 @@ export const PUT = withErrorHandler(async (
     segment,
     preferences,
     special_notes,
-  } = body;
+  } = sanitizedBody;
 
   const client = supabase as unknown as any;
 
@@ -195,7 +216,7 @@ export const PUT = withErrorHandler(async (
       .from('partner_customers')
       .select('id')
       .eq('id', customerId)
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .is('deleted_at', null)
       .single();
 
@@ -269,6 +290,12 @@ export const DELETE = withErrorHandler(async (
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
 
   try {
@@ -277,7 +304,7 @@ export const DELETE = withErrorHandler(async (
       .from('partner_customers')
       .select('id')
       .eq('id', customerId)
-      .eq('partner_id', user.id)
+      .eq('partner_id', partnerId)
       .is('deleted_at', null)
       .single();
 

@@ -78,6 +78,8 @@ export default async function PackageDetailPage({ params }: Props) {
     min_pax: number;
     max_pax: number;
     package_type: string;
+    average_rating: number | null;
+    review_count: number | null;
     inclusions: string[] | null;
     exclusions: string[] | null;
     package_prices: {
@@ -155,7 +157,7 @@ export default async function PackageDetailPage({ params }: Props) {
           </span>
           <span className="flex items-center gap-1 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white backdrop-blur">
             <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-            4.9
+            {(pkg.average_rating || 0).toFixed(1)}
           </span>
         </div>
       </div>

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { sendLowWalletBalanceEmail } from '@/lib/partner/email-notifications';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -22,6 +23,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'Partner access required' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
   const threshold = 1000000; // 1 juta
 
@@ -30,7 +37,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const { data: wallet, error: walletError } = await client
       .from('mitra_wallets')
       .select('balance')
-      .eq('mitra_id', user.id)
+      .eq('mitra_id', partnerId)
       .single();
 
     if (walletError || !wallet) {

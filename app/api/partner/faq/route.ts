@@ -4,6 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
+import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -19,45 +20,21 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify partner access using centralized helper
+  const { isPartner, partnerId } = await verifyPartnerAccess(user.id);
+  if (!isPartner || !partnerId) {
+    return NextResponse.json({ error: 'User is not a partner' }, { status: 403 });
+  }
+
   const client = supabase as unknown as any;
 
   try {
-    const { searchParams } = new URL(request.url);
+    // Sanitize search params
+    const searchParams = sanitizeSearchParams(request);
     const type = searchParams.get('type') || 'all'; // 'faq', 'product', 'all'
     const category = searchParams.get('category');
     const search = searchParams.get('search');
     const packageId = searchParams.get('packageId');
-
-    // Get partner_id (could be the user themselves or via partner_users)
-    let partnerId = user.id;
-
-    // Check if user is a partner team member
-    const { data: partnerUser } = await client
-      .from('partner_users')
-      .select('partner_id')
-      .eq('user_id', user.id)
-      .is('deleted_at', null)
-      .eq('is_active', true)
-      .single();
-
-    if (partnerUser) {
-      partnerId = partnerUser.partner_id;
-    } else {
-      // Check if user is a partner themselves
-      const { data: userProfile } = await client
-        .from('users')
-        .select('id, role')
-        .eq('id', user.id)
-        .eq('role', 'mitra')
-        .single();
-
-      if (!userProfile) {
-        return NextResponse.json(
-          { error: 'User is not a partner' },
-          { status: 403 }
-        );
-      }
-    }
 
     const response: {
       faqs?: unknown[];

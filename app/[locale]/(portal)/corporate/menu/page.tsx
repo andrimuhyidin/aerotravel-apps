@@ -3,7 +3,19 @@
  * Route: /[locale]/corporate/menu
  */
 
-import { FileText, HelpCircle, Info, Settings, Shield } from 'lucide-react';
+import {
+  BarChart3,
+  Bot,
+  CalendarCheck,
+  CheckSquare,
+  FileText,
+  HelpCircle,
+  Info,
+  Package,
+  PiggyBank,
+  Settings,
+  Shield,
+} from 'lucide-react';
 import { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import { setRequestLocale } from 'next-intl/server';
@@ -45,6 +57,47 @@ export default async function CorporateMenuPage({ params }: PageProps) {
   setRequestLocale(locale);
 
   const menuSections = [
+    {
+      title: 'Fitur Utama',
+      items: [
+        {
+          href: `/${locale}/corporate/packages`,
+          label: 'Katalog Paket',
+          icon: Package,
+          description: 'Jelajahi paket perjalanan',
+        },
+        {
+          href: `/${locale}/corporate/bookings/new`,
+          label: 'Booking Baru',
+          icon: CalendarCheck,
+          description: 'Buat booking perjalanan',
+        },
+        {
+          href: `/${locale}/corporate/approvals`,
+          label: 'Approval Booking',
+          icon: CheckSquare,
+          description: 'Kelola persetujuan booking',
+        },
+        {
+          href: `/${locale}/corporate/budget`,
+          label: 'Budget Management',
+          icon: PiggyBank,
+          description: 'Kelola budget departemen',
+        },
+        {
+          href: `/${locale}/corporate/reports`,
+          label: 'Laporan & Analisis',
+          icon: BarChart3,
+          description: 'Analisis spending & trend',
+        },
+        {
+          href: `/${locale}/corporate/ai`,
+          label: 'AI Assistant',
+          icon: Bot,
+          description: 'Tanya AI tentang budget',
+        },
+      ],
+    },
     {
       title: 'Pengaturan',
       items: [

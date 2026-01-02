@@ -6,8 +6,40 @@
 import type { Database } from '@/types/supabase';
 
 type Booking = Database['public']['Tables']['bookings']['Row'];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type TripSchedule = any; // TODO: Regenerate types after DB migration
+
+// Local type definition for trip in P&L context
+type TripSchedule = {
+  id: string;
+  trip_code: string;
+  package_id?: string;
+  branch_id?: string;
+  trip_date?: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  max_pax?: number;
+  available_slots?: number;
+  packages?: {
+    id: string;
+    name: string;
+    destination?: string;
+  };
+};
+
+// Booking type for P&L calculations
+// Uses fields that are accessed in generateTripPnL
+export type PnLBooking = {
+  id: string;
+  booking_code?: string;
+  trip_schedule_id?: string;
+  trip_id?: string;
+  status?: string;
+  pax_count?: number;
+  total_price?: number;
+  total_amount?: number;
+  discount_amount?: number;
+  customer_name?: string;
+};
 
 export type CostItem = {
   category: string;
@@ -219,8 +251,7 @@ export function calculateBreakevenPax(
  */
 export function generateTripPnL(
   trip: TripSchedule,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  bookings: any[], // TODO: Regenerate types after DB migration
+  bookings: PnLBooking[],
   costs: CostItem[],
   packageName: string
 ): TripPnL {

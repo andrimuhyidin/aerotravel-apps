@@ -41,9 +41,22 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
+
   return {
     title: 'Akun - Aero Travel',
+    description: 'Kelola akun dan preferensi Anda di Aero Travel',
+    alternates: {
+      canonical: `${baseUrl}/${locale}/account`,
+      languages: {
+        id: `${baseUrl}/id/account`,
+        en: `${baseUrl}/en/account`,
+        'x-default': `${baseUrl}/id/account`,
+      },
+    },
+    robots: { index: false, follow: false }, // Private page
   };
 }
 

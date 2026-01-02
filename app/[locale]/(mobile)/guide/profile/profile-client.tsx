@@ -20,6 +20,7 @@ import {
     GraduationCap,
     HelpCircle,
     History,
+    Lock,
     LogOut,
     Megaphone,
     MessageSquare,
@@ -202,7 +203,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings: Settings,
   Shield: Shield,
   HelpCircle: HelpCircle,
-  Lock: Shield, // Use Shield for Lock (password) - TODO: Add Lock icon
+  Lock: Lock,
   Bell: Bell,
   History: History,
   Wallet: Wallet,

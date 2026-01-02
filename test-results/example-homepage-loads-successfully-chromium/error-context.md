@@ -1,0 +1,273 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Langsung ke konten utama" [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - generic [ref=e4]:
+      - banner [ref=e5]:
+        - banner [ref=e6]:
+          - generic [ref=e7]:
+            - link "AeroTravel" [ref=e8] [cursor=pointer]:
+              - /url: /id
+              - img [ref=e10]
+              - generic [ref=e12]: AeroTravel
+            - button "Cari destinasi..." [ref=e13] [cursor=pointer]:
+              - img [ref=e14]
+              - generic [ref=e17]: Cari destinasi...
+            - link [ref=e19] [cursor=pointer]:
+              - /url: /id/login
+              - img [ref=e20]
+      - main [ref=e23]:
+        - generic [ref=e24]:
+          - generic [ref=e28]:
+            - generic [ref=e29]:
+              - img [ref=e30]
+              - text: "#1 Marine Travel Lampung"
+            - heading "Jelajahi Keindahan Laut Indonesia" [level=1] [ref=e33]:
+              - text: Jelajahi Keindahan
+              - generic [ref=e34]: Laut Indonesia
+            - paragraph [ref=e35]: Pengalaman wisata bahari premium dengan standar keselamatan tinggi dan guide profesional
+            - generic [ref=e36]:
+              - link "Daftar Gratis" [ref=e37] [cursor=pointer]:
+                - /url: /id/register
+                - button "Daftar Gratis" [ref=e38]:
+                  - text: Daftar Gratis
+                  - img [ref=e39]
+              - link "Lihat Paket" [ref=e41] [cursor=pointer]:
+                - /url: /id/packages
+                - button "Lihat Paket" [ref=e42]
+          - generic [ref=e44]:
+            - generic [ref=e45]:
+              - paragraph [ref=e46]: 500+
+              - paragraph [ref=e47]: Trip Selesai
+            - generic [ref=e49]:
+              - paragraph [ref=e50]: 10K+
+              - paragraph [ref=e51]: Happy Travelers
+            - generic [ref=e53]:
+              - paragraph [ref=e54]:
+                - text: "4.9"
+                - img [ref=e55]
+              - paragraph [ref=e57]: Rating
+          - generic [ref=e58]:
+            - generic [ref=e59]:
+              - generic [ref=e60]:
+                - heading "Destinasi Populer" [level=2] [ref=e61]
+                - paragraph [ref=e62]: Pilihan favorit traveler
+              - link "Lihat Semua" [ref=e63] [cursor=pointer]:
+                - /url: /id/packages
+            - generic [ref=e64]:
+              - link "🏝️ Populer Pahawang Lampung Mulai dari Rp 450.000 4.9 234 ulasan" [ref=e65] [cursor=pointer]:
+                - /url: /id/packages
+                - generic [ref=e66]:
+                  - generic [ref=e67]:
+                    - generic [ref=e68]: 🏝️
+                    - generic [ref=e69]: Populer
+                  - generic [ref=e70]:
+                    - paragraph [ref=e71]: Pahawang
+                    - generic [ref=e72]:
+                      - img [ref=e73]
+                      - text: Lampung
+                    - generic [ref=e76]:
+                      - generic [ref=e77]:
+                        - paragraph [ref=e78]: Mulai dari
+                        - paragraph [ref=e79]: Rp 450.000
+                      - generic [ref=e80]:
+                        - generic [ref=e81]:
+                          - img [ref=e82]
+                          - generic [ref=e84]: "4.9"
+                        - paragraph [ref=e85]: 234 ulasan
+              - link "🐬 Best Seller Kiluan Lampung Mulai dari Rp 550.000 4.8 189 ulasan" [ref=e86] [cursor=pointer]:
+                - /url: /id/packages
+                - generic [ref=e87]:
+                  - generic [ref=e88]:
+                    - generic [ref=e89]: 🐬
+                    - generic [ref=e90]: Best Seller
+                  - generic [ref=e91]:
+                    - paragraph [ref=e92]: Kiluan
+                    - generic [ref=e93]:
+                      - img [ref=e94]
+                      - text: Lampung
+                    - generic [ref=e97]:
+                      - generic [ref=e98]:
+                        - paragraph [ref=e99]: Mulai dari
+                        - paragraph [ref=e100]: Rp 550.000
+                      - generic [ref=e101]:
+                        - generic [ref=e102]:
+                          - img [ref=e103]
+                          - generic [ref=e105]: "4.8"
+                        - paragraph [ref=e106]: 189 ulasan
+              - link "🦎 Premium Labuan Bajo NTT Mulai dari Rp 3.500.000 4.9 567 ulasan" [ref=e107] [cursor=pointer]:
+                - /url: /id/packages
+                - generic [ref=e108]:
+                  - generic [ref=e109]:
+                    - generic [ref=e110]: 🦎
+                    - generic [ref=e111]: Premium
+                  - generic [ref=e112]:
+                    - paragraph [ref=e113]: Labuan Bajo
+                    - generic [ref=e114]:
+                      - img [ref=e115]
+                      - text: NTT
+                    - generic [ref=e118]:
+                      - generic [ref=e119]:
+                        - paragraph [ref=e120]: Mulai dari
+                        - paragraph [ref=e121]: Rp 3.500.000
+                      - generic [ref=e122]:
+                        - generic [ref=e123]:
+                          - img [ref=e124]
+                          - generic [ref=e126]: "4.9"
+                        - paragraph [ref=e127]: 567 ulasan
+          - generic [ref=e128]:
+            - heading "Kenapa Pilih Kami?" [level=2] [ref=e129]
+            - generic [ref=e130]:
+              - generic [ref=e131]:
+                - img [ref=e133]
+                - generic [ref=e135]:
+                  - paragraph [ref=e136]: Aman & Terpercaya
+                  - paragraph [ref=e137]: Standar keselamatan tinggi
+                - img [ref=e138]
+              - generic [ref=e141]:
+                - img [ref=e143]
+                - generic [ref=e146]:
+                  - paragraph [ref=e147]: Guide Profesional
+                  - paragraph [ref=e148]: Tim berpengalaman & berlisensi
+                - img [ref=e149]
+              - generic [ref=e152]:
+                - img [ref=e154]
+                - generic [ref=e156]:
+                  - paragraph [ref=e157]: Rating 4.9/5
+                  - paragraph [ref=e158]: Dari 1000+ traveler
+                - img [ref=e159]
+          - generic [ref=e166]:
+            - generic [ref=e167]:
+              - img [ref=e168]
+              - text: PROMO SPESIAL
+            - paragraph [ref=e171]: Diskon 20%
+            - paragraph [ref=e172]: Khusus trip pertama kamu! Gunakan kode AERO20
+            - link "Daftar & Klaim Promo" [ref=e173] [cursor=pointer]:
+              - /url: /id/register
+              - button "Daftar & Klaim Promo" [ref=e174]:
+                - text: Daftar & Klaim Promo
+                - img [ref=e175]
+          - generic [ref=e177]:
+            - heading "Kata Mereka" [level=2] [ref=e178]
+            - generic [ref=e179]:
+              - generic [ref=e181]:
+                - generic [ref=e182]:
+                  - generic [ref=e183]:
+                    - generic [ref=e184]: S
+                    - generic [ref=e185]:
+                      - paragraph [ref=e186]: Sarah
+                      - paragraph [ref=e187]: Pahawang
+                  - generic [ref=e188]:
+                    - img [ref=e189]
+                    - img [ref=e191]
+                    - img [ref=e193]
+                    - img [ref=e195]
+                    - img [ref=e197]
+                - paragraph [ref=e199]: Pengalaman luar biasa! Guide ramah dan destinasi cantik banget.
+              - generic [ref=e201]:
+                - generic [ref=e202]:
+                  - generic [ref=e203]:
+                    - generic [ref=e204]: B
+                    - generic [ref=e205]:
+                      - paragraph [ref=e206]: Budi
+                      - paragraph [ref=e207]: Kiluan
+                  - generic [ref=e208]:
+                    - img [ref=e209]
+                    - img [ref=e211]
+                    - img [ref=e213]
+                    - img [ref=e215]
+                    - img [ref=e217]
+                - paragraph [ref=e219]: Worth it banget! Lumba-lumba nya banyak dan air jernih.
+          - generic [ref=e220]:
+            - heading "Program Kerja Sama & Karir" [level=2] [ref=e221]
+            - paragraph [ref=e222]: Untuk kamu yang ingin kerja sama lebih jauh dengan Aero Travel.
+            - generic [ref=e223]:
+              - link "Program Tour Guide Open Recruitment Bergabung sebagai guide profesional Aero dan handle trip resmi Aero Travel. Pelajari program →" [ref=e224] [cursor=pointer]:
+                - /url: /id/guide
+                - generic [ref=e225]:
+                  - generic [ref=e226]:
+                    - img [ref=e228]
+                    - generic [ref=e231]:
+                      - generic [ref=e232]:
+                        - paragraph [ref=e233]: Program Tour Guide
+                        - generic [ref=e234]: Open Recruitment
+                      - paragraph [ref=e235]: Bergabung sebagai guide profesional Aero dan handle trip resmi Aero Travel.
+                  - paragraph [ref=e236]: Pelajari program →
+              - link "Program Mitra B2B Untuk Travel Agent Untuk biro perjalanan / agent yang ingin menjual paket Aero secara resmi. Pelajari program →" [ref=e237] [cursor=pointer]:
+                - /url: /id/partner
+                - generic [ref=e238]:
+                  - generic [ref=e239]:
+                    - img [ref=e241]
+                    - generic [ref=e246]:
+                      - generic [ref=e247]:
+                        - paragraph [ref=e248]: Program Mitra B2B
+                        - generic [ref=e249]: Untuk Travel Agent
+                      - paragraph [ref=e250]: Untuk biro perjalanan / agent yang ingin menjual paket Aero secara resmi.
+                  - paragraph [ref=e251]: Pelajari program →
+              - link "Program Corporate Travel Untuk Perusahaan Solusi corporate travel untuk perusahaan, dengan approval & invoice terpusat. Pelajari program →" [ref=e252] [cursor=pointer]:
+                - /url: /id/corporate
+                - generic [ref=e253]:
+                  - generic [ref=e254]:
+                    - img [ref=e256]
+                    - generic [ref=e258]:
+                      - generic [ref=e259]:
+                        - paragraph [ref=e260]: Program Corporate Travel
+                        - generic [ref=e261]: Untuk Perusahaan
+                      - paragraph [ref=e262]: Solusi corporate travel untuk perusahaan, dengan approval & invoice terpusat.
+                  - paragraph [ref=e263]: Pelajari program →
+              - link "Program Influencer Trip KOL Program Untuk KOL / Influencer yang ingin membuat trip eksklusif bersama komunitasnya. Pelajari program →" [ref=e264] [cursor=pointer]:
+                - /url: /id/influencer
+                - generic [ref=e265]:
+                  - generic [ref=e266]:
+                    - img [ref=e268]
+                    - generic [ref=e273]:
+                      - generic [ref=e274]:
+                        - paragraph [ref=e275]: Program Influencer Trip
+                        - generic [ref=e276]: KOL Program
+                      - paragraph [ref=e277]: Untuk KOL / Influencer yang ingin membuat trip eksklusif bersama komunitasnya.
+                  - paragraph [ref=e278]: Pelajari program →
+          - generic [ref=e280]:
+            - img [ref=e282]
+            - heading "Siap Berpetualang?" [level=3] [ref=e287]
+            - paragraph [ref=e288]: Bergabung dengan 10,000+ traveler yang sudah mempercayai kami
+            - link "Mulai Sekarang" [ref=e289] [cursor=pointer]:
+              - /url: /id/register
+              - button "Mulai Sekarang" [ref=e290]:
+                - text: Mulai Sekarang
+                - img [ref=e291]
+      - complementary "AI Chat Assistant":
+        - button "Open AeroBot chat" [ref=e294] [cursor=pointer]
+      - navigation "Navigasi utama" [ref=e297]:
+        - navigation [ref=e299]:
+          - generic [ref=e300]:
+            - link "Home" [ref=e301] [cursor=pointer]:
+              - /url: /id
+              - img [ref=e303]
+              - generic [ref=e306]: Home
+            - link "Explore" [ref=e307] [cursor=pointer]:
+              - /url: /id/packages
+              - img [ref=e309]
+              - generic [ref=e312]: Explore
+            - link "Book" [ref=e313] [cursor=pointer]:
+              - /url: /id/book
+              - img [ref=e315]
+              - generic [ref=e318]: Book
+            - link "Trip" [ref=e319] [cursor=pointer]:
+              - /url: /id/my-trips
+              - img [ref=e321]
+              - generic [ref=e323]: Trip
+            - link "Inbox" [ref=e324] [cursor=pointer]:
+              - /url: /id/inbox
+              - img [ref=e326]
+              - generic [ref=e329]: Inbox
+  - generic [ref=e330]:
+    - img [ref=e332]
+    - button "Open Tanstack query devtools" [ref=e380] [cursor=pointer]:
+      - img [ref=e381]
+  - button "Open Next.js Dev Tools" [ref=e434] [cursor=pointer]:
+    - img [ref=e435]
+  - alert [ref=e438]
+```

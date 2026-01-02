@@ -77,7 +77,40 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   // Bonuses
   const onTimeBonus = attendance && !attendance.is_late ? 50000 : 0; // Rp 50k for on-time
-  const performanceBonus = 0; // TODO: Calculate based on ratings
+
+  // Calculate performance bonus based on guide's average rating
+  let performanceBonus = 0;
+  try {
+    const { data: recentReviews } = await supabase
+      .from('reviews')
+      .select('guide_rating')
+      .eq('guide_id', guideId)
+      .not('guide_rating', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (recentReviews && recentReviews.length > 0) {
+      const avgRating =
+        recentReviews.reduce(
+          (sum: number, r: { guide_rating: number | null }) =>
+            sum + (r.guide_rating || 0),
+          0
+        ) / recentReviews.length;
+
+      // Performance bonus tiers
+      if (avgRating >= 4.8) {
+        performanceBonus = 100000; // Rp 100k for excellent
+      } else if (avgRating >= 4.5) {
+        performanceBonus = 75000; // Rp 75k for very good
+      } else if (avgRating >= 4.0) {
+        performanceBonus = 50000; // Rp 50k for good
+      } else if (avgRating >= 3.5) {
+        performanceBonus = 25000; // Rp 25k for above average
+      }
+    }
+  } catch {
+    // Ignore error, keep bonus at 0
+  }
 
   // Get tips (if any)
   let tipsQuery = supabase
@@ -95,7 +128,33 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   // Deductions
   const latePenalty = attendance?.penalty_amount || 0;
-  const otherDeductions = 0; // TODO: Calculate other deductions if any
+
+  // Calculate other deductions from salary_deductions table
+  let otherDeductions = 0;
+  try {
+    let deductionsQuery = supabase
+      .from('salary_deductions')
+      .select('amount, reason')
+      .eq('guide_id', guideId)
+      .eq('trip_id', tripId)
+      .eq('is_applied', true)
+      .neq('reason', 'late_check_in'); // Exclude late penalty, already counted
+
+    if (!branchContext.isSuperAdmin && branchContext.branchId) {
+      deductionsQuery = deductionsQuery.eq('branch_id', branchContext.branchId);
+    }
+
+    const { data: deductions } = await deductionsQuery;
+
+    if (deductions && deductions.length > 0) {
+      otherDeductions = deductions.reduce(
+        (sum: number, d: { amount: number | null }) => sum + (d.amount || 0),
+        0
+      );
+    }
+  } catch {
+    // Ignore error, keep deductions at 0
+  }
 
   const totalBonuses = onTimeBonus + performanceBonus + tipBonus;
   const totalDeductions = latePenalty + otherDeductions;

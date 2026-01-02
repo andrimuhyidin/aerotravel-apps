@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { PageHeader } from '@/components/partner';
 import { logger } from '@/lib/utils/logger';
 import { Palette, Upload, Eye, Save } from 'lucide-react';
+import Image from 'next/image';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import type { WhitelabelSettings } from '@/lib/partner/profile-service';
@@ -87,7 +88,13 @@ export function WhitelabelSettingsClient({
                 }}
               >
                 {settings.logoUrl ? (
-                  <img src={settings.logoUrl} alt="Logo" className="mb-2 h-12" />
+                  <Image 
+                    src={settings.logoUrl} 
+                    alt="Logo perusahaan" 
+                    width={120}
+                    height={48}
+                    className="mb-2 h-12 w-auto object-contain"
+                  />
                 ) : (
                   <div className="mb-2 text-2xl font-bold">{settings.companyName}</div>
                 )}
@@ -119,7 +126,13 @@ export function WhitelabelSettingsClient({
               <Label>Logo Perusahaan</Label>
               <div className="flex items-center gap-3">
                 {settings.logoUrl ? (
-                  <img src={settings.logoUrl} alt="Logo" className="h-16 w-16 rounded-lg object-cover" />
+                  <Image 
+                    src={settings.logoUrl} 
+                    alt="Logo perusahaan" 
+                    width={64}
+                    height={64}
+                    className="h-16 w-16 rounded-lg object-cover"
+                  />
                 ) : (
                   <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
                     <Palette className="h-6 w-6 text-muted-foreground" />
