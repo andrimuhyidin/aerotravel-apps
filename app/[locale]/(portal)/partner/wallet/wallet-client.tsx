@@ -9,18 +9,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
-import { PageHeader, StatusBadge } from '@/components/partner';
+import { PageHeader } from '@/components/partner';
 import { formatCurrency } from '@/lib/partner/package-utils';
 import { logger } from '@/lib/utils/logger';
 import { cn } from '@/lib/utils';
 import {
   ArrowDown,
   ArrowUp,
-  DollarSign,
-  Download,
   History,
   Plus,
-  TrendingUp,
   Wallet as WalletIcon,
 } from 'lucide-react';
 import Link from 'next/link';

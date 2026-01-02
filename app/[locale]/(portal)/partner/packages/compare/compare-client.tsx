@@ -6,10 +6,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
-import { LoadingState } from '@/components/ui/loading-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/partner/package-utils';
 import { logger } from '@/lib/utils/logger';
@@ -21,7 +20,6 @@ import {
   Package,
   Star,
   TrendingUp,
-  X,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';

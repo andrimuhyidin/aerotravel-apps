@@ -9,7 +9,6 @@ import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { config } from 'dotenv';
-import { createClient } from '@supabase/supabase-js';
 import pg from 'pg';
 
 const __filename = fileURLToPath(import.meta.url);

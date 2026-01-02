@@ -15,7 +15,6 @@ import {
   Clock,
   Copy,
   Gift,
-  Loader2,
   MessageCircle,
   Share2,
   Twitter,

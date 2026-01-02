@@ -58,6 +58,8 @@ const queryKeys = {
     bySlug: (slug: string) =>
       [...queryKeys.packages.all, 'slug', slug] as const,
     published: () => [...queryKeys.packages.all, 'published'] as const,
+    byDestination: (destination: string) =>
+      [...queryKeys.packages.all, 'destination', destination] as const,
   },
 
   // Payments
@@ -89,6 +91,13 @@ const queryKeys = {
     all: ['seo-pages'] as const,
     byCityAndSlug: (city: string, slug: string) =>
       [...queryKeys.seoPages.all, city, slug] as const,
+  },
+
+  // SEO Internal Links
+  seo: {
+    all: ['seo'] as const,
+    internalLinks: (currentPage: string, type?: string, category?: string) =>
+      [...queryKeys.seo.all, 'internal-links', currentPage, type, category] as const,
   },
 
   // Guide App

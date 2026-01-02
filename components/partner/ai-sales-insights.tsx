@@ -12,7 +12,6 @@ import {
   ArrowRight,
   BarChart3,
   Lightbulb,
-  Loader2,
   RefreshCw,
   Sparkles,
   Target,

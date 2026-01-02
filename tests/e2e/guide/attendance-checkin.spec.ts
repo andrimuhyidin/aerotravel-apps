@@ -4,7 +4,6 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { mockTrip } from '../../fixtures/guide-fixtures';
 import { 
   navigateToGuidePage, 
   waitForLoadingComplete,

@@ -11,7 +11,6 @@ import { withErrorHandler } from '@/lib/api/error-handler';
 import {
   getBreachIncidents,
   notifyAffectedUsers,
-  generateBreachReport,
 } from '@/lib/pdp/breach-notifier';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';

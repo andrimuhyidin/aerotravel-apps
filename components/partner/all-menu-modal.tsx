@@ -14,7 +14,6 @@ import { Search } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { cn } from '@/lib/utils';
 import {
   Drawer,
   DrawerContent,

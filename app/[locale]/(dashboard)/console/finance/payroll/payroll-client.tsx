@@ -12,7 +12,6 @@ import {
   ChevronDown,
   ChevronRight,
   Download,
-  Loader2,
   RefreshCw,
   User,
   Users,

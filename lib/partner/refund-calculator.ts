@@ -8,7 +8,6 @@
  * - H < 7: Refund 0%
  */
 
-import { logger } from '@/lib/utils/logger';
 
 export type RefundCalculation = {
   refundable: boolean;

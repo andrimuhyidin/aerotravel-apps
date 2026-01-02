@@ -10,14 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { logger } from '@/lib/utils/logger';
 import { formatCurrency } from '@/lib/partner/package-utils';

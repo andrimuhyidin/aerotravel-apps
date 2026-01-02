@@ -17,7 +17,6 @@ import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
   Calendar,
-  MapPin,
   Users,
   Phone,
   Mail,

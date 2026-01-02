@@ -20,20 +20,16 @@ import {
   Shield,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { id as idLocale } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SignaturePad } from '@/components/ui/signature-pad';
 import { PageHeader } from '@/components/partner';
 import { apiClient } from '@/lib/api/client';
 import queryKeys from '@/lib/queries/query-keys';
-import { cn } from '@/lib/utils';
 
 type Contract = {
   id: string;

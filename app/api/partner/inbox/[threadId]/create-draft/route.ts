@@ -4,7 +4,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { verifyPartnerAccess, sanitizeRequestBody } from '@/lib/api/partner-helpers';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';

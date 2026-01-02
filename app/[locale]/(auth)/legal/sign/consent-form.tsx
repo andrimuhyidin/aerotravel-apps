@@ -2,7 +2,7 @@
 
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
@@ -41,13 +41,15 @@ Aero Travel tidak bertanggung jawab atas pembatalan akibat:
 - Cuaca buruk / bencana alam
 - Kebijakan pemerintah
 - Kondisi darurat lainnya
-
-### 6. Persetujuan Data
-Dengan menyetujui, Anda mengizinkan Aero Travel untuk:
-- Menyimpan data pribadi untuk keperluan pemesanan
-- Menghubungi via WhatsApp/Email untuk informasi trip
-- Menggunakan foto perjalanan untuk keperluan promosi
 `;
+
+type ConsentPurpose = {
+  code: string;
+  name: string;
+  description: string;
+  isMandatory: boolean;
+  category: string;
+};
 
 export function ConsentForm({ locale, userId }: ConsentFormProps) {
   const router = useRouter();
@@ -56,6 +58,35 @@ export function ConsentForm({ locale, userId }: ConsentFormProps) {
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
+  const [purposes, setPurposes] = useState<ConsentPurpose[]>([]);
+  const [consents, setConsents] = useState<Record<string, boolean>>({});
+  const [loadingPurposes, setLoadingPurposes] = useState(true);
+
+  // Load consent purposes
+  React.useEffect(() => {
+    async function loadPurposes() {
+      try {
+        const response = await fetch('/api/user/consent/purposes');
+        const data = await response.json();
+        
+        if (data.purposes) {
+          setPurposes(data.purposes);
+          
+          // Initialize consents - mandatory ones are pre-checked
+          const initialConsents: Record<string, boolean> = {};
+          data.purposes.forEach((p: ConsentPurpose) => {
+            initialConsents[p.code] = p.isMandatory;
+          });
+          setConsents(initialConsents);
+        }
+      } catch (err) {
+        logger.error('Failed to load consent purposes', err);
+      } finally {
+        setLoadingPurposes(false);
+      }
+    }
+    loadPurposes();
+  }, []);
 
   const handleSubmit = async () => {
     if (!agreed) {
@@ -63,11 +94,36 @@ export function ConsentForm({ locale, userId }: ConsentFormProps) {
       return;
     }
 
+    // Check if all mandatory consents are given
+    const mandatoryPurposes = purposes.filter(p => p.isMandatory);
+    const allMandatoryGiven = mandatoryPurposes.every(p => consents[p.code] === true);
+    
+    if (!allMandatoryGiven) {
+      setError('Anda harus menyetujui semua persetujuan wajib');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      // Update consent in users table using existing columns
+      // Record all consents via API
+      const consentRecords = purposes.map(purpose => ({
+        purposeCode: purpose.code,
+        consentGiven: consents[purpose.code] || false,
+      }));
+
+      const response = await fetch('/api/user/consent/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consents: consentRecords }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to record consents');
+      }
+
+      // Update contract signed flag
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: updateError } = await (supabase as any)
         .from('users')
@@ -158,7 +214,7 @@ export function ConsentForm({ locale, userId }: ConsentFormProps) {
         </div>
       </div>
 
-      {/* Checkbox */}
+      {/* Main Terms Checkbox */}
       <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-muted/50">
         <input
           type="checkbox"
@@ -172,6 +228,55 @@ export function ConsentForm({ locale, userId }: ConsentFormProps) {
           <strong>Kebijakan Privasi</strong> Aero Travel
         </span>
       </label>
+
+      {/* Granular Consent Purposes */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold">Persetujuan Penggunaan Data (UU PDP 2022)</h3>
+        
+        {loadingPurposes ? (
+          <div className="text-sm text-muted-foreground">Memuat...</div>
+        ) : (
+          purposes.map((purpose) => (
+            <label
+              key={purpose.code}
+              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50 ${
+                purpose.isMandatory ? 'border-primary/50 bg-primary/5' : ''
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={consents[purpose.code] || false}
+                onChange={(e) => {
+                  if (purpose.isMandatory) return; // Can't uncheck mandatory
+                  setConsents(prev => ({ ...prev, [purpose.code]: e.target.checked }));
+                }}
+                disabled={purpose.isMandatory}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{purpose.name}</span>
+                  {purpose.isMandatory && (
+                    <span className="rounded bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
+                      Wajib
+                    </span>
+                  )}
+                  <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                    {purpose.category === 'operational' ? 'Operasional' :
+                     purpose.category === 'marketing' ? 'Marketing' :
+                     purpose.category === 'analytics' ? 'Analitik' : 'Pihak Ketiga'}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{purpose.description}</p>
+              </div>
+            </label>
+          ))
+        )}
+        
+        <p className="text-xs text-muted-foreground">
+          Anda dapat mengubah persetujuan ini kapan saja melalui menu pengaturan akun Anda.
+        </p>
+      </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

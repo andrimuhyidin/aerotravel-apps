@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
+import { sanitizeSearchParams } from '@/lib/api/partner-helpers';
 import ExcelJS from 'exceljs';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';

@@ -10,8 +10,6 @@ import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle,
   Anchor,
-  ArrowLeft,
-  ArrowRight,
   Calendar,
   ChevronLeft,
   ChevronRight,

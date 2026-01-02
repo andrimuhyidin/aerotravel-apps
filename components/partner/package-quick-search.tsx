@@ -5,7 +5,7 @@
 
 'use client';
 
-import { Search, MapPin, Calendar, Users, Loader2 } from 'lucide-react';
+import { Search, MapPin, Calendar, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 

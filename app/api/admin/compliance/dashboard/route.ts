@@ -102,7 +102,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const standards: ComplianceStatus[] = (['chse', 'gstc', 'duty_of_care', 'iso_31030'] as ComplianceStandard[]).map(
       (standard) => {
         const found = statusData?.find((s) => s.standard_type === standard);
-        return {
+      return {
           standard,
           standardName: standardNames[standard],
           status: (found?.current_status as ComplianceStatus['status']) || 'not_assessed',
@@ -112,7 +112,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
           openIssues: found?.open_non_conformities || 0,
           isCertified: found?.is_certified || false,
           certValidUntil: found?.certification_valid_until || null,
-        };
+      };
       }
     );
 
@@ -149,7 +149,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       .eq('branch_id', branchId)
       .in('status', ['open', 'in_progress'])
       .order('due_date', { ascending: true })
-      .limit(10);
+    .limit(10);
 
     // Get metrics
     const { data: allAudits } = await client
@@ -186,7 +186,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         })) || [],
       upcomingActions:
         upcomingActions?.map((a) => ({
-          id: a.id,
+      id: a.id,
           title: a.title,
           dueDate: a.due_date,
           priority: a.priority,

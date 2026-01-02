@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
@@ -13,15 +13,12 @@ import {
   Calculator,
   ChevronDown,
   ChevronRight,
-  Download,
   Filter,
-  Loader2,
   RefreshCw,
   Search,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 

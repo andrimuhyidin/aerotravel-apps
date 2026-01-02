@@ -5,7 +5,8 @@ import { ClarityScript } from '@/lib/analytics/clarity-script';
 import { PostHogProvider } from '@/lib/analytics/posthog';
 import { env } from '@/lib/env';
 import { QueryProvider } from '@/lib/providers/query-provider';
-import { OrganizationSchema } from '@/lib/seo/structured-data';
+import { JsonLd } from '@/components/seo/json-ld';
+import { generateOrganizationSchema } from '@/lib/seo/structured-data';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
@@ -80,7 +81,7 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <head>
-        <OrganizationSchema />
+        <JsonLd data={generateOrganizationSchema()} />
       </head>
       <body>
         <ErrorBoundary>

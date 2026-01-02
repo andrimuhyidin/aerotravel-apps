@@ -9,7 +9,6 @@ import {
   navigateToGuidePage, 
   waitForLoadingComplete,
   mockGeolocation,
-  GUIDE_BASE_URL,
 } from '../../helpers/guide-helpers';
 
 test.describe('Trip Start Flow', () => {

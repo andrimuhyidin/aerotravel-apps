@@ -22,7 +22,7 @@ import { formatCurrency } from '@/lib/partner/package-utils';
 import { logger } from '@/lib/utils/logger';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Plus, Target, Users, Calendar, TrendingUp, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Target, Users, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { TravelCircleForm } from '@/components/partner/travel-circle-form';
 

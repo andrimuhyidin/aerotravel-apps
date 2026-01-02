@@ -13,13 +13,11 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock,
-  Filter,
   MessageSquare,
   Plus,
   RefreshCw,
   Timer,
   User,
-  XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 

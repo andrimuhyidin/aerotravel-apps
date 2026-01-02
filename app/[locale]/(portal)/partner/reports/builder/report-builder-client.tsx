@@ -18,11 +18,7 @@ import {
   Layers,
   Loader2,
   Package,
-  Play,
-  Plus,
   Save,
-  Settings,
-  Trash2,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -59,7 +55,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/partner';
 import { apiClient } from '@/lib/api/client';
 import queryKeys from '@/lib/queries/query-keys';

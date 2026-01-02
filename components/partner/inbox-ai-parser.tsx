@@ -10,7 +10,6 @@ import {
   ArrowRight,
   Bot,
   Calendar,
-  Check,
   Loader2,
   MapPin,
   Pencil,

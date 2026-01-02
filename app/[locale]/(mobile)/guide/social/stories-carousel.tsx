@@ -8,8 +8,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Camera,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   Loader2,
   MapPin,

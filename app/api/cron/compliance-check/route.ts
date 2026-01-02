@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-import { generateComplianceAlerts, getUnresolvedAlerts } from '@/lib/compliance/alert-generator';
+import { generateComplianceAlerts } from '@/lib/compliance/alert-generator';
 import { checkAndUpdateLicenseStatuses } from '@/lib/compliance/license-checker';
 import { sendBatchAlertNotifications, sendComplianceSummaryNotification } from '@/lib/compliance/notifications';
 import { logger } from '@/lib/utils/logger';

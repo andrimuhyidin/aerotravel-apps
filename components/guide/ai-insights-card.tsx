@@ -11,7 +11,6 @@ import {
   AlertTriangle,
   Brain,
   DollarSign,
-  Filter,
   Lightbulb,
   Target,
   TrendingUp,

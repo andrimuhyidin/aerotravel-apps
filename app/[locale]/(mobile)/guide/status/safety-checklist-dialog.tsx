@@ -27,7 +27,6 @@ import {
   getRiskLevelColor,
   getRiskLevelLabel,
   type RiskAssessment,
-  type RiskLevel,
 } from '@/lib/guide/risk-scoring';
 import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';

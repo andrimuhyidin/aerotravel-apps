@@ -12,6 +12,9 @@ import type {
   VideoSchemaInput,
 } from './types';
 
+// Re-export WebApplicationSchema
+export { generateWebApplicationSchema } from './webapp-schema';
+
 // Re-export types for backward compatibility
 export type {
   BreadcrumbItem,

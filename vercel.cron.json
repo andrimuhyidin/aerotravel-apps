@@ -1,0 +1,30 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/license-expiry",
+      "schedule": "0 0 * * *",
+      "description": "Check license expiry daily at midnight"
+    },
+    {
+      "path": "/api/cron/certification-expiry",
+      "schedule": "0 1 * * *",
+      "description": "Check certification expiry daily at 1 AM"
+    },
+    {
+      "path": "/api/cron/data-retention",
+      "schedule": "0 2 * * *",
+      "description": "Run data retention cleanup daily at 2 AM"
+    },
+    {
+      "path": "/api/cron/assessment-reminder",
+      "schedule": "0 9 1 * *",
+      "description": "Send assessment reminder on 1st of each month at 9 AM"
+    }
+  ],
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next"
+}
+

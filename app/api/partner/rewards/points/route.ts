@@ -12,7 +12,6 @@ import { sanitizeRequestBody, sanitizeSearchParams, verifyPartnerAccess } from '
 import {
   getPointsBalance,
   getPointsHistory,
-  type RewardPointsBalance,
 } from '@/lib/partner/reward-points';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';

@@ -10,7 +10,6 @@ import { id as localeId } from 'date-fns/locale';
 import {
   Calendar,
   ChevronRight,
-  Loader2,
   MapPin,
   Plane,
   Users,

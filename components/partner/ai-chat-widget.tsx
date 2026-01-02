@@ -11,8 +11,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bot,
   Loader2,
-  MessageCircle,
-  Minimize2,
   Send,
   Sparkles,
   X,

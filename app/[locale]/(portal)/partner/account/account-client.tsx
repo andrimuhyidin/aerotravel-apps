@@ -31,7 +31,6 @@ import queryKeys from '@/lib/queries/query-keys';
 // Import from central config
 import {
   getMenuItemsByCategory,
-  PARTNER_MENU_CATEGORIES,
 } from '@/lib/config/partner-menu-config';
 
 export function AccountClient({ 

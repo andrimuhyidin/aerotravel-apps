@@ -54,7 +54,7 @@ export const GET = withErrorHandler(async (
     }
 
     // Get booking history for this customer
-    let bookingsQuery = client
+    const bookingsQuery = client
       .from('bookings')
       .select(
         `

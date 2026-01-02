@@ -5,7 +5,7 @@
 
 import 'server-only';
 
-import { deleteFile, listFiles } from '@/lib/storage/supabase-storage';
+import { deleteFile } from '@/lib/storage/supabase-storage';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -252,6 +252,213 @@ export async function cleanupPassengerDocuments(
     return result;
   } catch (error) {
     logger.error('[DataRetention] Fatal error in passenger cleanup', error);
+    result.errors.push(error instanceof Error ? error.message : String(error));
+    return result;
+  }
+}
+
+/**
+ * Clean up trip manifests after H+72 (72 hours post-trip)
+ * UU PDP requirement: delete passenger data after no longer needed
+ */
+export async function cleanupTripManifests(): Promise<CleanupResult> {
+  const supabase = await createClient();
+  const result: CleanupResult = {
+    ktpPhotosDeleted: 0,
+    bookingsUpdated: 0,
+    auditLogsCreated: 0,
+    errors: [],
+  };
+
+  logger.info('[DataRetention] Starting trip manifest cleanup');
+
+  try {
+    // Calculate cutoff: 72 hours (3 days) after trip completed
+    const cutoffDate = new Date();
+    cutoffDate.setHours(cutoffDate.getHours() - 72);
+
+    // Find completed trips past retention period
+    const { data: trips, error: fetchError } = await supabase
+      .from('trips')
+      .select('id, trip_code, completed_at, manifest_data')
+      .eq('status', 'completed')
+      .not('manifest_data', 'is', null)
+      .lt('completed_at', cutoffDate.toISOString());
+
+    if (fetchError) {
+      logger.error('[DataRetention] Failed to fetch trips', fetchError);
+      result.errors.push(`Fetch error: ${fetchError.message}`);
+      return result;
+    }
+
+    if (!trips || trips.length === 0) {
+      logger.info('[DataRetention] No manifests to clean up');
+      return result;
+    }
+
+    logger.info('[DataRetention] Found manifests for cleanup', {
+      count: trips.length,
+    });
+
+    // Process each trip
+    for (const trip of trips) {
+      try {
+        // Nullify manifest data
+        const { error: updateError } = await supabase
+          .from('trips')
+          .update({ manifest_data: null })
+          .eq('id', trip.id);
+
+        if (updateError) {
+          result.errors.push(`Update error for ${trip.trip_code}: ${updateError.message}`);
+          continue;
+        }
+
+        result.bookingsUpdated++;
+
+        // Create audit log
+        const { error: auditError } = await supabase.from('audit_logs').insert({
+          action: 'data_retention_cleanup',
+          table_name: 'trips',
+          record_id: trip.id,
+          old_data: { manifest_data: '[REDACTED]' },
+          new_data: { manifest_data: null },
+          user_id: null,
+          metadata: {
+            reason: 'UU PDP - H+72 manifest deletion',
+            completed_at: trip.completed_at,
+          },
+        });
+
+        if (!auditError) {
+          result.auditLogsCreated++;
+        }
+
+        logger.info('[DataRetention] Cleaned up manifest for trip', {
+          tripCode: trip.trip_code,
+        });
+      } catch (tripError) {
+        const message = tripError instanceof Error ? tripError.message : String(tripError);
+        result.errors.push(`Trip ${trip.trip_code}: ${message}`);
+      }
+    }
+
+    logger.info('[DataRetention] Manifest cleanup completed', result);
+    return result;
+  } catch (error) {
+    logger.error('[DataRetention] Fatal error in manifest cleanup', error);
+    result.errors.push(error instanceof Error ? error.message : String(error));
+    return result;
+  }
+}
+
+/**
+ * Clean up location tracking logs after 90 days
+ */
+export async function cleanupLocationLogs(): Promise<CleanupResult> {
+  const supabase = await createClient();
+  const result: CleanupResult = {
+    ktpPhotosDeleted: 0,
+    bookingsUpdated: 0,
+    auditLogsCreated: 0,
+    errors: [],
+  };
+
+  logger.info('[DataRetention] Starting location logs cleanup');
+
+  try {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 90);
+
+    // Delete old location logs
+    const { error: deleteError, count } = await supabase
+      .from('guide_location_logs')
+      .delete()
+      .lt('created_at', cutoffDate.toISOString());
+
+    if (deleteError) {
+      logger.error('[DataRetention] Failed to delete location logs', deleteError);
+      result.errors.push(`Delete error: ${deleteError.message}`);
+      return result;
+    }
+
+    result.bookingsUpdated = count || 0;
+
+    logger.info('[DataRetention] Location logs cleanup completed', {
+      deletedCount: count,
+    });
+
+    return result;
+  } catch (error) {
+    logger.error('[DataRetention] Fatal error in location logs cleanup', error);
+    result.errors.push(error instanceof Error ? error.message : String(error));
+    return result;
+  }
+}
+
+/**
+ * Clean up passenger consent records after 1 year
+ */
+export async function cleanupPassengerConsents(): Promise<CleanupResult> {
+  const supabase = await createClient();
+  const result: CleanupResult = {
+    ktpPhotosDeleted: 0,
+    bookingsUpdated: 0,
+    auditLogsCreated: 0,
+    errors: [],
+  };
+
+  logger.info('[DataRetention] Starting passenger consent cleanup');
+
+  try {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 365); // 1 year
+
+    // Find old passenger consents
+    const { data: consents, error: fetchError } = await supabase
+      .from('passenger_consents')
+      .select('id, trip_id, created_at')
+      .lt('created_at', cutoffDate.toISOString());
+
+    if (fetchError) {
+      logger.error('[DataRetention] Failed to fetch passenger consents', fetchError);
+      result.errors.push(`Fetch error: ${fetchError.message}`);
+      return result;
+    }
+
+    if (!consents || consents.length === 0) {
+      logger.info('[DataRetention] No passenger consents to clean up');
+      return result;
+    }
+
+    logger.info('[DataRetention] Found passenger consents for cleanup', {
+      count: consents.length,
+    });
+
+    // Delete signature data (keep record for audit but remove PII)
+    for (const consent of consents) {
+      try {
+        const { error: updateError } = await supabase
+          .from('passenger_consents')
+          .update({
+            signature_data: null,
+            notes: 'Signature data removed after retention period',
+          })
+          .eq('id', consent.id);
+
+        if (!updateError) {
+          result.bookingsUpdated++;
+        }
+      } catch (consentError) {
+        const message = consentError instanceof Error ? consentError.message : String(consentError);
+        result.errors.push(`Consent ${consent.id}: ${message}`);
+      }
+    }
+
+    logger.info('[DataRetention] Passenger consent cleanup completed', result);
+    return result;
+  } catch (error) {
+    logger.error('[DataRetention] Fatal error in passenger consent cleanup', error);
     result.errors.push(error instanceof Error ? error.message : String(error));
     return result;
   }

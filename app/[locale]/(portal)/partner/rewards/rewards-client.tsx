@@ -35,7 +35,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePartnerAuth } from '@/hooks/use-partner-auth';
-import { formatCurrency } from '@/lib/partner/package-utils';
 import { logger } from '@/lib/utils/logger';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -44,7 +43,6 @@ import {
   History,
   Loader2,
   Star,
-  TrendingUp,
   Trophy,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';

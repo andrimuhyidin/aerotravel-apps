@@ -8,7 +8,6 @@
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Package as PackageIcon, MapPin, Star, TrendingUp, Users, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/partner/package-utils';

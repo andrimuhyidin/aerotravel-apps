@@ -20,7 +20,6 @@ import { PackageFAQSection } from '@/components/partner/package-faq-section';
 import { PackageQAWidget } from '@/components/partner/package-qa-widget';
 import { formatCurrency } from '@/lib/partner/package-utils';
 import { logger } from '@/lib/utils/logger';
-import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
   Calendar,
@@ -30,9 +29,7 @@ import {
   Package as PackageIcon,
   Users,
   Star,
-  TrendingUp,
   X,
-  Info,
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';

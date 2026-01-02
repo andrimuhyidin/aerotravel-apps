@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, CheckCircle2, XCircle2, ArrowRight, Users, Calendar, Package } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Users, Calendar, Package } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/utils/logger';

@@ -5,7 +5,7 @@
  * Simpan link Google Drive dokumentasi trip (bukan upload file langsung)
  */
 
-import { CheckCircle, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { CheckCircle, Link as LinkIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';

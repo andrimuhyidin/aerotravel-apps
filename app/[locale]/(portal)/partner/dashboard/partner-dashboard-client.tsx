@@ -8,7 +8,6 @@
 import {
   ListOrdered,
   Wallet,
-  BarChart3,
   TrendingUp,
   AlertCircle,
   Award,
@@ -31,7 +30,6 @@ import { toast } from 'sonner';
 import { type DashboardData } from '@/lib/partner/dashboard-service';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 type PartnerProfile = {

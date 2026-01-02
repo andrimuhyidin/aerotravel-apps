@@ -10,7 +10,6 @@ import {
   Award,
   BookOpen,
   CheckCircle2,
-  ChevronRight,
   Clock,
   GraduationCap,
   Loader2,
@@ -18,7 +17,6 @@ import {
   Plus,
   Star,
   Target,
-  User,
   Users,
   XCircle,
 } from 'lucide-react';
@@ -28,7 +26,7 @@ import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -38,7 +36,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingState } from '@/components/ui/loading-state';
 import { Progress } from '@/components/ui/progress';

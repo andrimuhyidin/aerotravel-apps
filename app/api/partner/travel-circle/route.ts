@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { sanitizeRequestBody, sanitizeSearchParams, verifyPartnerAccess } from '@/lib/api/partner-helpers';
-import { createTravelCircle, getTravelCircle } from '@/lib/partner/travel-circle';
+import { createTravelCircle } from '@/lib/partner/travel-circle';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 

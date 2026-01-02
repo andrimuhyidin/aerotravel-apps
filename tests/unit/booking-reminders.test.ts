@@ -2,7 +2,7 @@
  * Unit Tests for Booking Reminder System
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 describe('Booking Reminder System', () => {
   describe('Reminder Type Calculation', () => {

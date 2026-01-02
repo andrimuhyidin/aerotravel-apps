@@ -8,7 +8,7 @@
 
 import { Card, CardContent } from './card';
 import { cn } from '@/lib/utils';
-import { ArrowDown, ArrowUp, LucideIcon, Minus, TrendingUp, TrendingDown } from 'lucide-react';
+import { LucideIcon, Minus, TrendingUp, TrendingDown } from 'lucide-react';
 
 export type MetricCardProps = {
   title: string;

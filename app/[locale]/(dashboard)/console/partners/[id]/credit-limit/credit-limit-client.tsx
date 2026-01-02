@@ -36,7 +36,6 @@ import { formatCurrency } from '@/lib/partner/package-utils';
 import { logger } from '@/lib/utils/logger';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  AlertCircle,
   CreditCard,
   History,
   Loader2,

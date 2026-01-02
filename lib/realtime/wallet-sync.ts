@@ -5,7 +5,7 @@
 
 'use client';
 
-import { createRealtimeChannel, type RealtimeChannelWrapper } from './realtime-client';
+import { createRealtimeChannel } from './realtime-client';
 import { logger } from '@/lib/utils/logger';
 
 /**

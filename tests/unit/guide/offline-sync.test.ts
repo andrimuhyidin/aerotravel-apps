@@ -3,7 +3,7 @@
  * Tests for mutation queue, backoff, conflict resolution
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Types for mutation queue
 type MutationStatus = 'pending' | 'processing' | 'completed' | 'failed';

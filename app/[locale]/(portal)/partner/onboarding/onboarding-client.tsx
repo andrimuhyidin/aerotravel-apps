@@ -12,7 +12,6 @@ import { logger } from '@/lib/utils/logger';
 import {
   ArrowRight,
   Check,
-  CreditCard,
   Loader2,
   Package,
   Settings,
@@ -20,7 +19,6 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 
 const ONBOARDING_STEPS = [
   {

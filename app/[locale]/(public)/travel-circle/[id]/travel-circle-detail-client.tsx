@@ -17,7 +17,6 @@ import {
   MapPin,
   Settings,
   Share2,
-  UserPlus,
   Users,
   Wallet,
 } from 'lucide-react';

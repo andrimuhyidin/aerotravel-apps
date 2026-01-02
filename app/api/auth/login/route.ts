@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
+import { logFailedLogin } from '@/lib/audit/security-events';
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,11 +28,19 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       logger.warn('[AUTH API] Login error', { email, error: error.message });
+      
+      // Log failed login attempt for security monitoring
+      await logFailedLogin(email, error.message, request);
+      
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
 
     if (!data.user) {
       logger.warn('[AUTH API] No user returned', { email });
+      
+      // Log failed login attempt
+      await logFailedLogin(email, 'No user returned from auth', request);
+      
       return NextResponse.json(
         { error: 'Login gagal, coba lagi.' },
         { status: 401 }

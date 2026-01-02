@@ -5,11 +5,10 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle,
-  Award,
   CheckCircle2,
   Clock,
   FileCheck,
@@ -17,10 +16,8 @@ import {
   FileText,
   RefreshCw,
   Shield,
-  Users,
   XCircle,
 } from 'lucide-react';
-import Link from 'next/link';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';

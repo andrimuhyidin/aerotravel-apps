@@ -30,7 +30,6 @@ import { z } from 'zod';
 import confetti from 'canvas-confetti';
 
 import { useQueryClient } from '@tanstack/react-query';
-import queryKeys from '@/lib/queries/query-keys';
 import { usePartnerAuth } from '@/hooks/use-partner-auth';
 import { logger } from '@/lib/utils/logger';
 
@@ -49,7 +48,7 @@ import {
   formatCurrency,
   type QuickInfoPackage,
 } from '@/lib/partner/package-utils';
-import { getWalletBalance, type WalletBalance } from '@/lib/partner/wallet';
+import { type WalletBalance } from '@/lib/partner/wallet';
 import { cn } from '@/lib/utils';
 
 // Import step components

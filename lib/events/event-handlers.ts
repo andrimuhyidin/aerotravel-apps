@@ -11,7 +11,6 @@ import { invalidateBookingCaches, invalidatePackageCaches } from '@/lib/cache/ca
 import { logger } from '@/lib/utils/logger';
 
 import { subscribeToEvent, type AppEvent } from './event-bus';
-import type { EventType } from './event-types';
 
 /**
  * Initialize default event handlers

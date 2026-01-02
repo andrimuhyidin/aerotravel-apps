@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   TrendingUp, 
-  TrendingDown, 
   AlertTriangle, 
   Lightbulb,
   Sparkles,

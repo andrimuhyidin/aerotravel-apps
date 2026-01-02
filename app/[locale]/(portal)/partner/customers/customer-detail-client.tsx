@@ -20,7 +20,7 @@ import {
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { formatCurrency } from '@/lib/partner/package-utils';
 import { logger } from '@/lib/utils/logger';
-import { ArrowLeft, Calendar, Mail, MapPin, Phone, Trash2, User } from 'lucide-react';
+import { ArrowLeft, Calendar, Mail, MapPin, Phone, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';

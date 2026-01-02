@@ -230,10 +230,18 @@ export default async function HelpPage({ params }: PageProps) {
     { title: 'Hubungi Kami', href: `/${locale}/contact` },
   ];
 
+  // Generate speakable schema for voice search
+  const speakableSchema = generateFAQSpeakable({
+    title: 'Bantuan & FAQ - MyAeroTravel',
+    description: helpSummary,
+    locale,
+  });
+
   return (
     <>
       <JsonLd data={faqSchema} />
       <JsonLd data={contactSchema} />
+      <JsonLd data={speakableSchema} />
       <Container className="py-4">
         {/* AI Summary */}
         <div className="mb-4">

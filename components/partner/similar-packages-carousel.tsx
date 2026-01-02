@@ -9,9 +9,8 @@ import { useEffect, useState } from 'react';
 import { PackageCardEnhanced, type PackageSummary } from '@/components/partner/package-card-enhanced';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronLeft, ChevronRight, Package as PackageIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
 import { toast } from 'sonner';
 

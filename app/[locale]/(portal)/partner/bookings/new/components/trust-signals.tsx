@@ -6,7 +6,6 @@
 'use client';
 
 import { Star, TrendingUp, Users } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/partner/package-utils';
 
 type TrustSignalsProps = {

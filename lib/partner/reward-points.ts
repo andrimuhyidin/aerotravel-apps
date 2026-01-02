@@ -8,8 +8,6 @@ import { logger } from '@/lib/utils/logger';
 import type {
   RewardSourceType,
   MilestoneType,
-  calculateBookingPoints,
-  REFERRAL_POINTS,
 } from './reward-rules';
 
 export type RewardPointsBalance = {

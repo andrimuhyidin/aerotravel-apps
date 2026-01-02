@@ -5,10 +5,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Activity,
   AlertTriangle,
   ArrowRight,
   ArrowUpRight,
@@ -17,7 +16,6 @@ import {
   Calendar,
   Clock,
   DollarSign,
-  Loader2,
   MapPin,
   RefreshCw,
   Ship,
@@ -31,7 +29,6 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import queryKeys from '@/lib/queries/query-keys';

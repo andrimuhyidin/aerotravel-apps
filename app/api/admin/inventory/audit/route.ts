@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { adjustStock, getInventoryItems } from '@/lib/inventory';
+import { adjustStock } from '@/lib/inventory';
 import { createClient, hasRole } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 

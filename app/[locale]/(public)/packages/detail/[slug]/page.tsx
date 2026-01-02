@@ -30,6 +30,8 @@ import { TrustBar } from '@/components/seo/trust-signals';
 import { Button } from '@/components/ui/button';
 import { locales } from '@/i18n';
 import { getDefaultAuthor } from '@/lib/seo/authors';
+import { generateEventSchema, isSpecialEvent } from '@/lib/seo/event-schema';
+import { generatePackageSpeakable } from '@/lib/seo/speakable-schema';
 import { generatePackageSchema, generateBreadcrumbSchema } from '@/lib/seo/structured-data';
 import { createClient } from '@/lib/supabase/server';
 
@@ -187,6 +189,43 @@ export default async function PackageDetailPage({ params }: Props) {
     { name: pkg.name, url: `/packages/detail/${pkg.slug}` },
   ]);
 
+  // Check if this is a special event (holiday, KOL trip, etc.)
+  // TODO: Get actual tags from database when implemented
+  const isEvent = isSpecialEvent({
+    tags: [], // Replace with pkg.tags when available
+    isKOLTrip: false, // Replace with pkg.is_kol_trip when available
+    specialOffer: false, // Replace with pkg.special_offer when available
+  });
+
+  // Generate Event schema if applicable
+  const eventSchema = isEvent
+    ? generateEventSchema({
+        name: pkg.name,
+        description: pkg.description || `Paket wisata ${pkg.destination}`,
+        startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Placeholder: 1 week from now
+        endDate: new Date(
+          Date.now() + (7 + pkg.duration_days) * 24 * 60 * 60 * 1000
+        ).toISOString(),
+        location: `${pkg.destination}, ${pkg.province}`,
+        organizer: 'Aero Travel',
+        price: lowestPrice,
+        availability: 'InStock',
+        image: `${process.env.NEXT_PUBLIC_APP_URL}/images/packages/${pkg.slug}.jpg`,
+        url: `${process.env.NEXT_PUBLIC_APP_URL}/${locale}/packages/detail/${pkg.slug}`,
+      })
+    : null;
+
+  // Generate Speakable schema for voice search
+  const speakableSchema = generatePackageSpeakable({
+    name: pkg.name,
+    description: pkg.description || `Paket wisata ${pkg.destination}`,
+    destination: pkg.destination,
+    duration: `${pkg.duration_days} hari ${pkg.duration_nights} malam`,
+    price: lowestPrice,
+    slug: pkg.slug,
+    locale,
+  });
+
   // Generate AI Summary from description
   const aiSummary =
     pkg.description ||
@@ -221,7 +260,7 @@ export default async function PackageDetailPage({ params }: Props) {
   return (
     <>
       {/* Structured Data */}
-      <JsonLd data={[packageSchema, breadcrumbSchema]} />
+      <JsonLd data={[packageSchema, breadcrumbSchema, eventSchema, speakableSchema].filter(Boolean)} />
       
       {/* Journey Tracking */}
       <ViewPackageTracker

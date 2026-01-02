@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { PageHeader, StatusBadge, Timeline } from '@/components/partner';
+import { PageHeader, StatusBadge } from '@/components/partner';
 import { logger } from '@/lib/utils/logger';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Send, User, Headphones } from 'lucide-react';

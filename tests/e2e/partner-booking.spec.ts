@@ -8,7 +8,7 @@
  * - Passenger details display
  */
 
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test.describe('Partner Booking & Order Management', () => {
   test.beforeEach(async ({ page }) => {

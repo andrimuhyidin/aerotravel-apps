@@ -11,7 +11,6 @@ import { useRouter } from 'next/navigation';
 import {
   Calendar,
   CheckCircle2,
-  Clock,
   Gift,
   MoreHorizontal,
   Plus,
@@ -22,12 +21,12 @@ import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,7 +36,6 @@ import {
 import { PageHeader } from '@/components/partner';
 import { apiClient } from '@/lib/api/client';
 import queryKeys from '@/lib/queries/query-keys';
-import { cn } from '@/lib/utils';
 
 type VoucherStatus = 'active' | 'redeemed' | 'expired';
 

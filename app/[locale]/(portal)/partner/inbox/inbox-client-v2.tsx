@@ -31,17 +31,14 @@ import { logger } from '@/lib/utils/logger';
 import {
   Inbox,
   Loader2,
-  Mail,
   MessageSquare,
   Plus,
   RefreshCw,
   Reply,
   Send,
   Filter,
-  X,
   ArrowLeft,
   Clock,
-  AlertCircle,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';

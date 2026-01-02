@@ -14,7 +14,6 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { logger } from '@/lib/utils/logger';
-import { cn } from '@/lib/utils';
 
 type PartnerHeaderProps = {
   user?: {

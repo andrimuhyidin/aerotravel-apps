@@ -10,7 +10,6 @@ import { logger } from '@/lib/utils/logger';
 
 import type {
   AppType,
-  CreateNotificationInput,
   NotificationType,
 } from './notification-types';
 

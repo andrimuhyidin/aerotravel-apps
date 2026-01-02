@@ -8,10 +8,7 @@
 import { useState, useEffect } from 'react';
 import {
   Bell,
-  BellOff,
-  Check,
   Cloud,
-  CloudOff,
   Download,
   HardDrive,
   RefreshCw,
@@ -23,7 +20,7 @@ import {
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';

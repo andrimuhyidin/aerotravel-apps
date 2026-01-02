@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronUp, ChevronDown, TrendingUp, Wallet, CreditCard } from 'lucide-react';
 import { formatCurrency } from '@/lib/partner/package-utils';
-import { cn } from '@/lib/utils';
 
 type PricingSummaryStickyProps = {
   ntaTotal: number;

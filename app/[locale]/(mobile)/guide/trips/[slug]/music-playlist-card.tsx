@@ -11,7 +11,6 @@ import {
   Headphones,
   Loader2,
   Music,
-  Pause,
   Play,
   RefreshCw,
   Sparkles,

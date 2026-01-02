@@ -7,10 +7,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { verifyPartnerAccess, sanitizeSearchParams } from '@/lib/api/partner-helpers';
+import { verifyPartnerAccess } from '@/lib/api/partner-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
-import { exportToExcel } from '@/lib/excel/export';
 
 const runReportSchema = z.object({
   dataSource: z.enum(['bookings', 'customers', 'packages', 'finance']),

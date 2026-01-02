@@ -20,7 +20,6 @@ import {
   Calendar,
   DollarSign,
   Package,
-  AlertCircle,
   Info,
   X,
 } from 'lucide-react';

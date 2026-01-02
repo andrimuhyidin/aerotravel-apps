@@ -6,7 +6,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
-import { calculateDaysUntilExpiry, getLicenseTypeDisplayName, type LicenseType } from './license-checker';
+import { calculateDaysUntilExpiry, type LicenseType } from './license-checker';
 
 export type AlertType = 
   | 'expiry_30d'

@@ -10,7 +10,6 @@ import { useQuery } from '@tanstack/react-query';
 import {
   ArrowUpRight,
   BarChart3,
-  Calendar,
   ChevronRight,
   DollarSign,
   Gift,
@@ -23,7 +22,6 @@ import {
   RefreshCw,
   Share2,
   Target,
-  TrendingUp,
   Users,
 } from 'lucide-react';
 import Link from 'next/link';

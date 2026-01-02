@@ -5,20 +5,18 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle,
   Bell,
   CheckCircle2,
   Clock,
-  ExternalLink,
   MapPin,
   Phone,
   RefreshCw,
   Shield,
   ShieldAlert,
-  User,
   Users,
 } from 'lucide-react';
 import Link from 'next/link';

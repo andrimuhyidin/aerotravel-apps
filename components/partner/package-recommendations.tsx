@@ -9,12 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/partner/package-utils';
 import { logger } from '@/lib/utils/logger';
-import { cn } from '@/lib/utils';
-import { MapPin, Package, Star } from 'lucide-react';
+import { MapPin, Package } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 
 type RecommendedPackage = {
   id: string;

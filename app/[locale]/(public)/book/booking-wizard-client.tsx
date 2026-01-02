@@ -18,7 +18,6 @@ import {
   MapPin,
   Users,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -32,7 +31,6 @@ import { Form } from '@/components/ui/form';
 import {
   trackFunnelStep,
   FUNNEL_STEPS,
-  trackBookingComplete,
 } from '@/lib/analytics/journey-tracker';
 import { trackCheckoutProgress, trackAddPaymentInfo } from '@/lib/analytics/analytics';
 import { cn } from '@/lib/utils';

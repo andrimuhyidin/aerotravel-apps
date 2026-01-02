@@ -3,7 +3,7 @@
  * Tests for check-in/check-out with GPS and penalty calculation
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // Types
 type CheckInPayload = {

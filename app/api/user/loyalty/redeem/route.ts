@@ -12,7 +12,6 @@ import { z } from 'zod';
 import { withErrorHandler } from '@/lib/api/error-handler';
 import {
   canRedeemPoints,
-  getPointsValue,
   redeemPoints,
 } from '@/lib/customers/aeropoints';
 import { createClient } from '@/lib/supabase/server';

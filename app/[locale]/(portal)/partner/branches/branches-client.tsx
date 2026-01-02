@@ -16,7 +16,6 @@ import {
   ChevronRight,
   MapPin,
   MoreHorizontal,
-  Phone,
   Plus,
   Trash2,
   Users,

@@ -11,13 +11,11 @@ import {
   BarChart3,
   Building2,
   Download,
-  Loader2,
   RefreshCw,
   TrendingDown,
   TrendingUp,
   Users,
 } from 'lucide-react';
-import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import {
   Bar,

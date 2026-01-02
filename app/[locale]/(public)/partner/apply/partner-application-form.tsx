@@ -179,7 +179,7 @@ export function PartnerApplicationForm({
 
     try {
       let siupDocumentUrl: string | null = null;
-      let legalDocuments: string[] = [];
+      const legalDocuments: string[] = [];
 
       // Upload SIUP document if provided
       if (data.siupDocument && data.siupDocument instanceof File) {

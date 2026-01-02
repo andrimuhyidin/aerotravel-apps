@@ -77,7 +77,7 @@ export async function getUnifiedAnalytics(
     const endDate = dateRange?.end || new Date().toISOString();
 
     // Get bookings
-    let bookingsQuery = supabase
+    const bookingsQuery = supabase
       .from('bookings')
       .select('id, source, status, total_amount, created_at, customer_id, package_id')
       .gte('created_at', startDate)

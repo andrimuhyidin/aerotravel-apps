@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
 import { PackageForm } from '@/components/admin/package-form';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const metadata: Metadata = {
   title: 'Create Package | Admin Console',

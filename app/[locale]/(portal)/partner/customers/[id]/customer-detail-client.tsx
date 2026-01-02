@@ -8,8 +8,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PageHeader, InfoCard, StatusBadge, Timeline } from '@/components/partner';
+import { PageHeader, InfoCard, StatusBadge } from '@/components/partner';
 import { formatCurrency } from '@/lib/partner/package-utils';
 import { logger } from '@/lib/utils/logger';
 import { ArrowLeft, Mail, Phone, MapPin, Calendar, DollarSign, Edit } from 'lucide-react';

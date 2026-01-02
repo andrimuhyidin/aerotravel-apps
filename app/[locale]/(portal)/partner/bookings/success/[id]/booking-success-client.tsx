@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   CheckCircle2,
-  Download,
   Share2,
   MessageCircle,
   ArrowRight,

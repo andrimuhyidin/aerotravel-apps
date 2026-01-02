@@ -11,7 +11,6 @@ import {
   createNotification,
   getNotifications,
   getUnreadCount,
-  markAllNotificationsAsRead,
 } from '@/lib/notifications/unified-notifications';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';

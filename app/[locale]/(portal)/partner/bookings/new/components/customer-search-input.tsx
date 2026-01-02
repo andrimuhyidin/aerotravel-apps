@@ -7,7 +7,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Search, Clock, Star, Loader2 } from 'lucide-react';
 import { useCustomerSearch, type CustomerSearchResult } from '@/hooks/use-customer-search';
 import { Badge } from '@/components/ui/badge';

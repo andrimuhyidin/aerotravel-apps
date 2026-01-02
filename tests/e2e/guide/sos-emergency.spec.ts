@@ -8,7 +8,6 @@ import {
   navigateToGuidePage, 
   waitForLoadingComplete,
   mockGeolocation,
-  waitForToast,
   waitForApiResponse,
 } from '../../helpers/guide-helpers';
 

@@ -3,8 +3,8 @@
  * Receives custom analytics events from the dispatcher
  */
 
-import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/utils/logger';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
@@ -21,7 +21,7 @@ type EventPayload = {
 export async function POST(request: NextRequest) {
   try {
     const text = await request.text();
-    
+
     if (!text) {
       return new NextResponse(null, { status: 204 });
     }
@@ -48,9 +48,8 @@ export async function POST(request: NextRequest) {
     logger.warn('Failed to process analytics event', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     // Always return 204 for beacons to avoid client errors
     return new NextResponse(null, { status: 204 });
   }
 }
-

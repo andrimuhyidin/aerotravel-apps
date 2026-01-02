@@ -3,7 +3,7 @@
  * Tests for SOS endpoint with mocked external services
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock external services
 vi.mock('@/lib/integrations/whatsapp', () => ({

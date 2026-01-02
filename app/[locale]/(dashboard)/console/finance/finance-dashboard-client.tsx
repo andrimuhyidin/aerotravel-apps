@@ -8,12 +8,9 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   BarChart3,
   Calendar,
   DollarSign,
-  Loader2,
   RefreshCw,
   TrendingDown,
   TrendingUp,

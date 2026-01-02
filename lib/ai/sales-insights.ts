@@ -6,7 +6,6 @@
 
 import { chat } from '@/lib/gemini';
 import { logger } from '@/lib/utils/logger';
-import { createClient } from '@/lib/supabase/server';
 
 export type SalesData = {
   period: {

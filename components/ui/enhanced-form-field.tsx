@@ -34,7 +34,6 @@ import {
   FormMessage,
   type FieldPath,
   type FieldValues,
-  type UseFormReturn,
 } from './form';
 
 type EnhancedFormItemProps<TFieldValues extends FieldValues = FieldValues> = {

@@ -11,7 +11,6 @@ import { id as localeId } from 'date-fns/locale';
 import {
   Bell,
   Calendar,
-  Check,
   CheckCheck,
   Gift,
   Inbox,

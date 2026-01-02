@@ -14,20 +14,16 @@ import {
   FileText,
   Loader2,
   RotateCcw,
-  Send,
   Sparkles,
   Wand2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { id as idLocale } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/finance/shadow-pnl';
 import { logger } from '@/lib/utils/logger';

@@ -132,7 +132,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const ratingsMap = await fetchPackageRatingsBatch(client, packageIds);
     const availabilityMap = await getPackageAvailabilityBatch(client, packageIds, 30);
 
-    let popularityMap: Record<string, {
+    const popularityMap: Record<string, {
       booking_count: number;
       total_revenue: number;
       popularity_score: number;

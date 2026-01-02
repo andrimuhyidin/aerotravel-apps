@@ -9,28 +9,23 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle,
-  ArrowDown,
-  ArrowUp,
   ChevronRight,
   Crown,
   DollarSign,
   Star,
-  TrendingDown,
   TrendingUp,
-  User,
   Users,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/partner';
 import { apiClient } from '@/lib/api/client';
 import queryKeys from '@/lib/queries/query-keys';

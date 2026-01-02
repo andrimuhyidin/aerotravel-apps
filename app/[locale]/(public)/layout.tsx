@@ -16,6 +16,7 @@ import { JsonLd } from '@/components/seo/json-ld';
 import {
   generateOrganizationSchema,
   generateWebsiteSchema,
+  generateWebApplicationSchema,
 } from '@/lib/seo/structured-data';
 import { getCurrentUser } from '@/lib/supabase/server';
 
@@ -50,6 +51,7 @@ export default async function PublicLayout({
       {/* Global SEO Structured Data */}
       <JsonLd data={generateOrganizationSchema()} />
       <JsonLd data={generateWebsiteSchema()} />
+      <JsonLd data={generateWebApplicationSchema()} />
 
       <div className="min-h-screen bg-gray-200">
         {/* Skip Link for Accessibility */}

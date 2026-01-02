@@ -5,7 +5,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
@@ -18,7 +17,7 @@ import {
   PenTool,
   XCircle,
 } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';

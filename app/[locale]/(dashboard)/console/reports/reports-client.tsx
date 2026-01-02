@@ -9,13 +9,11 @@ import { useState } from 'react';
 import {
   BarChart3,
   Calendar,
-  Download,
   FileSpreadsheet,
   FileText,
   Filter,
   Loader2,
   PieChart,
-  RefreshCw,
   TrendingUp,
   Users,
 } from 'lucide-react';
@@ -32,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 type ReportCategory = 'finance' | 'operations' | 'marketing' | 'hr';

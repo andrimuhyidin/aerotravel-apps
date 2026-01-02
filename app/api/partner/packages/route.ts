@@ -163,7 +163,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
     // Fetch popularity stats for all packages
     const packageIds = (packages || []).map((p: any) => p.id);
-    let popularityMap: Record<string, {
+    const popularityMap: Record<string, {
       booking_count: number;
       total_revenue: number;
       popularity_score: number;
@@ -240,7 +240,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     }
 
     // Transform data to include margin calculation and popularity
-    let transformedPackages = (packages || []).map((pkg: any) => {
+    const transformedPackages = (packages || []).map((pkg: any) => {
       const prices = pkg.prices || [];
       
       // Get base pricing tier (typically min_pax = 1)

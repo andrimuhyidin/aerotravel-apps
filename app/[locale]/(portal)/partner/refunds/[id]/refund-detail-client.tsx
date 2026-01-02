@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -21,7 +20,6 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
-  Download,
   FileText,
   Loader2,
   XCircle,

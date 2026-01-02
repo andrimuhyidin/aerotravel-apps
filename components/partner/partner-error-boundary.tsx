@@ -8,7 +8,6 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { logger } from '@/lib/utils/logger';
