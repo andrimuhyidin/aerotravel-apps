@@ -1,7 +1,12 @@
 /**
  * Destinations Data
- * Comprehensive destination information
+ * Comprehensive destination information from database
  */
+
+import 'server-only';
+
+import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
 
 export type Destination = {
   id: string;
@@ -37,32 +42,196 @@ export type Destination = {
   }>;
 };
 
+type DestinationRow = {
+  id: string;
+  slug: string;
+  name: string;
+  province: string | null;
+  description: string | null;
+  long_description: string | null;
+  featured_image: string | null;
+  gallery: string[] | null;
+  highlights: string[] | null;
+  best_time: string | null;
+  weather_info: {
+    drySeasonStart?: string;
+    drySeasonEnd?: string;
+    wetSeasonStart?: string;
+    wetSeasonEnd?: string;
+    avgTemperature?: string;
+  } | null;
+  coordinates: {
+    lat: number;
+    lng: number;
+  } | null;
+  attractions: Array<{
+    name: string;
+    description: string;
+    type: 'snorkeling' | 'diving' | 'beach' | 'island' | 'activity';
+  }> | null;
+  tips: string[] | null;
+  faqs: Array<{
+    question: string;
+    answer: string;
+  }> | null;
+};
+
 /**
  * Get all destinations
+ * Public access - shows destinations from all branches
  */
-export async function getAllDestinations(): Promise<Destination[]> {
-  // TODO: Replace with database query
-  return getDestinationsData();
+export async function getAllDestinations(
+  branchId?: string | null
+): Promise<Destination[]> {
+  try {
+    const supabase = await createClient();
+
+    let query = supabase
+      .from('destinations')
+      .select('*')
+      .is('deleted_at', null)
+      .order('name', { ascending: true });
+
+    // Optional branch filter (for admin)
+    if (branchId) {
+      query = query.eq('branch_id', branchId);
+    }
+
+    const { data, error } = await query;
+
+    if (error || !data) {
+      logger.error('Failed to fetch destinations', error);
+      // Fallback to sample data
+      return getDestinationsData();
+    }
+
+    return data.map(transformDestinationRow);
+  } catch (error) {
+    logger.error('Error fetching destinations', error);
+    // Fallback to sample data
+    return getDestinationsData();
+  }
 }
 
 /**
  * Get destination by slug
+ * Public access - can read from any branch
  */
-export async function getDestinationBySlug(slug: string): Promise<Destination | null> {
-  const destinations = await getAllDestinations();
-  return destinations.find((d) => d.slug === slug) || null;
+export async function getDestinationBySlug(
+  slug: string,
+  branchId?: string | null
+): Promise<Destination | null> {
+  try {
+    const supabase = await createClient();
+
+    let query = supabase
+      .from('destinations')
+      .select('*')
+      .eq('slug', slug)
+      .is('deleted_at', null)
+      .single();
+
+    // Optional branch filter (for admin)
+    if (branchId) {
+      query = query.eq('branch_id', branchId);
+    }
+
+    const { data, error } = await query;
+
+    if (error || !data) {
+      logger.warn('Destination not found in database', { slug, error });
+      // Fallback to sample data
+      return getDestinationsData().find((d) => d.slug === slug) || null;
+    }
+
+    return transformDestinationRow(data as DestinationRow);
+  } catch (error) {
+    logger.error('Error fetching destination by slug', error);
+    // Fallback to sample data
+    return getDestinationsData().find((d) => d.slug === slug) || null;
+  }
 }
 
 /**
  * Get destinations by province
  */
-export async function getDestinationsByProvince(province: string): Promise<Destination[]> {
-  const destinations = await getAllDestinations();
-  return destinations.filter((d) => d.province === province);
+export async function getDestinationsByProvince(
+  province: string,
+  branchId?: string | null
+): Promise<Destination[]> {
+  try {
+    const supabase = await createClient();
+
+    let query = supabase
+      .from('destinations')
+      .select('*')
+      .eq('province', province)
+      .is('deleted_at', null)
+      .order('name', { ascending: true });
+
+    // Optional branch filter
+    if (branchId) {
+      query = query.eq('branch_id', branchId);
+    }
+
+    const { data, error } = await query;
+
+    if (error || !data) {
+      logger.error('Failed to fetch destinations by province', error);
+      // Fallback
+      return getAllDestinations(branchId).then((dests) =>
+        dests.filter((d) => d.province === province)
+      );
+    }
+
+    return data.map(transformDestinationRow);
+  } catch (error) {
+    logger.error('Error fetching destinations by province', error);
+    // Fallback
+    return getAllDestinations(branchId).then((dests) =>
+      dests.filter((d) => d.province === province)
+    );
+  }
 }
 
 /**
- * Sample destinations data
+ * Transform database row to Destination type
+ */
+function transformDestinationRow(row: DestinationRow): Destination {
+  const weatherInfo = row.weather_info || {};
+  const coordinates = row.coordinates || { lat: 0, lng: 0 };
+
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    province: row.province || '',
+    description: row.description || '',
+    longDescription: row.long_description || row.description || '',
+    featuredImage: row.featured_image || '/images/destinations/default.jpg',
+    gallery: row.gallery || [],
+    highlights: row.highlights || [],
+    bestTime: row.best_time || '',
+    weatherInfo: {
+      drySeasonStart: weatherInfo.drySeasonStart || '',
+      drySeasonEnd: weatherInfo.drySeasonEnd || '',
+      wetSeasonStart: weatherInfo.wetSeasonStart || '',
+      wetSeasonEnd: weatherInfo.wetSeasonEnd || '',
+      avgTemperature: weatherInfo.avgTemperature || '',
+    },
+    coordinates: {
+      lat: coordinates.lat || 0,
+      lng: coordinates.lng || 0,
+    },
+    attractions: row.attractions || [],
+    tips: row.tips || [],
+    faqs: row.faqs || [],
+  };
+}
+
+/**
+ * Sample destinations data (fallback)
+ * Used when database is unavailable or as seed data
  */
 function getDestinationsData(): Destination[] {
   return [

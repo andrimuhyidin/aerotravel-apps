@@ -1,17 +1,17 @@
 /**
  * Destination Detail Page
  * Displays comprehensive information about a destination
- * 
+ *
  * Route: /[locale]/destinations/[slug]
  */
 
 import {
-    ChevronLeft,
-    Cloud,
-    HelpCircle,
-    Lightbulb,
-    MapPin,
-    Star,
+  ChevronLeft,
+  Cloud,
+  HelpCircle,
+  Lightbulb,
+  MapPin,
+  Star,
 } from 'lucide-react';
 import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
@@ -42,7 +42,9 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale, slug: 'placeholder' }));
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
@@ -99,9 +101,7 @@ export default async function DestinationDetailPage({ params }: PageProps) {
   ]);
 
   const faqSchema =
-    destination.faqs.length > 0
-      ? generateFAQSchema(destination.faqs)
-      : null;
+    destination.faqs.length > 0 ? generateFAQSchema(destination.faqs) : null;
 
   const placeSchema = {
     '@context': 'https://schema.org',
@@ -132,7 +132,12 @@ export default async function DestinationDetailPage({ params }: PageProps) {
   return (
     <>
       <JsonLd
-        data={[breadcrumbSchema, placeSchema, faqSchema, speakableSchema].filter((item): item is NonNullable<typeof item> => item !== null)}
+        data={[
+          breadcrumbSchema,
+          placeSchema,
+          faqSchema,
+          speakableSchema,
+        ].filter((item): item is NonNullable<typeof item> => item !== null)}
       />
 
       <Section>
@@ -152,15 +157,20 @@ export default async function DestinationDetailPage({ params }: PageProps) {
           {/* AI Summary */}
           <div className="mt-8">
             <AISummary
-              summary={destination.longDescription.trim().split('\n\n')[0] || destination.description}
+              summary={
+                destination.longDescription.trim().split('\n\n')[0] ||
+                destination.description
+              }
               bulletPoints={destination.highlights || []}
             />
           </div>
 
           {/* About */}
           <div className="mt-8">
-            <h2 className="mb-4 text-2xl font-bold">Tentang {destination.name}</h2>
-            <div className="prose prose-slate max-w-none dark:prose-invert">
+            <h2 className="mb-4 text-2xl font-bold">
+              Tentang {destination.name}
+            </h2>
+            <div className="prose prose-slate dark:prose-invert max-w-none">
               {destination.longDescription.split('\n\n').map((para, idx) => (
                 <p key={idx} className="mb-4 text-muted-foreground">
                   {para.trim()}
@@ -269,10 +279,7 @@ export default async function DestinationDetailPage({ params }: PageProps) {
             <h2 className="mb-6 text-2xl font-bold">
               Paket Trip ke {destination.name}
             </h2>
-            <PackagesGrid
-              destinationName={destination.name}
-              locale={locale}
-            />
+            <PackagesGrid destinationName={destination.name} locale={locale} />
           </div>
 
           {/* FAQs */}
@@ -326,4 +333,3 @@ export default async function DestinationDetailPage({ params }: PageProps) {
     </>
   );
 }
-

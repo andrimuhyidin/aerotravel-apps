@@ -13,6 +13,7 @@ import { notFound } from 'next/navigation';
 
 import { ArticleCard } from '@/components/blog/article-card';
 import { ArticleContent } from '@/components/blog/article-content';
+import { ArticleViewTracker } from '@/components/blog/article-view-tracker';
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
 import { AuthorByline } from '@/components/seo/author-bio';
@@ -123,6 +124,7 @@ export default async function BlogArticlePage({ params }: PageProps) {
   return (
     <>
       <JsonLd data={[articleSchema, authorSchema, breadcrumbSchema, speakableSchema]} />
+      <ArticleViewTracker articleId={article.id} />
 
       <Section>
         <Container className="max-w-4xl">
