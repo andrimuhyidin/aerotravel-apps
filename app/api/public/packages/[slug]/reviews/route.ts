@@ -26,7 +26,7 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteP
   // Get package ID from slug
   const { data: pkg } = await supabase
     .from('packages')
-    .select('id, average_rating, review_count')
+    .select('id')
     .eq('slug', slug)
     .eq('status', 'published')
     .single();

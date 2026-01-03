@@ -193,12 +193,12 @@ export function GuestHomepage({ locale, featuredPackages }: GuestHomepageProps) 
         <div className="flex justify-between rounded-2xl bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm ring-1 ring-slate-100 dark:from-slate-800 dark:to-slate-800 dark:ring-slate-700">
           <div className="text-center">
             <p className="text-xl font-bold text-foreground">500+</p>
-            <p className="text-[10px] text-muted-foreground">Trip Selesai</p>
+            <p className="text-xs text-muted-foreground">Trip Selesai</p>
           </div>
           <div className="h-auto w-px bg-border" />
           <div className="text-center">
             <p className="text-xl font-bold text-foreground">10K+</p>
-            <p className="text-[10px] text-muted-foreground">Happy Travelers</p>
+            <p className="text-xs text-muted-foreground">Happy Travelers</p>
           </div>
           <div className="h-auto w-px bg-border" />
           <div className="text-center">
@@ -206,7 +206,7 @@ export function GuestHomepage({ locale, featuredPackages }: GuestHomepageProps) 
               {avgRating > 0 ? avgRating.toFixed(1) : '-'}
               <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
             </p>
-            <p className="text-[10px] text-muted-foreground">Rating</p>
+            <p className="text-xs text-muted-foreground">Rating</p>
           </div>
         </div>
       </section>
@@ -237,14 +237,14 @@ export function GuestHomepage({ locale, featuredPackages }: GuestHomepageProps) 
               href={`/${locale}/packages/detail/${dest.slug}`}
               className="group w-44 shrink-0 active:scale-95"
             >
-              <div className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-slate-100 dark:bg-slate-800 dark:ring-slate-700">
+              <div className="overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-slate-100 dark:bg-slate-800 dark:ring-slate-700">
                 {/* Image/Emoji with gradient */}
                 <div
                   className={`relative flex h-32 items-center justify-center bg-gradient-to-br ${dest.gradient}`}
                 >
                   <span className="text-5xl drop-shadow-lg">{dest.emoji}</span>
                   {/* Tag */}
-                  <div className="absolute right-2 top-2 rounded-full bg-white/95 px-2 py-1 text-[9px] font-bold text-primary backdrop-blur-sm">
+                  <div className="absolute right-2 top-2 rounded-full bg-white/95 px-2 py-1 text-xs font-bold text-primary backdrop-blur-sm">
                     {dest.tag}
                   </div>
                 </div>
@@ -254,14 +254,14 @@ export function GuestHomepage({ locale, featuredPackages }: GuestHomepageProps) 
                   <p className="mb-0.5 text-sm font-bold text-foreground">
                     {dest.name}
                   </p>
-                  <div className="mb-2 flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <div className="mb-2 flex items-center gap-1 text-xs text-muted-foreground">
                     <MapPin className="h-3 w-3" />
                     {dest.location}
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Mulai dari
                       </p>
                       <p className="text-sm font-bold text-primary">
@@ -279,7 +279,7 @@ export function GuestHomepage({ locale, featuredPackages }: GuestHomepageProps) 
                           {dest.rating.toFixed(1)}
                         </span>
                       </div>
-                      <p className="text-[9px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {dest.reviews} ulasan
                       </p>
                     </div>
@@ -382,7 +382,7 @@ export function GuestHomepage({ locale, featuredPackages }: GuestHomepageProps) 
                       <p className="text-xs font-semibold text-foreground">
                         {testimonial.name}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {testimonial.trip}
                       </p>
                     </div>
@@ -432,16 +432,16 @@ export function GuestHomepage({ locale, featuredPackages }: GuestHomepageProps) 
                         <p className="text-sm font-semibold text-foreground">
                           {program.title}
                         </p>
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
                           {program.badge}
                         </span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {program.description}
                       </p>
                     </div>
                   </div>
-                  <p className="pt-1 text-[11px] font-semibold text-primary">
+                  <p className="pt-1 text-xs font-semibold text-primary">
                     Pelajari program →
                   </p>
                 </div>

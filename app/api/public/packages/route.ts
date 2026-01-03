@@ -34,8 +34,6 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       duration_nights,
       min_pax,
       max_pax,
-      average_rating,
-      review_count,
       inclusions,
       exclusions,
       created_at,
@@ -63,11 +61,36 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     );
   }
 
+  if (!packages || packages.length === 0) {
+    return NextResponse.json({ packages: [], total: 0 });
+  }
+
+  // Get rating stats for all packages
+  const packageIds = packages.map(p => p.id);
+  const { data: ratingStats } = await supabase
+    .from('package_rating_stats' as any)
+    .select('package_id, average_rating, total_reviews')
+    .in('package_id', packageIds);
+
+  // Create rating map
+  const ratingMap = new Map<string, { rating: number; reviews: number }>();
+  if (ratingStats && Array.isArray(ratingStats)) {
+    (ratingStats as unknown as Array<{ package_id: string; average_rating: number | null; total_reviews: number | null }>).forEach(rs => {
+      if (rs && rs.package_id) {
+        ratingMap.set(rs.package_id, {
+          rating: rs.average_rating || 0,
+          reviews: rs.total_reviews || 0,
+        });
+      }
+    });
+  }
+
   // Transform data
   const transformedPackages = (packages || []).map((pkg) => {
     const prices = pkg.package_prices || [];
     const lowestPrice = prices[0];
     const adultPrice = lowestPrice?.price_publish || 0;
+    const stats = ratingMap.get(pkg.id) || { rating: 0, reviews: 0 };
 
     return {
       id: pkg.id,
@@ -83,8 +106,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       },
       minPax: pkg.min_pax,
       maxPax: pkg.max_pax,
-      rating: pkg.average_rating || 0,
-      reviewCount: pkg.review_count || 0,
+      rating: stats.rating,
+      reviewCount: stats.reviews,
       price: adultPrice,
       inclusions: pkg.inclusions || [],
       exclusions: pkg.exclusions || [],

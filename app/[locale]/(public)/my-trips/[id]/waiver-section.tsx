@@ -127,15 +127,15 @@ export function WaiverSection({ tripId, tripDate, tripStatus }: WaiverSectionPro
   // Already signed
   if (waiverStatus?.isSigned) {
     return (
-      <Card className="border-green-200 bg-green-50/50">
+      <Card className="border-success/20 bg-success/5">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
+              <CheckCircle2 className="h-5 w-5 text-success" />
             </div>
             <div>
-              <h3 className="font-medium text-green-800">Waiver Telah Ditandatangani</h3>
-              <p className="text-sm text-green-600">
+              <h3 className="font-medium text-success">Waiver Telah Ditandatangani</h3>
+              <p className="text-sm text-success/80">
                 Ditandatangani pada{' '}
                 {waiverStatus.signedAt
                   ? format(new Date(waiverStatus.signedAt), 'd MMMM yyyy, HH:mm', {
@@ -153,15 +153,15 @@ export function WaiverSection({ tripId, tripDate, tripStatus }: WaiverSectionPro
   // Past trip without signed waiver
   if (isPastTrip) {
     return (
-      <Card className="border-amber-200 bg-amber-50/50">
+      <Card className="border-warning/20 bg-warning/5">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
+            <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-warning" />
             </div>
             <div>
-              <h3 className="font-medium text-amber-800">Waiver Tidak Ditandatangani</h3>
-              <p className="text-sm text-amber-600">
+              <h3 className="font-medium text-warning">Waiver Tidak Ditandatangani</h3>
+              <p className="text-sm text-warning/80">
                 Periode penandatanganan waiver telah berakhir
               </p>
             </div>

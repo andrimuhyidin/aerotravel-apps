@@ -159,7 +159,7 @@ export function StepPaymentPublic({
                   {packageData?.destination}
                 </span>
               </div>
-              <Badge variant="secondary" className="text-[10px] mt-1">
+              <Badge variant="secondary" className="text-xs mt-1">
                 {packageData?.duration.label}
               </Badge>
             </div>

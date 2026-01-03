@@ -153,6 +153,7 @@ export default async function HomePage({ params }: PageProps) {
   const { createClient } = await import('@/lib/supabase/server');
   const supabase = await createClient();
   
+  // Get packages with their prices and rating stats
   const { data: featuredPackages } = await supabase
     .from('packages')
     .select(`
@@ -160,45 +161,96 @@ export default async function HomePage({ params }: PageProps) {
       slug,
       name,
       destination,
-      province,
-      average_rating,
-      review_count,
-      package_prices (
-        price_publish
-      )
+      province
     `)
     .eq('status', 'published')
-    .order('review_count', { ascending: false })
-    .limit(3);
+    .limit(10);
 
-  const formattedPackages = (featuredPackages || []).map((pkg, idx) => {
-    const prices = pkg.package_prices as { price_publish: number }[] | null;
-    const lowestPrice = prices?.[0]?.price_publish || 0;
-    const gradients = [
-      'from-blue-500 to-cyan-500',
-      'from-teal-500 to-emerald-500',
-      'from-purple-500 to-pink-500',
-    ];
-    const tags = ['Populer', 'Best Seller', 'Premium'];
-    const emojis: Record<string, string> = {
-      'Pulau Pahawang': '🏝️',
-      'Teluk Kiluan': '🐬',
-      'Labuan Bajo': '🦎',
-      'Raja Ampat': '🪸',
+  if (!featuredPackages || featuredPackages.length === 0) {
+    return <GuestHomepage locale={locale} featuredPackages={[]} />;
+  }
+
+  // Get package prices for featured packages
+  const packageIds = featuredPackages.map(p => p.id);
+  const { data: packagePrices } = await supabase
+    .from('package_prices')
+    .select('package_id, price_publish')
+    .in('package_id', packageIds)
+    .eq('is_active', true)
+    .order('price_publish', { ascending: true });
+
+  // Get rating stats from materialized view
+  // Note: package_rating_stats is a materialized view, not in generated types
+  type RatingStatsRow = {
+    package_id: string;
+    average_rating: number | null;
+    total_reviews: number | null;
+  };
+  const { data: ratingStats } = await (supabase as unknown as {
+    from: (table: string) => {
+      select: (columns: string) => {
+        in: (column: string, values: string[]) => Promise<{ data: RatingStatsRow[] | null }>;
+      };
     };
-    
-    return {
-      name: pkg.name,
-      location: pkg.province || 'Indonesia',
-      price: lowestPrice,
-      rating: pkg.average_rating || 0,
-      reviews: pkg.review_count || 0,
-      emoji: emojis[pkg.destination] || '🌊',
-      tag: tags[idx] || 'Populer',
-      gradient: gradients[idx] || 'from-blue-500 to-cyan-500',
-      slug: pkg.slug,
-    };
+  })
+    .from('package_rating_stats')
+    .select('package_id, average_rating, total_reviews')
+    .in('package_id', packageIds);
+
+  // Create maps for quick lookup
+  const pricesMap = new Map<string, number>();
+  (packagePrices || []).forEach(pp => {
+    const current = pricesMap.get(pp.package_id);
+    if (!current || pp.price_publish < current) {
+      pricesMap.set(pp.package_id, pp.price_publish);
+    }
   });
+
+  const ratingMap = new Map<string, { rating: number; reviews: number }>();
+  if (ratingStats && Array.isArray(ratingStats)) {
+    ratingStats.forEach(rs => {
+      if (rs && rs.package_id) {
+        ratingMap.set(rs.package_id, {
+          rating: rs.average_rating || 0,
+          reviews: rs.total_reviews || 0,
+        });
+      }
+    });
+  }
+
+  // Format packages with prices and ratings
+  const formattedPackages = featuredPackages
+    .map((pkg, idx) => {
+      const lowestPrice = pricesMap.get(pkg.id) || 0;
+      const stats = ratingMap.get(pkg.id) || { rating: 0, reviews: 0 };
+      const gradients = [
+        'from-blue-500 to-cyan-500',
+        'from-teal-500 to-emerald-500',
+        'from-purple-500 to-pink-500',
+      ];
+      const tags = ['Populer', 'Best Seller', 'Premium'];
+      const emojis: Record<string, string> = {
+        'Pulau Pahawang': '🏝️',
+        'Teluk Kiluan': '🐬',
+        'Labuan Bajo': '🦎',
+        'Raja Ampat': '🪸',
+      };
+      
+      return {
+        name: pkg.name,
+        location: pkg.province || 'Indonesia',
+        price: lowestPrice,
+        rating: stats.rating,
+        reviews: stats.reviews,
+        emoji: emojis[pkg.destination] || '🌊',
+        tag: tags[idx] || 'Populer',
+        gradient: gradients[idx] || 'from-blue-500 to-cyan-500',
+        slug: pkg.slug,
+      };
+    })
+    .filter(pkg => pkg.price > 0) // Only show packages with prices
+    .sort((a, b) => b.reviews - a.reviews) // Sort by review count
+    .slice(0, 3); // Take top 3
 
   return <GuestHomepage locale={locale} featuredPackages={formattedPackages} />;
 }

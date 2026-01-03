@@ -82,13 +82,13 @@ export function MyTripsClient({ locale }: MyTripsClientProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'paid':
-        return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Lunas</Badge>;
+        return <Badge className="bg-success/10 text-success hover:bg-success/10">Lunas</Badge>;
       case 'confirmed':
-        return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Terkonfirmasi</Badge>;
+        return <Badge className="bg-info/10 text-info hover:bg-info/10">Terkonfirmasi</Badge>;
       case 'pending':
         return <Badge variant="secondary">Menunggu Pembayaran</Badge>;
       case 'completed':
-        return <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">Selesai</Badge>;
+        return <Badge className="bg-primary/10 text-primary hover:bg-primary/10">Selesai</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Dibatalkan</Badge>;
       default:
@@ -122,7 +122,7 @@ export function MyTripsClient({ locale }: MyTripsClientProps) {
               </div>
 
               <div className="flex items-center gap-2 mt-2">
-                <Badge variant="outline" className="text-[10px]">
+                <Badge variant="outline" className="text-xs">
                   {trip.package?.duration || '-'}
                 </Badge>
                 {getStatusBadge(trip.status)}

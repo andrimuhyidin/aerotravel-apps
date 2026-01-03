@@ -7,7 +7,7 @@ import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
 import { getAllArticles } from '@/lib/blog/articles';
-import { getAllDestinations, getDestinationBySlug } from '@/lib/destinations/data';
+import { getAllDestinations } from '@/lib/destinations/data';
 import { logger } from '@/lib/utils/logger';
 
 type LinkSuggestion = {

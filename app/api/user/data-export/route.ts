@@ -44,10 +44,17 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
  * Create new data export request
  */
 export const POST = withErrorHandler(async (request: NextRequest) => {
+  // #region agent log
+  await fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'data-export/route.ts:46',message:'POST /api/user/data-export started',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // #region agent log
+  await fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'data-export/route.ts:52',message:'User auth check',data:{hasUser:!!user,userId:user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

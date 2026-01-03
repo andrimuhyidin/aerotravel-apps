@@ -15,7 +15,9 @@ export function CookieConsentBanner() {
   useEffect(() => {
     // Check if user has already given consent
     const consent = hasConsent();
-    setShowBanner(!consent);
+    // Force show banner if no consent (or in dev mode, check URL param)
+    const shouldShow = !consent || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('showCookieBanner') === 'true');
+    setShowBanner(shouldShow);
   }, []);
 
   if (!showBanner) {
@@ -23,13 +25,21 @@ export function CookieConsentBanner() {
   }
 
   const handleAccept = () => {
-    acceptAllCookies();
-    setShowBanner(false);
+    try {
+      acceptAllCookies();
+      setShowBanner(false);
+    } catch (error) {
+      // Silently handle error
+    }
   };
 
   const handleDecline = () => {
-    rejectAllCookies();
-    setShowBanner(false);
+    try {
+      rejectAllCookies();
+      setShowBanner(false);
+    } catch (error) {
+      // Silently handle error
+    }
   };
 
   return (
@@ -48,6 +58,14 @@ export function CookieConsentBanner() {
         padding: '1rem',
         alignItems: 'center',
         boxShadow: '0 -4px 6px -1px rgb(0 0 0 / 0.1)',
+        zIndex: 60, // Above bottom navigation (z-50) and chat widget (z-40)
+        position: 'fixed',
+        bottom: 0,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '100%',
+        maxWidth: '448px', // Match mobile wrapper max-w-md
+        marginBottom: '0', // Ensure it's at the bottom
       }}
       buttonStyle={{
         background: 'hsl(var(--primary))',

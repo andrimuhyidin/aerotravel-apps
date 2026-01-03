@@ -53,7 +53,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .eq('slug', slug)
     .single();
 
-  const pkg = kolTrip?.packages as { name: string; destination: string } | null;
+  // Type assertion for package relation
+  type PackageRelation = { name: string; destination: string } | null;
+  const pkg = (kolTrip?.packages as PackageRelation) || null;
   const title = kolTrip
     ? `Trip Bareng ${kolTrip.kol_name} ke ${pkg?.destination || 'destinasi seru'} - Aero Travel`
     : 'KOL Trip - Aero Travel';
@@ -85,7 +87,7 @@ export default async function KolTripDetailPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <Section spacing="none">
+      <Section className="py-0">
         <Container className="px-0 sm:px-4">
           <KolTripDetailClient locale={locale} slug={slug} />
         </Container>

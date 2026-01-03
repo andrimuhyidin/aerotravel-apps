@@ -33,8 +33,8 @@ const DynamicMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-64 items-center justify-center rounded-lg bg-slate-100">
-        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+      <div className="flex h-64 items-center justify-center rounded-lg bg-muted">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     ),
   }
@@ -194,7 +194,7 @@ export function LiveTrackingSection({ tripId, tripDate }: LiveTrackingSectionPro
       <Card className="border-0 shadow-sm">
         <CardContent className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <span className="ml-2 text-slate-500">Memuat live tracking...</span>
+          <span className="ml-2 text-muted-foreground">Memuat live tracking...</span>
         </CardContent>
       </Card>
     );
@@ -202,8 +202,8 @@ export function LiveTrackingSection({ tripId, tripDate }: LiveTrackingSectionPro
 
   if (error) {
     return (
-      <Card className="border-0 bg-red-50 shadow-sm">
-        <CardContent className="flex items-center gap-3 p-4 text-sm text-red-700">
+      <Card className="border-0 bg-destructive/5 shadow-sm">
+        <CardContent className="flex items-center gap-3 p-4 text-sm text-destructive">
           <AlertCircle className="h-4 w-4" />
           {error}
         </CardContent>
@@ -287,29 +287,29 @@ export function LiveTrackingSection({ tripId, tripDate }: LiveTrackingSectionPro
         <div className="grid gap-3 sm:grid-cols-2">
           {/* ETA Card */}
           {tracking.eta && (
-            <div className="flex items-center gap-3 rounded-lg bg-blue-50 p-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-                <Clock className="h-5 w-5 text-blue-600" />
+            <div className="flex items-center gap-3 rounded-lg bg-info/10 p-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-info/20">
+                <Clock className="h-5 w-5 text-info" />
               </div>
               <div>
-                <p className="text-xs text-blue-600">Estimasi Tiba</p>
-                <p className="font-semibold text-blue-700">
+                <p className="text-xs text-info">Estimasi Tiba</p>
+                <p className="font-semibold text-info">
                   {tracking.eta.minutes} menit
                 </p>
-                <p className="text-xs text-blue-500">{tracking.eta.distance} km</p>
+                <p className="text-xs text-info/80">{tracking.eta.distance} km</p>
               </div>
             </div>
           )}
 
           {/* Guide Info Card */}
           {tracking.guideInfo && (
-            <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200">
-                <MapPin className="h-5 w-5 text-slate-600" />
+            <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                <MapPin className="h-5 w-5 text-muted-foreground" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-slate-500">Guide</p>
-                <p className="font-medium text-slate-700">{tracking.guideInfo.name}</p>
+                <p className="text-xs text-muted-foreground">Guide</p>
+                <p className="font-medium text-foreground">{tracking.guideInfo.name}</p>
                 {tracking.guideInfo.phone && (
                   <a
                     href={`tel:${tracking.guideInfo.phone}`}
@@ -327,7 +327,7 @@ export function LiveTrackingSection({ tripId, tripDate }: LiveTrackingSectionPro
         {/* Meeting Points */}
         {tracking.meetingPoints.length > 0 && (
           <div className="space-y-2">
-            <p className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+            <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
               <Route className="h-4 w-4" />
               Titik Kumpul
             </p>
@@ -335,13 +335,13 @@ export function LiveTrackingSection({ tripId, tripDate }: LiveTrackingSectionPro
               {tracking.meetingPoints.map((mp, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between rounded-lg bg-amber-50 p-2 text-sm"
+                  className="flex items-center justify-between rounded-lg bg-warning/10 p-2 text-sm"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-200 text-xs font-medium text-amber-700">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-warning/20 text-xs font-medium text-warning">
                       {idx + 1}
                     </span>
-                    <span className="text-slate-700">{mp.name}</span>
+                    <span className="text-foreground">{mp.name}</span>
                   </div>
                   <Badge variant="outline" className="text-xs">
                     {mp.time}
@@ -354,7 +354,7 @@ export function LiveTrackingSection({ tripId, tripDate }: LiveTrackingSectionPro
 
         {/* Last Update */}
         {tracking.guideLocation && (
-          <p className="text-center text-xs text-slate-400">
+          <p className="text-center text-xs text-muted-foreground">
             Terakhir diperbarui:{' '}
             {format(new Date(tracking.guideLocation.lastUpdate), 'HH:mm:ss', {
               locale: localeId,
@@ -364,12 +364,12 @@ export function LiveTrackingSection({ tripId, tripDate }: LiveTrackingSectionPro
 
         {/* No tracking available message */}
         {!tracking.isLiveTrackingAvailable && (
-          <div className="rounded-lg bg-slate-50 p-4 text-center">
-            <MapPin className="mx-auto h-8 w-8 text-slate-300" />
-            <p className="mt-2 text-sm text-slate-500">
+          <div className="rounded-lg bg-muted/50 p-4 text-center">
+            <MapPin className="mx-auto h-8 w-8 text-muted-foreground/50" />
+            <p className="mt-2 text-sm text-muted-foreground">
               Guide belum memulai perjalanan
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground/70">
               Live tracking akan aktif saat guide mulai bergerak
             </p>
           </div>

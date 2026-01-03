@@ -11,7 +11,7 @@
 import { ScrollDepthTracker } from '@/components/analytics/scroll-depth-tracker';
 import { AppHeader } from '@/components/layout/app-header';
 import { BottomNavigation } from '@/components/layout/bottom-navigation';
-import { AerobotWidget } from '@/components/public/aerobot-widget';
+import { CookieConsentBanner } from '@/components/gdpr/cookie-consent';
 import { JsonLd } from '@/components/seo/json-ld';
 import {
   generateOrganizationSchema,
@@ -53,7 +53,7 @@ export default async function PublicLayout({
       <JsonLd data={generateWebsiteSchema()} />
       <JsonLd data={generateWebApplicationSchema()} />
 
-      <div className="min-h-screen bg-gray-200">
+      <div className="min-h-screen bg-muted/30">
         {/* Skip Link for Accessibility */}
         <a
           href="#main-content"
@@ -90,11 +90,6 @@ export default async function PublicLayout({
           {children}
         </main>
 
-        {/* AeroBot Widget - AI Chat Assistant */}
-        <aside role="complementary" aria-label="AI Chat Assistant">
-          <AerobotWidget />
-        </aside>
-
         {/* Scroll Depth Tracker - Analytics */}
         <ScrollDepthTracker />
 
@@ -110,6 +105,9 @@ export default async function PublicLayout({
             </div>
           </nav>
         )}
+
+        {/* Cookie Consent Banner - Inside mobile wrapper */}
+        <CookieConsentBanner />
       </div>
     </div>
     </>

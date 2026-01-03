@@ -1,6 +1,5 @@
 import { ErrorBoundary } from '@/components/error-boundary';
 import { WebVitalsTracker } from '@/components/analytics/web-vitals-tracker';
-import { CookieConsentBanner } from '@/components/gdpr/cookie-consent';
 import { ClarityScript } from '@/lib/analytics/clarity-script';
 import { PostHogProvider } from '@/lib/analytics/posthog';
 import { env } from '@/lib/env';
@@ -84,12 +83,14 @@ export default function RootLayout({
         <JsonLd data={generateOrganizationSchema()} />
       </head>
       <body>
+        {/* #region agent log */}
+        {typeof window !== 'undefined' && fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'layout.tsx:86',message:'RootLayout body render',data:{hasChildren:!!children},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{})}
+        {/* #endregion */}
         <ErrorBoundary>
           <QueryProvider>
             <PostHogProvider>
               {children}
               <WebVitalsTracker />
-              <CookieConsentBanner />
             </PostHogProvider>
           </QueryProvider>
         </ErrorBoundary>

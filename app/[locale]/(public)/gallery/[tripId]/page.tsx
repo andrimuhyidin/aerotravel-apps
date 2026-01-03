@@ -65,7 +65,20 @@ export default async function GalleryPage({ params }: Props) {
     .single();
 
   // Get photos
-  const { data: photos } = await supabase
+  // Note: trip_photos is not in generated types
+  type TripPhotoRow = {
+    id: string;
+    photo_url: string;
+    caption: string | null;
+    created_at: string;
+  };
+  const { data: photos } = await (supabase as unknown as {
+    from: (table: string) => {
+      select: (columns: string) => {
+        eq: (column: string, value: string) => Promise<{ data: TripPhotoRow[] | null }>;
+      };
+    };
+  })
     .from('trip_photos')
     .select('id, photo_url, caption, created_at')
     .eq('trip_id', tripId)
@@ -74,7 +87,7 @@ export default async function GalleryPage({ params }: Props) {
   // Generate ImageGallery schema
   const gallerySchema = photos && photos.length > 0
     ? generateImageGallerySchema(
-        photos.map((photo) => ({
+        (photos as Array<{ photo_url?: string; caption?: string; created_at?: string }>).map((photo) => ({
           url: photo.photo_url || `${baseUrl}/images/placeholder.jpg`,
           caption: photo.caption || undefined,
           alt: photo.caption || `Trip photo`,

@@ -60,8 +60,8 @@ const bookingSchema = z.object({
   bookerEmail: z.string().email('Email tidak valid'),
   // Passengers
   adultPax: z.number().min(1, 'Minimal 1 orang dewasa'),
-  childPax: z.number().min(0).default(0),
-  infantPax: z.number().min(0).default(0),
+  childPax: z.number().min(0),
+  infantPax: z.number().min(0),
   passengers: z.array(z.object({
     name: z.string().min(2, 'Nama minimal 2 karakter'),
     type: z.enum(['adult', 'child', 'infant']),
@@ -345,7 +345,7 @@ export function BookingWizardClient() {
                 </div>
                 <span
                   className={cn(
-                    'mt-1.5 text-[10px] font-medium',
+                    'mt-1.5 text-xs font-medium',
                     currentStep >= step.id
                       ? 'text-primary'
                       : 'text-muted-foreground'
@@ -370,7 +370,7 @@ export function BookingWizardClient() {
       {/* Step Content */}
       <div className="flex-1 px-4 pb-4">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)}>
+          <form onSubmit={form.handleSubmit(handleSubmit as (data: BookingFormData) => Promise<void>)}>
             {/* Step 1: Package Selection */}
             {currentStep === 1 && (
               <div className="animate-in slide-in-from-right duration-300">

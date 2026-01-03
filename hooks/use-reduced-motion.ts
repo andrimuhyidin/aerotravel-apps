@@ -11,11 +11,18 @@ export function useReducedMotion(): boolean {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'use-reduced-motion.ts:13',message:'useReducedMotion useEffect started',data:{windowAvailable:typeof window!=='undefined'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     // Check if user prefers reduced motion
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     
     // Set initial value
-    setPrefersReducedMotion(mediaQuery.matches);
+    const initialValue = mediaQuery.matches;
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'use-reduced-motion.ts:19',message:'Media query initial value',data:{matches:initialValue,hasAddListener:!!mediaQuery.addEventListener,hasAddListenerLegacy:!!mediaQuery.addListener},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    setPrefersReducedMotion(initialValue);
 
     // Listen for changes
     const handleChange = (event: MediaQueryListEvent) => {

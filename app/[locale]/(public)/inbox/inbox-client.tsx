@@ -17,11 +17,13 @@ import {
   Loader2,
   MapPin,
   MessageCircle,
+  Sparkles,
   Tag,
 } from 'lucide-react';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
+import { AerobotWidget } from '@/components/public/aerobot-widget';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
 import { toast } from 'sonner';
@@ -46,6 +48,7 @@ const TAB_FILTERS = [
   { key: 'all', label: 'Semua' },
   { key: 'promo', label: 'Promo' },
   { key: 'trip', label: 'Trip' },
+  { key: 'aerobot', label: 'AeroBot', icon: Sparkles },
 ];
 
 function getNotificationIcon(type: string) {
@@ -66,22 +69,23 @@ function getNotificationIcon(type: string) {
 function getNotificationIconBg(type: string) {
   switch (type) {
     case 'promo':
-      return 'bg-orange-500';
+      return 'bg-warning';
     case 'trip':
-      return 'bg-blue-500';
+      return 'bg-info';
     case 'booking':
-      return 'bg-green-500';
+      return 'bg-success';
     case 'reward':
-      return 'bg-purple-500';
+      return 'bg-primary';
     default:
-      return 'bg-slate-500';
+      return 'bg-muted';
   }
 }
 
 export function InboxClient({ locale, isLoggedIn }: InboxClientProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all');
+  // Default to 'aerobot' for non-logged-in users, 'all' for logged-in users
+  const [activeTab, setActiveTab] = useState(isLoggedIn ? 'all' : 'aerobot');
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchNotifications = useCallback(async () => {
@@ -146,21 +150,73 @@ export function InboxClient({ locale, isLoggedIn }: InboxClientProps) {
     }
   };
 
-  if (!isLoggedIn) {
-    return (
-      <div className="flex flex-col pb-4">
-        {/* Header */}
-        <div className="px-4 pb-4 pt-5">
+  // Handle tab click for non-logged-in users
+  const handleTabClick = (tabKey: string) => {
+    // Always allow tab switching, but show login prompt for non-logged-in users on non-AeroBot tabs
+    setActiveTab(tabKey);
+  };
+
+  return (
+    <div className="flex flex-col pb-4">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pb-2 pt-5">
+        <div>
           <h1 className="text-xl font-bold">Inbox</h1>
           <p className="text-sm text-muted-foreground">
-            Pesan dan notifikasi Anda
+            {activeTab === 'aerobot'
+              ? 'Chat dengan AeroBot'
+              : !isLoggedIn
+                ? 'Login untuk melihat notifikasi'
+                : unreadCount > 0
+                  ? `${unreadCount} belum dibaca`
+                  : 'Semua sudah dibaca'}
           </p>
         </div>
+        {isLoggedIn && unreadCount > 0 && activeTab !== 'aerobot' && (
+          <Button variant="ghost" size="sm" onClick={handleMarkAllRead}>
+            <CheckCheck className="mr-1 h-4 w-4" />
+            Baca Semua
+          </Button>
+        )}
+      </div>
 
-        {/* Login Required */}
+      {/* Tabs - Show all tabs for everyone */}
+      <div className="mb-4 flex gap-2 px-4">
+        {TAB_FILTERS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          const requiresLogin = !isLoggedIn && tab.key !== 'aerobot';
+          
+          return (
+            <button
+              key={tab.key}
+              onClick={() => handleTabClick(tab.key)}
+              className={cn(
+                'flex items-center justify-center gap-1.5 flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-colors',
+                isActive
+                  ? 'bg-primary text-white'
+                  : requiresLogin
+                    ? 'bg-muted text-muted-foreground/70'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              )}
+            >
+              {Icon && <Icon className="h-4 w-4" />}
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Content based on active tab */}
+      {activeTab === 'aerobot' ? (
         <div className="px-4">
-          <div className="flex flex-col items-center rounded-2xl bg-white p-8 text-center dark:bg-slate-800">
-            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-700">
+          <AerobotWidget embedded />
+        </div>
+      ) : !isLoggedIn ? (
+        // Show login prompt for non-logged-in users trying to access notifications
+        <div className="px-4">
+          <div className="flex flex-col items-center rounded-2xl bg-white p-8 text-center dark:bg-background">
+            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted dark:bg-muted">
               <Inbox className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="mb-1 text-sm font-semibold">Login untuk Melihat</h3>
@@ -175,54 +231,16 @@ export function InboxClient({ locale, isLoggedIn }: InboxClientProps) {
             </Link>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col pb-4">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pb-2 pt-5">
-        <div>
-          <h1 className="text-xl font-bold">Inbox</h1>
-          <p className="text-sm text-muted-foreground">
-            {unreadCount > 0 ? `${unreadCount} belum dibaca` : 'Semua sudah dibaca'}
-          </p>
-        </div>
-        {unreadCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={handleMarkAllRead}>
-            <CheckCheck className="mr-1 h-4 w-4" />
-            Baca Semua
-          </Button>
-        )}
-      </div>
-
-      {/* Tabs */}
-      <div className="mb-4 flex gap-2 px-4">
-        {TAB_FILTERS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              'flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-colors',
-              activeTab === tab.key
-                ? 'bg-primary text-white'
-                : 'bg-slate-100 text-muted-foreground dark:bg-slate-800'
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Notifications List */}
-      <div className="px-4">
+      ) : (
+        <>
+          {/* Notifications List */}
+          <div className="px-4">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-800">
+          <div className="rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-white p-8 text-center dark:border-muted-foreground/20 dark:bg-background">
             <MessageCircle className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Belum ada notifikasi</p>
           </div>
@@ -239,6 +257,8 @@ export function InboxClient({ locale, isLoggedIn }: InboxClientProps) {
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }
@@ -261,7 +281,7 @@ function NotificationCard({
   const content = (
     <div
       className={cn(
-        'flex gap-3 rounded-2xl bg-white p-4 shadow-sm transition-colors dark:bg-slate-800',
+        'flex gap-3 rounded-2xl bg-white p-4 shadow-sm transition-colors dark:bg-background',
         !notification.isRead && 'border-l-4 border-primary bg-primary/5'
       )}
       onClick={handleClick}
@@ -284,7 +304,7 @@ function NotificationCard({
         <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
           {notification.message}
         </p>
-        <p className="mt-1 text-[10px] text-muted-foreground">
+        <p className="mt-1 text-xs text-muted-foreground">
           {formatDistanceToNow(new Date(notification.createdAt), {
             addSuffix: true,
             locale: localeId,

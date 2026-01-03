@@ -201,15 +201,15 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'booking':
-        return { icon: Calendar, color: 'bg-blue-100 text-blue-600' };
+        return { icon: Calendar, color: 'bg-info/10 text-info' };
       case 'points':
-        return { icon: Wallet, color: 'bg-amber-100 text-amber-600' };
+        return { icon: Wallet, color: 'bg-warning/10 text-warning' };
       case 'review':
-        return { icon: Star, color: 'bg-purple-100 text-purple-600' };
+        return { icon: Star, color: 'bg-primary/10 text-primary' };
       case 'referral':
-        return { icon: Users, color: 'bg-green-100 text-green-600' };
+        return { icon: Users, color: 'bg-success/10 text-success' };
       default:
-        return { icon: Bell, color: 'bg-slate-100 text-slate-600' };
+        return { icon: Bell, color: 'bg-muted text-muted-foreground' };
     }
   };
 
@@ -234,7 +234,7 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
 
       {/* Super Apps Services - 2 Rows Max */}
       <section className="px-4 py-5">
-        <div className="rounded-3xl bg-white p-4 shadow-lg dark:bg-slate-800">
+        <div className="rounded-2xl bg-white p-4 shadow-lg dark:bg-slate-800">
           <h2 className="mb-3 text-sm font-bold text-foreground">Layanan Kami</h2>
           <div className="grid grid-cols-4 gap-4">
             {visibleServices.map((service) => (
@@ -246,26 +246,27 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
                 <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br shadow-md ${service.gradient}`}>
                   <service.icon className="h-6 w-6 text-white" />
                 </div>
-                <span className="text-center text-[10px] font-medium leading-tight text-foreground">{service.label}</span>
+                <span className="text-center text-xs font-medium leading-tight text-foreground">{service.label}</span>
               </Link>
             ))}
             {/* Lainnya Button */}
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setShowAllServices(true)}
-              className="flex flex-col items-center gap-1.5 active:scale-95"
+              className="flex h-auto flex-col items-center gap-1.5 p-0 active:scale-95"
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 shadow-md dark:bg-slate-700">
-                <Grid3X3 className="h-6 w-6 text-slate-600 dark:text-slate-300" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted shadow-md">
+                <Grid3X3 className="h-6 w-6 text-muted-foreground" />
               </div>
-              <span className="text-center text-[10px] font-medium leading-tight text-foreground">Lainnya</span>
-            </button>
+              <span className="text-center text-xs font-medium leading-tight">Lainnya</span>
+            </Button>
           </div>
         </div>
       </section>
 
       {/* All Services Bottom Sheet */}
       <Sheet open={showAllServices} onOpenChange={setShowAllServices}>
-        <SheetContent side="bottom" className="rounded-t-3xl pb-10">
+        <SheetContent side="bottom" className="rounded-t-2xl pb-10">
           <SheetHeader className="mb-4">
             <SheetTitle>Semua Layanan</SheetTitle>
           </SheetHeader>
@@ -282,7 +283,7 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
                 >
                   <service.icon className="h-6 w-6 text-white" />
                 </div>
-                <span className="text-center text-[10px] font-medium leading-tight text-foreground">
+                <span className="text-center text-xs font-medium leading-tight text-foreground">
                   {service.label}
                 </span>
               </Link>
@@ -294,7 +295,7 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
       {/* Points & Rewards Banner */}
       <section className="px-4 pb-4">
         <Link href={`/${locale}/loyalty`}>
-          <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 p-4 text-white active:scale-[0.98]">
+          <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-warning to-warning/80 p-4 text-white active:scale-[0.98]">
             <div className="flex items-center gap-3">
               <Wallet className="h-6 w-6" />
               <div>
@@ -318,7 +319,7 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
             <div className="rounded-xl bg-white p-3 text-center shadow-sm dark:bg-slate-800 relative overflow-hidden">
               <div className="relative z-10">
                 <p className="text-lg font-bold text-primary">{stats.upcomingTrips}</p>
-                <p className="text-[10px] text-muted-foreground">Trip Mendatang</p>
+                <p className="text-xs text-muted-foreground">Trip Mendatang</p>
               </div>
               {stats.upcomingTrips > 0 && (
                 <div className="absolute -right-2 -top-2 h-8 w-8 rounded-full bg-primary/10" />
@@ -327,17 +328,17 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
             <div className="rounded-xl bg-white p-3 text-center shadow-sm dark:bg-slate-800 relative overflow-hidden">
               <div className="relative z-10">
                 <div className="flex items-center justify-center gap-1">
-                  <p className="text-lg font-bold text-green-600">{stats.completedTrips}</p>
+                  <p className="text-lg font-bold text-success">{stats.completedTrips}</p>
                   {stats.completedTrips >= 3 && (
-                    <TrendingUp className="h-3 w-3 text-green-500" />
+                    <TrendingUp className="h-3 w-3 text-success" />
                   )}
                 </div>
-                <p className="text-[10px] text-muted-foreground">Trip Selesai</p>
+                <p className="text-xs text-muted-foreground">Trip Selesai</p>
               </div>
             </div>
             <div className="rounded-xl bg-white p-3 text-center shadow-sm dark:bg-slate-800">
-              <p className="text-lg font-bold text-amber-600">{stats.aeroPoints.toLocaleString('id-ID')}</p>
-              <p className="text-[10px] text-muted-foreground">AeroPoints</p>
+              <p className="text-lg font-bold text-warning">{stats.aeroPoints.toLocaleString('id-ID')}</p>
+              <p className="text-xs text-muted-foreground">AeroPoints</p>
             </div>
           </div>
         </section>
@@ -369,7 +370,7 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
               Booking trip pertamamu sekarang!
             </p>
             <Link href={`/${locale}/book`}>
-              <Button size="sm" className="h-10 gap-1 rounded-xl">
+              <Button size="sm" className="h-10 gap-1 rounded-lg">
                 <Calendar className="h-4 w-4" />
                 Booking Sekarang
               </Button>
@@ -382,7 +383,7 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
                 <Card className="overflow-hidden hover:shadow-md transition-shadow active:scale-[0.99]">
                   <CardContent className="p-3">
                     <div className="flex gap-3">
-                      <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center shrink-0">
+                      <div className="h-16 w-16 shrink-0 flex items-center justify-center rounded-lg bg-gradient-to-br from-primary/10 to-primary/20">
                         <span className="text-2xl">🏝️</span>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -392,7 +393,7 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
                           </h3>
                           <Badge
                             variant={trip.status === 'paid' ? 'default' : 'secondary'}
-                            className="text-[10px] shrink-0"
+                            className="text-xs shrink-0"
                           >
                             {trip.status === 'paid' ? 'Lunas' : 
                              trip.status === 'confirmed' ? 'Terkonfirmasi' : 
@@ -483,7 +484,7 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
                       <p className="text-sm font-medium truncate">{activity.title}</p>
                       <p className="text-xs text-muted-foreground truncate">{activity.description}</p>
                     </div>
-                    <span className="text-[10px] text-muted-foreground shrink-0">
+                    <span className="text-xs text-muted-foreground shrink-0">
                       {formatDistanceToNow(new Date(activity.timestamp), { locale: localeId, addSuffix: true })}
                     </span>
                   </div>
@@ -523,7 +524,7 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
             {promos.map((promo) => (
               <Link key={promo.id} href={`/${locale}/packages`} className="w-full shrink-0 pr-3">
                 <div className={`rounded-2xl bg-gradient-to-r ${promo.gradient} p-4 text-white`}>
-                  <div className="mb-2 inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-bold">
+                  <div className="mb-2 inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
                     <Sparkles className="h-2.5 w-2.5" />
                     {promo.badge}
                   </div>
@@ -574,7 +575,7 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
                 className="shrink-0 w-40"
               >
                 <div className="overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-slate-800 h-full">
-                  <div className="h-24 bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
+                  <div className="h-24 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20">
                     {pkg.thumbnailUrl ? (
                       <img
                         src={pkg.thumbnailUrl}
@@ -589,7 +590,7 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
                     <p className="text-xs font-semibold text-foreground line-clamp-1">
                       {pkg.name}
                     </p>
-                    <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                       <MapPin className="h-2.5 w-2.5" />
                       {pkg.destination}
                     </p>
@@ -598,8 +599,8 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
                         Rp {(pkg.price / 1000).toFixed(0)}K
                       </p>
                       <div className="flex items-center gap-0.5">
-                        <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                        <span className="text-[9px] font-semibold text-muted-foreground">
+                        <Star className="h-2.5 w-2.5 fill-warning text-warning" />
+                        <span className="text-xs font-semibold text-muted-foreground">
                           {pkg.rating.toFixed(1)}
                         </span>
                       </div>
@@ -665,8 +666,8 @@ export function CustomerDashboard({ locale, userName }: CustomerDashboardProps) 
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-bold text-primary">{formatPrice(pkg.price)}</p>
                         <div className="flex items-center gap-0.5">
-                          <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                          <span className="text-[9px] font-semibold text-muted-foreground">
+                          <Star className="h-2.5 w-2.5 fill-warning text-warning" />
+                          <span className="text-xs font-semibold text-muted-foreground">
                             {pkg.rating.toFixed(1)}
                           </span>
                         </div>

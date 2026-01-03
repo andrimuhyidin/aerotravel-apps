@@ -62,23 +62,28 @@ async function getBookingData(id: string): Promise<Booking | null> {
     return null;
   }
 
-  const pkg = booking.packages as { id: string; name: string } | null;
+  // Type assertion for booking with package relation
+  type BookingWithPackage = typeof booking & {
+    packages: { id: string; name: string } | null;
+  };
+  const bookingData = booking as BookingWithPackage;
+  const pkg = bookingData.packages || null;
 
   return {
-    id: booking.id,
-    bookingCode: booking.booking_code,
+    id: bookingData.id,
+    bookingCode: bookingData.booking_code,
     packageName: pkg?.name || 'Unknown Package',
-    tripDate: booking.trip_date,
-    adultPax: booking.adult_pax || 0,
-    childPax: booking.child_pax || 0,
-    subtotal: booking.subtotal || 0,
-    discount: booking.discount_amount || 0,
-    tax: booking.tax_amount || 0,
-    serviceFee: booking.service_fee || 0,
-    totalAmount: booking.total_amount || 0,
-    status: booking.status,
-    paymentStatus: booking.payment_status || 'pending',
-    createdAt: booking.created_at,
+    tripDate: bookingData.trip_date,
+    adultPax: bookingData.adult_pax || 0,
+    childPax: bookingData.child_pax || 0,
+    subtotal: bookingData.subtotal || 0,
+    discount: bookingData.discount_amount || 0,
+    tax: bookingData.tax_amount || 0,
+    serviceFee: bookingData.service_fee || 0,
+    totalAmount: bookingData.total_amount || 0,
+    status: bookingData.status,
+    paymentStatus: bookingData.payment_status || 'pending',
+    createdAt: bookingData.created_at,
   };
 }
 

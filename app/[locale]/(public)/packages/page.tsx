@@ -75,7 +75,10 @@ export async function generateMetadata({
   };
 }
 
-export default async function PackagesPage({ params, searchParams }: PageProps) {
+export default async function PackagesPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { locale } = await params;
   const { q: searchQuery, category } = await searchParams;
   setRequestLocale(locale);
@@ -92,9 +95,6 @@ export default async function PackagesPage({ params, searchParams }: PageProps) 
     province: string;
     duration_days: number;
     duration_nights: number;
-    average_rating: number | null;
-    review_count: number | null;
-    package_prices: { price_publish: number }[];
   };
 
   // Build query with filters
@@ -108,19 +108,16 @@ export default async function PackagesPage({ params, searchParams }: PageProps) 
       destination,
       province,
       duration_days,
-      duration_nights,
-      average_rating,
-      review_count,
-      package_prices (
-        price_publish
-      )
+      duration_nights
     `
     )
     .eq('status', 'published');
 
   // Apply search filter
   if (searchQuery) {
-    query = query.or(`name.ilike.%${searchQuery}%,destination.ilike.%${searchQuery}%,province.ilike.%${searchQuery}%`);
+    query = query.or(
+      `name.ilike.%${searchQuery}%,destination.ilike.%${searchQuery}%,province.ilike.%${searchQuery}%`
+    );
   }
 
   // Apply category filter
@@ -137,25 +134,109 @@ export default async function PackagesPage({ params, searchParams }: PageProps) 
     }
   }
 
-  const { data } = await query.order('created_at', { ascending: false });
+  const { data: dbPackages, error: queryError } = await query.order(
+    'created_at',
+    { ascending: false }
+  );
 
-  const dbPackages = data as PackageRow[] | null;
+  if (queryError) {
+    const { logger } = await import('@/lib/utils/logger');
+    logger.error('Failed to fetch packages', queryError);
+  }
 
-  const packages = (dbPackages || []).map((pkg) => {
-    const prices = pkg.package_prices;
-    const lowestPrice = prices?.[0]?.price_publish || 0;
+  if (!dbPackages || dbPackages.length === 0) {
+    return (
+      <>
+        <JsonLd
+          data={{
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            name: 'Paket Wisata Aero Travel',
+            numberOfItems: 0,
+            itemListElement: [],
+          }}
+        />
+        <BrowsePackagesTracker />
+        <Section className="bg-slate-50 dark:bg-slate-950">
+          <Container className="p-0">
+            <div className="flex min-h-screen flex-col">
+              <div className="px-4 py-12 text-center">
+                <p className="text-lg text-muted-foreground">
+                  Tidak ada paket yang ditemukan
+                </p>
+              </div>
+            </div>
+          </Container>
+        </Section>
+      </>
+    );
+  }
+
+  // Get package prices for all packages
+  const packageIds = dbPackages.map((p) => p.id);
+  const { data: packagePrices } = await supabase
+    .from('package_prices')
+    .select('package_id, price_publish')
+    .in('package_id', packageIds)
+    .eq('is_active', true)
+    .order('price_publish', { ascending: true });
+
+  // Get rating stats from materialized view
+  // Note: package_rating_stats is a materialized view, not in generated types
+  // Using type assertion to access materialized view
+  type RatingStatsRow = {
+    package_id: string;
+    average_rating: number | null;
+    total_reviews: number | null;
+  };
+  const { data: ratingStats } = await (supabase as unknown as {
+    from: (table: string) => {
+      select: (columns: string) => {
+        in: (column: string, values: string[]) => Promise<{ data: RatingStatsRow[] | null }>;
+      };
+    };
+  })
+    .from('package_rating_stats')
+    .select('package_id, average_rating, total_reviews')
+    .in('package_id', packageIds);
+
+  // Create maps for quick lookup
+  const pricesMap = new Map<string, number>();
+  (packagePrices || []).forEach((pp) => {
+    const current = pricesMap.get(pp.package_id);
+    if (!current || pp.price_publish < current) {
+      pricesMap.set(pp.package_id, pp.price_publish);
+    }
+  });
+
+  const ratingMap = new Map<string, { rating: number; reviews: number }>();
+  if (ratingStats && Array.isArray(ratingStats)) {
+    ratingStats.forEach((rs) => {
+      if (rs && rs.package_id) {
+        ratingMap.set(rs.package_id, {
+          rating: rs.average_rating || 0,
+          reviews: rs.total_reviews || 0,
+        });
+      }
+    });
+  }
+
+  const packages = (dbPackages as PackageRow[]).map((pkg) => {
+    const lowestPrice = pricesMap.get(pkg.id) || 0;
+    const stats = ratingMap.get(pkg.id) || { rating: 0, reviews: 0 };
+
     return {
       id: pkg.id,
       slug: pkg.slug,
       name: pkg.name,
       location: pkg.province || 'Indonesia',
       price: lowestPrice,
-      rating: pkg.average_rating || 0,
-      reviews: pkg.review_count || 0,
+      rating: stats.rating,
+      reviews: stats.reviews,
       image: getPackageEmoji(pkg.destination),
       duration: `${pkg.duration_days} Hari ${pkg.duration_nights} Malam`,
     };
-  });
+  }); // Show all packages, even without prices (will show "Hubungi kami" or similar)
 
   function getPackageEmoji(destination: string): string {
     const map: Record<string, string> = {
@@ -185,7 +266,7 @@ export default async function PackagesPage({ params, searchParams }: PageProps) 
     { label: 'Papua', emoji: '🪸', value: 'papua' },
     { label: 'Jawa', emoji: '⛵', value: 'jawa' },
   ];
-  
+
   const activeCategory = category?.toLowerCase() || 'semua';
 
   // Generate ItemList schema for SEO
@@ -193,8 +274,7 @@ export default async function PackagesPage({ params, searchParams }: PageProps) 
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: 'Paket Wisata Aero Travel',
-    description:
-      'Daftar paket wisata bahari terbaik di Indonesia',
+    description: 'Daftar paket wisata bahari terbaik di Indonesia',
     numberOfItems: packages.length,
     itemListElement: packages.slice(0, 10).map((pkg, index) => ({
       '@type': 'ListItem',
@@ -226,127 +306,143 @@ export default async function PackagesPage({ params, searchParams }: PageProps) 
       <JsonLd data={itemListSchema} />
       <BrowsePackagesTracker />
       <Section className="bg-slate-50 dark:bg-slate-950">
-      <Container className="p-0">
-        <div className="flex min-h-screen flex-col">
-          {/* Search Bar */}
-          {searchQuery && (
-            <div className="bg-slate-50 px-4 py-2 dark:bg-slate-950">
-              <p className="text-xs text-muted-foreground">
-                Hasil pencarian: &quot;{searchQuery}&quot;
-                <Link href={`/${locale}/packages`} className="ml-2 text-primary hover:underline">
-                  Hapus
-                </Link>
-              </p>
-            </div>
-          )}
+        <Container className="p-0">
+          <div className="flex min-h-screen flex-col">
+            {/* Search Bar */}
+            {searchQuery && (
+              <div className="bg-slate-50 px-4 py-2 dark:bg-slate-950">
+                <p className="text-xs text-muted-foreground">
+                  Hasil pencarian: &quot;{searchQuery}&quot;
+                  <Link
+                    href={`/${locale}/packages`}
+                    className="ml-2 text-primary hover:underline"
+                  >
+                    Hapus
+                  </Link>
+                </p>
+              </div>
+            )}
 
-          {/* Category Chips - Sticky */}
-          <div className="no-scrollbar sticky top-14 z-40 flex gap-2 overflow-x-auto bg-slate-50 px-4 py-3 dark:bg-slate-950">
-            {categories.map((cat) => {
-              const isActive = cat.value === activeCategory;
-              const href = cat.value === 'semua' 
-                ? `/${locale}/packages${searchQuery ? `?q=${searchQuery}` : ''}`
-                : `/${locale}/packages?category=${cat.value}${searchQuery ? `&q=${searchQuery}` : ''}`;
-              
-              return (
+            {/* Category Chips - Sticky */}
+            <div className="no-scrollbar sticky top-14 z-40 flex gap-2 overflow-x-auto bg-slate-50 px-4 py-3 dark:bg-slate-950">
+              {categories.map((cat) => {
+                const isActive = cat.value === activeCategory;
+                const href =
+                  cat.value === 'semua'
+                    ? `/${locale}/packages${searchQuery ? `?q=${searchQuery}` : ''}`
+                    : `/${locale}/packages?category=${cat.value}${searchQuery ? `&q=${searchQuery}` : ''}`;
+
+                return (
+                  <Link
+                    key={cat.label}
+                    href={href}
+                    className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
+                      isActive
+                        ? 'bg-primary text-white shadow-md shadow-primary/25'
+                        : 'bg-white text-muted-foreground shadow-sm hover:bg-muted dark:bg-slate-800'
+                    }`}
+                  >
+                    <span>{cat.emoji}</span>
+                    {cat.label}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Results Header */}
+            <div className="flex items-center justify-between px-4 pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-warning" />
+                <p className="text-sm font-semibold text-foreground">
+                  {packages.length} Paket Tersedia
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" className="text-xs font-medium">
+                Urutkan
+              </Button>
+            </div>
+
+            {/* Package Cards - Premium Style */}
+            <div className="px-4 pb-24">
+              {packages.length === 0 && (
+                <div className="py-12 text-center">
+                  <p className="text-lg text-muted-foreground">
+                    Tidak ada paket yang ditemukan
+                  </p>
+                  <Link
+                    href={`/${locale}/packages`}
+                    className="mt-2 inline-block text-sm text-primary hover:underline"
+                  >
+                    Lihat semua paket
+                  </Link>
+                </div>
+              )}
+              {packages.map((pkg, idx) => (
                 <Link
-                  key={cat.label}
-                  href={href}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
-                    isActive
-                      ? 'bg-primary text-white shadow-md shadow-primary/25'
-                      : 'bg-white text-muted-foreground shadow-sm hover:bg-muted dark:bg-slate-800'
-                  }`}
+                  key={pkg.id}
+                  href={`/${locale}/packages/detail/${pkg.slug}`}
+                  className="mb-6 block last:mb-0"
+                  data-testid="package-card"
                 >
-                  <span>{cat.emoji}</span>
-                  {cat.label}
+                  <div className="group overflow-hidden rounded-2xl bg-white shadow-lg transition-all active:scale-[0.98] dark:bg-slate-800">
+                    {/* Image Header with Gradient Overlay */}
+                    <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-primary/20 to-primary/30">
+                      <div className="flex h-full items-center justify-center text-6xl">
+                        {pkg.image}
+                      </div>
+                      {/* Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                      {/* Top Badges */}
+                      <div className="absolute left-3 right-3 top-3 flex justify-between">
+                        <div className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-foreground shadow-sm backdrop-blur">
+                          {pkg.duration}
+                        </div>
+                        <div className="flex items-center gap-1 rounded-full bg-black/70 px-3 py-1.5 text-xs font-bold text-white backdrop-blur">
+                          <Star className="h-3 w-3 fill-warning text-warning" />
+                          {pkg.rating.toFixed(1)}
+                        </div>
+                      </div>
+                      {/* Hot Badge for first item */}
+                      {idx === 0 && (
+                        <div className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-gradient-to-r from-warning to-destructive px-3 py-1 text-xs font-bold text-white">
+                          <Sparkles className="h-3 w-3" />
+                          BEST SELLER
+                        </div>
+                      )}
+                    </div>
+                    {/* Content */}
+                    <div className="p-4">
+                      <div className="mb-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        {pkg.location}
+                      </div>
+                      <h3 className="mb-3 line-clamp-2 text-base font-bold leading-snug text-foreground">
+                        {pkg.name}
+                      </h3>
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground">
+                            Mulai dari
+                          </p>
+                          <p className="text-xl font-bold text-primary">
+                            {formatPrice(pkg.price)}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="h-9 rounded-lg px-5 text-xs font-semibold"
+                        >
+                          Pesan
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </Link>
-              );
-            })}
-          </div>
-
-      {/* Results Header */}
-      <div className="flex items-center justify-between px-4 pb-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-amber-500" />
-          <p className="text-sm font-semibold text-foreground">
-            {packages.length} Paket Tersedia
-          </p>
-        </div>
-        <button className="text-xs font-medium text-primary">Urutkan</button>
-      </div>
-
-      {/* Package Cards - Premium Style */}
-      <div className="px-4 pb-24">
-        {packages.length === 0 && (
-          <div className="py-12 text-center">
-            <p className="text-lg text-muted-foreground">Tidak ada paket yang ditemukan</p>
-            <Link href={`/${locale}/packages`} className="mt-2 inline-block text-sm text-primary hover:underline">
-              Lihat semua paket
-            </Link>
-          </div>
-        )}
-        {packages.map((pkg, idx) => (
-          <Link 
-            key={pkg.id} 
-            href={`/${locale}/packages/detail/${pkg.slug}`} 
-            className="mb-6 block last:mb-0"
-            data-testid="package-card"
-          >
-            <div className="group overflow-hidden rounded-2xl bg-white shadow-lg transition-all active:scale-[0.98] dark:bg-slate-800">
-              {/* Image Header with Gradient Overlay */}
-              <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-primary/20 to-blue-500/20">
-                <div className="flex h-full items-center justify-center text-6xl">
-                  {pkg.image}
-                </div>
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                {/* Top Badges */}
-                <div className="absolute left-3 right-3 top-3 flex justify-between">
-                  <div className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-foreground shadow-sm backdrop-blur">
-                    {pkg.duration}
-                  </div>
-                  <div className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1.5 text-xs font-bold text-white backdrop-blur">
-                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                    {pkg.rating.toFixed(1)}
-                  </div>
-                </div>
-                {/* Hot Badge for first item */}
-                {idx === 0 && (
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-2.5 py-1 text-[10px] font-bold text-white">
-                    <Sparkles className="h-3 w-3" />
-                    BEST SELLER
-                  </div>
-                )}
-              </div>
-              {/* Content */}
-              <div className="p-4">
-                <div className="mb-1.5 flex items-center gap-1 text-xs text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  {pkg.location}
-                </div>
-                <h3 className="mb-3 line-clamp-2 text-base font-bold leading-snug text-foreground">
-                  {pkg.name}
-                </h3>
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Mulai dari</p>
-                    <p className="text-xl font-bold text-primary">
-                      {formatPrice(pkg.price)}
-                    </p>
-                  </div>
-                  <Button size="sm" className="h-9 rounded-xl px-5 text-xs font-semibold">
-                    Pesan
-                  </Button>
-                </div>
-              </div>
+              ))}
             </div>
-          </Link>
-        ))}
-      </div>
-        </div>
-      </Container>
-    </Section>
+          </div>
+        </Container>
+      </Section>
     </>
   );
 }

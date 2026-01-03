@@ -260,7 +260,7 @@ export default async function PackageDetailPage({ params }: Props) {
   return (
     <>
       {/* Structured Data */}
-      <JsonLd data={[packageSchema, breadcrumbSchema, eventSchema, speakableSchema].filter(Boolean)} />
+      <JsonLd data={[packageSchema, breadcrumbSchema, eventSchema, speakableSchema].filter((s): s is Record<string, unknown> => s !== null && s !== undefined)} />
       
       {/* Journey Tracking */}
       <ViewPackageTracker
@@ -288,9 +288,13 @@ export default async function PackageDetailPage({ params }: Props) {
             <ChevronLeft className="h-6 w-6 text-white" />
           </Link>
           <div className="flex gap-2">
-            <button className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 backdrop-blur">
-              <Share2 className="h-5 w-5 text-white" />
-            </button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-full bg-black/30 backdrop-blur text-white hover:bg-black/50"
+            >
+              <Share2 className="h-5 w-5" />
+            </Button>
           </div>
         </div>
 
@@ -457,7 +461,7 @@ export default async function PackageDetailPage({ params }: Props) {
         <div className="mx-auto w-full max-w-md border-t bg-background px-5 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <p className="text-[10px] text-muted-foreground">Mulai dari</p>
+              <p className="text-xs text-muted-foreground">Mulai dari</p>
               <p className="text-lg font-bold text-primary">
                 {formatPrice(lowestPrice)}
                 <span className="text-xs font-normal text-muted-foreground">

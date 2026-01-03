@@ -209,8 +209,10 @@ export default async function BlogArticlePage({ params }: PageProps) {
                 name={article.author.name}
                 role="Travel Writer"
                 image={article.author.avatar}
-                bio={article.author.bio}
               />
+              {article.author.bio && (
+                <p className="mt-2 text-sm text-muted-foreground">{article.author.bio}</p>
+              )}
             </div>
           </article>
 

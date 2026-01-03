@@ -33,10 +33,31 @@ export default async function PublicTripInfoPage({ params }: PageProps) {
   setRequestLocale(locale);
 
   const supabase = await createClient();
-  const client = supabase as unknown as any;
-
+  
   // Get trip info (public, no auth required)
-  const { data: trip, error } = await client
+  // Note: trips table may not be in generated types, using type assertion
+  type TripRow = {
+    id: string;
+    code: string;
+    trip_date: string;
+    meeting_point: string | null;
+    meeting_time: string | null;
+    guide_name: string | null;
+    guide_phone: string | null;
+    status: string;
+    package: {
+      id: string;
+      name: string;
+      destination: string;
+    } | null;
+  };
+  const { data: trip, error } = await (supabase as unknown as {
+    from: (table: string) => {
+      select: (columns: string) => {
+        eq: (column: string, value: string) => Promise<{ data: TripRow | null; error: unknown }>;
+      };
+    };
+  })
     .from('trips')
     .select(
       `
@@ -61,7 +82,7 @@ export default async function PublicTripInfoPage({ params }: PageProps) {
       <Container className="py-8">
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6 text-center">
-            <p className="text-slate-600">Trip tidak ditemukan atau tidak tersedia.</p>
+            <p className="text-muted-foreground">Trip tidak ditemukan atau tidak tersedia.</p>
           </CardContent>
         </Card>
       </Container>
@@ -95,8 +116,8 @@ export default async function PublicTripInfoPage({ params }: PageProps) {
   return (
     <Container className="py-4">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-900">{packageName}</h1>
-        <p className="mt-1 text-sm text-slate-500">{tripCode}</p>
+        <h1 className="text-2xl font-bold text-foreground">{packageName}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{tripCode}</p>
       </div>
 
       <div className="space-y-4">
@@ -118,7 +139,7 @@ export default async function PublicTripInfoPage({ params }: PageProps) {
                 <div>
                   <p className="font-medium">Jam Kumpul: {departureTime.slice(0, 5)} WIB</p>
                   {returnTime && (
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted-foreground">
                       Estimasi kembali: {returnTime.slice(0, 5)} WIB
                     </p>
                   )}
@@ -130,7 +151,7 @@ export default async function PublicTripInfoPage({ params }: PageProps) {
               <MapPin className="h-5 w-5 text-emerald-600" />
               <div>
                 <p className="font-medium">{meetingPoint}</p>
-                <p className="text-xs text-slate-500">Titik kumpul & keberangkatan</p>
+                <p className="text-xs text-muted-foreground">Titik kumpul & keberangkatan</p>
               </div>
             </div>
 
@@ -143,7 +164,7 @@ export default async function PublicTripInfoPage({ params }: PageProps) {
 
             {destination && (
               <div>
-                <p className="text-xs text-slate-500">Destinasi</p>
+                <p className="text-xs text-muted-foreground">Destinasi</p>
                 <p className="font-medium">{destination}</p>
               </div>
             )}
@@ -158,7 +179,7 @@ export default async function PublicTripInfoPage({ params }: PageProps) {
             <CardContent className="space-y-2 text-sm">
               {leadGuide.full_name && (
                 <div>
-                  <p className="text-xs text-slate-500">Nama</p>
+                  <p className="text-xs text-muted-foreground">Nama</p>
                   <p className="font-medium">{leadGuide.full_name}</p>
                 </div>
               )}
@@ -197,7 +218,7 @@ export default async function PublicTripInfoPage({ params }: PageProps) {
           </Card>
         )}
 
-        <Card className="border-0 bg-slate-50 shadow-sm">
+        <Card className="border-0 bg-muted/30 shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">QR Code Info Trip</CardTitle>
           </CardHeader>
@@ -207,10 +228,10 @@ export default async function PublicTripInfoPage({ params }: PageProps) {
               size={200}
               level="M"
             />
-            <p className="text-center text-xs text-slate-600">
+            <p className="text-center text-xs text-muted-foreground">
               Scan QR code ini untuk melihat info trip kapan saja
             </p>
-            <p className="text-center text-xs text-slate-500">
+            <p className="text-center text-xs text-muted-foreground">
               Pastikan Anda datang tepat waktu di titik kumpul
             </p>
           </CardContent>

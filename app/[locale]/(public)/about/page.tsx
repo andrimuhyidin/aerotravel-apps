@@ -128,7 +128,7 @@ export default async function AboutPage({ params }: PageProps) {
       'Aero Travel adalah travel agency terpercaya yang menyediakan paket wisata bahari terbaik di Indonesia.',
     url: `/${locale}/about`,
     foundingDate: '2019-01-01',
-    founders: [teamAuthors[0]], // Founder
+    founders: teamAuthors[0] ? [teamAuthors[0]] : [],
     awards: ['Member ASITA', 'Registered Travel Agency'],
   });
 

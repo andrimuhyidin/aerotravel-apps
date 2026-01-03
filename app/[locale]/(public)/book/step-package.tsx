@@ -38,7 +38,7 @@ type PackageData = {
 
 type StepPackagePublicProps = {
   packageData: PackageData | null;
-  onPackageSelect: (pkg: PackageData) => void;
+  onPackageSelect: (pkg: PackageData | null) => void;
   loading?: boolean;
 };
 
@@ -123,7 +123,7 @@ export function StepPackagePublic({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onPackageSelect(null as unknown as PackageData)}
+                onClick={() => onPackageSelect(null)}
               >
                 Ganti Paket
               </Button>
@@ -183,7 +183,7 @@ export function StepPackagePublic({
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="secondary" className="text-[10px]">
+                          <Badge variant="secondary" className="text-xs">
                             {pkg.duration.label}
                           </Badge>
                           <div className="flex items-center gap-0.5 text-xs">

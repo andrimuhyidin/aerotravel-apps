@@ -182,13 +182,13 @@ export function TripDetailClient({ locale, tripId }: TripDetailClientProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'paid':
-        return <Badge className="bg-green-100 text-green-700">Lunas</Badge>;
+        return <Badge className="bg-success/10 text-success">Lunas</Badge>;
       case 'confirmed':
-        return <Badge className="bg-blue-100 text-blue-700">Terkonfirmasi</Badge>;
+        return <Badge className="bg-info/10 text-info">Terkonfirmasi</Badge>;
       case 'pending':
         return <Badge variant="secondary">Menunggu Pembayaran</Badge>;
       case 'completed':
-        return <Badge className="bg-purple-100 text-purple-700">Selesai</Badge>;
+        return <Badge className="bg-primary/10 text-primary">Selesai</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Dibatalkan</Badge>;
       default:
@@ -435,7 +435,7 @@ export function TripDetailClient({ locale, tripId }: TripDetailClientProps) {
         {canReview && (
           <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-background">
             <CardContent className="p-4 text-center">
-              <Star className="h-10 w-10 mx-auto text-amber-400 mb-2" />
+              <Star className="h-10 w-10 mx-auto text-warning mb-2" />
               <h3 className="font-bold mb-1">Bagaimana Trip Anda?</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 Berikan penilaian untuk membantu traveler lainnya

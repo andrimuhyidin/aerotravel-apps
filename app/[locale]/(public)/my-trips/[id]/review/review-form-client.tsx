@@ -225,8 +225,8 @@ export function ReviewFormClient({ locale, tripId }: ReviewFormClientProps) {
                               className={cn(
                                 'h-10 w-10 transition-colors',
                                 (hoveredRating || selectedRating) >= star
-                                  ? 'fill-amber-400 text-amber-400'
-                                  : 'text-gray-300'
+                                  ? 'fill-warning text-warning'
+                                  : 'text-muted-foreground'
                               )}
                             />
                           </button>

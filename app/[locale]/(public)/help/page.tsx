@@ -21,6 +21,7 @@ import { AISummary } from '@/components/seo/ai-summary';
 import { JsonLd } from '@/components/seo/json-ld';
 import { RelatedContent } from '@/components/seo/related-content';
 import { generateFAQSchema, generateContactPageSchema } from '@/lib/seo/structured-data';
+import { generateFAQSpeakable } from '@/lib/seo/speakable-schema';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { locales } from '@/i18n';
