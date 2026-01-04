@@ -1,49 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/booking-reminders",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/booking-draft-cleanup",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/data-retention",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron/generate-seo",
-      "schedule": "0 20 * * 6"
-    },
-    {
-      "path": "/api/cron/compliance-check",
+      "path": "/api/cron/daily-tasks",
       "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/corporate-reminders",
-      "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/cron/corporate-budget-alerts",
-      "schedule": "0 2 * * 1"
-    },
-    {
-      "path": "/api/cron/guide-data-validation",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/price-alert-check",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/insurance-manifest",
-      "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/admin/trips/reassign-expired",
-      "schedule": "*/15 * * * *"
     }
   ]
 }
-

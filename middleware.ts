@@ -1,6 +1,6 @@
 /**
- * Proxy (Next.js 16+ Middleware Replacement)
- * Route Protection + i18n
+ * Middleware - Route Protection + i18n
+ * Next.js 15.x compatible
  * Handles:
  * 1. Internationalization (locale detection & routing)
  * 2. Authentication (session check)
@@ -37,7 +37,7 @@ const INTERNAL_ROLES = [
   'ops_admin',
 ];
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Extract locale from pathname
   const pathname = request.nextUrl.pathname;
   const pathnameHasLocale = localeConfig.locales.some(
