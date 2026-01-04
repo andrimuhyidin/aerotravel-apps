@@ -14,7 +14,6 @@ import {
   Loader2,
   Mic,
   MicOff,
-  Volume2,
   X,
 } from 'lucide-react';
 

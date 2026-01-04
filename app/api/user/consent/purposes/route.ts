@@ -13,9 +13,18 @@ import { getConsentPurposes } from '@/lib/pdp/consent-manager';
  * GET /api/user/consent/purposes
  * Get all active consent purposes
  */
-export const GET = withErrorHandler(async (request: NextRequest) => {
+export const GET = withErrorHandler(async (_request: NextRequest) => {
   const purposes = await getConsentPurposes();
 
-  return NextResponse.json({ purposes });
+  // Transform to match frontend expected format
+  const formattedPurposes = purposes.map((p) => ({
+    code: p.purposeCode,
+    name: p.purposeName,
+    description: p.description,
+    isMandatory: p.isMandatory,
+    category: p.category,
+  }));
+
+  return NextResponse.json({ purposes: formattedPurposes });
 });
 

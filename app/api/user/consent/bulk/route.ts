@@ -48,15 +48,31 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const { consents } = parsed.data;
 
   // Get client metadata
-  const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip');
+  // x-forwarded-for can contain multiple IPs (client, proxy1, proxy2, ...)
+  // We only want the first one (client IP)
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  const realIp = request.headers.get('x-real-ip');
+  let ipAddress = forwardedFor?.split(',')[0]?.trim() || realIp || undefined;
+  
+  // Validate IP address format (basic check for inet type)
+  if (ipAddress && !/^[\d.:a-fA-F]+$/.test(ipAddress)) {
+    ipAddress = undefined; // Invalid IP format, skip it
+  }
+  
   const userAgent = request.headers.get('user-agent');
 
-  const success = await recordBulkConsents(user.id, consents, {
-    ipAddress: ipAddress || undefined,
-    userAgent: userAgent || undefined,
-  });
+  try {
+    const success = await recordBulkConsents(user.id, consents, {
+      ipAddress,
+      userAgent: userAgent || undefined,
+    });
 
-  if (!success) {
+    if (!success) {
+      logger.error('recordBulkConsents returned false', { userId: user.id });
+      return NextResponse.json({ error: 'Failed to record consents' }, { status: 500 });
+    }
+  } catch (err) {
+    logger.error('Exception in recordBulkConsents', err, { userId: user.id });
     return NextResponse.json({ error: 'Failed to record consents' }, { status: 500 });
   }
 
