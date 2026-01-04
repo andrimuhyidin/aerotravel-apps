@@ -5,6 +5,9 @@
  * Route: /[locale]/destinations
  */
 
+// Force dynamic rendering - uses cookies for Supabase
+export const dynamic = 'force-dynamic';
+
 import { MapPin } from 'lucide-react';
 import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';

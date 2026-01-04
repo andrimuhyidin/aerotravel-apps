@@ -5,6 +5,9 @@
  * Route: /[locale]/blog/category/[category]
  */
 
+// Force dynamic rendering - uses cookies for Supabase
+export const dynamic = 'force-dynamic';
+
 import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';

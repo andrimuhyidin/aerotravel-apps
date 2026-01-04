@@ -5,6 +5,9 @@
  * Route: /[locale]/blog/[slug]
  */
 
+// Force dynamic rendering - uses cookies for Supabase
+export const dynamic = 'force-dynamic';
+
 import { Calendar, ChevronLeft, Clock, User } from 'lucide-react';
 import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';

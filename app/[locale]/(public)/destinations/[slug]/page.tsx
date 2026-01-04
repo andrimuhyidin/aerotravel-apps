@@ -5,6 +5,9 @@
  * Route: /[locale]/destinations/[slug]
  */
 
+// Force dynamic rendering - uses cookies for Supabase
+export const dynamic = 'force-dynamic';
+
 import {
   ChevronLeft,
   Cloud,

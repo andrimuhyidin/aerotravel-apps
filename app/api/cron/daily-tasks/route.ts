@@ -2,7 +2,15 @@
  * API: Cron - Daily Tasks (Combined)
  * Route: /api/cron/daily-tasks
  * Purpose: Execute all daily scheduled tasks in a single cron job
- * Note: Vercel Hobby plan only allows 2 cron jobs with daily minimum schedule
+ * 
+ * This endpoint is used on Vercel Hobby plan which only allows 2 daily crons.
+ * It combines multiple tasks into a single cron job.
+ * 
+ * Configuration is controlled by VERCEL_PLAN environment variable:
+ * - VERCEL_PLAN=hobby (default) → Uses this combined endpoint
+ * - VERCEL_PLAN=pro → Uses individual cron endpoints with different schedules
+ * 
+ * See: scripts/generate-vercel-config.js for cron configuration logic
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,9 +19,9 @@ import { withErrorHandler } from '@/lib/api/error-handler';
 import { logger } from '@/lib/utils/logger';
 
 // Import all cron task functions
-import { checkLicenseExpiry } from '@/lib/cron/license-expiry-check';
 import { checkCertificationExpiry } from '@/lib/cron/certification-expiry-check';
 import { runDataRetentionCleanup } from '@/lib/cron/data-retention-cleanup';
+import { checkLicenseExpiry } from '@/lib/cron/license-expiry-check';
 
 type TaskResult = {
   name: string;

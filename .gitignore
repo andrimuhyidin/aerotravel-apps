@@ -82,6 +82,7 @@ Thumbs.db
 /scripts/
 # But keep build-related scripts
 !/scripts/build-summary.js
+!/scripts/generate-vercel-config.js
 
 # Test files (run locally only)
 /tests/

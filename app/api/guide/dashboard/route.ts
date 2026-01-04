@@ -176,10 +176,26 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
             let tripsQuery = client
               .from('trips')
               .select(
-                'id, code, name, date, status, destination, duration, meeting_point, guests, created_at, updated_at'
+                `
+                id,
+                trip_code,
+                trip_date,
+                status,
+                total_pax,
+                created_at,
+                updated_at,
+                package:packages(
+                  id,
+                  name,
+                  destination,
+                  city,
+                  duration_days,
+                  meeting_point
+                )
+                `
               )
               .in('id', tripIds)
-              .order('date', { ascending: false })
+              .order('trip_date', { ascending: false })
               .limit(tripsLimit);
 
             if (!branchContext.isSuperAdmin && branchContext.branchId) {
@@ -195,6 +211,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
               return { trips: [] };
             }
 
+            const nowDate = new Date().toISOString().slice(0, 10);
             const trips = (tripsData ?? []).map((trip: any) => {
               const assignment = assignmentMap.get(trip.id) ?? {
                 assignment_status: 'confirmed',
@@ -202,16 +219,50 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
                 confirmed_at: null,
                 rejected_at: null,
                 fee_amount: null,
+                role: null,
               };
 
+              const packageData = trip.package as {
+                id?: string;
+                name?: string;
+                destination?: string;
+                city?: string;
+                duration_days?: number;
+                meeting_point?: string;
+              } | null;
+
+              // Calculate UI status
+              const date = trip.trip_date ?? nowDate;
+              const statusRaw = trip.status ?? 'scheduled';
+              let uiStatus: 'ongoing' | 'upcoming' | 'completed' | 'cancelled' = 'upcoming';
+              if (statusRaw === 'on_trip' || statusRaw === 'on_the_way' || statusRaw === 'preparing') {
+                uiStatus = 'ongoing';
+              } else if (statusRaw === 'completed') {
+                uiStatus = 'completed';
+              } else if (statusRaw === 'cancelled') {
+                uiStatus = 'cancelled';
+              } else {
+                uiStatus = date >= nowDate ? 'upcoming' : 'completed';
+              }
+
               return {
-                ...trip,
-                trip_code: trip.code,
+                id: trip.id,
+                code: trip.trip_code ?? '',
+                name: packageData?.name ?? trip.trip_code ?? 'Trip',
+                date: trip.trip_date,
+                guests: trip.total_pax ?? 0,
+                status: uiStatus,
+                destination: packageData?.destination ?? packageData?.city ?? null,
+                duration: packageData?.duration_days ?? null,
+                meeting_point: packageData?.meeting_point ?? null,
+                created_at: trip.created_at,
+                updated_at: trip.updated_at,
                 assignment_status: assignment.assignment_status,
                 confirmation_deadline: assignment.confirmation_deadline,
                 confirmed_at: assignment.confirmed_at,
                 rejected_at: assignment.rejected_at,
                 fee_amount: assignment.fee_amount,
+                crew_role: assignment.role ?? null,
               };
             });
 
