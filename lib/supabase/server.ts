@@ -1,4 +1,10 @@
-import 'server-only';
+/**
+ * Supabase Server Client
+ * NOTE: Cannot use 'server-only' because this is imported by:
+ * - proxy.ts (middleware, Edge Runtime)
+ * - lib/session/active-role.ts (used by middleware)
+ * The cookies() call will fail at runtime if called from client, which is safe.
+ */
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';

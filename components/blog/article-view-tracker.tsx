@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-import { incrementArticleViews } from '@/lib/blog/articles';
+import { incrementArticleViews } from '@/lib/blog/article-views';
 
 /**
  * Client component untuk track article views

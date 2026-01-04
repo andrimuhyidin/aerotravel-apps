@@ -120,11 +120,42 @@ interface PartnerRewardSettings {
 }
 
 /**
- * Get partner reward settings from database with fallback to defaults
+ * Get partner reward settings - client-safe version
+ * Fetches from API when in browser, uses direct import on server
  */
 async function getPartnerRewardSettings(): Promise<PartnerRewardSettings> {
+  // Check if we're in browser context
+  if (typeof window !== 'undefined') {
+    // Client-side: fetch from API
+    try {
+      const response = await fetch('/api/partner/settings/rewards');
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          referralPoints: data.referralPoints ?? DEFAULT_REFERRAL_POINTS,
+          pointsPer10k: data.pointsPer10k ?? DEFAULT_POINTS_PER_10K,
+          minRedemptionPoints: data.minRedemptionPoints ?? DEFAULT_MIN_REDEMPTION_POINTS,
+          pointsExpirationMonths: data.pointsExpirationMonths ?? DEFAULT_POINTS_EXPIRATION_MONTHS,
+          milestoneConfigs: data.milestoneConfigs ?? DEFAULT_MILESTONE_CONFIGS,
+        };
+      }
+    } catch {
+      // Fall through to defaults
+    }
+    return {
+      referralPoints: DEFAULT_REFERRAL_POINTS,
+      pointsPer10k: DEFAULT_POINTS_PER_10K,
+      minRedemptionPoints: DEFAULT_MIN_REDEMPTION_POINTS,
+      pointsExpirationMonths: DEFAULT_POINTS_EXPIRATION_MONTHS,
+      milestoneConfigs: DEFAULT_MILESTONE_CONFIGS,
+    };
+  }
+
+  // Server-side: import settings directly
   try {
-    const { getSetting } = await import('@/lib/settings');
+    // @ts-expect-error - Dynamic import for server-only module
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getSetting } = await import(/* webpackIgnore: true */ '@/lib/settings');
     const [
       referralPoints,
       pointsPer10k,

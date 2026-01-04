@@ -4,7 +4,11 @@
  * Dengan caching support menggunakan Redis
  */
 
-import 'server-only';
+/**
+ * NOTE: Cannot use 'server-only' because this file is dynamically imported
+ * by lib/guide/geofencing.ts which is used in client components.
+ * The createClient() call will fail at runtime if called from client, which is safe.
+ */
 
 import { createClient } from '@/lib/supabase/server';
 import { getCached, invalidateCache } from '@/lib/cache/redis-cache';

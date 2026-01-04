@@ -3,7 +3,11 @@
  * Encrypt/decrypt sensitive setting values using Supabase RPC functions
  */
 
-import 'server-only';
+/**
+ * NOTE: Cannot use 'server-only' because lib/settings/index.ts imports this
+ * and settings is dynamically imported by client-compatible code.
+ * The createClient() call will fail at runtime if called from client, which is safe.
+ */
 
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';

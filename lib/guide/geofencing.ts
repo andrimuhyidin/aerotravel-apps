@@ -64,11 +64,40 @@ export interface GeofencingSettings {
 // ============================================
 
 /**
- * Get geofencing settings from database with fallback to defaults
+ * Get geofencing settings - client-safe version
+ * Fetches from API to avoid server-only import chain in client components
  */
 export async function getGeofencingSettings(): Promise<GeofencingSettings> {
+  // Check if we're in browser context
+  if (typeof window !== 'undefined') {
+    // Client-side: fetch from API
+    try {
+      const response = await fetch('/api/guide/settings/geofencing');
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          gpsTimeoutMs: data.gpsTimeoutMs ?? DEFAULT_GPS_TIMEOUT_MS,
+          gpsMaxAgeMs: data.gpsMaxAgeMs ?? DEFAULT_GPS_MAX_AGE_MS,
+          gpsWatchMaxAgeMs: data.gpsWatchMaxAgeMs ?? DEFAULT_GPS_WATCH_MAX_AGE_MS,
+          defaultRadiusMeters: data.defaultRadiusMeters ?? DEFAULT_GEOFENCE_RADIUS_METERS,
+        };
+      }
+    } catch {
+      // Fall through to defaults
+    }
+    return {
+      gpsTimeoutMs: DEFAULT_GPS_TIMEOUT_MS,
+      gpsMaxAgeMs: DEFAULT_GPS_MAX_AGE_MS,
+      gpsWatchMaxAgeMs: DEFAULT_GPS_WATCH_MAX_AGE_MS,
+      defaultRadiusMeters: DEFAULT_GEOFENCE_RADIUS_METERS,
+    };
+  }
+
+  // Server-side: import settings directly
   try {
-    const { getSetting } = await import('@/lib/settings');
+    // @ts-expect-error - Dynamic import for server-only module
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getSetting } = await import(/* webpackIgnore: true */ '@/lib/settings');
     const [gpsTimeoutMs, gpsMaxAgeMs, gpsWatchMaxAgeMs, defaultRadiusMeters] =
       await Promise.all([
         getSetting('geofencing.gps_timeout_ms'),

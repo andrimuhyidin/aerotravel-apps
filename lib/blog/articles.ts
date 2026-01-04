@@ -347,28 +347,6 @@ export async function getRecentArticles(
 }
 
 /**
- * Increment article views
- * Called when article is viewed (client-side)
- */
-export async function incrementArticleViews(articleId: string): Promise<void> {
-  try {
-    const response = await fetch(`/api/blog/articles/${articleId}/view`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to increment views');
-    }
-  } catch (error) {
-    // Silent fail - don't break page if tracking fails
-    logger.error('Error incrementing article views', error);
-  }
-}
-
-/**
  * Transform database row to BlogArticle type
  */
 function transformArticleRow(row: BlogArticleRow): BlogArticle {

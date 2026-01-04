@@ -259,3 +259,39 @@ export function formatInvoiceCurrency(amount: number): string {
   }).format(amount);
 }
 
+/**
+ * Generate Invoice PDF
+ * Creates a PDF file for the invoice and uploads to storage
+ * @returns Object with PDF URL
+ */
+export async function generateInvoicePDF(params: {
+  invoiceNumber: string;
+  invoiceDate: string;
+  dueDate: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  items: Array<{
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>;
+  subtotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  notes?: string;
+}): Promise<{ url: string | null }> {
+  // TODO: Implement PDF generation with @react-pdf/renderer
+  // For now, return null URL indicating PDF generation is not implemented
+  logger.info('Invoice PDF generation requested', {
+    invoiceNumber: params.invoiceNumber,
+    customerName: params.customerName,
+  });
+
+  // Placeholder - actual PDF generation would use react-pdf/renderer
+  // or server-side PDF library like pdfkit
+  return { url: null };
+}
+

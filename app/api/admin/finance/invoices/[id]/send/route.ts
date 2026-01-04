@@ -10,7 +10,7 @@ import { withErrorHandler } from '@/lib/api/error-handler';
 import { hasRole } from '@/lib/session/active-role';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
-import { generateInvoicePDF } from '@/lib/finance/invoice-generator';
+import { generateInvoiceFromBooking } from '@/lib/finance/invoice-generator';
 
 type RouteContext = {
   params: Promise<{ id: string }>;

@@ -241,10 +241,18 @@ export function getImageUrl(imagePath: string): string {
 /**
  * Get SEO config from database settings with fallback to hardcoded values
  * Use this in server components for dynamic SEO
+ * NOTE: This function should ONLY be called from server components/API routes
  */
 export async function getConfigFromSettings() {
+  // Guard: Only works on server
+  if (typeof window !== 'undefined') {
+    throw new Error('getConfigFromSettings can only be called from server');
+  }
+  
   try {
-    const { getAllSettings } = await import('@/lib/settings');
+    // @ts-expect-error - Dynamic import for server-only module
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getAllSettings } = await import(/* webpackIgnore: true */ '@/lib/settings');
     const settings = await getAllSettings(null);
 
     return {

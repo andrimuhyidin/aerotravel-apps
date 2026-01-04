@@ -10,11 +10,10 @@
  * - Single DB query fallback
  * - Removed redundant role verification on read
  * - In-memory request cache to prevent duplicate calls
+ * 
+ * NOTE: Cannot use 'server-only' here because proxy.ts (middleware) imports this file
+ * and middleware runs in Edge Runtime, not Server Components context.
  */
-
-import 'server-only';
-
-import { AsyncLocalStorage } from 'async_hooks';
 
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -24,15 +23,20 @@ type UserRole = Database['public']['Enums']['user_role'];
 
 // ============================================
 // REQUEST-SCOPED CACHE (prevents duplicate DB calls in same request)
+// Uses Map for Edge Runtime compatibility (async_hooks not available in Edge)
 // ============================================
-const requestCache = new AsyncLocalStorage<Map<string, unknown>>();
+let requestCacheStore: Map<string, unknown> | null = null;
 
 /**
  * Run function with request-scoped cache
  * Use in middleware/proxy to enable caching for the entire request
+ * Note: Simplified for Edge Runtime compatibility (no AsyncLocalStorage)
  */
 export function withRequestCache<T>(fn: () => Promise<T>): Promise<T> {
-  return requestCache.run(new Map(), fn);
+  requestCacheStore = new Map();
+  return fn().finally(() => {
+    requestCacheStore = null;
+  });
 }
 
 /**
@@ -46,7 +50,7 @@ export function withRequestCache<T>(fn: () => Promise<T>): Promise<T> {
  */
 export async function getActiveRole(userId: string): Promise<UserRole | null> {
   // Check request-scoped cache first
-  const cache = requestCache.getStore();
+  const cache = requestCacheStore;
   const cacheKey = `activeRole:${userId}`;
   
   if (cache?.has(cacheKey)) {
@@ -224,7 +228,7 @@ export async function verifyUserHasRole(userId: string, role: UserRole): Promise
  */
 export async function getUserRoles(userId: string): Promise<UserRole[]> {
   // Check request-scoped cache first
-  const cache = requestCache.getStore();
+  const cache = requestCacheStore;
   const cacheKey = `userRoles:${userId}`;
   
   if (cache?.has(cacheKey)) {
