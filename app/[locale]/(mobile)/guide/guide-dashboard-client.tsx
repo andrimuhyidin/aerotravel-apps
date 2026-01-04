@@ -355,11 +355,12 @@ export function GuideDashboardClient({
     refetch: refetchStats,
   } = useGuideStats(initialData?.stats);
 
+  // Ensure trips is always an array
+  const trips = Array.isArray(tripsData?.trips) ? tripsData.trips : [];
+  
   const activeTrip =
-    tripsData?.trips.find((trip) => trip.status === 'ongoing') ??
-    tripsData?.trips.find((trip) => trip.status === 'upcoming');
-
-  const trips = tripsData?.trips ?? [];
+    trips.find((trip) => trip.status === 'ongoing') ??
+    trips.find((trip) => trip.status === 'upcoming');
   const now = new Date();
   const yearMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 

@@ -96,7 +96,7 @@ export async function getGeofencingSettings(): Promise<GeofencingSettings> {
   // Server-side: import settings directly
   try {
     // @ts-expect-error - Dynamic import for server-only module
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+     
     const { getSetting } = await import(/* webpackIgnore: true */ '@/lib/settings');
     const [gpsTimeoutMs, gpsMaxAgeMs, gpsWatchMaxAgeMs, defaultRadiusMeters] =
       await Promise.all([

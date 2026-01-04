@@ -249,7 +249,10 @@ export function ChatClient({ locale }: ChatClientProps) {
     );
   }
 
-  if (!trips || trips.length === 0) {
+  // Ensure trips is always an array
+  const tripList = Array.isArray(trips) ? trips : [];
+
+  if (tripList.length === 0) {
     return (
       <EmptyState
         icon={MessageSquare}
@@ -270,7 +273,7 @@ export function ChatClient({ locale }: ChatClientProps) {
       </div>
 
       <div className="space-y-2">
-        {trips.map((trip) => {
+        {tripList.map((trip) => {
           if (!trip || !trip.id) {
             return null; // Skip invalid trips
           }

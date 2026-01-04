@@ -251,7 +251,7 @@ export async function getConfigFromSettings() {
   
   try {
     // @ts-expect-error - Dynamic import for server-only module
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+     
     const { getAllSettings } = await import(/* webpackIgnore: true */ '@/lib/settings');
     const settings = await getAllSettings(null);
 

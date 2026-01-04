@@ -355,7 +355,12 @@ export function AttendanceClient({
 
     // Check if within radius and check-in window first
     if (!isWithinRadius) {
-      setError(`Anda harus berada dalam radius ${meetingPoint.radiusMeters}m dari ${meetingPoint.name}`);
+      const radiusText = meetingPoint.radiusMeters >= 100000 
+        ? 'area check-in' 
+        : meetingPoint.radiusMeters >= 1000 
+          ? `radius ${(meetingPoint.radiusMeters / 1000).toFixed(0)}km`
+          : `radius ${meetingPoint.radiusMeters}m`;
+      setError(`Anda harus berada dalam ${radiusText} dari ${meetingPoint.name}`);
       return;
     }
 
@@ -740,7 +745,13 @@ export function AttendanceClient({
             <div className="rounded-lg bg-slate-50 p-2.5">
               <p className="text-xs font-medium text-slate-600">Meeting Point</p>
               <p className="mt-1 text-sm font-semibold text-slate-900 line-clamp-1">{meetingPoint.name}</p>
-              <p className="mt-0.5 text-xs text-slate-600">Radius: {meetingPoint.radiusMeters}m</p>
+              <p className="mt-0.5 text-xs text-slate-600">
+                {meetingPoint.radiusMeters >= 100000 
+                  ? 'Radius: Seluruh Indonesia' 
+                  : meetingPoint.radiusMeters >= 1000 
+                    ? `Radius: ${(meetingPoint.radiusMeters / 1000).toFixed(0)}km`
+                    : `Radius: ${meetingPoint.radiusMeters}m`}
+              </p>
             </div>
             <div className="rounded-lg bg-slate-50 p-2.5">
               <p className="text-xs font-medium text-slate-600">Waktu Keberangkatan</p>
@@ -999,7 +1010,11 @@ export function AttendanceClient({
                       Di luar radius check-in
                     </p>
                     <p className="mt-0.5 text-xs text-amber-700">
-                      Pindah ke dalam radius {meetingPoint.radiusMeters}m dari {meetingPoint.name}
+                      {meetingPoint.radiusMeters >= 100000 
+                        ? `Pindah lebih dekat ke ${meetingPoint.name}`
+                        : meetingPoint.radiusMeters >= 1000
+                          ? `Pindah ke dalam radius ${(meetingPoint.radiusMeters / 1000).toFixed(0)}km dari ${meetingPoint.name}`
+                          : `Pindah ke dalam radius ${meetingPoint.radiusMeters}m dari ${meetingPoint.name}`}
                     </p>
                   </div>
                 </div>

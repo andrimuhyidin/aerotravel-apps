@@ -7,6 +7,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   CheckCircle2,
@@ -47,7 +48,15 @@ export function VoiceCommandFAB({
   tripId,
   onCommandExecuted,
 }: VoiceCommandFABProps) {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Only show on home page
+  const isHomePage = pathname?.endsWith('/guide/home') || pathname?.endsWith('/guide');
+  
+  if (!isHomePage) {
+    return null;
+  }
   const [isProcessing, setIsProcessing] = useState(false);
   const [commandResult, setCommandResult] = useState<{
     success: boolean;
@@ -220,25 +229,27 @@ export function VoiceCommandFAB({
 
   return (
     <>
-      {/* FAB Button */}
+      {/* FAB Button - positioned within mobile wrapper, left side above bottom nav */}
       <AnimatePresence>
         {!isOpen && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-24 left-4 z-40 sm:left-[calc(50%-12rem)]"
+            className="fixed bottom-[88px] left-1/2 z-40 w-full max-w-md -translate-x-1/2 px-4 pointer-events-none"
           >
             <Button
               size="lg"
               className={cn(
-                'h-14 w-14 rounded-full shadow-lg',
+                'pointer-events-auto h-11 gap-2 rounded-full px-4 shadow-lg',
                 'bg-gradient-to-br from-emerald-500 to-emerald-600',
-                'hover:from-emerald-600 hover:to-emerald-700'
+                'hover:from-emerald-600 hover:to-emerald-700',
+                'text-white font-medium text-sm'
               )}
               onClick={handleOpen}
             >
-              <Mic className="h-6 w-6" />
+              <Mic className="h-4 w-4" />
+              Perintah Suara
             </Button>
           </motion.div>
         )}
@@ -247,36 +258,50 @@ export function VoiceCommandFAB({
       {/* Voice Command Panel */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 sm:left-1/2 sm:right-auto sm:w-full sm:max-w-md sm:-translate-x-1/2"
-          >
-            <div className="rounded-t-3xl bg-white shadow-2xl">
-              {/* Close Button */}
-              <div className="absolute right-4 top-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 rounded-full p-0"
-                  onClick={handleClose}
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              <div className="px-6 pb-8 pt-6">
-                {/* Title */}
-                <div className="mb-6 text-center">
-                  <h3 className="text-lg font-semibold text-slate-900">
-                    Perintah Suara
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Tekan tombol mikrofon dan ucapkan perintah Anda
-                  </p>
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/40"
+              onClick={handleClose}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-lg"
+            >
+              <div className="rounded-t-3xl bg-white shadow-2xl">
+                {/* Handle bar */}
+                <div className="flex justify-center pt-3">
+                  <div className="h-1 w-12 rounded-full bg-slate-300" />
                 </div>
+
+                {/* Close Button */}
+                <div className="absolute right-4 top-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 rounded-full bg-slate-100 p-0 hover:bg-slate-200"
+                    onClick={handleClose}
+                  >
+                    <X className="h-5 w-5 text-slate-600" />
+                  </Button>
+                </div>
+
+                <div className="px-6 pb-8 pt-4">
+                  {/* Title */}
+                  <div className="mb-6 text-center">
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      🎤 Perintah Suara
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Tekan tombol mikrofon lalu ucapkan perintah
+                    </p>
+                  </div>
 
                 {/* Voice Visualization / Status */}
                 <div className="mb-6 flex flex-col items-center">
@@ -402,26 +427,26 @@ export function VoiceCommandFAB({
                 </div>
 
                 {/* Example Commands */}
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <p className="text-center text-xs font-medium text-slate-500">
                     Contoh perintah:
                   </p>
-                  <div className="flex flex-wrap justify-center gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {[
-                      'Cek status trip',
-                      'Cek manifest',
-                      'Cek cuaca',
-                      'Tambah pengeluaran 50 ribu untuk makan',
-                    ].map((cmd) => (
+                      { cmd: 'Cek status trip', icon: '📋' },
+                      { cmd: 'Cek manifest', icon: '👥' },
+                      { cmd: 'Cek cuaca', icon: '🌤️' },
+                      { cmd: 'Tambah pengeluaran', icon: '💰' },
+                    ].map(({ cmd, icon }) => (
                       <button
                         key={cmd}
                         type="button"
                         onClick={() => void processCommand(cmd)}
                         disabled={isRecording || isTranscribing || isProcessing}
-                        className="rounded-full bg-slate-100 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:bg-slate-200 disabled:opacity-50"
+                        className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2.5 text-left text-xs text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-50"
                       >
-                        <Volume2 className="mr-1 inline-block h-3 w-3" />
-                        {cmd}
+                        <span className="text-base">{icon}</span>
+                        <span className="font-medium">{cmd}</span>
                       </button>
                     ))}
                   </div>
@@ -429,6 +454,7 @@ export function VoiceCommandFAB({
               </div>
             </div>
           </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>
