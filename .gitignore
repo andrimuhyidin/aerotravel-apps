@@ -80,6 +80,8 @@ Thumbs.db
 
 # SQL scripts (already executed)
 /scripts/
+# But keep build-related scripts
+!/scripts/build-summary.js
 
 # Test files (run locally only)
 /tests/
