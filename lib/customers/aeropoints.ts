@@ -48,36 +48,85 @@ export type PointsTransaction = {
 
 /**
  * Points calculation constants
+ * These are defaults - actual values come from settings
  */
-const POINTS_PER_100K = 10; // 10 points per Rp 100,000
-const POINTS_REDEMPTION_VALUE = 1; // 1 point = Rp 1
-const REVIEW_BONUS_POINTS = 50; // Bonus points for leaving a review
-const MIN_BOOKING_FOR_POINTS = 100000; // Minimum booking value to earn points
+const DEFAULT_POINTS_PER_100K = 10; // 10 points per Rp 100,000
+const DEFAULT_POINTS_REDEMPTION_VALUE = 1; // 1 point = Rp 1
+const DEFAULT_REVIEW_BONUS_POINTS = 50; // Bonus points for leaving a review
+const DEFAULT_MIN_BOOKING_FOR_POINTS = 100000; // Minimum booking value to earn points
+
+/**
+ * Get points settings from database
+ */
+async function getPointsSettings() {
+  try {
+    const { getSetting } = await import('@/lib/settings');
+    const [
+      pointsPer100k,
+      redemptionValue,
+      reviewBonus,
+      minBooking,
+    ] = await Promise.all([
+      getSetting('loyalty.points_per_100k'),
+      getSetting('loyalty.redemption_value'),
+      getSetting('loyalty.review_bonus'),
+      getSetting('loyalty.min_booking_for_points'),
+    ]);
+
+    // Fallback to existing settings keys for backward compatibility
+    const pointsPer100kFallback = await getSetting('points_per_100k');
+
+    return {
+      pointsPer100k:
+        (pointsPer100k as number) ||
+        (pointsPer100kFallback as number) ||
+        DEFAULT_POINTS_PER_100K,
+      redemptionValue:
+        (redemptionValue as number) || DEFAULT_POINTS_REDEMPTION_VALUE,
+      reviewBonus: (reviewBonus as number) || DEFAULT_REVIEW_BONUS_POINTS,
+      minBooking: (minBooking as number) || DEFAULT_MIN_BOOKING_FOR_POINTS,
+    };
+  } catch {
+    return {
+      pointsPer100k: DEFAULT_POINTS_PER_100K,
+      redemptionValue: DEFAULT_POINTS_REDEMPTION_VALUE,
+      reviewBonus: DEFAULT_REVIEW_BONUS_POINTS,
+      minBooking: DEFAULT_MIN_BOOKING_FOR_POINTS,
+    };
+  }
+}
 
 /**
  * Calculate points earned from booking value
- * Rule: Setiap kelipatan Rp 100.000 = 10 Poin
+ * Rule: Setiap kelipatan Rp 100.000 = X Poin (from settings)
  */
-export function calculatePointsFromBooking(bookingValue: number): number {
-  if (bookingValue < MIN_BOOKING_FOR_POINTS) {
+export async function calculatePointsFromBooking(
+  bookingValue: number
+): Promise<number> {
+  const settings = await getPointsSettings();
+  if (bookingValue < settings.minBooking) {
     return 0;
   }
-  return Math.floor(bookingValue / 100000) * POINTS_PER_100K;
+  return Math.floor(bookingValue / 100000) * settings.pointsPer100k;
 }
 
 /**
  * Calculate discount amount from points
- * Rule: 1 Point = Rp 1
+ * Rule: 1 Point = Rp X (from settings)
  */
-export function calculateDiscountFromPoints(points: number): number {
-  return points * POINTS_REDEMPTION_VALUE;
+export async function calculateDiscountFromPoints(
+  points: number
+): Promise<number> {
+  const settings = await getPointsSettings();
+  return points * settings.redemptionValue;
 }
 
 /**
  * Calculate points value in Rupiah (for display)
  */
-export function getPointsValue(points: number): number {
-  return points * POINTS_REDEMPTION_VALUE;
+export async function getPointsValue(points: number): Promise<number> {
+  const settings = await getPointsSettings();
+  return points * settings.redemptionValue;
 }
 
 /**
@@ -328,7 +377,7 @@ export async function awardPointsForBooking(
   bookingId: string,
   bookingValue: number
 ): Promise<boolean> {
-  const points = calculatePointsFromBooking(bookingValue);
+  const points = await calculatePointsFromBooking(bookingValue);
 
   if (points <= 0) {
     logger.info('No points to award (booking value too low)', {
@@ -360,7 +409,7 @@ export async function awardPointsForReview(
 ): Promise<boolean> {
   const transactionId = await awardPoints(
     customerId,
-    REVIEW_BONUS_POINTS,
+    (await getPointsSettings()).reviewBonus,
     'earn_review',
     bookingId,
     undefined,
@@ -405,7 +454,7 @@ export async function redeemPoints(
 
     const balanceBefore = loyaltyRecord.balance;
     const balanceAfter = balanceBefore - pointsToRedeem;
-    const discountAmount = calculateDiscountFromPoints(pointsToRedeem);
+    const discountAmount = await calculateDiscountFromPoints(pointsToRedeem);
 
     // Create transaction (negative points for redemption)
     const { data: transaction, error: txError } = await supabase
@@ -467,14 +516,15 @@ export async function redeemPoints(
 /**
  * Estimate points that will be earned from a booking
  */
-export function estimatePointsFromBooking(bookingValue: number): {
+export async function estimatePointsFromBooking(bookingValue: number): Promise<{
   points: number;
   value: number;
-} {
-  const points = calculatePointsFromBooking(bookingValue);
+}> {
+  const points = await calculatePointsFromBooking(bookingValue);
+  const value = await getPointsValue(points);
   return {
     points,
-    value: getPointsValue(points),
+    value,
   };
 }
 

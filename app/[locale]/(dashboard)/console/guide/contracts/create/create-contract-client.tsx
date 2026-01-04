@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import queryKeys from '@/lib/queries/query-keys';
 import { logger } from '@/lib/utils/logger';
 
 const contractFormSchema = z.object({
@@ -83,7 +84,7 @@ export function CreateContractClient({ locale }: CreateContractClientProps) {
       email: string | null;
     }>;
   }>({
-    queryKey: ['admin', 'guides', 'list'],
+    queryKey: queryKeys.admin.guides.list(),
     queryFn: async () => {
       const res = await fetch('/api/admin/guides');
       if (!res.ok) return { guides: [] };
@@ -106,7 +107,7 @@ export function CreateContractClient({ locale }: CreateContractClientProps) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({
-        queryKey: ['admin', 'guide', 'contracts'],
+        queryKey: queryKeys.admin.contracts.all(),
       });
       toast.success('Kontrak berhasil dibuat');
       router.push(`/${locale}/console/guide/contracts/${data.contract.id}`);

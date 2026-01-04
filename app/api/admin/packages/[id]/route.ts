@@ -5,6 +5,7 @@
  * DELETE /api/admin/packages/[id] - Delete (soft) package
  */
 
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -148,6 +149,59 @@ export const PUT = withErrorHandler(async (
 
     logger.info('Package updated successfully', { packageId: id, userId: user.id });
 
+    // Emit package.updated event (non-blocking)
+    try {
+      const { emitEvent } = await import('@/lib/events/event-bus');
+      await emitEvent(
+        {
+          type: 'package.updated',
+          app: 'admin',
+          userId: user.id,
+          data: {
+            packageId: id,
+            packageName: updated.name,
+            packageSlug: updated.slug,
+            status: updated.status,
+            updatedFields: Object.keys(updateData),
+          },
+        },
+        {
+          ipAddress: request.headers.get('x-forwarded-for') || undefined,
+          userAgent: request.headers.get('user-agent') || undefined,
+        }
+      ).catch((eventError) => {
+        logger.warn('Failed to emit package.updated event', eventError);
+      });
+    } catch (eventError) {
+      logger.warn('Event emission error (non-critical)', {
+        error: eventError instanceof Error ? eventError.message : String(eventError),
+      });
+    }
+
+    // Revalidate public package pages for ISR
+    try {
+      // Revalidate package list pages
+      revalidatePath('/id/packages', 'page');
+      revalidatePath('/en/packages', 'page');
+      
+      // Revalidate package detail page if slug is available
+      if (updated.slug) {
+        revalidatePath(`/id/packages/detail/${updated.slug}`, 'page');
+        revalidatePath(`/en/packages/detail/${updated.slug}`, 'page');
+      }
+      
+      // Revalidate using tags for broader cache invalidation
+      revalidateTag('packages', 'default');
+      
+      logger.info('Package pages revalidated', { packageId: id, slug: updated.slug });
+    } catch (revalidateError) {
+      // Don't fail the request if revalidation fails
+      logger.warn('Failed to revalidate package pages', { 
+        error: revalidateError instanceof Error ? revalidateError.message : String(revalidateError), 
+        packageId: id 
+      });
+    }
+
     return NextResponse.json({
       success: true,
       package: updated,
@@ -205,6 +259,20 @@ export const DELETE = withErrorHandler(async (
     }
 
     logger.info('Package deleted successfully', { packageId: id, userId: user.id });
+
+    // Revalidate public package pages for ISR
+    try {
+      revalidatePath('/id/packages', 'page');
+      revalidatePath('/en/packages', 'page');
+      revalidateTag('packages', 'default');
+      
+      logger.info('Package pages revalidated after deletion', { packageId: id });
+    } catch (revalidateError) {
+      logger.warn('Failed to revalidate package pages', { 
+        error: revalidateError instanceof Error ? revalidateError.message : String(revalidateError), 
+        packageId: id 
+      });
+    }
 
     return NextResponse.json({
       success: true,

@@ -41,6 +41,8 @@ import {
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import queryKeys from '@/lib/queries/query-keys';
+
 type Partner = {
   id: string;
   full_name: string;
@@ -122,12 +124,12 @@ export function TiersClient({ locale: _locale }: TiersClientProps) {
   const [overrideReason, setOverrideReason] = useState('');
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['admin', 'partners', 'tiers'],
+    queryKey: queryKeys.admin.partners.tiers(),
     queryFn: fetchPartners,
   });
 
   const { data: tierDetails, isLoading: tierDetailsLoading } = useQuery({
-    queryKey: ['admin', 'partners', 'tier', selectedPartner?.id],
+    queryKey: queryKeys.admin.partners.tierDetail(selectedPartner?.id || ''),
     queryFn: () => fetchTierDetails(selectedPartner!.id),
     enabled: !!selectedPartner && showTierDialog,
   });
@@ -137,7 +139,7 @@ export function TiersClient({ locale: _locale }: TiersClientProps) {
       overrideTier(partnerId, tier, reason),
     onSuccess: () => {
       toast.success('Tier overridden successfully');
-      queryClient.invalidateQueries({ queryKey: ['admin', 'partners'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.partners.all() });
       setShowOverrideDialog(false);
       setSelectedPartner(null);
       setOverrideReason('');
@@ -151,10 +153,10 @@ export function TiersClient({ locale: _locale }: TiersClientProps) {
     mutationFn: (partnerId: string) => recalculateTier(partnerId),
     onSuccess: () => {
       toast.success('Tier recalculated successfully');
-      queryClient.invalidateQueries({ queryKey: ['admin', 'partners'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.partners.all() });
       if (selectedPartner) {
         queryClient.invalidateQueries({
-          queryKey: ['admin', 'partners', 'tier', selectedPartner.id],
+          queryKey: queryKeys.admin.partners.tierDetail(selectedPartner.id),
         });
       }
     },

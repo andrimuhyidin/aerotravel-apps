@@ -889,6 +889,35 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         });
       }
 
+      // Audit log (non-blocking)
+      try {
+        const { logAuditEvent } = await import('@/lib/audit/cross-app-audit');
+        await logAuditEvent(
+          'partner',
+          user.id,
+          'create',
+          'booking',
+          booking.id,
+          {
+            bookingCode: booking.booking_code,
+            packageId,
+            tripDate,
+            totalAmount: subtotal,
+            customerName,
+            paymentMethod,
+            isDraft,
+          },
+          {
+            ipAddress: request.headers.get('x-forwarded-for') || undefined,
+            userAgent: request.headers.get('user-agent') || undefined,
+          }
+        );
+      } catch (auditError) {
+        logger.warn('Audit log error (non-critical)', {
+          error: auditError instanceof Error ? auditError.message : String(auditError),
+        });
+      }
+
       // Create in-app notification (non-blocking)
       try {
         const { createPartnerNotification } = await import('@/lib/partner/notifications');

@@ -3,6 +3,45 @@
  * Centralized management of TanStack Query keys
  *
  * Prevents typos and ensures consistency across the app
+ *
+ * @example
+ * ```tsx
+ * // In useQuery
+ * import queryKeys from '@/lib/queries/query-keys';
+ *
+ * const { data } = useQuery({
+ *   queryKey: queryKeys.bookings.detail(bookingId),
+ *   queryFn: () => getBooking(bookingId),
+ * });
+ *
+ * // In useMutation (invalidate on success)
+ * const mutation = useMutation({
+ *   mutationFn: createBooking,
+ *   onSuccess: () => {
+ *     queryClient.invalidateQueries({
+ *       queryKey: queryKeys.bookings.all,
+ *     });
+ *   },
+ * });
+ *
+ * // Admin Query Keys
+ * const { data: contracts } = useQuery({
+ *   queryKey: queryKeys.admin.contracts.list({ status: 'active' }),
+ *   queryFn: () => getContracts({ status: 'active' }),
+ * });
+ *
+ * // Partner Query Keys
+ * const { data: bookings } = useQuery({
+ *   queryKey: queryKeys.partner.bookings.list({ status: 'pending' }),
+ *   queryFn: () => getPartnerBookings({ status: 'pending' }),
+ * });
+ *
+ * // Guide Query Keys
+ * const { data: wallet } = useQuery({
+ *   queryKey: queryKeys.guide.wallet.balance(),
+ *   queryFn: () => getWalletBalance(),
+ * });
+ * ```
  */
 
 /**
@@ -100,6 +139,16 @@ const queryKeys = {
       [...queryKeys.seo.all, 'internal-links', currentPage, type, category] as const,
   },
 
+  // Unified Notifications (cross-app)
+  notifications: {
+    all: () => ['notifications'] as const,
+    list: (filters?: { app?: string; type?: string; read?: boolean }) =>
+      ['notifications', 'list', filters] as const,
+    unreadCount: (app?: string) =>
+      ['notifications', 'unread-count', app] as const,
+    detail: (id: string) => ['notifications', 'detail', id] as const,
+  },
+
   // Guide App
   guide: {
     all: ['guide'] as const,
@@ -177,7 +226,6 @@ const queryKeys = {
       availableMentors: () =>
         [...queryKeys.guide.all, 'mentorship', 'available-mentors'] as const,
     },
-    aiInsights: () => [...queryKeys.guide.all, 'ai-insights'] as const,
     onboarding: {
       all: () => [...queryKeys.guide.all, 'onboarding'] as const,
       steps: () => [...queryKeys.guide.onboarding.all(), 'steps'] as const,
@@ -428,8 +476,6 @@ const queryKeys = {
         [...queryKeys.guide.trips.all(), tripId, 'manifest'] as const,
       facilityChecklist: (tripId: string) =>
         [...queryKeys.guide.trips.all(), tripId, 'facility-checklist'] as const,
-      wasteLog: (tripId: string) =>
-        [...queryKeys.guide.trips.all(), tripId, 'waste-log'] as const,
     },
     equipment: {
       all: () => [...queryKeys.guide.all, 'equipment'] as const,
@@ -493,6 +539,146 @@ const queryKeys = {
   // Admin
   admin: {
     all: ['admin'] as const,
+
+    // Guide Management
+    guides: {
+      all: () => [...queryKeys.admin.all, 'guides'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.guides.all(), 'list', filters] as const,
+      detail: (id: string) =>
+        [...queryKeys.admin.guides.all(), 'detail', id] as const,
+    },
+
+    // Contract Management (Admin)
+    contracts: {
+      all: () => [...queryKeys.admin.all, 'contracts'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.contracts.all(), 'list', filters] as const,
+      detail: (id: string) =>
+        [...queryKeys.admin.contracts.all(), 'detail', id] as const,
+      sanctions: (contractId: string) =>
+        [...queryKeys.admin.contracts.all(), 'sanctions', contractId] as const,
+      resignations: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.contracts.all(), 'resignations', filters] as const,
+    },
+
+    // Payment Management (Admin)
+    payments: {
+      all: () => [...queryKeys.admin.all, 'payments'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.payments.all(), 'list', filters] as const,
+      detail: (id: string) =>
+        [...queryKeys.admin.payments.all(), 'detail', id] as const,
+    },
+
+    // Booking Management (Admin)
+    bookings: {
+      all: () => [...queryKeys.admin.all, 'bookings'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.bookings.all(), 'list', filters] as const,
+      detail: (id: string) =>
+        [...queryKeys.admin.bookings.all(), 'detail', id] as const,
+      stats: () => [...queryKeys.admin.bookings.all(), 'stats'] as const,
+    },
+
+    // Package Management (Admin)
+    packages: {
+      all: () => [...queryKeys.admin.all, 'packages'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.packages.all(), 'list', filters] as const,
+      detail: (id: string) =>
+        [...queryKeys.admin.packages.all(), 'detail', id] as const,
+      seasons: (year?: number) =>
+        [...queryKeys.admin.packages.all(), 'seasons', year] as const,
+    },
+
+    // Broadcast Management
+    broadcasts: {
+      all: () => [...queryKeys.admin.all, 'broadcasts'] as const,
+      list: (page?: number) =>
+        [...queryKeys.admin.broadcasts.all(), 'list', page] as const,
+    },
+
+    // Feedback Management
+    feedbacks: {
+      all: () => [...queryKeys.admin.all, 'feedbacks'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.feedbacks.all(), 'list', filters] as const,
+    },
+
+    // License Management
+    licenses: {
+      all: () => [...queryKeys.admin.all, 'licenses'] as const,
+      applications: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.licenses.all(), 'applications', filters] as const,
+      applicationDetail: (id: string) =>
+        [...queryKeys.admin.licenses.all(), 'application', id] as const,
+    },
+
+    // AI Documents
+    aiDocuments: {
+      all: () => [...queryKeys.admin.all, 'ai-documents'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.aiDocuments.all(), 'list', filters] as const,
+      stats: () => [...queryKeys.admin.aiDocuments.all(), 'stats'] as const,
+    },
+
+    // Partner Management (Admin)
+    partners: {
+      all: () => [...queryKeys.admin.all, 'partners'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.partners.all(), 'list', filters] as const,
+      tiers: () => [...queryKeys.admin.partners.all(), 'tiers'] as const,
+      tierDetail: (partnerId: string) =>
+        [...queryKeys.admin.partners.all(), 'tier', partnerId] as const,
+    },
+
+    // Role Applications
+    roleApplications: {
+      all: () => [...queryKeys.admin.all, 'role-applications'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.roleApplications.all(), 'list', filters] as const,
+    },
+
+    // Trips Management (Admin)
+    trips: {
+      all: () => [...queryKeys.admin.all, 'trips'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.trips.all(), 'list', filters] as const,
+      detail: (id: string) =>
+        [...queryKeys.admin.trips.all(), 'detail', id] as const,
+      assignments: (tripId: string) =>
+        [...queryKeys.admin.trips.all(), 'assignments', tripId] as const,
+    },
+
+    // Finance Management
+    finance: {
+      all: () => [...queryKeys.admin.all, 'finance'] as const,
+      dashboard: (period?: string) =>
+        [...queryKeys.admin.finance.all(), 'dashboard', period] as const,
+      payroll: {
+        all: () => [...queryKeys.admin.finance.all(), 'payroll'] as const,
+        list: (filters?: Record<string, unknown>) =>
+          [...queryKeys.admin.finance.all(), 'payroll', 'list', filters] as const,
+      },
+      invoices: {
+        all: () => [...queryKeys.admin.finance.all(), 'invoices'] as const,
+        list: (filters?: Record<string, unknown>) =>
+          [...queryKeys.admin.finance.all(), 'invoices', 'list', filters] as const,
+        detail: (id: string) =>
+          [...queryKeys.admin.finance.all(), 'invoices', 'detail', id] as const,
+      },
+      refunds: {
+        all: () => [...queryKeys.admin.finance.all(), 'refunds'] as const,
+        list: (filters?: Record<string, unknown>) =>
+          [...queryKeys.admin.finance.all(), 'refunds', 'list', filters] as const,
+      },
+      shadowPnl: (tripId?: string) =>
+        [...queryKeys.admin.finance.all(), 'shadow-pnl', tripId] as const,
+      withdrawRequests: (filters?: Record<string, unknown>) =>
+        [...queryKeys.admin.finance.all(), 'withdraw-requests', filters] as const,
+    },
+
     settings: {
       all: () => [...queryKeys.admin.all, 'settings'] as const,
       detail: (key: string) =>
@@ -722,6 +908,7 @@ const queryKeys = {
     // CLV
     clv: {
       all: () => [...queryKeys.partner.all, 'clv'] as const,
+      stats: () => [...queryKeys.partner.all, 'clv', 'stats'] as const,
       dashboard: () => [...queryKeys.partner.all, 'clv', 'dashboard'] as const,
       customers: () => [...queryKeys.partner.all, 'clv', 'customers'] as const,
     },
@@ -734,6 +921,7 @@ const queryKeys = {
     branches: {
       all: () => [...queryKeys.partner.all, 'branches'] as const,
       list: () => [...queryKeys.partner.all, 'branches', 'list'] as const,
+      stats: () => [...queryKeys.partner.all, 'branches', 'stats'] as const,
     },
     // Contracts
     contracts: {

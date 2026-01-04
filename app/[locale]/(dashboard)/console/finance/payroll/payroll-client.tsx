@@ -99,7 +99,7 @@ export function PayrollClient() {
   const [expandedGuides, setExpandedGuides] = useState<Set<string>>(new Set());
 
   const { data, isLoading, error, refetch, isRefetching } = useQuery({
-    queryKey: [...queryKeys.admin.all, 'payroll', period],
+    queryKey: queryKeys.admin.finance.payroll.list({ period }),
     queryFn: () => fetchPayrollData(period),
   });
 

@@ -11,6 +11,9 @@ import { setRequestLocale } from 'next-intl/server';
 import { Container } from '@/components/layout/container';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { locales } from '@/i18n';
+import { getLegalPage } from '@/lib/cms/legal-pages';
+import { sanitizeHtml } from '@/lib/templates/utils';
+import { getSettings } from '@/lib/settings';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -47,6 +50,17 @@ export default async function DPOPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
+  // Fetch DPO page and settings
+  const [legalPage, settings] = await Promise.all([
+    getLegalPage('dpo'),
+    getSettings(),
+  ]);
+
+  const dpoEmail = settings['legal.dpo_email'] || 'privacy@aerotravel.co.id';
+  const dpoPhone = settings['legal.dpo_phone'] || '+62 812 3456 7890';
+  const dpoAddress = settings['legal.dpo_address'] || 'Bandar Lampung, Lampung, Indonesia 35123';
+  const responseTimeDays = settings['legal.response_time_days'] || '14';
+
   return (
     <Container className="py-8">
       {/* Hero */}
@@ -54,10 +68,17 @@ export default async function DPOPage({ params }: PageProps) {
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
           <Shield className="h-8 w-8 text-primary" />
         </div>
-        <h1 className="mb-3 text-3xl font-bold">Data Protection Officer</h1>
-        <p className="mx-auto max-w-2xl text-muted-foreground">
-          Sesuai dengan UU No. 27 Tahun 2022 tentang Perlindungan Data Pribadi, kami menunjuk DPO untuk menangani pertanyaan terkait privasi dan perlindungan data.
-        </p>
+        <h1 className="mb-3 text-3xl font-bold">
+          {legalPage?.title || 'Data Protection Officer'}
+        </h1>
+        <div
+          className="mx-auto max-w-2xl text-muted-foreground"
+          dangerouslySetInnerHTML={{
+            __html: legalPage?.content_html
+              ? sanitizeHtml(legalPage.content_html)
+              : '<p>Sesuai dengan UU No. 27 Tahun 2022 tentang Perlindungan Data Pribadi, kami menunjuk DPO untuk menangani pertanyaan terkait privasi dan perlindungan data.</p>',
+          }}
+        />
       </div>
 
       {/* Contact Cards */}
@@ -77,10 +98,10 @@ export default async function DPOPage({ params }: PageProps) {
                 Email
               </div>
               <a
-                href="mailto:privacy@aerotravel.co.id"
+                href={`mailto:${dpoEmail}`}
                 className="text-primary hover:underline"
               >
-                privacy@aerotravel.co.id
+                {dpoEmail}
               </a>
               <p className="mt-1 text-xs text-muted-foreground">
                 Untuk pertanyaan terkait privasi dan data pribadi
@@ -92,11 +113,14 @@ export default async function DPOPage({ params }: PageProps) {
                 <Phone className="h-4 w-4 text-muted-foreground" />
                 Telepon
               </div>
-              <a href="tel:+628123456 7890" className="text-primary hover:underline">
-                +62 812 3456 7890
+              <a
+                href={`tel:${dpoPhone.replace(/\D/g, '')}`}
+                className="text-primary hover:underline"
+              >
+                {dpoPhone}
               </a>
               <p className="mt-1 text-xs text-muted-foreground">
-                Senin - Jumat, 09:00 - 17:00 WIB
+                {settings['help.support_hours'] || 'Senin - Jumat, 09:00 - 17:00 WIB'}
               </p>
             </div>
 
@@ -105,12 +129,7 @@ export default async function DPOPage({ params }: PageProps) {
                 <MapPin className="h-4 w-4 text-muted-foreground" />
                 Alamat
               </div>
-              <p className="text-sm">PT. MyAeroTravel Indonesia</p>
-              <p className="text-sm text-muted-foreground">
-                Bandar Lampung, Lampung
-                <br />
-                Indonesia 35123
-              </p>
+              <p className="text-sm">{dpoAddress}</p>
             </div>
           </CardContent>
         </Card>
@@ -193,7 +212,7 @@ export default async function DPOPage({ params }: PageProps) {
 
           <div className="mt-6 rounded-lg bg-muted p-4">
             <p className="text-sm">
-              <strong>Waktu Respon:</strong> Kami berkomitmen untuk merespons permintaan Anda dalam waktu maksimal 14 hari kerja. Untuk permintaan yang kompleks, kami akan memberitahu Anda tentang perkiraan waktu penyelesaian.
+              <strong>Waktu Respon:</strong> Kami berkomitmen untuk merespons permintaan Anda dalam waktu maksimal {responseTimeDays} hari kerja. Untuk permintaan yang kompleks, kami akan memberitahu Anda tentang perkiraan waktu penyelesaian.
             </p>
           </div>
         </CardContent>
@@ -213,7 +232,9 @@ export default async function DPOPage({ params }: PageProps) {
             <li>
               Melaporkan ke Kementerian Komunikasi dan Informatika RI
               <br />
-              <span className="text-muted-foreground">Email: pengaduan@kominfo.go.id</span>
+              <span className="text-muted-foreground">
+                Email: <a href="mailto:pengaduan@kominfo.go.id" className="text-primary hover:underline">pengaduan@kominfo.go.id</a>
+              </span>
             </li>
             <li>
               Melaporkan ke Lembaga Perlindungan Data Pribadi (bila sudah terbentuk)

@@ -1,17 +1,19 @@
 /**
  * Partner Notifications Client Component
- * REDESIGNED - Grouped by date, Clean cards, Mark as read
+ * Using Unified Notifications API
  */
 
 'use client';
 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/partner';
-import { logger } from '@/lib/utils/logger';
+import { apiClient } from '@/lib/api/client';
+import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 import {
   Bell,
@@ -21,116 +23,82 @@ import {
   DollarSign,
   Package,
   Info,
-  X,
+  AlertTriangle,
+  Users,
+  Wallet,
+  Truck,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
-type Notification = {
-  id: string;
-  type: 'booking' | 'payment' | 'system' | 'promo';
-  title: string;
-  message: string;
-  isRead: boolean;
-  createdAt: string;
-  actionUrl?: string | null;
-};
+import type { UnifiedNotification, NotificationType } from '@/lib/notifications/notification-types';
 
 type NotificationsResponse = {
-  notifications: Notification[];
+  notifications: UnifiedNotification[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
   unreadCount: number;
 };
 
 type GroupedNotifications = {
-  today: Notification[];
-  yesterday: Notification[];
-  older: Notification[];
+  today: UnifiedNotification[];
+  yesterday: UnifiedNotification[];
+  older: UnifiedNotification[];
 };
 
 export function NotificationsClient({ locale }: { locale: string }) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>('all');
 
-  useEffect(() => {
-    loadNotifications();
-  }, []);
-
-  const loadNotifications = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/partner/notifications');
-      if (!res.ok) throw new Error('Failed to fetch notifications');
-
-      const data: NotificationsResponse = await res.json();
-      setNotifications(data.notifications);
-      setUnreadCount(data.unreadCount);
-    } catch (error) {
-      logger.error('Failed to load notifications', error);
-      toast.error('Gagal memuat notifikasi');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      const res = await fetch('/api/partner/notifications/mark-all-read', {
-        method: 'POST',
-      });
-
-      if (!res.ok) throw new Error('Failed to mark all as read');
-
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      setUnreadCount(0);
-      toast.success('Semua notifikasi ditandai sudah dibaca');
-    } catch (error) {
-      logger.error('Failed to mark all as read', error);
-      toast.error('Gagal menandai notifikasi');
-    }
-  };
-
-  const markAsRead = async (id: string) => {
-    try {
-      const res = await fetch(`/api/partner/notifications/${id}/read`, {
-        method: 'POST',
-      });
-
-      if (!res.ok) throw new Error('Failed to mark as read');
-
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+  // Fetch notifications using unified API
+  const { data, isLoading } = useQuery<NotificationsResponse>({
+    queryKey: queryKeys.notifications.list({ app: 'partner' }),
+    queryFn: async () => {
+      const response = await apiClient.get<NotificationsResponse>(
+        '/api/notifications?app=partner&limit=100'
       );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (error) {
-      logger.error('Failed to mark as read', error);
-    }
-  };
+      return response.data;
+    },
+  });
 
-  const deleteNotification = async (id: string) => {
-    try {
-      const res = await fetch(`/api/partner/notifications/${id}`, {
-        method: 'DELETE',
-      });
+  const notifications = data?.notifications || [];
+  const unreadCount = data?.unreadCount || 0;
 
-      if (!res.ok) throw new Error('Failed to delete notification');
+  // Mark all as read mutation
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      return apiClient.post('/api/notifications/read-all', { app: 'partner' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all() });
+      toast.success('Semua notifikasi ditandai sudah dibaca');
+    },
+    onError: () => {
+      toast.error('Gagal menandai notifikasi');
+    },
+  });
 
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-      toast.success('Notifikasi dihapus');
-    } catch (error) {
-      logger.error('Failed to delete notification', error);
-      toast.error('Gagal menghapus notifikasi');
-    }
-  };
+  // Mark as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiClient.post(`/api/notifications/${id}/read`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all() });
+    },
+  });
 
   // Filter notifications
   const filteredNotifications =
     activeTab === 'all'
       ? notifications
       : activeTab === 'unread'
-        ? notifications.filter((n) => !n.isRead)
-        : notifications.filter((n) => n.isRead);
+        ? notifications.filter((n) => !n.read)
+        : notifications.filter((n) => n.read);
 
   // Group by date
   const groupedNotifications: GroupedNotifications = {
@@ -145,7 +113,7 @@ export function NotificationsClient({ locale }: { locale: string }) {
   yesterday.setDate(yesterday.getDate() - 1);
 
   filteredNotifications.forEach((notif) => {
-    const notifDate = new Date(notif.createdAt);
+    const notifDate = new Date(notif.created_at);
     notifDate.setHours(0, 0, 0, 0);
 
     if (notifDate.getTime() === today.getTime()) {
@@ -165,7 +133,12 @@ export function NotificationsClient({ locale }: { locale: string }) {
         description="Update dan informasi terbaru"
         action={
           unreadCount > 0 ? (
-            <Button variant="outline" size="sm" onClick={markAllAsRead}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => markAllAsReadMutation.mutate()}
+              disabled={markAllAsReadMutation.isPending}
+            >
               <CheckCheck className="mr-2 h-4 w-4" />
               Mark All Read
             </Button>
@@ -190,7 +163,7 @@ export function NotificationsClient({ locale }: { locale: string }) {
 
           {['all', 'unread', 'read'].map((tab) => (
             <TabsContent key={tab} value={tab} className="mt-4 space-y-4">
-              {loading ? (
+              {isLoading ? (
                 <NotificationsSkeleton />
               ) : filteredNotifications.length === 0 ? (
                 <EmptyState
@@ -214,8 +187,7 @@ export function NotificationsClient({ locale }: { locale: string }) {
                     <NotificationGroup
                       title="Hari Ini"
                       notifications={groupedNotifications.today}
-                      onMarkAsRead={markAsRead}
-                      onDelete={deleteNotification}
+                      onMarkAsRead={(id) => markAsReadMutation.mutate(id)}
                       locale={locale}
                     />
                   )}
@@ -225,8 +197,7 @@ export function NotificationsClient({ locale }: { locale: string }) {
                     <NotificationGroup
                       title="Kemarin"
                       notifications={groupedNotifications.yesterday}
-                      onMarkAsRead={markAsRead}
-                      onDelete={deleteNotification}
+                      onMarkAsRead={(id) => markAsReadMutation.mutate(id)}
                       locale={locale}
                     />
                   )}
@@ -236,8 +207,7 @@ export function NotificationsClient({ locale }: { locale: string }) {
                     <NotificationGroup
                       title="Lebih Lama"
                       notifications={groupedNotifications.older}
-                      onMarkAsRead={markAsRead}
-                      onDelete={deleteNotification}
+                      onMarkAsRead={(id) => markAsReadMutation.mutate(id)}
                       locale={locale}
                     />
                   )}
@@ -256,13 +226,11 @@ function NotificationGroup({
   title,
   notifications,
   onMarkAsRead,
-  onDelete,
   locale,
 }: {
   title: string;
-  notifications: Notification[];
+  notifications: UnifiedNotification[];
   onMarkAsRead: (id: string) => void;
-  onDelete: (id: string) => void;
   locale: string;
 }) {
   return (
@@ -273,7 +241,6 @@ function NotificationGroup({
           key={notif.id}
           notification={notif}
           onMarkAsRead={onMarkAsRead}
-          onDelete={onDelete}
           locale={locale}
         />
       ))}
@@ -285,51 +252,43 @@ function NotificationGroup({
 function NotificationCard({
   notification,
   onMarkAsRead,
-  onDelete,
   locale,
 }: {
-  notification: Notification;
+  notification: UnifiedNotification;
   onMarkAsRead: (id: string) => void;
-  onDelete: (id: string) => void;
   locale: string;
 }) {
-  const getIcon = () => {
-    switch (notification.type) {
-      case 'booking':
-        return Calendar;
-      case 'payment':
-        return DollarSign;
-      case 'promo':
-        return Package;
-      case 'system':
-        return Info;
-      default:
-        return Bell;
-    }
+  const getIcon = (type: NotificationType) => {
+    if (type.startsWith('booking.')) return Calendar;
+    if (type.startsWith('payment.')) return DollarSign;
+    if (type.startsWith('wallet.')) return Wallet;
+    if (type.startsWith('trip.')) return Truck;
+    if (type.startsWith('package.')) return Package;
+    if (type.startsWith('refund.')) return AlertTriangle;
+    if (type.startsWith('support.')) return Users;
+    if (type.startsWith('system.')) return Info;
+    return Bell;
   };
 
-  const getIconColor = () => {
-    switch (notification.type) {
-      case 'booking':
-        return 'bg-blue-100 text-blue-600';
-      case 'payment':
-        return 'bg-green-100 text-green-600';
-      case 'promo':
-        return 'bg-purple-100 text-purple-600';
-      case 'system':
-        return 'bg-gray-100 text-gray-600';
-      default:
-        return 'bg-blue-100 text-blue-600';
-    }
+  const getIconColor = (type: NotificationType) => {
+    if (type.startsWith('booking.')) return 'bg-blue-100 text-blue-600';
+    if (type.startsWith('payment.')) return 'bg-green-100 text-green-600';
+    if (type.startsWith('wallet.')) return 'bg-emerald-100 text-emerald-600';
+    if (type.startsWith('trip.')) return 'bg-indigo-100 text-indigo-600';
+    if (type.startsWith('package.')) return 'bg-purple-100 text-purple-600';
+    if (type.startsWith('refund.')) return 'bg-orange-100 text-orange-600';
+    if (type.startsWith('support.')) return 'bg-yellow-100 text-yellow-600';
+    if (type.startsWith('system.')) return 'bg-gray-100 text-gray-600';
+    return 'bg-blue-100 text-blue-600';
   };
 
-  const Icon = getIcon();
+  const Icon = getIcon(notification.type);
 
   return (
     <Card
       className={cn(
         'overflow-hidden transition-all hover:shadow-md',
-        !notification.isRead && 'border-l-4 border-l-primary bg-blue-50/30'
+        !notification.read && 'border-l-4 border-l-primary bg-blue-50/30'
       )}
     >
       <CardContent className="p-4">
@@ -338,7 +297,7 @@ function NotificationCard({
           <div
             className={cn(
               'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full',
-              getIconColor()
+              getIconColor(notification.type)
             )}
           >
             <Icon className="h-5 w-5" />
@@ -350,13 +309,13 @@ function NotificationCard({
               <h4 className="text-sm font-semibold text-foreground">
                 {notification.title}
               </h4>
-              {!notification.isRead && (
+              {!notification.read && (
                 <div className="h-2 w-2 flex-shrink-0 rounded-full bg-primary" />
               )}
             </div>
             <p className="text-sm text-muted-foreground">{notification.message}</p>
             <p className="text-xs text-muted-foreground">
-              {new Date(notification.createdAt).toLocaleString('id-ID', {
+              {new Date(notification.created_at).toLocaleString('id-ID', {
                 day: 'numeric',
                 month: 'short',
                 hour: '2-digit',
@@ -367,7 +326,7 @@ function NotificationCard({
 
           {/* Actions */}
           <div className="flex flex-col gap-1">
-            {!notification.isRead && (
+            {!notification.read && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -377,14 +336,6 @@ function NotificationCard({
                 <Check className="h-4 w-4" />
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-red-600"
-              onClick={() => onDelete(notification.id)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </CardContent>

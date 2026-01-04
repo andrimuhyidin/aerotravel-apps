@@ -18,6 +18,8 @@ import {
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import * as LucideIcons from 'lucide-react';
 
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
@@ -28,11 +30,58 @@ type GuideLandingContentProps = {
   hasGuideRole: boolean;
 };
 
+type LandingContent = {
+  benefits: Array<{ icon: string; title: string; description: string }>;
+  requirements?: string[];
+  stats?: Array<{ icon: string; value: string; label: string }>;
+};
+
 export function GuideLandingContent({
   locale,
   hasGuideRole,
 }: GuideLandingContentProps) {
-  const benefits = [
+  // Fetch landing content from API
+  const { data: landingData } = useQuery<{ content: LandingContent }>({
+    queryKey: ['landing', 'guide'],
+    queryFn: async () => {
+      const res = await fetch('/api/settings?prefix=landing.guide.');
+      if (!res.ok) throw new Error('Failed to fetch landing content');
+      const settings = await res.json();
+      
+      // Parse JSON settings
+      const parseJson = (key: string) => {
+        const setting = settings.settings?.find((s: any) => s.key === key);
+        if (!setting) return [];
+        try {
+          return JSON.parse(setting.value);
+        } catch {
+          return [];
+        }
+      };
+
+      return {
+        content: {
+          benefits: parseJson('landing.guide.benefits'),
+          requirements: parseJson('landing.guide.requirements'),
+          stats: parseJson('landing.guide.stats'),
+        },
+      };
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Map icon names to Lucide icons
+  const getIcon = (iconName: string) => {
+    const IconComponent = (LucideIcons as Record<string, any>)[iconName];
+    return IconComponent || DollarSign;
+  };
+
+  // Use fetched data or fallback to defaults
+  const benefits = landingData?.content?.benefits?.map((b) => ({
+    icon: getIcon(b.icon),
+    title: b.title,
+    description: b.description,
+  })) || [
     {
       icon: DollarSign,
       title: 'Penghasilan Fleksibel',
@@ -65,13 +114,23 @@ export function GuideLandingContent({
     },
   ];
 
-  const requirements = [
+  const requirements = landingData?.content?.requirements || [
     'Minimal usia 21 tahun',
     'Memiliki KTP dan SIM yang masih berlaku',
     'Memiliki pengalaman sebagai guide atau passion di bidang pariwisata',
     'Memiliki kemampuan komunikasi yang baik',
     'Sehat jasmani dan rohani',
     'Memiliki smartphone dengan koneksi internet',
+  ];
+
+  const stats = landingData?.content?.stats?.map((s) => ({
+    icon: getIcon(s.icon),
+    value: s.value,
+    label: s.label,
+  })) || [
+    { icon: Users, value: '500+', label: 'Guide Aktif' },
+    { icon: Star, value: '4.8', label: 'Rating' },
+    { icon: TrendingUp, value: '10K+', label: 'Trip' },
   ];
 
   return (
@@ -171,29 +230,18 @@ export function GuideLandingContent({
               </h2>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-2xl bg-card p-3 text-center shadow-sm">
-                <div className="mb-1.5 flex flex-col items-center gap-1">
-                  <Users className="h-5 w-5 text-primary" />
-                  <span className="text-lg font-bold text-foreground">500+</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground">Guide Aktif</p>
-              </div>
-              <div className="rounded-2xl bg-card p-3 text-center shadow-sm">
-                <div className="mb-1.5 flex flex-col items-center gap-1">
-                  <Star className="h-5 w-5 text-amber-500" />
-                  <span className="text-lg font-bold text-foreground">4.8</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground">Rating</p>
-              </div>
-              <div className="rounded-2xl bg-card p-3 text-center shadow-sm">
-                <div className="mb-1.5 flex flex-col items-center gap-1">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  <span className="text-lg font-bold text-foreground">
-                    10K+
-                  </span>
-                </div>
-                <p className="text-[11px] text-muted-foreground">Trip</p>
-              </div>
+              {stats.map((stat, index) => {
+                const Icon = stat.icon;
+                return (
+                  <div key={index} className="rounded-2xl bg-card p-3 text-center shadow-sm">
+                    <div className="mb-1.5 flex flex-col items-center gap-1">
+                      <Icon className="h-5 w-5 text-primary" />
+                      <span className="text-lg font-bold text-foreground">{stat.value}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">{stat.label}</p>
+                  </div>
+                );
+              })}
             </div>
           </Container>
         </Section>

@@ -206,11 +206,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   // guide object already has full_name, so we can use that
 
   // Get company config
-  const { COMPANY_CONFIG } = await import('@/lib/config/company');
+  const { getCompanyConfig } = await import('@/lib/config/company');
+  const companyConfig = await getCompanyConfig();
 
   // Generate full contract content using template
   const contractContent = generateDefaultContractContent(
-    COMPANY_CONFIG.name,
+    companyConfig.name,
     guide.full_name || 'Guide',
     contractNumber,
     body.start_date,

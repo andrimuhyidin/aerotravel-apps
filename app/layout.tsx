@@ -4,6 +4,7 @@ import { ClarityScript } from '@/lib/analytics/clarity-script';
 import { PostHogProvider } from '@/lib/analytics/posthog';
 import { env } from '@/lib/env';
 import { QueryProvider } from '@/lib/providers/query-provider';
+import { SettingsProviderWrapper } from '@/lib/providers/settings-provider-wrapper';
 import { JsonLd } from '@/components/seo/json-ld';
 import { generateOrganizationSchema } from '@/lib/seo/structured-data';
 import { GoogleAnalytics } from '@next/third-parties/google';
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
   authors: [{ name: 'Aero Travel Indonesia' }],
   creator: 'Aero Travel Indonesia',
   publisher: 'Aero Travel Indonesia',
-  manifest: '/manifest.json',
+  manifest: '/manifest',
   openGraph: {
     type: 'website',
     locale: 'id_ID',
@@ -83,15 +84,14 @@ export default function RootLayout({
         <JsonLd data={generateOrganizationSchema()} />
       </head>
       <body>
-        {/* #region agent log */}
-        {typeof window !== 'undefined' && fetch('http://127.0.0.1:7243/ingest/fd0e7040-6dec-4c80-af68-824474150b64',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'layout.tsx:86',message:'RootLayout body render',data:{hasChildren:!!children},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{})}
-        {/* #endregion */}
         <ErrorBoundary>
           <QueryProvider>
-            <PostHogProvider>
-              {children}
-              <WebVitalsTracker />
-            </PostHogProvider>
+            <SettingsProviderWrapper>
+              <PostHogProvider>
+                {children}
+                <WebVitalsTracker />
+              </PostHogProvider>
+            </SettingsProviderWrapper>
           </QueryProvider>
         </ErrorBoundary>
         {env.NEXT_PUBLIC_GA4_MEASUREMENT_ID && (

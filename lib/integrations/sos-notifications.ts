@@ -38,8 +38,25 @@ const INCIDENT_LABELS: Record<string, string> = {
   other: '⚠️ Darurat',
 };
 
+// Fallback SOS message template
+const FALLBACK_SOS_TEMPLATE = `🚨 *ALERT SOS DITERIMA* 🚨
+
+*Jenis:* {{incident_type}}
+*Guide:* {{guide_name}}
+*Trip:* {{trip_name}} {{trip_code}}
+
+📍 *Lokasi:*
+{{maps_link}}
+
+{{message_section}}
+🕐 *Waktu:* {{timestamp}}
+
+━━━━━━━━━━━━━━━━━
+⚡ SEGERA TINDAK LANJUTI!
+📞 Hubungi: {{guide_phone}}`;
+
 /**
- * Format SOS message for WhatsApp
+ * Format SOS message for WhatsApp (sync version for backward compatibility)
  */
 export function formatSOSMessage(data: SOSAlertData): string {
   const mapsLink = data.latitude && data.longitude
@@ -75,6 +92,48 @@ ${data.message ? `💬 *Pesan:*\n${data.message}\n` : ''}
 ━━━━━━━━━━━━━━━━━
 ⚡ SEGERA TINDAK LANJUTI!
 📞 Hubungi: ${data.guidePhone || 'N/A'}`;
+}
+
+/**
+ * Format SOS message for WhatsApp using database templates
+ */
+export async function formatSOSMessageAsync(data: SOSAlertData): Promise<string> {
+  const { processNotificationTemplateWithFallback } = await import('@/lib/templates/notification');
+
+  const mapsLink = data.latitude && data.longitude
+    ? `https://www.google.com/maps?q=${data.latitude},${data.longitude}`
+    : 'Lokasi tidak tersedia';
+
+  const incidentLabel = data.incidentType
+    ? INCIDENT_LABELS[data.incidentType]
+    : '🚨 Darurat';
+
+  const timestamp = data.timestamp.toLocaleString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const variables = {
+    incident_type: incidentLabel,
+    guide_name: data.guideName,
+    trip_name: data.tripName,
+    trip_code: data.tripCode ? `(${data.tripCode})` : '',
+    maps_link: mapsLink,
+    message_section: data.message ? `💬 *Pesan:*\n${data.message}\n` : '',
+    timestamp,
+    guide_phone: data.guidePhone || 'N/A',
+  };
+
+  return processNotificationTemplateWithFallback(
+    'sos_alert',
+    variables,
+    FALLBACK_SOS_TEMPLATE
+  );
 }
 
 /**
@@ -201,7 +260,8 @@ export async function sendSOSNotifications(
     errors: [],
   };
 
-  const message = formatSOSMessage(data);
+  // Use async template-based message formatting
+  const message = await formatSOSMessageAsync(data);
 
   // 1. Send to WhatsApp group
   const groupId = process.env.WHATSAPP_SOS_GROUP_ID;

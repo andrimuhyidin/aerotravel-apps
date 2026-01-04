@@ -7,23 +7,27 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getUserRoles } from '@/lib/session/active-role';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
-  const supabase = await createClient();
+  // Use regular client for auth
+  const authClient = await createClient();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await authClient.auth.getUser();
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    // Get all active roles
+    // Get all active roles from user_metadata (bypasses RLS)
     const roles = await getUserRoles(user.id);
+
+    // Use admin client for data queries (bypasses RLS)
+    const supabase = await createAdminClient();
 
     // Get detailed role information
     const { data: userRoles, error } = await (supabase as any)

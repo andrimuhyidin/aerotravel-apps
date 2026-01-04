@@ -3,7 +3,7 @@
  * Route: /[locale]/about
  */
 
-import { Award, Heart, Shield, Target, Users } from 'lucide-react';
+import { Award, Shield, Target } from 'lucide-react';
 import { Metadata, Viewport } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 
@@ -14,8 +14,10 @@ import { JsonLd } from '@/components/seo/json-ld';
 import { TrustSignals } from '@/components/seo/trust-signals';
 import { Card, CardContent } from '@/components/ui/card';
 import { locales } from '@/i18n';
+import { getAboutContent } from '@/lib/cms/about';
 import { getAllAuthors } from '@/lib/seo/authors';
 import { generateAuthorSchema, generateAboutPageSchema } from '@/lib/seo/structured-data';
+import * as LucideIcons from 'lucide-react';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -84,37 +86,31 @@ export default async function AboutPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const values = [
-    {
-      icon: Shield,
-      title: 'Keamanan',
-      description:
-        'Standar keselamatan tinggi dengan asuransi dan prosedur darurat.',
-    },
-    {
-      icon: Heart,
-      title: 'Pelayanan',
-      description: 'Tim profesional yang siap melayani dengan sepenuh hati.',
-    },
-    {
-      icon: Award,
-      title: 'Kualitas',
-      description: 'Pengalaman wisata premium dengan harga yang kompetitif.',
-    },
-    {
-      icon: Users,
-      title: 'Komunitas',
-      description:
-        'Membangun komunitas traveler yang saling berbagi pengalaman.',
-    },
-  ];
+  // Fetch about content from database
+  const aboutContent = await getAboutContent();
 
-  const stats = [
-    { value: '5+', label: 'Tahun Pengalaman' },
-    { value: '500+', label: 'Trip Sukses' },
-    { value: '10K+', label: 'Traveler Puas' },
-    { value: '4.9', label: 'Rating Rata-rata' },
-  ];
+  // Map icon names to Lucide icons
+  const getIcon = (iconName: string | null) => {
+    if (!iconName) return Shield;
+    const IconComponent = (LucideIcons as Record<string, any>)[iconName];
+    return IconComponent || Shield;
+  };
+
+  // Transform values with icons
+  const values = aboutContent.values.map((value) => ({
+    icon: getIcon(value.icon_name),
+    title: value.title,
+    description: value.description || '',
+  }));
+
+  // Transform stats
+  const stats = aboutContent.stats.map((stat) => ({
+    value: stat.value,
+    label: stat.label,
+  }));
+
+  // Transform awards
+  const awards = aboutContent.awards.map((award) => award.name);
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
 
@@ -127,9 +123,9 @@ export default async function AboutPage({ params }: PageProps) {
     description:
       'Aero Travel adalah travel agency terpercaya yang menyediakan paket wisata bahari terbaik di Indonesia.',
     url: `/${locale}/about`,
-    foundingDate: '2019-01-01',
+    foundingDate: aboutContent.founding_date,
     founders: teamAuthors[0] ? [teamAuthors[0]] : [],
-    awards: ['Member ASITA', 'Registered Travel Agency'],
+    awards: awards.length > 0 ? awards : ['Member ASITA', 'Registered Travel Agency'],
   });
 
   // Generate author schemas for team members
@@ -185,19 +181,9 @@ export default async function AboutPage({ params }: PageProps) {
         <CardContent className="p-6">
           <h2 className="mb-3 text-base font-semibold">Cerita Kami</h2>
           <div className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              Aero Travel didirikan dengan satu visi: memberikan pengalaman
-              wisata bahari terbaik dengan standar keselamatan tinggi. Berawal
-              dari kecintaan terhadap keindahan laut Indonesia, kami berkomitmen
-              untuk membawa setiap traveler menikmati surga bawah laut yang
-              memukau.
-            </p>
-            <p>
-              Dengan tim profesional dan guide berpengalaman, kami telah
-              melayani ribuan traveler dari berbagai daerah. Setiap perjalanan
-              adalah kesempatan bagi kami untuk berbagi keajaiban alam
-              Indonesia.
-            </p>
+            {aboutContent.story.split('\n').map((paragraph, index) => (
+              <p key={index}>{paragraph}</p>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -250,9 +236,7 @@ export default async function AboutPage({ params }: PageProps) {
             </div>
             <h3 className="mb-3 text-base font-semibold">Visi</h3>
             <p className="text-sm text-muted-foreground">
-              Menjadi travel agency marine tourism terdepan di Indonesia yang
-              mengutamakan keamanan, kenyamanan, dan pengalaman tak terlupakan
-              bagi setiap traveler.
+              {aboutContent.vision}
             </p>
           </CardContent>
         </Card>
@@ -263,12 +247,9 @@ export default async function AboutPage({ params }: PageProps) {
             </div>
             <h3 className="mb-3 text-base font-semibold">Misi</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                • Menyediakan paket wisata berkualitas dengan harga terjangkau
-              </li>
-              <li>• Menerapkan standar keselamatan tertinggi</li>
-              <li>• Memberdayakan masyarakat lokal sebagai mitra</li>
-              <li>• Menjaga kelestarian lingkungan bahari</li>
+              {aboutContent.mission.split('\n').map((line, index) => (
+                <li key={index}>• {line.trim()}</li>
+              ))}
             </ul>
           </CardContent>
         </Card>

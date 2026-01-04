@@ -234,3 +234,81 @@ export function getImageUrl(imagePath: string): string {
   return getFullUrl(imagePath);
 }
 
+// ============================================
+// Dynamic Config from Settings (Server-side)
+// ============================================
+
+/**
+ * Get SEO config from database settings with fallback to hardcoded values
+ * Use this in server components for dynamic SEO
+ */
+export async function getConfigFromSettings() {
+  try {
+    const { getAllSettings } = await import('@/lib/settings');
+    const settings = await getAllSettings(null);
+
+    return {
+      company: {
+        name: settings.branding?.app_name || COMPANY.name,
+        alternateName: COMPANY.alternateName,
+        tagline: settings.branding?.tagline || COMPANY.tagline,
+        foundingDate: COMPANY.foundingDate,
+        description: COMPANY.description,
+        shortDescription: COMPANY.shortDescription,
+      },
+      contact: settings.contact || CONTACT,
+      social: settings.social || SOCIAL_PROFILES,
+      images: {
+        logo: settings.branding?.logo_url || IMAGES.logo,
+        logoSquare: settings.branding?.logo_url || IMAGES.logoSquare,
+        ogDefault: settings.seo?.default_og_image || IMAGES.ogDefault,
+        favicon: settings.branding?.favicon_url || IMAGES.favicon,
+        placeholder: IMAGES.placeholder,
+        heroDefault: IMAGES.heroDefault,
+      },
+      seo: {
+        titleSuffix: settings.seo?.title_suffix || SEO_DEFAULTS.titleSuffix,
+        titleSeparator: SEO_DEFAULTS.titleSeparator,
+        defaultTitle: `${settings.branding?.app_name || COMPANY.name} - Travel Management Platform`,
+        defaultDescription: settings.seo?.default_description || SEO_DEFAULTS.defaultDescription,
+        defaultKeywords: settings.seo?.default_keywords || SEO_DEFAULTS.defaultKeywords,
+        locale: settings.business?.locale || SEO_DEFAULTS.locale,
+        localeAlternate: SEO_DEFAULTS.localeAlternate,
+        type: SEO_DEFAULTS.type,
+      },
+      business: {
+        hours: settings.business?.hours || BUSINESS_HOURS,
+        currency: settings.business?.currency || PRICE_RANGE.currency,
+        locale: settings.business?.locale || SEO_DEFAULTS.locale,
+        timezone: settings.business?.timezone || 'Asia/Jakarta',
+      },
+      stats: settings.stats || STATS,
+      // Keep static data (not in settings)
+      priceRange: PRICE_RANGE,
+      certifications: CERTIFICATIONS,
+      destinations: DESTINATIONS,
+      tripTypes: TRIP_TYPES,
+    };
+  } catch (error) {
+    // Fallback to hardcoded values if settings fail
+    return {
+      company: COMPANY,
+      contact: CONTACT,
+      social: SOCIAL_PROFILES,
+      images: IMAGES,
+      seo: SEO_DEFAULTS,
+      business: {
+        hours: BUSINESS_HOURS,
+        currency: PRICE_RANGE.currency,
+        locale: SEO_DEFAULTS.locale,
+        timezone: 'Asia/Jakarta',
+      },
+      stats: STATS,
+      priceRange: PRICE_RANGE,
+      certifications: CERTIFICATIONS,
+      destinations: DESTINATIONS,
+      tripTypes: TRIP_TYPES,
+    };
+  }
+}
+

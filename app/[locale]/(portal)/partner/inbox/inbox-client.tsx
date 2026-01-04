@@ -591,7 +591,7 @@ export function InboxClient({ locale }: { locale: string }) {
         <div className="px-4 pb-4 pt-2">
           <Button
             onClick={() => {
-              setReplyingTo(threadMessages[0]);
+              setReplyingTo(threadMessages[0] ?? null);
               setViewMode('reply');
             }}
             className="w-full gap-2"

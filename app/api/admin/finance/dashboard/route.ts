@@ -5,7 +5,7 @@
  */
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import {
@@ -16,15 +16,26 @@ import {
 } from '@/lib/finance/shadow-pnl';
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
-  const supabase = await createClient();
+  // Use regular client for auth
+  const authClient = await createClient();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await authClient.auth.getUser();
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Check authorization using user metadata
+  const userRole = user.user_metadata?.role as string;
+  const allowedRoles = ['super_admin', 'ops_admin', 'finance_manager'];
+  if (!userRole || !allowedRoles.includes(userRole)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // Use admin client for data queries
+  const supabase = await createAdminClient();
 
   // Get query params
   const { searchParams } = new URL(request.url);
@@ -72,7 +83,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       `)
       .gte('trip_date', dateFromStr)
       .lte('trip_date', dateToStr)
-      .in('status', ['confirmed', 'completed', 'in_progress'])
+      .in('status', ['scheduled', 'preparing', 'on_the_way', 'on_trip', 'completed'])
       .order('trip_date', { ascending: false });
 
     if (tripsError) {

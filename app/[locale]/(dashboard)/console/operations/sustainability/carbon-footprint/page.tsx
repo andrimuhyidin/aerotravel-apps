@@ -46,18 +46,9 @@ export default async function CarbonFootprintPage({ params }: PageProps) {
     redirect(`/${locale}/login`);
   }
 
-  // Check if admin
-  const { createClient } = await import('@/lib/supabase/server');
-  const supabase = await createClient();
-  const client = supabase as unknown as any;
-  const { data: userProfile } = await client
-    .from('users')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (userProfile?.role !== 'super_admin' && userProfile?.role !== 'ops_admin') {
-    redirect(`/${locale}/guide`);
+  // Check if admin using getCurrentUser's activeRole
+  if (user.activeRole !== 'super_admin' && user.activeRole !== 'ops_admin') {
+    redirect(`/${locale}/console`);
   }
 
   return (

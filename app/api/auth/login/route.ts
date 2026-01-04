@@ -3,6 +3,94 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { logFailedLogin } from '@/lib/audit/security-events';
+import type { Database } from '@/types/supabase';
+
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+type UserRole = Database['public']['Enums']['user_role'];
+
+/**
+ * Get active role directly from database without relying on session metadata
+ * This is safer to use right after login when session might not be fully propagated
+ * 
+ * Strategy:
+ * 1. Try to query user_roles table (may fail due to RLS if session not ready)
+ * 2. If that fails, fallback to users.role (which should always work)
+ * 3. Always return a valid role or null
+ */
+async function getActiveRoleDirect(
+  userId: string,
+  supabase: SupabaseClient
+): Promise<UserRole | null> {
+  try {
+    // First, try to get primary role from user_roles table
+    // Note: This may fail due to RLS if session is not fully established
+    const primaryResult = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .eq('is_primary', true)
+      .maybeSingle();
+
+    // If RLS blocks or no data, check error
+    if (primaryResult.error) {
+      // RLS might block this - that's OK, we'll use fallback
+      logger.debug('Primary role query blocked or failed (RLS?)', { 
+        userId, 
+        error: primaryResult.error.message 
+      });
+    } else if (primaryResult.data) {
+      return primaryResult.data.role as UserRole;
+    }
+
+    // If no primary role, try to get any active role
+    const anyRoleResult = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle();
+
+    if (anyRoleResult.error) {
+      // RLS might block this - that's OK, we'll use fallback
+      logger.debug('Any role query blocked or failed (RLS?)', { 
+        userId, 
+        error: anyRoleResult.error.message 
+      });
+    } else if (anyRoleResult.data) {
+      return anyRoleResult.data.role as UserRole;
+    }
+
+    // Fallback to users.role (this should always work as users can read their own data)
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (userError) {
+      logger.warn('Failed to get user role from users table', { userId, error: userError.message });
+      return null;
+    }
+
+    return (userData?.role as UserRole) || null;
+  } catch (error) {
+    logger.error('Failed to get active role directly', error, { userId });
+    // Final fallback: query users table
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      return (userData?.role as UserRole) || null;
+    } catch (fallbackError) {
+      logger.error('Final fallback failed', fallbackError, { userId });
+      return null;
+    }
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,8 +137,11 @@ export async function POST(request: NextRequest) {
 
     logger.info('[AUTH API] Login successful', { userId: data.user.id, email });
 
+    // Create a new client to ensure session cookies are properly set
+    const supabaseWithSession = await createClient();
+
     // Check if user profile exists, create if not
-    const { data: profile } = await supabase
+    const { data: profile } = await supabaseWithSession
       .from('users')
       .select('role')
       .eq('id', data.user.id)
@@ -60,7 +151,7 @@ export async function POST(request: NextRequest) {
 
     // Auto-create profile if doesn't exist
     if (!profile) {
-      await supabase.from('users').insert({
+      await supabaseWithSession.from('users').insert({
         id: data.user.id,
         email: data.user.email || email,
         full_name: data.user.user_metadata?.full_name || email.split('@')[0],
@@ -71,9 +162,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Get active role (multi-role support)
-    const { getActiveRole } = await import('@/lib/session/active-role');
-    const activeRole = await getActiveRole(data.user.id);
-    const finalRole = activeRole || role; // Use active role, fallback to profile role
+    let activeRole: string | null = null;
+    try {
+      activeRole = await getActiveRoleDirect(data.user.id, supabaseWithSession);
+    } catch (getActiveRoleError) {
+      logger.warn('[AUTH API] getActiveRoleDirect failed, using profile role', { 
+        userId: data.user.id, 
+        error: getActiveRoleError instanceof Error ? getActiveRoleError.message : String(getActiveRoleError) 
+      });
+    }
+    
+    const finalRole = activeRole || role || 'customer';
 
     // Determine redirect based on active role
     const roleRedirectMap: Record<string, string> = {
@@ -98,16 +197,21 @@ export async function POST(request: NextRequest) {
 
     logger.info('[AUTH API] User role determined', { userId: data.user.id, role, activeRole: finalRole, redirectPath });
 
-    // Return success with redirect path
     return NextResponse.json({
       success: true,
       redirectPath,
+      userId: data.user.id,
     });
   } catch (error) {
-    const emailFromForm = typeof request.formData === 'function' ? 'unknown' : 'unknown';
-    logger.error('[AUTH API] Unexpected error', error, { email: emailFromForm });
+    logger.error('[AUTH API] Unexpected error', error, { email: 'unknown' });
+    
+    // Return detailed error in development for debugging
+    const errorMessage = process.env.NODE_ENV === 'development' 
+      ? (error instanceof Error ? `${error.name}: ${error.message}` : String(error))
+      : 'Terjadi kesalahan, coba lagi.';
+    
     return NextResponse.json(
-      { error: 'Terjadi kesalahan, coba lagi.' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

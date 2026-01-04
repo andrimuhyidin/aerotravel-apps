@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
@@ -16,7 +16,6 @@ import {
   Loader2,
   MapPin,
   PenTool,
-  RotateCcw,
   Shield,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,7 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { SignaturePad } from '@/components/ui/signature-pad';
+import { SignaturePad, type SignatureData } from '@/components/ui/signature-pad';
 import { PageHeader } from '@/components/partner';
 import { apiClient } from '@/lib/api/client';
 import queryKeys from '@/lib/queries/query-keys';
@@ -48,21 +47,20 @@ type ContractSignClientProps = {
 export function ContractSignClient({ locale, contractId }: ContractSignClientProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const signaturePadRef = useRef<{ clear: () => void; toDataURL: () => string } | null>(null);
   
   const [hasRead, setHasRead] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [signatureData, setSignatureData] = useState<SignatureData | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   // Fetch contract details
   const { data: contract, isLoading } = useQuery<Contract>({
-    queryKey: [...queryKeys.partner.contracts, contractId],
+    queryKey: queryKeys.partner.contracts.detail(contractId),
     queryFn: async () => {
       const response = await apiClient.get<{ contract: Contract }>(
         `/api/partner/contracts/${contractId}`
       );
-      return response.contract;
+      return response.data.contract;
     },
   });
 
@@ -93,14 +91,14 @@ export function ContractSignClient({ locale, contractId }: ContractSignClientPro
       }
 
       return apiClient.post(`/api/partner/contracts/${contractId}/sign`, {
-        signature: signatureData,
-        location,
+        signature: signatureData.data,
+        location: signatureData.gpsLocation || location,
         agreedToTerms: true,
-        signedAt: new Date().toISOString(),
+        signedAt: signatureData.timestamp || new Date().toISOString(),
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.partner.contracts });
+      queryClient.invalidateQueries({ queryKey: queryKeys.partner.contracts.all() });
       toast.success('Kontrak berhasil ditandatangani!');
       router.push(`/${locale}/partner/contracts`);
     },
@@ -109,19 +107,8 @@ export function ContractSignClient({ locale, contractId }: ContractSignClientPro
     },
   });
 
-  const handleClearSignature = useCallback(() => {
-    if (signaturePadRef.current) {
-      signaturePadRef.current.clear();
-      setSignatureData(null);
-    }
-  }, []);
-
-  const handleSaveSignature = useCallback(() => {
-    if (signaturePadRef.current) {
-      const data = signaturePadRef.current.toDataURL();
-      setSignatureData(data);
-      toast.success('Tanda tangan disimpan');
-    }
+  const handleSignatureChange = useCallback((data: SignatureData | null) => {
+    setSignatureData(data);
   }, []);
 
   const canSign = hasRead && agreedToTerms && signatureData;
@@ -240,31 +227,23 @@ export function ContractSignClient({ locale, contractId }: ContractSignClientPro
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg border bg-white p-2">
-              <SignaturePad
-                ref={signaturePadRef}
-                className="h-48 w-full"
-                onEnd={handleSaveSignature}
-              />
-            </div>
-            <div className="flex gap-2">
+            <SignaturePad
+              value={signatureData}
+              onChange={handleSignatureChange}
+              label="Tanda Tangan"
+              required
+              showGPS
+            />
+            {!signatureData?.gpsLocation && (
               <Button
                 variant="outline"
-                className="flex-1"
-                onClick={handleClearSignature}
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Hapus
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1"
+                className="w-full"
                 onClick={getLocation}
               >
                 <MapPin className="mr-2 h-4 w-4" />
-                {location ? 'Lokasi Diambil' : 'Ambil Lokasi'}
+                {location ? 'Lokasi Diambil' : 'Ambil Lokasi Tambahan'}
               </Button>
-            </div>
+            )}
             {signatureData && (
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <Check className="h-4 w-4" />

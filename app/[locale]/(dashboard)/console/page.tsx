@@ -1,16 +1,15 @@
 /**
  * Dashboard ERP Page
  * Route: /[locale]/console
+ * Future Minimalist 2026 - Personalized Dashboard
  */
 
 import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 
-import { Container } from '@/components/layout/container';
-import { Section } from '@/components/layout/section';
 import { locales } from '@/i18n';
-
-import { DashboardClient } from './dashboard-client';
+import { getCurrentUser } from '@/lib/supabase/server';
+import { PersonalizedDashboard } from '@/components/console/personalized-dashboard';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -39,13 +38,16 @@ export default async function ConsolePage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
+  // Get current user for personalized dashboard
+  const user = await getCurrentUser();
+  const userRole = user?.activeRole || null;
+  const userName = user?.profile?.full_name || user?.email || 'Admin';
+
   return (
-    <Section>
-      <Container>
-        <div className="py-6">
-          <DashboardClient />
-        </div>
-      </Container>
-    </Section>
+    <PersonalizedDashboard
+      userRole={userRole}
+      userName={userName}
+      locale={locale}
+    />
   );
 }

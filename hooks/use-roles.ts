@@ -39,6 +39,11 @@ type SwitchRoleResponse = {
 
 /**
  * Hook to get all user roles
+ * 
+ * PERFORMANCE OPTIMIZED:
+ * - Extended staleTime to 10 minutes (roles rarely change)
+ * - Added gcTime for better cache retention
+ * - Disabled refetchOnMount to prevent redundant requests
  */
 export function useRoles() {
   return useQuery<RolesResponse>({
@@ -59,12 +64,19 @@ export function useRoles() {
         throw new Error('Failed to fetch roles');
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes (roles rarely change)
+    gcTime: 30 * 60 * 1000, // 30 minutes cache retention
+    refetchOnMount: false, // Don't refetch on every component mount
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 }
 
 /**
  * Hook to get current active role
+ * 
+ * PERFORMANCE OPTIMIZED:
+ * - Extended staleTime to 5 minutes
+ * - Disabled refetchOnWindowFocus to reduce network requests
  */
 export function useActiveRole() {
   return useQuery<ActiveRoleResponse>({
@@ -85,8 +97,10 @@ export function useActiveRole() {
         throw new Error('Failed to fetch active role');
       }
     },
-    staleTime: 1 * 60 * 1000, // 1 minute
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000, // 5 minutes (was 1 minute)
+    gcTime: 15 * 60 * 1000, // 15 minutes cache retention
+    refetchOnMount: false, // Don't refetch on every component mount
+    refetchOnWindowFocus: false, // Disable to reduce network requests
   });
 }
 

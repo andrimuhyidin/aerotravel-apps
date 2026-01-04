@@ -45,7 +45,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
 
   if (type) {
-    filter.type = type as any;
+    filter.type = type as NotificationFilter['type'];
   }
 
   if (read !== null) {

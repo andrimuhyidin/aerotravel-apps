@@ -72,42 +72,67 @@ type SafetyData = {
 };
 
 async function fetchSafetyData(): Promise<SafetyData> {
-  // Sample data - in production, fetch from API
+  // Fetch SOS alerts
+  const sosResponse = await fetch('/api/admin/sos');
+  const sosData = sosResponse.ok ? await sosResponse.json() : { alerts: [] };
+
+  // Define SOSAlert type for type safety
+  type SOSAlertRaw = {
+    id: string;
+    trip_id: string;
+    guide_id?: string;
+    guide?: { full_name?: string; phone?: string };
+    latitude?: number;
+    longitude?: number;
+    message?: string;
+    created_at: string;
+    alert_type?: string;
+    status: string;
+  };
+
+  // Filter active alerts
+  const activeAlerts = (sosData.alerts || []).filter((alert: SOSAlertRaw) => alert.status === 'active');
+  const allAlerts: SOSAlertRaw[] = sosData.alerts || [];
+
+  // Map to safety format
+  const activeSOSAlerts = activeAlerts.map((alert: SOSAlertRaw) => ({
+    id: alert.id,
+    tripId: alert.trip_id,
+    guideName: alert.guide?.full_name || 'Unknown',
+    guidePhone: alert.guide?.phone || '',
+    location: alert.latitude && alert.longitude
+      ? { lat: alert.latitude, lng: alert.longitude }
+      : null,
+    message: alert.message || 'SOS Alert',
+    timestamp: alert.created_at,
+    type: alert.alert_type || 'emergency',
+  }));
+
+  // For now, incidents are empty (would need incidents API/table)
+  const recentIncidents: SafetyData['recentIncidents'] = [];
+
+  // Calculate stats
+  const stats = {
+    activeAlerts: activeAlerts.length,
+    activeGuides: new Set(allAlerts.map((a: SOSAlertRaw) => a.guide_id).filter(Boolean)).size,
+    safetyScore: activeAlerts.length === 0 ? 98 : Math.max(60, 98 - activeAlerts.length * 5),
+    incidentsThisMonth: recentIncidents.filter(
+      (inc) => new Date(inc.reportedAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    ).length,
+  };
+
+  // Emergency contacts (would come from settings/DB)
+  const emergencyContacts = [
+    { name: 'Emergency Response Team', role: 'Primary', phone: '08xx-xxxx-xxxx' },
+    { name: 'SAR Lampung', role: 'SAR', phone: '0721-xxxxxxx' },
+    { name: 'RS Advent Bandar Lampung', role: 'Medical', phone: '0721-xxxxxxx' },
+  ];
+
   return {
-    activeSOSAlerts: [],
-    recentIncidents: [
-      {
-        id: 'i1',
-        type: 'equipment',
-        description: 'Pelampung rusak ditemukan',
-        tripId: 'TRIP-001',
-        reportedBy: 'Guide Budi',
-        reportedAt: new Date(Date.now() - 24 * 3600000).toISOString(),
-        severity: 'medium',
-        status: 'resolved',
-      },
-      {
-        id: 'i2',
-        type: 'weather',
-        description: 'Cuaca buruk, trip ditunda',
-        tripId: 'TRIP-002',
-        reportedBy: 'Guide Siti',
-        reportedAt: new Date(Date.now() - 48 * 3600000).toISOString(),
-        severity: 'high',
-        status: 'resolved',
-      },
-    ],
-    stats: {
-      activeAlerts: 0,
-      activeGuides: 5,
-      safetyScore: 98,
-      incidentsThisMonth: 2,
-    },
-    emergencyContacts: [
-      { name: 'Emergency Response Team', role: 'Primary', phone: '08xx-xxxx-xxxx' },
-      { name: 'SAR Lampung', role: 'SAR', phone: '0721-xxxxxxx' },
-      { name: 'RS Advent Bandar Lampung', role: 'Medical', phone: '0721-xxxxxxx' },
-    ],
+    activeSOSAlerts,
+    recentIncidents,
+    stats,
+    emergencyContacts,
   };
 }
 

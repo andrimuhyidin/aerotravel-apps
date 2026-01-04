@@ -1,10 +1,12 @@
 /**
  * Partner Package Detail Client Component - ENHANCED
  * Interactive gallery, enhanced booking widget, reviews, and improved UX
+ * Uses TanStack Query with realtime availability updates
  */
 
 'use client';
 
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,7 +21,9 @@ import { SimilarPackagesCarousel } from '@/components/partner/similar-packages-c
 import { PackageFAQSection } from '@/components/partner/package-faq-section';
 import { PackageQAWidget } from '@/components/partner/package-qa-widget';
 import { formatCurrency } from '@/lib/partner/package-utils';
-import { logger } from '@/lib/utils/logger';
+import { apiClient } from '@/lib/api/client';
+import queryKeys from '@/lib/queries/query-keys';
+import { useAvailabilityRealtime } from '@/hooks/use-availability-realtime';
 import {
   ArrowLeft,
   Calendar,
@@ -76,8 +80,7 @@ export function PackageDetailClient({
   locale: string;
   packageId: string;
 }) {
-  const [packageData, setPackageData] = useState<PackageDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('description');
   const [isSticky, setIsSticky] = useState(false);
   const tracker = getFeatureTracker();
@@ -85,9 +88,33 @@ export function PackageDetailClient({
   // Track performance metrics
   usePerformanceMonitoring('package_detail');
 
-  useEffect(() => {
-    let mounted = true;
+  // Fetch package data with TanStack Query
+  const { data: packageData, isLoading: loading, error } = useQuery<PackageDetail>({
+    queryKey: queryKeys.partner.packages.list({ id: packageId }),
+    queryFn: async () => {
+      const response = await apiClient.get<{ package: PackageDetail }>(
+        `/api/partner/packages/${packageId}`
+      );
+      return response.data.package;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
+  // Setup realtime availability updates
+  const { onUpdate, isSubscribed } = useAvailabilityRealtime(packageId);
+
+  // Handle realtime updates
+  useEffect(() => {
+    onUpdate((update) => {
+      // Invalidate cache when availability changes
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.partner.packages.list({ id: packageId }),
+      });
+      toast.info(`Ketersediaan paket diperbarui: ${update.availableSlots} slot tersisa`);
+    });
+  }, [onUpdate, queryClient, packageId]);
+
+  useEffect(() => {
     // Track page view and feature usage
     tracker.trackPageView('photo_gallery_lightbox');
     tracker.trackFeatureUse('booking_widget', 'view', packageId);
@@ -98,33 +125,7 @@ export function PackageDetailClient({
 
     window.addEventListener('scroll', handleScroll);
 
-    const load = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/partner/packages/${packageId}`);
-
-        if (!response.ok) {
-          throw new Error('Failed to load package detail');
-        }
-
-        const data = await response.json();
-        if (mounted) {
-          setPackageData(data.package);
-        }
-      } catch (error) {
-        logger.error('Failed to load package detail', error);
-        toast.error('Gagal memuat detail paket');
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void load();
-
     return () => {
-      mounted = false;
       window.removeEventListener('scroll', handleScroll);
     };
   }, [packageId, tracker]);

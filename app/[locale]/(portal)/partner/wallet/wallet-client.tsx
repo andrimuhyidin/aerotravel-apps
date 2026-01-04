@@ -1,17 +1,21 @@
 /**
  * Partner Wallet Client Component
  * REDESIGNED - Clean, Big Numbers, Progress Bar, Simple Actions
+ * With realtime wallet balance updates
  */
 
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/partner';
 import { formatCurrency } from '@/lib/partner/package-utils';
-import { logger } from '@/lib/utils/logger';
+import { apiClient } from '@/lib/api/client';
+import queryKeys from '@/lib/queries/query-keys';
+import { usePartnerWalletRealtimeSync } from '@/hooks/use-wallet-realtime';
 import { cn } from '@/lib/utils';
 import {
   ArrowDown,
@@ -21,8 +25,6 @@ import {
   Wallet as WalletIcon,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 
 type WalletBalance = {
   balance: number;
@@ -41,38 +43,31 @@ type Transaction = {
 };
 
 export function WalletClient({ locale }: { locale: string }) {
-  const [balance, setBalance] = useState<WalletBalance | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Fetch wallet balance with TanStack Query
+  const { data: balance, isLoading: balanceLoading } = useQuery<WalletBalance>({
+    queryKey: queryKeys.partner.wallet.balance(),
+    queryFn: async () => {
+      const response = await apiClient.get<WalletBalance>('/api/partner/wallet/balance');
+      return response.data;
+    },
+  });
 
-  useEffect(() => {
-    loadWalletData();
-  }, []);
+  // Fetch transactions
+  const { data: transactionsData, isLoading: transactionsLoading } = useQuery<{ transactions: Transaction[] }>({
+    queryKey: queryKeys.partner.wallet.transactions(),
+    queryFn: async () => {
+      const response = await apiClient.get<{ transactions: Transaction[] }>(
+        '/api/partner/wallet/transactions?limit=10'
+      );
+      return response.data;
+    },
+  });
 
-  const loadWalletData = async () => {
-    setLoading(true);
-    try {
-      const [balanceRes, transactionsRes] = await Promise.all([
-        fetch('/api/partner/wallet/balance'),
-        fetch('/api/partner/wallet/transactions?limit=10'),
-      ]);
+  // Realtime wallet updates
+  const { status: realtimeStatus } = usePartnerWalletRealtimeSync(null);
 
-      if (!balanceRes.ok || !transactionsRes.ok) {
-        throw new Error('Failed to load wallet data');
-      }
-
-      const balanceData = (await balanceRes.json()) as WalletBalance;
-      const transactionsData = (await transactionsRes.json()) as { transactions: Transaction[] };
-
-      setBalance(balanceData);
-      setTransactions(transactionsData.transactions);
-    } catch (error) {
-      logger.error('Failed to load wallet', error);
-      toast.error('Gagal memuat data wallet');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const transactions = transactionsData?.transactions || [];
+  const loading = balanceLoading || transactionsLoading;
 
   if (loading) {
     return <WalletSkeleton />;

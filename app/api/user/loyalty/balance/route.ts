@@ -35,11 +35,13 @@ export const GET = withErrorHandler(async () => {
       });
     }
 
+    const valueInRupiah = await getPointsValue(balance.balance);
+
     return NextResponse.json({
       balance: balance.balance,
       lifetimeEarned: balance.lifetimeEarned,
       lifetimeSpent: balance.lifetimeSpent,
-      valueInRupiah: getPointsValue(balance.balance),
+      valueInRupiah,
     });
   } catch (error) {
     logger.error('Failed to get points balance', error, { userId: user.id });

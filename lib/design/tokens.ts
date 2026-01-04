@@ -144,6 +144,74 @@ export const designTokens = {
     xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
     '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
   },
+
+  // Future Minimalist 2026 Theme
+  futureMinimalist: {
+    // Enhanced spacing for breathable design
+    spacing: {
+      cardPadding: {
+        mobile: '1.25rem', // 20px
+        desktop: '2rem', // 32px
+      },
+      sectionGap: '2.5rem', // 40px
+      componentGap: '1.5rem', // 24px
+    },
+    // Larger border radius for soft feel
+    borderRadius: {
+      card: '1rem', // 16px
+      button: '0.75rem', // 12px
+      modal: '1.5rem', // 24px
+      badge: '9999px', // Full rounded
+    },
+    // Glassmorphism settings
+    glass: {
+      blur: {
+        sm: '8px',
+        md: '12px',
+        lg: '16px',
+      },
+      background: {
+        light: 'rgba(255, 255, 255, 0.7)',
+        dark: 'rgba(30, 30, 30, 0.7)',
+      },
+      border: {
+        light: 'rgba(255, 255, 255, 0.3)',
+        dark: 'rgba(255, 255, 255, 0.1)',
+      },
+    },
+    // Gradient definitions for accents
+    gradients: {
+      primary: 'linear-gradient(135deg, hsl(220 90% 60%) 0%, hsl(260 85% 65%) 100%)',
+      success: 'linear-gradient(135deg, hsl(150 70% 50%) 0%, hsl(170 65% 45%) 100%)',
+      warning: 'linear-gradient(135deg, hsl(35 95% 55%) 0%, hsl(25 90% 50%) 100%)',
+      danger: 'linear-gradient(135deg, hsl(0 80% 60%) 0%, hsl(350 75% 55%) 100%)',
+      info: 'linear-gradient(135deg, hsl(200 90% 55%) 0%, hsl(220 85% 60%) 100%)',
+      subtle: 'linear-gradient(135deg, hsl(210 40% 98%) 0%, hsl(220 30% 96%) 50%, hsl(200 40% 97%) 100%)',
+    },
+    // Gradient shadows for buttons
+    gradientShadows: {
+      primary: '0 4px 14px 0 rgba(99, 102, 241, 0.39)',
+      success: '0 4px 14px 0 rgba(16, 185, 129, 0.39)',
+      warning: '0 4px 14px 0 rgba(245, 158, 11, 0.39)',
+      danger: '0 4px 14px 0 rgba(239, 68, 68, 0.39)',
+    },
+    // Motion/Animation settings
+    motion: {
+      duration: {
+        fast: 150,
+        base: 300,
+        slow: 500,
+      },
+      easing: {
+        spring: { stiffness: 300, damping: 24 },
+        smooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      },
+      stagger: {
+        children: 0.1,
+        delay: 0.2,
+      },
+    },
+  },
 } as const;
 
 export type DesignTokens = typeof designTokens;
@@ -233,5 +301,59 @@ export const animationUtils = {
     const easingValue = designTokens.animation.easing[easing];
     return properties.map(prop => `${prop} ${durationValue} ${easingValue}`).join(', ');
   },
+};
+
+/**
+ * Future Minimalist Utilities
+ * Helper functions for glassmorphism and gradient effects
+ */
+export const futureMinimalistUtils = {
+  /**
+   * Get glass effect CSS properties
+   */
+  getGlassStyles: (
+    blur: 'sm' | 'md' | 'lg' = 'md',
+    theme: 'light' | 'dark' = 'light'
+  ): {
+    backdropFilter: string;
+    WebkitBackdropFilter: string;
+    background: string;
+    border: string;
+  } => {
+    const fm = designTokens.futureMinimalist;
+    return {
+      backdropFilter: `blur(${fm.glass.blur[blur]})`,
+      WebkitBackdropFilter: `blur(${fm.glass.blur[blur]})`,
+      background: fm.glass.background[theme],
+      border: `1px solid ${fm.glass.border[theme]}`,
+    };
+  },
+
+  /**
+   * Get gradient by variant
+   */
+  getGradient: (
+    variant: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'subtle'
+  ): string => {
+    return designTokens.futureMinimalist.gradients[variant];
+  },
+
+  /**
+   * Get gradient shadow by variant
+   */
+  getGradientShadow: (
+    variant: 'primary' | 'success' | 'warning' | 'danger'
+  ): string => {
+    return designTokens.futureMinimalist.gradientShadows[variant];
+  },
+
+  /**
+   * Get motion config for Framer Motion
+   */
+  getMotionConfig: () => ({
+    duration: designTokens.futureMinimalist.motion.duration,
+    spring: designTokens.futureMinimalist.motion.easing.spring,
+    stagger: designTokens.futureMinimalist.motion.stagger,
+  }),
 };
 

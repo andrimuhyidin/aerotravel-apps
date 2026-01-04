@@ -30,7 +30,7 @@ export type ExportOptions = {
  */
 export async function exportToExcel(options: ExportOptions): Promise<Buffer> {
   const {
-    filename,
+    filename: _filename,
     sheetName = 'Data',
     title,
     subtitle,
@@ -265,6 +265,340 @@ export const ReportExporter = {
       ],
       data,
       includeSum: ['booking_count', 'revenue'],
+    });
+  },
+
+  async customers(data: Record<string, unknown>[], filename = 'customers') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Customers',
+      title: 'Customer List',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Name', key: 'full_name', width: 30 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Phone', key: 'phone', width: 15 },
+        { header: 'Total Bookings', key: 'total_bookings', type: 'number', width: 15 },
+        { header: 'Total Spent', key: 'total_spent', type: 'currency', width: 18 },
+        { header: 'Last Booking', key: 'last_booking_date', type: 'date', width: 12 },
+        { header: 'Segment', key: 'segment', width: 12 },
+      ],
+      data,
+      includeSum: ['total_spent'],
+    });
+  },
+
+  async guidePerformance(data: Record<string, unknown>[], filename = 'guide-performance') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Guide Performance',
+      title: 'Guide Performance Report',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Guide Name', key: 'guide_name', width: 25 },
+        { header: 'Total Trips', key: 'total_trips', type: 'number', width: 12 },
+        { header: 'Total Pax', key: 'total_pax', type: 'number', width: 12 },
+        { header: 'Average Rating', key: 'avg_rating', type: 'number', width: 15 },
+        { header: 'Total Revenue', key: 'total_revenue', type: 'currency', width: 18 },
+        { header: 'Last Trip', key: 'last_trip_date', type: 'date', width: 12 },
+      ],
+      data,
+      includeSum: ['total_trips', 'total_pax', 'total_revenue'],
+    });
+  },
+
+  async pnl(data: Record<string, unknown>[], filename = 'pnl') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'P&L',
+      title: 'Profit & Loss Report',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Trip Code', key: 'trip_code', width: 15 },
+        { header: 'Package', key: 'package_name', width: 30 },
+        { header: 'Revenue', key: 'revenue', type: 'currency', width: 18 },
+        { header: 'Cost', key: 'cost', type: 'currency', width: 18 },
+        { header: 'Profit', key: 'profit', type: 'currency', width: 18 },
+        { header: 'Margin %', key: 'margin', type: 'percent', width: 12 },
+      ],
+      data,
+      includeSum: ['revenue', 'cost', 'profit'],
+    });
+  },
+
+  async users(data: Record<string, unknown>[], filename = 'users') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Users',
+      title: 'User List',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Name', key: 'full_name', width: 30 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Phone', key: 'phone', width: 15 },
+        { header: 'Role', key: 'role', width: 15 },
+        { header: 'Status', key: 'status', width: 12 },
+        { header: 'Created At', key: 'created_at', type: 'date', width: 12 },
+      ],
+      data,
+    });
+  },
+
+  async partners(data: Record<string, unknown>[], filename = 'partners') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Partners',
+      title: 'Partner List',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Partner Name', key: 'name', width: 30 },
+        { header: 'Type', key: 'type', width: 15 },
+        { header: 'Contact Person', key: 'contact_person', width: 25 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Phone', key: 'phone', width: 15 },
+        { header: 'Tier', key: 'tier', width: 12 },
+        { header: 'Total Revenue', key: 'total_revenue', type: 'currency', width: 18 },
+        { header: 'Status', key: 'status', width: 12 },
+      ],
+      data,
+      includeSum: ['total_revenue'],
+    });
+  },
+
+  async products(data: Record<string, unknown>[], filename = 'products') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Products',
+      title: 'Product/Package List',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Name', key: 'name', width: 35 },
+        { header: 'Destination', key: 'destination', width: 20 },
+        { header: 'Category', key: 'category', width: 15 },
+        { header: 'Duration', key: 'duration', width: 12 },
+        { header: 'Base Price', key: 'base_price', type: 'currency', width: 18 },
+        { header: 'Total Bookings', key: 'total_bookings', type: 'number', width: 15 },
+        { header: 'Status', key: 'status', width: 12 },
+      ],
+      data,
+    });
+  },
+
+  async auditLogs(data: Record<string, unknown>[], filename = 'audit-logs') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Audit Logs',
+      title: 'Audit Log Report',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Timestamp', key: 'created_at', type: 'date', width: 18 },
+        { header: 'Action', key: 'action', width: 20 },
+        { header: 'Resource', key: 'resource_type', width: 15 },
+        { header: 'Resource ID', key: 'resource_id', width: 25 },
+        { header: 'User', key: 'user_name', width: 25 },
+        { header: 'IP Address', key: 'ip_address', width: 15 },
+        { header: 'Details', key: 'details', width: 40 },
+      ],
+      data,
+    });
+  },
+
+  async guides(data: Record<string, unknown>[], filename = 'guides') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Guides',
+      title: 'Guide List',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Name', key: 'full_name', width: 30 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Phone', key: 'phone', width: 15 },
+        { header: 'License No', key: 'license_number', width: 20 },
+        { header: 'License Expiry', key: 'license_expiry', type: 'date', width: 12 },
+        { header: 'Total Trips', key: 'total_trips', type: 'number', width: 12 },
+        { header: 'Avg Rating', key: 'avg_rating', type: 'number', width: 12 },
+        { header: 'Status', key: 'status', width: 12 },
+      ],
+      data,
+    });
+  },
+
+  async inventory(data: Record<string, unknown>[], filename = 'inventory') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Inventory',
+      title: 'Inventory Report',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Item Name', key: 'name', width: 30 },
+        { header: 'SKU', key: 'sku', width: 15 },
+        { header: 'Category', key: 'category', width: 15 },
+        { header: 'Quantity', key: 'quantity', type: 'number', width: 12 },
+        { header: 'Unit', key: 'unit', width: 10 },
+        { header: 'Unit Price', key: 'unit_price', type: 'currency', width: 15 },
+        { header: 'Total Value', key: 'total_value', type: 'currency', width: 18 },
+        { header: 'Reorder Level', key: 'reorder_level', type: 'number', width: 15 },
+        { header: 'Status', key: 'status', width: 12 },
+      ],
+      data,
+      includeSum: ['total_value'],
+    });
+  },
+
+  async refunds(data: Record<string, unknown>[], filename = 'refunds') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Refunds',
+      title: 'Refund Report',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Booking Code', key: 'booking_code', width: 15 },
+        { header: 'Customer', key: 'customer_name', width: 25 },
+        { header: 'Original Amount', key: 'original_amount', type: 'currency', width: 18 },
+        { header: 'Refund Amount', key: 'refund_amount', type: 'currency', width: 18 },
+        { header: 'Refund %', key: 'refund_percentage', type: 'percent', width: 12 },
+        { header: 'Policy', key: 'cancellation_policy', width: 20 },
+        { header: 'Method', key: 'refund_method', width: 15 },
+        { header: 'Status', key: 'refund_status', width: 12 },
+        { header: 'Created', key: 'created_at', type: 'date', width: 12 },
+      ],
+      data,
+      includeSum: ['refund_amount'],
+    });
+  },
+
+  async payments(data: Record<string, unknown>[], filename = 'payments') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Payments',
+      title: 'Payment Report',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Booking Code', key: 'booking_code', width: 15 },
+        { header: 'Customer', key: 'customer_name', width: 25 },
+        { header: 'Amount', key: 'amount', type: 'currency', width: 18 },
+        { header: 'Method', key: 'payment_method', width: 15 },
+        { header: 'Channel', key: 'payment_channel', width: 15 },
+        { header: 'Payment Status', key: 'status', width: 15 },
+        { header: 'Verification', key: 'verification_status', width: 15 },
+        { header: 'Created', key: 'created_at', type: 'date', width: 12 },
+      ],
+      data,
+      includeSum: ['amount'],
+    });
+  },
+
+  async complianceLicenses(data: Record<string, unknown>[], filename = 'licenses') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Licenses',
+      title: 'License & Permit Report',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'License Name', key: 'name', width: 30 },
+        { header: 'Type', key: 'type', width: 15 },
+        { header: 'License Number', key: 'license_number', width: 20 },
+        { header: 'Issued By', key: 'issued_by', width: 20 },
+        { header: 'Issue Date', key: 'issue_date', type: 'date', width: 12 },
+        { header: 'Expiry Date', key: 'expiry_date', type: 'date', width: 12 },
+        { header: 'Days Until Expiry', key: 'days_until_expiry', type: 'number', width: 18 },
+        { header: 'Status', key: 'status', width: 12 },
+      ],
+      data,
+    });
+  },
+
+  async attendance(data: Record<string, unknown>[], filename = 'attendance') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Attendance',
+      title: 'Attendance Report',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Employee', key: 'employee_name', width: 25 },
+        { header: 'Date', key: 'date', type: 'date', width: 12 },
+        { header: 'Clock In', key: 'clock_in', width: 12 },
+        { header: 'Clock Out', key: 'clock_out', width: 12 },
+        { header: 'Duration (hrs)', key: 'duration', type: 'number', width: 15 },
+        { header: 'Status', key: 'status', width: 12 },
+        { header: 'Notes', key: 'notes', width: 30 },
+      ],
+      data,
+    });
+  },
+
+  async leaveRequests(data: Record<string, unknown>[], filename = 'leave-requests') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Leave Requests',
+      title: 'Leave Request Report',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Employee', key: 'employee_name', width: 25 },
+        { header: 'Leave Type', key: 'leave_type', width: 15 },
+        { header: 'Start Date', key: 'start_date', type: 'date', width: 12 },
+        { header: 'End Date', key: 'end_date', type: 'date', width: 12 },
+        { header: 'Days', key: 'days', type: 'number', width: 8 },
+        { header: 'Status', key: 'status', width: 12 },
+        { header: 'Reason', key: 'reason', width: 30 },
+      ],
+      data,
+      includeSum: ['days'],
+    });
+  },
+
+  async performanceReviews(data: Record<string, unknown>[], filename = 'performance-reviews') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Performance Reviews',
+      title: 'Performance Review Report',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Employee', key: 'employee_name', width: 25 },
+        { header: 'Review Period', key: 'review_period', width: 15 },
+        { header: 'Reviewer', key: 'reviewer_name', width: 25 },
+        { header: 'Score', key: 'score', type: 'number', width: 10 },
+        { header: 'Rating', key: 'rating', width: 12 },
+        { header: 'Status', key: 'status', width: 12 },
+      ],
+      data,
+    });
+  },
+
+  async customerCommunications(data: Record<string, unknown>[], filename = 'customer-communications') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Communications',
+      title: 'Customer Communications Report',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Customer', key: 'customer_name', width: 25 },
+        { header: 'Type', key: 'type', width: 12 },
+        { header: 'Subject', key: 'subject', width: 30 },
+        { header: 'Status', key: 'status', width: 12 },
+        { header: 'Sent At', key: 'sent_at', type: 'date', width: 15 },
+        { header: 'Response', key: 'response', width: 30 },
+      ],
+      data,
+    });
+  },
+
+  async loyaltyAdjustments(data: Record<string, unknown>[], filename = 'loyalty-adjustments') {
+    return exportToExcel({
+      filename: `${filename}-${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Loyalty Adjustments',
+      title: 'Loyalty Points Adjustment Report',
+      subtitle: `Generated: ${new Date().toLocaleDateString('id-ID')}`,
+      columns: [
+        { header: 'Customer', key: 'customer_name', width: 25 },
+        { header: 'Type', key: 'type', width: 12 },
+        { header: 'Points', key: 'points', type: 'number', width: 12 },
+        { header: 'Reason', key: 'reason', width: 30 },
+        { header: 'Created By', key: 'created_by', width: 20 },
+        { header: 'Created At', key: 'created_at', type: 'date', width: 15 },
+      ],
+      data,
+      includeSum: ['points'],
     });
   },
 };

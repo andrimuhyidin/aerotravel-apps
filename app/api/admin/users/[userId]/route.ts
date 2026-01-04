@@ -8,12 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import {
-  getBranchContext,
-  withBranchFilter,
-} from '@/lib/branch/branch-injection';
 import { logProfileUpdate } from '@/lib/audit/audit-logger';
-import { createClient } from '@/lib/supabase/server';
+import { hasRole } from '@/lib/session/active-role';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 const updateUserSchema = z.object({
@@ -25,7 +22,6 @@ const updateUserSchema = z.object({
     .nullable(),
   supervisor_id: z.string().uuid().optional().nullable(),
   home_address: z.string().optional().nullable(),
-  employment_status: z.enum(['active', 'inactive', 'on_leave', 'terminated']).optional().nullable(),
 });
 
 export const GET = withErrorHandler(
@@ -34,39 +30,29 @@ export const GET = withErrorHandler(
     { params }: { params: Promise<{ userId: string }> }
   ) => {
     const { userId } = await params;
-    const supabase = await createClient();
 
+    // Check authorization first
+    const allowed = await hasRole(['super_admin', 'ops_admin', 'finance_manager']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Get auth client to verify current user
+    const authClient = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await authClient.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if admin
-    const client = supabase as unknown as any;
-    const { data: adminProfile } = await client
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    const isAdmin = ['super_admin', 'ops_admin', 'finance_manager'].includes(
-      adminProfile?.role || ''
-    );
-
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const branchContext = await getBranchContext(user.id);
+    // Use admin client to bypass RLS for reading user details
+    const supabase = await createAdminClient();
 
     // Get user details with employee fields
-    const { data: userData, error: userError } = await withBranchFilter(
-      client.from('users'),
-      branchContext
-    )
+    const { data: userData, error: userError } = await supabase
+      .from('users')
       .select(
         `
       id,
@@ -79,7 +65,6 @@ export const GET = withErrorHandler(
       supervisor_id,
       home_address,
       address,
-      employment_status,
       created_at,
       is_active
     `
@@ -88,21 +73,18 @@ export const GET = withErrorHandler(
       .single();
 
     if (userError || !userData) {
-      logger.error('Failed to fetch user', userError, {
+      logger.warn('User not found', {
         userId,
         adminId: user.id,
+        error: userError?.message,
       });
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Note: Email is stored in auth.users, not in public.users table
-    // For admin access to email, use Supabase Dashboard or create admin client with service role key
-    // For now, we skip email in response to avoid requiring admin client setup
-
     // Get supervisor name if exists
     let supervisorName: string | null = null;
     if (userData.supervisor_id) {
-      const { data: supervisor } = await client
+      const { data: supervisor } = await supabase
         .from('users')
         .select('full_name')
         .eq('id', userData.supervisor_id)
@@ -125,43 +107,33 @@ export const PATCH = withErrorHandler(
     { params }: { params: Promise<{ userId: string }> }
   ) => {
     const { userId } = await params;
-    const supabase = await createClient();
 
+    // Check authorization first
+    const allowed = await hasRole(['super_admin', 'ops_admin', 'finance_manager']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Get auth client to verify current user
+    const authClient = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await authClient.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if admin
-    const client = supabase as unknown as any;
-    const { data: adminProfile } = await client
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    const isAdmin = ['super_admin', 'ops_admin', 'finance_manager'].includes(
-      adminProfile?.role || ''
-    );
-
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
     const body = await request.json();
     const validated = updateUserSchema.parse(body);
 
-    const branchContext = await getBranchContext(user.id);
+    // Use admin client to bypass RLS for updating user
+    const supabase = await createAdminClient();
 
     // Get current user data for audit log
-    const { data: currentUserData } = await withBranchFilter(
-      client.from('users'),
-      branchContext
-    )
-      .select('employee_number, hire_date, supervisor_id, home_address, employment_status')
+    const { data: currentUserData } = await supabase
+      .from('users')
+      .select('employee_number, hire_date, supervisor_id, home_address')
       .eq('id', userId)
       .single();
 
@@ -177,19 +149,17 @@ export const PATCH = withErrorHandler(
       updateData.hire_date = validated.hire_date || null;
     }
     if (validated.supervisor_id !== undefined) {
-      // Validate supervisor exists and is in same branch
+      // Validate supervisor exists
       if (validated.supervisor_id) {
-        const { data: supervisor } = await withBranchFilter(
-          client.from('users'),
-          branchContext
-        )
+        const { data: supervisor } = await supabase
+          .from('users')
           .select('id')
           .eq('id', validated.supervisor_id)
           .single();
 
         if (!supervisor) {
           return NextResponse.json(
-            { error: 'Supervisor not found or not accessible' },
+            { error: 'Supervisor not found' },
             { status: 400 }
           );
         }
@@ -207,15 +177,10 @@ export const PATCH = withErrorHandler(
     if (validated.home_address !== undefined) {
       updateData.home_address = validated.home_address || null;
     }
-    if (validated.employment_status !== undefined) {
-      updateData.employment_status = validated.employment_status || null;
-    }
 
     // Update user
-    const { data: updatedUser, error: updateError } = await withBranchFilter(
-      client.from('users'),
-      branchContext
-    )
+    const { data: updatedUser, error: updateError } = await supabase
+      .from('users')
       .update(updateData)
       .eq('id', userId)
       .select()
@@ -253,10 +218,6 @@ export const PATCH = withErrorHandler(
       if (validated.home_address !== undefined) {
         oldValues.home_address = currentUserData.home_address;
         newValues.home_address = validated.home_address;
-      }
-      if (validated.employment_status !== undefined) {
-        oldValues.employment_status = currentUserData.employment_status;
-        newValues.employment_status = validated.employment_status;
       }
 
       if (Object.keys(newValues).length > 0) {

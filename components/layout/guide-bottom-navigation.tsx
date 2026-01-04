@@ -27,7 +27,7 @@ export function GuideBottomNavigation({ locale }: GuideBottomNavigationProps) {
   const pathname = usePathname();
 
   const navItems: NavItem[] = [
-    { href: `/${locale}/guide`, label: 'Home', icon: Home },
+    { href: `/${locale}/guide/home`, label: 'Home', icon: Home },
     { href: `/${locale}/guide/trips`, label: 'Trip', icon: Calendar },
     { href: `/${locale}/guide/attendance`, label: 'Absensi', icon: MapPin },
     { href: `/${locale}/guide/chat`, label: 'Chat', icon: MessageSquare },
@@ -35,8 +35,9 @@ export function GuideBottomNavigation({ locale }: GuideBottomNavigationProps) {
   ];
 
   const isActive = (href: string) => {
-    if (href === `/${locale}/guide`) {
-      return pathname === href || pathname === `/${locale}/guide/`;
+    // Special handling for home - also active when on /guide
+    if (href.endsWith('/guide/home')) {
+      return pathname === href || pathname === `/${locale}/guide` || pathname === `/${locale}/guide/`;
     }
     return pathname.startsWith(href);
   };

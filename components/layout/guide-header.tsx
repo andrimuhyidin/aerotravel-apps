@@ -14,6 +14,7 @@ import { GuideSOSButton } from '@/components/layout/guide-sos-button';
 import { OfflineBadge } from '@/components/layout/offline-badge';
 import { RoleSwitcher } from '@/components/role-switcher';
 import { Button } from '@/components/ui/button';
+import { useAppSettings } from '@/hooks/use-settings';
 import { useOfflineStatus } from '@/hooks/use-offline-status';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +28,7 @@ type GuideHeaderProps = {
 
 export function GuideHeader({ locale }: GuideHeaderProps) {
   const { online, pending } = useOfflineStatus();
+  const appSettings = useAppSettings('guide');
 
   // Fetch unread notifications count
   const [unreadCount, setUnreadCount] = useState(0);
@@ -62,12 +64,20 @@ export function GuideHeader({ locale }: GuideHeaderProps) {
     };
   }, []);
 
+  const headerColor = appSettings?.header_color || '#059669';
+
   return (
-    <header className="sticky top-0 z-40 border-b border-emerald-700/20 bg-emerald-600 text-white shadow-sm">
+    <header
+      className="sticky top-0 z-50 border-b text-white shadow-sm"
+      style={{
+        backgroundColor: headerColor,
+        borderColor: `${headerColor}33`,
+      }}
+    >
       <div className="flex h-14 items-center justify-between px-4">
         {/* Logo / Brand */}
         <Link
-          href={`/${locale}/guide`}
+          href={`/${locale}/guide/home`}
           className="flex min-h-[44px] items-center gap-2.5 transition-opacity active:opacity-80"
           aria-label="Guide App Home"
         >

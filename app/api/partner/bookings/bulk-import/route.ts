@@ -56,7 +56,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const validation = bulkImportRowSchema.safeParse(sanitizedBody);
   if (!validation.success) {
     return NextResponse.json(
-      { error: validation.error.errors[0]?.message || 'Validation failed' },
+      { error: validation.error.issues[0]?.message || 'Validation failed' },
       { status: 400 }
     );
   }

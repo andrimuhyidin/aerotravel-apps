@@ -105,19 +105,19 @@ export function ReferralsClient({ locale }: ReferralsClientProps) {
 
   // Fetch referral stats
   const { data: stats, isLoading: statsLoading } = useQuery<ReferralStats>({
-    queryKey: queryKeys.partner.referralStats,
+    queryKey: queryKeys.partner.referrals.stats(),
     queryFn: async () => {
       const response = await apiClient.get<ReferralStats>('/api/partner/referrals/stats');
-      return response;
+      return response.data;
     },
   });
 
   // Fetch referral list
   const { data: referrals, isLoading: referralsLoading } = useQuery<Referral[]>({
-    queryKey: queryKeys.partner.referrals,
+    queryKey: queryKeys.partner.referrals.list(),
     queryFn: async () => {
       const response = await apiClient.get<{ referrals: Referral[] }>('/api/partner/referrals');
-      return response.referrals;
+      return response.data.referrals;
     },
   });
 
@@ -127,7 +127,7 @@ export function ReferralsClient({ locale }: ReferralsClientProps) {
       return apiClient.post('/api/partner/referrals/generate');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.partner.referralStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.partner.referrals.all() });
       toast.success('Kode referral baru berhasil dibuat!');
     },
     onError: () => {

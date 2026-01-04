@@ -21,6 +21,7 @@ import {
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
@@ -98,6 +99,9 @@ async function fetchOperationsData(): Promise<OperationsData> {
 }
 
 export function OperationsClient() {
+  const params = useParams();
+  const locale = (params?.locale as string) || 'id';
+
   const {
     data,
     isLoading,
@@ -198,7 +202,7 @@ export function OperationsClient() {
               </div>
             </div>
             <Button variant="outline" size="sm" asChild>
-              <Link href="/console/operations/scheduler">Kelola</Link>
+              <Link href={`/${locale}/console/operations/scheduler`}>Kelola</Link>
             </Button>
           </CardContent>
         </Card>
@@ -217,7 +221,7 @@ export function OperationsClient() {
             </CardDescription>
           </div>
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/console/operations/trips">
+            <Link href={`/${locale}/console/operations/trips`}>
               Semua Trip <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -241,25 +245,25 @@ export function OperationsClient() {
         <QuickLinkCard
           title="Live Tracking"
           description="Monitor posisi guide"
-          href="/console/operations/live-tracking"
+          href={`/${locale}/console/operations/live-tracking`}
           icon={MapPin}
         />
         <QuickLinkCard
           title="Scheduler"
           description="Kelola jadwal resources"
-          href="/console/operations/scheduler"
+          href={`/${locale}/console/operations/scheduler`}
           icon={Calendar}
         />
         <QuickLinkCard
           title="Assets"
           description="Kelola kapal & villa"
-          href="/console/operations/assets"
+          href={`/${locale}/console/operations/assets`}
           icon={Anchor}
         />
         <QuickLinkCard
           title="Inventory"
           description="Stock & audit"
-          href="/console/operations/inventory"
+          href={`/${locale}/console/operations/inventory`}
           icon={Activity}
         />
       </div>

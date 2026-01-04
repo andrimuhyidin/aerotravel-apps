@@ -287,7 +287,7 @@ export function BookingWizardClient({
                 )}>
                   {isCompleted && !isActive ? <Check className="h-3 w-3" /> : stepNumber}
                 </div>
-                <span className="text-xs font-medium">{step.title}</span>
+                <span className="text-xs font-medium">{step.label}</span>
               </button>
             );
           })}
@@ -315,7 +315,7 @@ export function BookingWizardClient({
                   onChange={(data) => {
                     if (data.packageId !== undefined)
                       form.setValue('packageId', data.packageId);
-                    if (data.tripDate !== undefined)
+                    if (data.tripDate !== undefined && data.tripDate !== null)
                       form.setValue('tripDate', data.tripDate);
                   }}
                   onNext={handleNext}

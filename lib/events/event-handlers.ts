@@ -37,6 +37,12 @@ export function initializeEventHandlers(): void {
   // Wallet event handlers
   subscribeToEvent('wallet.balance_changed', handleWalletBalanceChanged);
 
+  // Guide event handlers
+  subscribeToEvent('guide.contract_signed', handleGuideContractSigned);
+  subscribeToEvent('guide.contract_active', handleGuideContractActive);
+  subscribeToEvent('guide.certification_expired', handleGuideCertificationExpired);
+  subscribeToEvent('guide.assignment_confirmed', handleGuideAssignmentConfirmed);
+
   logger.info('[Event Handlers] Default handlers initialized');
 }
 
@@ -265,6 +271,70 @@ async function handleWalletBalanceChanged(event: AppEvent): Promise<void> {
     );
   } catch (error) {
     logger.error('[Event Handler] Failed to handle wallet.balance_changed', error, { event });
+  }
+}
+
+/**
+ * Handle guide.contract_signed event
+ */
+async function handleGuideContractSigned(event: AppEvent): Promise<void> {
+  try {
+    await createEventNotifications(
+      'custom',
+      event.data,
+      'Kontrak Ditandatangani',
+      `Kontrak ${event.data.contractNumber || 'N/A'} telah ditandatangani oleh guide`
+    );
+  } catch (error) {
+    logger.error('[Event Handler] Failed to handle guide.contract_signed', error, { event });
+  }
+}
+
+/**
+ * Handle guide.contract_active event
+ */
+async function handleGuideContractActive(event: AppEvent): Promise<void> {
+  try {
+    await createEventNotifications(
+      'custom',
+      event.data,
+      'Kontrak Aktif',
+      `Kontrak ${event.data.contractNumber || 'N/A'} telah aktif dan berlaku`
+    );
+  } catch (error) {
+    logger.error('[Event Handler] Failed to handle guide.contract_active', error, { event });
+  }
+}
+
+/**
+ * Handle guide.certification_expired event
+ */
+async function handleGuideCertificationExpired(event: AppEvent): Promise<void> {
+  try {
+    await createEventNotifications(
+      'custom',
+      event.data,
+      'Sertifikasi Expired',
+      `Sertifikasi ${event.data.certificationType || 'N/A'} telah expired. Harap perbarui segera.`
+    );
+  } catch (error) {
+    logger.error('[Event Handler] Failed to handle guide.certification_expired', error, { event });
+  }
+}
+
+/**
+ * Handle guide.assignment_confirmed event
+ */
+async function handleGuideAssignmentConfirmed(event: AppEvent): Promise<void> {
+  try {
+    await createEventNotifications(
+      'trip.assigned',
+      event.data,
+      'Assignment Dikonfirmasi',
+      `Guide ${event.data.guideName || 'N/A'} telah mengkonfirmasi assignment untuk trip ${event.data.tripCode || 'N/A'}`
+    );
+  } catch (error) {
+    logger.error('[Event Handler] Failed to handle guide.assignment_confirmed', error, { event });
   }
 }
 

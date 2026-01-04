@@ -38,7 +38,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     }
 
     const { bookingValue } = parsed.data;
-    const estimate = estimatePointsFromBooking(bookingValue);
+    const estimate = await estimatePointsFromBooking(bookingValue);
 
     const response: {
       pointsToEarn: number;

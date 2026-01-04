@@ -377,6 +377,7 @@ export function BookingWizardClient() {
                 <StepPackagePublic
                   packageData={packageData}
                   onPackageSelect={(pkg) => {
+                    if (!pkg) return;
                     setPackageData(pkg);
                     form.setValue('packageId', pkg.id);
                     form.setValue('packageSlug', pkg.slug);

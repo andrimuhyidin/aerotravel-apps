@@ -60,11 +60,12 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
   }
 
   // Get company info
-  const { COMPANY_CONFIG } = await import('@/lib/config/company');
-  const companyName = COMPANY_CONFIG.name;
-  const companyAddress = COMPANY_CONFIG.address;
-  const companyPhone = COMPANY_CONFIG.phone;
-  const companyEmail = COMPANY_CONFIG.email;
+  const { getCompanyConfig } = await import('@/lib/config/company');
+  const companyConfig = await getCompanyConfig();
+  const companyName = companyConfig.name;
+  const companyAddress = companyConfig.address;
+  const companyPhone = companyConfig.phone;
+  const companyEmail = companyConfig.email;
 
   // Prepare contract data for PDF
   const contractData: ContractData = {

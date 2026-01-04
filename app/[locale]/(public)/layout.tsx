@@ -64,21 +64,19 @@ export default async function PublicLayout({
       
       {/* Mobile-First Container - Centered on desktop, full on mobile */}
       <div className="relative mx-auto min-h-screen w-full max-w-md bg-background shadow-xl">
-        {/* App Header - Sticky */}
-        <header role="banner">
-          <AppHeader
-            locale={locale}
-            user={
-              user
-                ? {
-                    name: profile?.full_name,
-                    avatar: profile?.avatar_url,
-                    role: activeRole || profile?.role,
-                  }
-                : null
-            }
-          />
-        </header>
+        {/* App Header - Sticky (stays at top when scrolling) */}
+        <AppHeader
+          locale={locale}
+          user={
+            user
+              ? {
+                name: profile?.full_name,
+                avatar: profile?.avatar_url,
+                role: activeRole || profile?.role,
+              }
+              : null
+          }
+        />
 
         {/* Main Content - Native Scrolling */}
         <main 

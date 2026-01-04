@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,38 +27,65 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useValidationSettings } from '@/hooks/use-validation-settings';
 import { logger } from '@/lib/utils/logger';
 import { toast } from 'sonner';
 
-const packageFormSchema = z.object({
-  code: z.string().min(3, 'Code must be at least 3 characters').max(20),
-  name: z.string().min(3, 'Name must be at least 3 characters').max(200),
-  slug: z.string().min(3, 'Slug must be at least 3 characters').max(200),
-  description: z.string().optional(),
-  shortDescription: z.string().max(500).optional(),
-  packageType: z.enum(['open_trip', 'private_trip', 'corporate', 'kol_trip']),
-  destination: z.string().min(2, 'Destination is required').max(200),
-  city: z.string().max(100).optional(),
-  province: z.string().max(100).optional(),
-  durationDays: z.coerce.number().int().min(1, 'Duration must be at least 1 day'),
-  durationNights: z.coerce.number().int().min(0),
-  minPax: z.coerce.number().int().min(1, 'Minimum 1 pax'),
-  maxPax: z.coerce.number().int().min(1, 'Maximum must be at least 1'),
-  inclusions: z.string().optional(),
-  exclusions: z.string().optional(),
-  thumbnailUrl: z.string().url().optional().or(z.literal('')),
-  priceTiers: z.array(
-    z.object({
-      minPax: z.coerce.number().int().min(1),
-      maxPax: z.coerce.number().int().min(1),
-      pricePublish: z.coerce.number().min(0),
-      priceNta: z.coerce.number().min(0),
-      priceWeekend: z.coerce.number().min(0).optional(),
-    })
-  ).min(1, 'At least one price tier is required'),
-});
+/**
+ * Create dynamic package form schema based on validation settings
+ */
+function createPackageFormSchema(v: {
+  packageCodeMinLength: number;
+  packageCodeMaxLength: number;
+  packageNameMinLength: number;
+  packageNameMaxLength: number;
+  slugMinLength: number;
+  slugMaxLength: number;
+  shortDescriptionMaxLength: number;
+  minPaxMinimum: number;
+  maxPaxMinimum: number;
+}) {
+  return z.object({
+    code: z
+      .string()
+      .min(v.packageCodeMinLength, `Code must be at least ${v.packageCodeMinLength} characters`)
+      .max(v.packageCodeMaxLength, `Code must be at most ${v.packageCodeMaxLength} characters`),
+    name: z
+      .string()
+      .min(v.packageNameMinLength, `Name must be at least ${v.packageNameMinLength} characters`)
+      .max(v.packageNameMaxLength, `Name must be at most ${v.packageNameMaxLength} characters`),
+    slug: z
+      .string()
+      .min(v.slugMinLength, `Slug must be at least ${v.slugMinLength} characters`)
+      .max(v.slugMaxLength, `Slug must be at most ${v.slugMaxLength} characters`),
+    description: z.string().optional(),
+    shortDescription: z.string().max(v.shortDescriptionMaxLength, `Max ${v.shortDescriptionMaxLength} characters`).optional(),
+    packageType: z.enum(['open_trip', 'private_trip', 'corporate', 'kol_trip']),
+    destination: z.string().min(2, 'Destination is required').max(200),
+    city: z.string().max(100).optional(),
+    province: z.string().max(100).optional(),
+    durationDays: z.coerce.number().int().min(1, 'Duration must be at least 1 day'),
+    durationNights: z.coerce.number().int().min(0),
+    minPax: z.coerce.number().int().min(v.minPaxMinimum, `Minimum ${v.minPaxMinimum} pax`),
+    maxPax: z.coerce.number().int().min(v.maxPaxMinimum, `Maximum must be at least ${v.maxPaxMinimum}`),
+    inclusions: z.string().optional(),
+    exclusions: z.string().optional(),
+    thumbnailUrl: z.string().url().optional().or(z.literal('')),
+    priceTiers: z
+      .array(
+        z.object({
+          minPax: z.coerce.number().int().min(1),
+          maxPax: z.coerce.number().int().min(1),
+          pricePublish: z.coerce.number().min(0),
+          priceNta: z.coerce.number().min(0),
+          priceWeekend: z.coerce.number().min(0).optional(),
+        })
+      )
+      .min(1, 'At least one price tier is required'),
+  });
+}
 
-type PackageFormValues = z.infer<typeof packageFormSchema>;
+type PackageFormValues = z.infer<ReturnType<typeof createPackageFormSchema>>;
 
 export function PackageForm({
   initialData,
@@ -68,7 +95,18 @@ export function PackageForm({
   mode?: 'create' | 'edit';
 }) {
   const router = useRouter();
+  const params = useParams();
+  const locale = (params?.locale as string) || 'id';
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch validation settings from database
+  const { settings: validationSettings, isLoading: isLoadingSettings } = useValidationSettings();
+
+  // Create dynamic schema based on settings
+  const packageFormSchema = useMemo(
+    () => createPackageFormSchema(validationSettings),
+    [validationSettings]
+  );
 
   const form = useForm<PackageFormValues>({
     resolver: zodResolver(packageFormSchema),
@@ -132,7 +170,7 @@ export function PackageForm({
 
       toast.success('Package created successfully');
 
-      router.push(`/console/products/${result.package.id}`);
+      router.push(`/${locale}/console/products/${result.package.id}`);
       router.refresh();
     } catch (error) {
       logger.error('Failed to create package', error);
@@ -567,12 +605,12 @@ export function PackageForm({
             type="button"
             variant="outline"
             onClick={() => router.back()}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoadingSettings}
           >
             <X className="mr-2 h-4 w-4" />
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting || isLoadingSettings}>
             <Save className="mr-2 h-4 w-4" />
             {isSubmitting ? 'Saving...' : mode === 'create' ? 'Create Package' : 'Update Package'}
           </Button>

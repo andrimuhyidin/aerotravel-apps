@@ -1,11 +1,13 @@
 /**
  * Enhanced Wallet Client Component
  * Combines all wallet enhancements: analytics, pending earnings, forecast, goals, milestones, insights
+ * With realtime wallet balance updates
  */
 
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useGuideWalletRealtimeSync } from '@/hooks/use-wallet-realtime';
 import {
   AlertCircle,
   ArrowDownCircle,
@@ -170,6 +172,7 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
   const [activeTab, setActiveTab] = useState<
     'overview' | 'analytics' | 'transactions' | 'goals'
   >('overview');
+
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [selectedBankAccount, setSelectedBankAccount] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
@@ -213,6 +216,11 @@ export function WalletEnhancedClient({ locale: _locale }: WalletClientProps) {
       return (await res.json()) as WalletResponse;
     },
   });
+
+  // Realtime wallet balance updates (subscribes based on userId from wallet data)
+  const { status: realtimeStatus } = useGuideWalletRealtimeSync(
+    walletData ? (walletData as unknown as { userId?: string }).userId || null : null
+  );
 
   // Analytics
   const { data: analyticsData } = useQuery<AnalyticsResponse>({

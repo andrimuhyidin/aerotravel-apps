@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import queryKeys from '@/lib/queries/query-keys';
 
 type Package = {
   id: string;
@@ -47,14 +48,14 @@ export function ProductsManagementClient({
   userBranchId,
   userRole,
 }: {
-  userBranchId: string;
+  userBranchId: string | null;
   userRole: string;
 }) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['admin-packages', statusFilter, searchQuery],
+    queryKey: queryKeys.admin.packages.list({ status: statusFilter, search: searchQuery }),
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter && statusFilter !== 'all') {

@@ -51,7 +51,7 @@ export function BookingForm({ locale }: BookingFormProps) {
           'id, name, destination, duration_days, branch_id, package_prices(min_pax, max_pax, price_publish)'
         )
         .eq('status', 'published');
-      setPackages((data as Package[]) || []);
+      setPackages((data as unknown as Package[]) || []);
       setLoadingPackages(false);
     }
     loadPackages();

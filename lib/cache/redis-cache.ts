@@ -43,6 +43,9 @@ function getRedisClient(): Redis | null {
  * @param ttl Time to live in seconds
  * @param fetcher Function to fetch data if cache miss
  * @returns Cached or fresh data
+ * 
+ * NOTE: Upstash Redis SDK auto-deserializes JSON, so we receive objects directly.
+ * We handle both cases for compatibility.
  */
 export async function getCached<T>(
   key: string,
@@ -58,51 +61,37 @@ export async function getCached<T>(
 
   try {
     // Try to get from cache
-    const cached = await redis.get<string>(key);
+    // Upstash Redis SDK auto-deserializes JSON, so we request as T directly
+    const cached = await redis.get<T>(key);
     if (cached !== null && cached !== undefined) {
       logger.debug('Cache hit', { key });
-      try {
-        // Check if cached value is already an object (shouldn't happen but handle gracefully)
-        if (typeof cached === 'object' && cached !== null) {
-          logger.warn('Cached value is already an object, invalidating cache', {
-            key,
-          });
-          await redis.del(key);
-          const data = await fetcher();
-          await redis.setex(key, ttl, JSON.stringify(data));
-          return data;
-        }
-
-        // Ensure cached is a string before parsing
-        const cachedString =
-          typeof cached === 'string' ? cached : String(cached);
-
-        // Try to parse JSON
-        const parsed = JSON.parse(cachedString);
-        return parsed as T;
-      } catch (parseError) {
-        logger.error('Failed to parse cached data', parseError, {
-          key,
-          cachedType: typeof cached,
-          cachedValue:
-            typeof cached === 'string'
-              ? cached.substring(0, 100)
-              : String(cached).substring(0, 100),
-        });
-        // If parsing fails, invalidate cache and fetch fresh
-        await redis.del(key);
-        const data = await fetcher();
-        await redis.setex(key, ttl, JSON.stringify(data));
-        return data;
+      
+      // Upstash SDK auto-deserializes JSON, so cached is already an object
+      // This is the expected behavior - no need to parse
+      if (typeof cached === 'object') {
+        return cached as T;
       }
+      
+      // Fallback for string values (should rarely happen)
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached) as T;
+        } catch {
+          // If parsing fails, return as-is for string types
+          return cached as unknown as T;
+        }
+      }
+      
+      // For primitive types (number, boolean), return as-is
+      return cached as T;
     }
 
     // Cache miss - fetch and cache
     logger.debug('Cache miss', { key });
     const data = await fetcher();
 
-    // Set cache with TTL
-    await redis.setex(key, ttl, JSON.stringify(data));
+    // Set cache with TTL - Upstash auto-serializes objects
+    await redis.setex(key, ttl, data as unknown as string);
 
     return data;
   } catch (error) {
@@ -117,6 +106,8 @@ export async function getCached<T>(
  * @param key Cache key
  * @param value Value to cache
  * @param ttl Time to live in seconds
+ * 
+ * NOTE: Upstash Redis SDK auto-serializes objects
  */
 export async function setCache<T>(
   key: string,
@@ -127,7 +118,8 @@ export async function setCache<T>(
   if (!redis) return;
 
   try {
-    await redis.setex(key, ttl, JSON.stringify(value));
+    // Upstash auto-serializes objects, so we can pass value directly
+    await redis.setex(key, ttl, value as unknown as string);
   } catch (error) {
     logger.error('Failed to set cache', error, { key });
   }
@@ -137,27 +129,35 @@ export async function setCache<T>(
  * Get cache value without fetching
  * @param key Cache key
  * @returns Cached value or null
+ * 
+ * NOTE: Upstash Redis SDK auto-deserializes JSON
  */
 export async function getCache<T>(key: string): Promise<T | null> {
   const redis = getRedisClient();
   if (!redis) return null;
 
   try {
-    const cached = await redis.get<string>(key);
+    // Upstash auto-deserializes JSON, so we get T directly
+    const cached = await redis.get<T>(key);
     if (cached === null || cached === undefined) return null;
 
-    // Check if cached value is already an object (shouldn't happen but handle gracefully)
-    if (typeof cached === 'object' && cached !== null) {
-      logger.warn(
-        'Cached value is already an object in getCache, returning as-is',
-        { key }
-      );
-      return cached as unknown as T;
+    // Upstash SDK returns the deserialized value directly
+    if (typeof cached === 'object') {
+      return cached as T;
     }
-
-    // Ensure cached is a string before parsing
-    const cachedString = typeof cached === 'string' ? cached : String(cached);
-    return JSON.parse(cachedString) as T;
+    
+    // For string values, try to parse as JSON
+    if (typeof cached === 'string') {
+      try {
+        return JSON.parse(cached) as T;
+      } catch {
+        // If parsing fails, return as-is for string types
+        return cached as unknown as T;
+      }
+    }
+    
+    // For primitive types, return as-is
+    return cached as T;
   } catch (error) {
     logger.error('Failed to get cache', error, { key });
     return null;
@@ -246,6 +246,19 @@ export async function invalidateGuideUnifiedCaches(
  * Cache key builders
  */
 export const cacheKeys = {
+  // User session cache (PERFORMANCE - reduces DB queries)
+  user: {
+    session: (userId: string) => `user:session:${userId}`,
+    fullData: (userId: string) => `user:${userId}:full`,
+    activeRole: (userId: string) => `user:role:${userId}`,
+    roles: (userId: string) => `user:roles:${userId}`,
+    profile: (userId: string) => `user:profile:${userId}`,
+  },
+  // Admin dashboard cache
+  admin: {
+    dashboard: (userId: string) => `admin:dashboard:${userId}`,
+  },
+  // Guide-specific cache
   guide: {
     stats: (userId: string) => `guide:stats:${userId}`,
     trips: (userId: string, status?: string) =>
@@ -279,6 +292,13 @@ export const cacheKeys = {
  * Default TTL values (in seconds)
  */
 export const cacheTTL = {
+  // User session cache
+  userSession: 300, // 5 minutes
+  userRole: 300, // 5 minutes (roles rarely change)
+  userProfile: 300, // 5 minutes
+  // Admin cache
+  adminDashboard: 60, // 1 minute
+  // Guide cache
   stats: 300, // 5 minutes
   trips: 120, // 2 minutes
   wallet: 60, // 1 minute
@@ -290,3 +310,51 @@ export const cacheTTL = {
   unifiedMetrics: 300, // 5 minutes
   unifiedAIInsights: 600, // 10 minutes (AI is expensive)
 } as const;
+
+/**
+ * Warm user cache on login
+ * Pre-cache user data to speed up first page load
+ * 
+ * NOTE: Upstash Redis SDK auto-serializes objects
+ */
+export async function warmUserCache(
+  userId: string,
+  profile: Record<string, unknown> | null,
+  activeRole: string | null,
+  roles: string[]
+): Promise<void> {
+  const redis = getRedisClient();
+  if (!redis) return;
+
+  try {
+    await Promise.all([
+      // Cache profile - Upstash auto-serializes
+      profile
+        ? redis.setex(
+            cacheKeys.user.profile(userId),
+            cacheTTL.userProfile,
+            profile as unknown as string
+          )
+        : Promise.resolve(),
+      // Cache active role - string doesn't need serialization
+      activeRole
+        ? redis.setex(
+            cacheKeys.user.activeRole(userId),
+            cacheTTL.userRole,
+            activeRole
+          )
+        : Promise.resolve(),
+      // Cache all roles - Upstash auto-serializes arrays
+      roles.length > 0
+        ? redis.setex(
+            cacheKeys.user.roles(userId),
+            cacheTTL.userRole,
+            roles as unknown as string
+          )
+        : Promise.resolve(),
+    ]);
+    logger.debug('User cache warmed', { userId });
+  } catch (error) {
+    logger.error('Failed to warm user cache', error, { userId });
+  }
+}

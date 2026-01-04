@@ -381,7 +381,7 @@ export function InboxClient({ locale }: { locale: string }) {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-bottom">
           <Button
             onClick={() => {
-              setReplyingTo(threadMessages[0]);
+              setReplyingTo(threadMessages[0] ?? null);
               setShowReplySheet(true);
             }}
             className="w-full gap-2"

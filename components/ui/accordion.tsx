@@ -20,6 +20,8 @@ type AccordionProps = {
   className?: string;
   defaultOpen?: boolean;
   type?: 'single' | 'multiple';
+  /** Allow closing all items (applicable for type="single") */
+  collapsible?: boolean;
 };
 
 export function Accordion({
@@ -27,6 +29,7 @@ export function Accordion({
   className,
   defaultOpen = false,
   type = 'multiple',
+  collapsible: _collapsible = true,
 }: AccordionProps) {
   const defaultValues = React.useMemo(() => {
     const values: string[] = [];

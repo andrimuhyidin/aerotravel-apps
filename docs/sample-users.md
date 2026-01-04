@@ -8,6 +8,7 @@ Semua sample user menggunakan password yang sama:
 
 ```
 Test@1234
+Admin@123
 ```
 
 ## Daftar User

@@ -104,7 +104,7 @@ export default async function GuideAttendancePage({ params }: PageProps) {
     } | null;
   };
 
-  const trips = ((assignments ?? []) as TripAssignment[])
+  const trips = ((assignments ?? []) as unknown as TripAssignment[])
     .map((a) => a.trip)
     .filter((t): t is NonNullable<typeof t> => {
       if (!t || !t.trip_date) return false;

@@ -1,11 +1,17 @@
 'use client';
 
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, QrCode, UserPlus } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useRealtimeSubscription } from '@/lib/realtime/realtime-hooks';
+import queryKeys from '@/lib/queries/query-keys';
+import { logger } from '@/lib/utils/logger';
 
 type Trip = {
   id: string;
@@ -16,14 +22,64 @@ type Trip = {
   package?: { name: string | null } | null;
 };
 
-type TripsClientProps = {
+type TripsResponse = {
   trips: Trip[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+async function fetchTrips(filters: Record<string, unknown>): Promise<TripsResponse> {
+  const params = new URLSearchParams(
+    Object.entries(filters)
+      .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => [k, String(v)])
+  );
+  const response = await fetch(`/api/admin/trips?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch trips');
+  }
+  return response.json();
+}
+
+type TripsClientProps = {
   locale: string;
 };
 
-export function TripsClient({ trips, locale }: TripsClientProps) {
+export function TripsClient({ locale }: TripsClientProps) {
+  const queryClient = useQueryClient();
+  const [status, setStatus] = useState('all');
+  const [page, setPage] = useState(1);
   const [sending, setSending] = useState<Record<string, boolean>>({});
   const [assigning, setAssigning] = useState<Record<string, boolean>>({});
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.admin.trips.list({ status, page }),
+    queryFn: () => fetchTrips({ status, page, limit: 50 }),
+    staleTime: 30_000,
+  });
+
+  // Realtime subscription for trip status changes
+  const handleTripUpdate = useCallback(() => {
+    // Invalidate and refetch trips when any trip changes
+    queryClient.invalidateQueries({ queryKey: queryKeys.admin.trips.all() });
+    toast.info('Trip data updated', { duration: 2000 });
+  }, [queryClient]);
+
+  const { isSubscribed: isRealtimeConnected } = useRealtimeSubscription<{ id: string; status: string }>(
+    'admin-trips',
+    {
+      table: 'trips',
+      event: 'UPDATE',
+    },
+    handleTripUpdate,
+    true
+  );
+
+  const trips = data?.trips || [];
 
   const handleAutoAssign = async (tripId: string) => {
     setAssigning((prev) => ({ ...prev, [tripId]: true }));
@@ -38,14 +94,19 @@ export function TripsClient({ trips, locale }: TripsClientProps) {
         throw new Error(error.error || 'Gagal auto-assign');
       }
 
-      const data = (await res.json()) as {
+      const result = (await res.json()) as {
         assignment?: { guide_name?: string; reason?: string };
       };
-      alert(
-        `Trip berhasil di-assign ke ${data.assignment?.guide_name || 'guide'}.\n${data.assignment?.reason || ''}`
+      
+      toast.success(
+        `Trip berhasil di-assign ke ${result.assignment?.guide_name || 'guide'}. ${result.assignment?.reason || ''}`
       );
+      
+      // Invalidate trips to refresh the list
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.trips.all() });
     } catch (error) {
-      alert((error as Error).message || 'Gagal auto-assign. Periksa koneksi internet.');
+      logger.error('Failed to auto-assign trip', error, { tripId });
+      toast.error((error as Error).message || 'Gagal auto-assign trip');
     } finally {
       setAssigning((prev) => ({ ...prev, [tripId]: false }));
     }
@@ -65,16 +126,59 @@ export function TripsClient({ trips, locale }: TripsClientProps) {
         throw new Error('Gagal mengirim notifikasi');
       }
 
-      const data = (await res.json()) as { sent: number; failed: number };
-      alert(
-        `Notifikasi terkirim ke ${data.sent} peserta. ${data.failed > 0 ? `${data.failed} gagal.` : ''}`
+      const result = (await res.json()) as { sent: number; failed: number };
+      toast.success(
+        `Notifikasi terkirim ke ${result.sent} peserta. ${result.failed > 0 ? `${result.failed} gagal.` : ''}`
       );
-    } catch {
-      alert('Gagal mengirim notifikasi. Periksa koneksi internet.');
+    } catch (error) {
+      logger.error('Failed to send trip notification', error, { tripId, type });
+      toast.error('Gagal mengirim notifikasi');
     } finally {
       setSending((prev) => ({ ...prev, [tripId]: false }));
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-1/2 mt-2" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2">
+                <Skeleton className="h-9 w-32" />
+                <Skeleton className="h-9 w-32" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <p className="text-destructive mb-4">Failed to load trips</p>
+          <Button onClick={() => refetch()}>Retry</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (trips.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <p className="text-muted-foreground">No trips found</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-3">

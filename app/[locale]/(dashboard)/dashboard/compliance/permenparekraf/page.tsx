@@ -1,38 +1,62 @@
 /**
  * Dashboard - Permenparekraf Self-Assessment Page
- * Path: /dashboard/compliance/permenparekraf
+ * Path: /[locale]/dashboard/compliance/permenparekraf
  * Purpose: Admin page for Permenparekraf No.4/2021 self-assessment
  */
 
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
 import { redirect } from 'next/navigation';
+import { setRequestLocale } from 'next-intl/server';
 import { Suspense } from 'react';
 
 import { PermenparekrafDashboard } from '@/components/admin/permenparekraf-dashboard';
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
-import { createClient } from '@/lib/supabase/server';
+import { locales } from '@/i18n';
+import { getCurrentUser } from '@/lib/supabase/server';
 
-export const metadata: Metadata = {
-  title: 'Self-Assessment Permenparekraf | Dashboard',
-  description: 'Self-Assessment Standar Usaha Pariwisata (Permenparekraf No.4/2021)',
+type PageProps = {
+  params: Promise<{ locale: string }>;
 };
 
-export default async function PermenparekrafAssessmentPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export const dynamic = 'force-dynamic';
 
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }));
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#000000',
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
+
+  return {
+    title: 'Self-Assessment Permenparekraf | Dashboard',
+    description: 'Self-Assessment Standar Usaha Pariwisata (Permenparekraf No.4/2021)',
+    alternates: {
+      canonical: `${baseUrl}/${locale}/dashboard/compliance/permenparekraf`,
+    },
+  };
+}
+
+export default async function PermenparekrafAssessmentPage({ params }: PageProps) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
+  const user = await getCurrentUser();
   if (!user) {
-    redirect('/login');
+    redirect(`/${locale}/login`);
   }
 
   // Check if user is admin
-  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-
-  if (!profile || !['super_admin', 'ops_admin'].includes(profile.role)) {
-    redirect('/dashboard');
+  if (!user.activeRole || !['super_admin', 'ops_admin'].includes(user.activeRole)) {
+    redirect(`/${locale}/console`);
   }
 
   return (

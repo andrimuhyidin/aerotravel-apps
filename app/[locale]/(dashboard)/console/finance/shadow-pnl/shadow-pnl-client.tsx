@@ -132,12 +132,12 @@ export function ShadowPnLClient() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: listData, isLoading: listLoading, refetch: refetchList } = useQuery({
-    queryKey: [...queryKeys.admin.all, 'shadow-pnl-list', page, statusFilter],
+    queryKey: queryKeys.admin.finance.shadowPnl(),
     queryFn: () => fetchPnLList(page, statusFilter),
   });
 
   const { data: detailData, isLoading: detailLoading } = useQuery({
-    queryKey: [...queryKeys.admin.all, 'shadow-pnl-detail', selectedTripId],
+    queryKey: queryKeys.admin.finance.shadowPnl(selectedTripId ?? undefined),
     queryFn: () => fetchPnLDetail(selectedTripId!),
     enabled: !!selectedTripId,
   });

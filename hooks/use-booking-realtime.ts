@@ -1,121 +1,193 @@
 /**
- * React Hook for Booking Real-time Updates
- * Client-side hook untuk subscribe ke booking changes
+ * React Hook for Booking Real-time Status Updates
+ * Client-side hook untuk subscribe ke booking status changes
  */
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
-import { setupBookingRealtimeSync } from '@/lib/realtime/booking-sync';
+import { createClient } from '@/lib/supabase/client';
+import queryKeys from '@/lib/queries/query-keys';
 import { logger } from '@/lib/utils/logger';
 
-import type { Database } from '@/types/supabase';
-
-type Booking = Database['public']['Tables']['bookings']['Row'];
+type BookingUpdate = {
+  id: string;
+  status: string;
+  payment_status?: string;
+  updated_at: string;
+};
 
 /**
- * Hook untuk subscribe ke real-time booking updates
- * @param bookingId - Booking ID
+ * Hook untuk subscribe ke real-time booking status updates
+ * @param bookingId - Booking ID to subscribe to
  * @param enabled - Whether subscription is enabled (default: true)
- * @returns Booking data, loading state, and error
+ * @returns Booking update callback and subscription status
  */
 export function useBookingRealtime(
   bookingId: string | null,
   enabled: boolean = true
 ): {
-  booking: Booking | null;
-  isLoading: boolean;
-  error: Error | null;
-} {
-  const [booking, setBooking] = useState<Booking | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const unsubscribeRef = useRef<(() => void) | null>(null);
-
-  useEffect(() => {
-    if (!bookingId || !enabled) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      // Setup real-time subscription
-      const unsubscribe = setupBookingRealtimeSync(bookingId, (updatedBooking) => {
-        setBooking(updatedBooking);
-        setIsLoading(false);
-        setError(null);
-      });
-
-      unsubscribeRef.current = unsubscribe;
-
-      // Initial fetch (optional - can be done separately)
-      // For now, we rely on the component to fetch initial data
-      setIsLoading(false);
-
-      // Cleanup
-      return () => {
-        if (unsubscribeRef.current) {
-          unsubscribeRef.current();
-          unsubscribeRef.current = null;
-        }
-      };
-    } catch (err) {
-      logger.error('[useBookingRealtime] Failed to setup sync', err, { bookingId });
-      setError(err instanceof Error ? err : new Error('Failed to setup real-time sync'));
-      setIsLoading(false);
-    }
-  }, [bookingId, enabled]);
-
-  return { booking, isLoading, error };
-}
-
-/**
- * Hook untuk update booking state from real-time updates
- * Useful untuk components yang already have booking state
- */
-export function useBookingRealtimeUpdate(
-  bookingId: string | null,
-  onUpdate: (booking: Booking) => void,
-  enabled: boolean = true
-): {
+  onStatusChange: (callback: (status: string) => void) => void;
   isSubscribed: boolean;
   error: Error | null;
 } {
+  const queryClient = useQueryClient();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const callbackRef = useRef<((status: string) => void) | null>(null);
 
   useEffect(() => {
     if (!bookingId || !enabled) {
       return;
     }
 
+    const supabase = createClient();
+
     try {
-      const unsubscribe = setupBookingRealtimeSync(bookingId, (updatedBooking) => {
-        onUpdate(updatedBooking);
-        setIsSubscribed(true);
-        setError(null);
-      });
+      const channel = supabase
+        .channel(`booking-${bookingId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'bookings',
+            filter: `id=eq.${bookingId}`,
+          },
+          (payload) => {
+            const newData = payload.new as BookingUpdate;
+            
+            logger.info('[useBookingRealtime] Booking updated', {
+              bookingId,
+              newStatus: newData.status,
+            });
 
-      unsubscribeRef.current = unsubscribe;
-      setIsSubscribed(true);
+            // Trigger callback if status changed
+            if (callbackRef.current && newData.status) {
+              callbackRef.current(newData.status);
+            }
 
-      // Cleanup
+            // Invalidate relevant queries
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.bookings.detail(bookingId),
+            });
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            setIsSubscribed(true);
+            setError(null);
+            logger.debug('[useBookingRealtime] Subscribed', { bookingId });
+          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+            setIsSubscribed(false);
+            logger.warn('[useBookingRealtime] Subscription closed/error', { bookingId, status });
+          }
+        });
+
+      // Cleanup on unmount
       return () => {
-        if (unsubscribeRef.current) {
-          unsubscribeRef.current();
-          unsubscribeRef.current = null;
-        }
+        supabase.removeChannel(channel);
         setIsSubscribed(false);
       };
     } catch (err) {
-      logger.error('[useBookingRealtimeUpdate] Failed to setup sync', err, { bookingId });
-      setError(err instanceof Error ? err : new Error('Failed to setup real-time sync'));
+      logger.error('[useBookingRealtime] Failed to setup subscription', err, { bookingId });
+      setError(err instanceof Error ? err : new Error('Failed to setup real-time subscription'));
       setIsSubscribed(false);
     }
-  }, [bookingId, enabled, onUpdate]);
+  }, [bookingId, enabled, queryClient]);
 
-  return { isSubscribed, error };
+  const onStatusChange = useCallback((callback: (status: string) => void) => {
+    callbackRef.current = callback;
+  }, []);
+
+  return { onStatusChange, isSubscribed, error };
 }
 
+/**
+ * Hook untuk subscribe ke real-time booking status updates by code
+ * @param bookingCode - Booking code to subscribe to
+ * @param enabled - Whether subscription is enabled (default: true)
+ */
+export function useBookingRealtimeByCode(
+  bookingCode: string | null,
+  enabled: boolean = true
+): {
+  onStatusChange: (callback: (status: string) => void) => void;
+  isSubscribed: boolean;
+  error: Error | null;
+} {
+  const queryClient = useQueryClient();
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const callbackRef = useRef<((status: string) => void) | null>(null);
+
+  useEffect(() => {
+    if (!bookingCode || !enabled) {
+      return;
+    }
+
+    const supabase = createClient();
+
+    try {
+      // Note: filtering by booking_code in realtime requires a custom filter
+      // We use a workaround by subscribing to all booking updates and filtering client-side
+      const channel = supabase
+        .channel(`booking-code-${bookingCode}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'bookings',
+            filter: `booking_code=eq.${bookingCode}`,
+          },
+          (payload) => {
+            const newData = payload.new as BookingUpdate;
+            
+            logger.info('[useBookingRealtimeByCode] Booking updated', {
+              bookingCode,
+              newStatus: newData.status,
+            });
+
+            // Trigger callback if status changed
+            if (callbackRef.current && newData.status) {
+              callbackRef.current(newData.status);
+            }
+
+            // Invalidate relevant queries
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.bookings.detail(newData.id),
+            });
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            setIsSubscribed(true);
+            setError(null);
+            logger.debug('[useBookingRealtimeByCode] Subscribed', { bookingCode });
+          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+            setIsSubscribed(false);
+            logger.warn('[useBookingRealtimeByCode] Subscription closed/error', { bookingCode, status });
+          }
+        });
+
+      // Cleanup on unmount
+      return () => {
+        supabase.removeChannel(channel);
+        setIsSubscribed(false);
+      };
+    } catch (err) {
+      logger.error('[useBookingRealtimeByCode] Failed to setup subscription', err, { bookingCode });
+      setError(err instanceof Error ? err : new Error('Failed to setup real-time subscription'));
+      setIsSubscribed(false);
+    }
+  }, [bookingCode, enabled, queryClient]);
+
+  const onStatusChange = useCallback((callback: (status: string) => void) => {
+    callbackRef.current = callback;
+  }, []);
+
+  return { onStatusChange, isSubscribed, error };
+}

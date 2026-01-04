@@ -112,23 +112,23 @@ export function VouchersClient({ locale }: VouchersClientProps) {
 
   // Fetch voucher stats
   const { data: stats, isLoading: statsLoading } = useQuery<VoucherStats>({
-    queryKey: queryKeys.partner.voucherStats,
+    queryKey: queryKeys.partner.vouchers.all(),
     queryFn: async () => {
       const response = await apiClient.get<VoucherStats>('/api/partner/vouchers/stats');
-      return response;
+      return response.data;
     },
   });
 
   // Fetch voucher list
   const { data: vouchers, isLoading: vouchersLoading } = useQuery<Voucher[]>({
-    queryKey: queryKeys.partner.vouchers,
+    queryKey: queryKeys.partner.vouchers.list(),
     queryFn: async () => {
       const response = await apiClient.get<{ vouchers: Voucher[] }>('/api/partner/vouchers');
-      return response.vouchers;
+      return response.data.vouchers;
     },
   });
 
-  const filteredVouchers = vouchers?.filter((v) => {
+  const filteredVouchers = vouchers?.filter((v: Voucher) => {
     const matchesTab =
       activeTab === 'all' ||
       (activeTab === 'active' && v.status === 'active') ||

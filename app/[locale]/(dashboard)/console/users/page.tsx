@@ -13,6 +13,8 @@ import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
 import { locales } from '@/i18n';
 
+import { UsersListClient } from './users-list-client';
+
 type PageProps = {
   params: Promise<{ locale: string }>;
 };
@@ -43,10 +45,11 @@ export default async function ConsoleUsersPage({ params }: PageProps) {
   return (
     <Section>
       <Container>
-        <div className="py-8">
-          <h1 className="text-3xl font-bold mb-6">User Management</h1>
+        <div className="py-6">
+          <UsersListClient locale={locale} />
           
-          <div className="grid gap-6 md:grid-cols-2">
+          {/* Quick Links */}
+          <div className="mt-8 grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>Role Applications</CardTitle>
@@ -65,14 +68,14 @@ export default async function ConsoleUsersPage({ params }: PageProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle>User Roles</CardTitle>
+                <CardTitle>User Management</CardTitle>
                 <CardDescription>
                   View and manage user roles and permissions
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  User role management will be available here.
+                <p className="text-sm text-muted-foreground">
+                  Use the table above to search, filter, and manage users. Click on a user to view details.
                 </p>
               </CardContent>
             </Card>

@@ -34,6 +34,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+
+import queryKeys from '@/lib/queries/query-keys';
 import { PartnerReviewClient } from './partner-review-client';
 
 type RoleApplication = {
@@ -114,7 +116,7 @@ export function RoleApplicationsClient({ locale: _locale }: RoleApplicationsClie
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['admin', 'role-applications', statusFilter, roleFilter],
+    queryKey: queryKeys.admin.roleApplications.list({ status: statusFilter, role: roleFilter }),
     queryFn: () => fetchApplications(statusFilter, roleFilter),
   });
 
@@ -124,7 +126,7 @@ export function RoleApplicationsClient({ locale: _locale }: RoleApplicationsClie
     onSuccess: () => {
       toast.success('Application approved successfully');
       queryClient.invalidateQueries({
-        queryKey: ['admin', 'role-applications'],
+        queryKey: queryKeys.admin.roleApplications.all(),
       });
       setSelectedApp(null);
       setActionType(null);
@@ -148,7 +150,7 @@ export function RoleApplicationsClient({ locale: _locale }: RoleApplicationsClie
     onSuccess: () => {
       toast.success('Application rejected');
       queryClient.invalidateQueries({
-        queryKey: ['admin', 'role-applications'],
+        queryKey: queryKeys.admin.roleApplications.all(),
       });
       setSelectedApp(null);
       setActionType(null);
@@ -469,7 +471,7 @@ export function RoleApplicationsClient({ locale: _locale }: RoleApplicationsClie
           }}
           onReviewed={() => {
             queryClient.invalidateQueries({
-              queryKey: ['admin', 'role-applications'],
+              queryKey: queryKeys.admin.roleApplications.all(),
             });
           }}
         />

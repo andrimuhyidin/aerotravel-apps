@@ -1,7 +1,12 @@
 /**
  * Public API Rate Limiter
  * Simple in-memory rate limiter for public endpoints
+ *
+ * Values are configurable via Admin Console (settings table)
+ * Fallback to default constants if settings unavailable
  */
+
+import { DEFAULT_RATE_LIMITS, parseWindowToMs } from '@/lib/settings/rate-limits';
 
 type RateLimitRecord = {
   count: number;
@@ -25,10 +30,21 @@ export type RateLimitConfig = {
   maxRequests: number;
 };
 
+// Default configs (sync, use getPublicRateLimitConfigs() for dynamic values)
+// @deprecated Use getPublicRateLimitConfigs() for dynamic values
 export const RATE_LIMIT_CONFIGS = {
-  POST: { windowMs: 60 * 1000, maxRequests: 10 },
-  GET: { windowMs: 60 * 1000, maxRequests: 100 },
-  AI: { windowMs: 60 * 1000, maxRequests: 5 },
+  POST: {
+    windowMs: parseWindowToMs(DEFAULT_RATE_LIMITS.publicPost.window),
+    maxRequests: DEFAULT_RATE_LIMITS.publicPost.limit,
+  },
+  GET: {
+    windowMs: parseWindowToMs(DEFAULT_RATE_LIMITS.publicGet.window),
+    maxRequests: DEFAULT_RATE_LIMITS.publicGet.limit,
+  },
+  AI: {
+    windowMs: parseWindowToMs(DEFAULT_RATE_LIMITS.publicAi.window),
+    maxRequests: DEFAULT_RATE_LIMITS.publicAi.limit,
+  },
 } as const;
 
 export type RateLimitResult = {
@@ -59,6 +75,41 @@ export function checkRateLimit(
 
 export function getRequestIdentifier(request: Request): string {
   const forwardedFor = request.headers.get('x-forwarded-for');
-  return forwardedFor?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+  return (
+    forwardedFor?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown'
+  );
+}
+
+/**
+ * Get public rate limit configs from settings (async)
+ */
+export async function getPublicRateLimitConfigs(): Promise<
+  Record<'POST' | 'GET' | 'AI', RateLimitConfig>
+> {
+  try {
+    const { getRateLimitSettings, parseWindowToMs } = await import(
+      '@/lib/settings/rate-limits'
+    );
+    const settings = await getRateLimitSettings();
+
+    return {
+      POST: {
+        windowMs: parseWindowToMs(settings.publicPost.window),
+        maxRequests: settings.publicPost.limit,
+      },
+      GET: {
+        windowMs: parseWindowToMs(settings.publicGet.window),
+        maxRequests: settings.publicGet.limit,
+      },
+      AI: {
+        windowMs: parseWindowToMs(settings.publicAi.window),
+        maxRequests: settings.publicAi.limit,
+      },
+    };
+  } catch {
+    return RATE_LIMIT_CONFIGS;
+  }
 }
 

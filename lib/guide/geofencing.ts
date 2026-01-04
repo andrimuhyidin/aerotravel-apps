@@ -1,8 +1,11 @@
 /**
  * Geofencing Utilities for Guide App
  * Validate guide location within radius of meeting point
- * 
+ *
  * PRD Requirement: 50m radius from meeting point (Dermaga Ketapang)
+ *
+ * GPS settings are configurable via Admin Console (settings table)
+ * Fallback to default constants if settings unavailable
  */
 
 export type Coordinates = {
@@ -20,21 +23,77 @@ export type MeetingPoint = {
   radiusMeters: number;
 };
 
+// ============================================
+// DEFAULT VALUES (Fallback)
+// ============================================
+
+const DEFAULT_GPS_TIMEOUT_MS = 10000;
+const DEFAULT_GPS_MAX_AGE_MS = 0;
+const DEFAULT_GPS_WATCH_MAX_AGE_MS = 5000;
+const DEFAULT_GEOFENCE_RADIUS_METERS = 50;
+
 // Default meeting points (can be loaded from database)
 export const DEFAULT_MEETING_POINTS: MeetingPoint[] = [
   {
     id: 'dermaga-ketapang',
     name: 'Dermaga Ketapang',
     coordinates: { latitude: -5.4667, longitude: 105.2833 }, // Lampung
-    radiusMeters: 50,
+    radiusMeters: DEFAULT_GEOFENCE_RADIUS_METERS,
   },
   {
     id: 'dermaga-merak',
     name: 'Dermaga Merak',
     coordinates: { latitude: -5.9333, longitude: 105.9833 },
-    radiusMeters: 50,
+    radiusMeters: DEFAULT_GEOFENCE_RADIUS_METERS,
   },
 ];
+
+// ============================================
+// SETTINGS TYPES
+// ============================================
+
+export interface GeofencingSettings {
+  gpsTimeoutMs: number;
+  gpsMaxAgeMs: number;
+  gpsWatchMaxAgeMs: number;
+  defaultRadiusMeters: number;
+}
+
+// ============================================
+// SETTINGS FETCHER
+// ============================================
+
+/**
+ * Get geofencing settings from database with fallback to defaults
+ */
+export async function getGeofencingSettings(): Promise<GeofencingSettings> {
+  try {
+    const { getSetting } = await import('@/lib/settings');
+    const [gpsTimeoutMs, gpsMaxAgeMs, gpsWatchMaxAgeMs, defaultRadiusMeters] =
+      await Promise.all([
+        getSetting('geofencing.gps_timeout_ms'),
+        getSetting('geofencing.gps_max_age_ms'),
+        getSetting('geofencing.gps_watch_max_age_ms'),
+        getSetting('geofencing.default_radius_meters'),
+      ]);
+
+    return {
+      gpsTimeoutMs: (gpsTimeoutMs as number) ?? DEFAULT_GPS_TIMEOUT_MS,
+      gpsMaxAgeMs: (gpsMaxAgeMs as number) ?? DEFAULT_GPS_MAX_AGE_MS,
+      gpsWatchMaxAgeMs:
+        (gpsWatchMaxAgeMs as number) ?? DEFAULT_GPS_WATCH_MAX_AGE_MS,
+      defaultRadiusMeters:
+        (defaultRadiusMeters as number) ?? DEFAULT_GEOFENCE_RADIUS_METERS,
+    };
+  } catch {
+    return {
+      gpsTimeoutMs: DEFAULT_GPS_TIMEOUT_MS,
+      gpsMaxAgeMs: DEFAULT_GPS_MAX_AGE_MS,
+      gpsWatchMaxAgeMs: DEFAULT_GPS_WATCH_MAX_AGE_MS,
+      defaultRadiusMeters: DEFAULT_GEOFENCE_RADIUS_METERS,
+    };
+  }
+}
 
 /**
  * Calculate distance between two coordinates using Haversine formula
@@ -148,7 +207,8 @@ export function validateCheckIn(
 }
 
 /**
- * Get current position using browser Geolocation API
+ * Get current position using browser Geolocation API (sync - uses defaults)
+ * @deprecated Use getCurrentPositionAsync() for dynamic settings
  */
 export function getCurrentPosition(): Promise<Coordinates> {
   return new Promise((resolve, reject) => {
@@ -170,7 +230,9 @@ export function getCurrentPosition(): Promise<Coordinates> {
       (error) => {
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            reject(new Error('Akses lokasi ditolak. Aktifkan GPS untuk check-in.'));
+            reject(
+              new Error('Akses lokasi ditolak. Aktifkan GPS untuk check-in.')
+            );
             break;
           case error.POSITION_UNAVAILABLE:
             reject(new Error('Lokasi tidak tersedia. Coba lagi.'));
@@ -184,15 +246,64 @@ export function getCurrentPosition(): Promise<Coordinates> {
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
+        timeout: DEFAULT_GPS_TIMEOUT_MS,
+        maximumAge: DEFAULT_GPS_MAX_AGE_MS,
       }
     );
   });
 }
 
 /**
- * Watch position for real-time tracking
+ * Get current position using configurable GPS settings (async)
+ */
+export async function getCurrentPositionAsync(): Promise<Coordinates> {
+  const settings = await getGeofencingSettings();
+
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation tidak didukung browser ini'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy ?? undefined,
+          heading: position.coords.heading ?? undefined,
+          speed: position.coords.speed ?? undefined,
+        });
+      },
+      (error) => {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            reject(
+              new Error('Akses lokasi ditolak. Aktifkan GPS untuk check-in.')
+            );
+            break;
+          case error.POSITION_UNAVAILABLE:
+            reject(new Error('Lokasi tidak tersedia. Coba lagi.'));
+            break;
+          case error.TIMEOUT:
+            reject(new Error('Timeout mendapatkan lokasi. Coba lagi.'));
+            break;
+          default:
+            reject(new Error('Gagal mendapatkan lokasi.'));
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: settings.gpsTimeoutMs,
+        maximumAge: settings.gpsMaxAgeMs,
+      }
+    );
+  });
+}
+
+/**
+ * Watch position for real-time tracking (sync - uses defaults)
+ * @deprecated Use watchPositionAsync() for dynamic settings
  */
 export function watchPosition(
   onUpdate: (coords: Coordinates) => void,
@@ -218,10 +329,54 @@ export function watchPosition(
     },
     {
       enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 5000,
+      timeout: DEFAULT_GPS_TIMEOUT_MS,
+      maximumAge: DEFAULT_GPS_WATCH_MAX_AGE_MS,
     }
   );
 
   return () => navigator.geolocation.clearWatch(watchId);
+}
+
+/**
+ * Watch position with configurable GPS settings (async setup, sync callback)
+ */
+export async function watchPositionAsync(
+  onUpdate: (coords: Coordinates) => void,
+  onError: (error: Error) => void
+): Promise<() => void> {
+  const settings = await getGeofencingSettings();
+
+  if (!navigator.geolocation) {
+    onError(new Error('Geolocation tidak didukung'));
+    return () => {};
+  }
+
+  const watchId = navigator.geolocation.watchPosition(
+    (position) => {
+      onUpdate({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy ?? undefined,
+        heading: position.coords.heading ?? undefined,
+        speed: position.coords.speed ?? undefined,
+      });
+    },
+    (error) => {
+      onError(new Error(`GPS Error: ${error.message}`));
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: settings.gpsTimeoutMs,
+      maximumAge: settings.gpsWatchMaxAgeMs,
+    }
+  );
+
+  return () => navigator.geolocation.clearWatch(watchId);
+}
+
+/**
+ * Get all geofencing settings (for admin display)
+ */
+export async function getAllGeofencingSettings(): Promise<GeofencingSettings> {
+  return getGeofencingSettings();
 }

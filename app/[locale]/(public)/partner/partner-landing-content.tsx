@@ -16,6 +16,8 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import * as LucideIcons from 'lucide-react';
 
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
@@ -26,11 +28,56 @@ type PartnerLandingContentProps = {
   hasMitraRole: boolean;
 };
 
+type LandingContent = {
+  benefits: Array<{ icon: string; title: string; description: string }>;
+  features?: string[];
+};
+
 export function PartnerLandingContent({
   locale,
   hasMitraRole,
 }: PartnerLandingContentProps) {
-  const benefits = [
+  // Fetch landing content from API
+  const { data: landingData } = useQuery<{ content: LandingContent }>({
+    queryKey: ['landing', 'partner'],
+    queryFn: async () => {
+      const res = await fetch('/api/settings?prefix=landing.partner.');
+      if (!res.ok) throw new Error('Failed to fetch landing content');
+      const settings = await res.json();
+      
+      // Parse JSON settings
+      const parseJson = (key: string) => {
+        const setting = settings.settings?.find((s: any) => s.key === key);
+        if (!setting) return [];
+        try {
+          return JSON.parse(setting.value);
+        } catch {
+          return [];
+        }
+      };
+
+      return {
+        content: {
+          benefits: parseJson('landing.partner.benefits'),
+          features: parseJson('landing.partner.features'),
+        },
+      };
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Map icon names to Lucide icons
+  const getIcon = (iconName: string) => {
+    const IconComponent = (LucideIcons as Record<string, any>)[iconName];
+    return IconComponent || Percent;
+  };
+
+  // Use fetched data or fallback to defaults
+  const benefits = landingData?.content?.benefits?.map((b) => ({
+    icon: getIcon(b.icon),
+    title: b.title,
+    description: b.description,
+  })) || [
     {
       icon: Percent,
       title: 'Komisi Menarik',
@@ -64,7 +111,7 @@ export function PartnerLandingContent({
     },
   ];
 
-  const features = [
+  const features = landingData?.content?.features || [
     'Akses ke semua paket travel Aero Travel',
     'Sistem booking terintegrasi',
     'Invoice otomatis',

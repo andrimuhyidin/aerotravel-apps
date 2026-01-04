@@ -37,16 +37,18 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   try {
     // Try to fetch from audit_logs table
+    // Note: Table uses entity_type/entity_id, old_values/new_values column names
     let query = supabase
       .from('audit_logs')
       .select(
         `
         id,
         action,
-        resource_type,
-        resource_id,
-        old_data,
-        new_data,
+        entity_type,
+        entity_id,
+        old_values,
+        new_values,
+        description,
         ip_address,
         user_agent,
         created_at,
@@ -65,7 +67,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       query = query.eq('action', action);
     }
     if (resource !== 'all') {
-      query = query.eq('resource_type', resource);
+      query = query.eq('entity_type', resource);
     }
     if (userId) {
       query = query.eq('user_id', userId);
@@ -90,14 +92,15 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       throw error;
     }
 
-    // Process logs
+    // Process logs - map entity_type/entity_id to resourceType/resourceId for API consistency
     const processedLogs = (logs || []).map((log) => ({
       id: log.id,
       action: log.action,
-      resourceType: log.resource_type,
-      resourceId: log.resource_id,
-      oldData: log.old_data,
-      newData: log.new_data,
+      resourceType: log.entity_type,
+      resourceId: log.entity_id,
+      description: log.description,
+      oldData: log.old_values,
+      newData: log.new_values,
       ipAddress: log.ip_address,
       userAgent: log.user_agent,
       createdAt: log.created_at,
@@ -112,8 +115,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const actionCounts: Record<string, number> = {};
     const resourceCounts: Record<string, number> = {};
     processedLogs.forEach((log) => {
-      actionCounts[log.action] = (actionCounts[log.action] || 0) + 1;
-      resourceCounts[log.resourceType] = (resourceCounts[log.resourceType] || 0) + 1;
+      const action = log.action as string;
+      const resourceType = log.resourceType as string;
+      actionCounts[action] = (actionCounts[action] || 0) + 1;
+      if (resourceType) {
+        resourceCounts[resourceType] = (resourceCounts[resourceType] || 0) + 1;
+      }
     });
 
     return NextResponse.json({

@@ -7,13 +7,14 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext } from '@/lib/branch/branch-injection';
-import { COMPANY_CONFIG } from '@/lib/config/company';
+import { getCompanyConfig } from '@/lib/config/company';
 import { formatContractContentForDisplay, generateDefaultContractContent } from '@/lib/guide/contract-template';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
   const supabase = await createClient();
+  const companyConfig = await getCompanyConfig();
 
   const {
     data: { user },
@@ -81,7 +82,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   try {
     // Contract 1: Pending Signature
     const contractContent1 = generateDefaultContractContent(
-      COMPANY_CONFIG.name,
+      companyConfig.name,
       userProfileSafe.full_name || 'Guide',
       contractNumber1,
       startDate1.toISOString().split('T')[0] || '',
@@ -137,7 +138,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
     // Contract 2: Active
     const contractContent2 = generateDefaultContractContent(
-      COMPANY_CONFIG.name,
+      companyConfig.name,
       userProfileSafe.full_name || 'Guide',
       contractNumber2,
       startDate2.toISOString().split('T')[0] || '',
@@ -194,7 +195,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
     // Contract 3: Pending Company
     const contractContent3 = generateDefaultContractContent(
-      COMPANY_CONFIG.name,
+      companyConfig.name,
       userProfileSafe.full_name || 'Guide',
       contractNumber3,
       startDate3.toISOString().split('T')[0] || '',

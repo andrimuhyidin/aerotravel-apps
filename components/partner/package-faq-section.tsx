@@ -6,6 +6,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Accordion,
@@ -16,7 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, MessageCircle, HelpCircle } from 'lucide-react';
+import { Search, MessageCircle, HelpCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type FAQItem = {
@@ -42,58 +43,6 @@ const CATEGORY_COLORS = {
   general: 'bg-gray-100 text-gray-700',
 };
 
-// Mock FAQ data - TODO: Fetch from API when available
-const MOCK_FAQS: FAQItem[] = [
-  {
-    id: '1',
-    question: 'Bagaimana cara melakukan pembayaran?',
-    answer: 'Pembayaran dapat dilakukan melalui transfer bank, kartu kredit, atau e-wallet. Setelah booking dikonfirmasi, Anda akan menerima invoice dengan instruksi pembayaran lengkap.',
-    category: 'payment',
-  },
-  {
-    id: '2',
-    question: 'Apakah bisa request perubahan itinerary?',
-    answer: 'Perubahan itinerary dimungkinkan dengan persetujuan guide dan dapat dikenakan biaya tambahan tergantung jenis perubahan yang diminta. Harap menghubungi kami minimal 7 hari sebelum keberangkatan.',
-    category: 'itinerary',
-  },
-  {
-    id: '3',
-    question: 'Dokumen apa saja yang perlu disiapkan?',
-    answer: 'Dokumen wajib: KTP/Paspor yang masih berlaku, bukti pembayaran, dan voucher trip. Untuk destinasi tertentu mungkin diperlukan dokumen tambahan seperti surat keterangan sehat atau vaksinasi.',
-    category: 'documents',
-  },
-  {
-    id: '4',
-    question: 'Bagaimana kebijakan pembatalan trip?',
-    answer: 'Pembatalan 30+ hari sebelum keberangkatan: refund 100%. Pembatalan 15-29 hari: refund 50%. Pembatalan <14 hari: tidak ada refund. Untuk kondisi force majeure akan ditinjau case by case.',
-    category: 'cancellation',
-  },
-  {
-    id: '5',
-    question: 'Apakah harga sudah termasuk asuransi perjalanan?',
-    answer: 'Harga paket belum termasuk asuransi perjalanan. Kami sangat merekomendasikan untuk mengambil asuransi perjalanan untuk keamanan dan kenyamanan Anda.',
-    category: 'payment',
-  },
-  {
-    id: '6',
-    question: 'Berapa minimal peserta untuk trip ini?',
-    answer: 'Minimal peserta untuk private trip adalah 2 pax. Untuk open trip, minimal kuota adalah 10 pax. Jika kuota tidak terpenuhi, trip dapat dibatalkan atau dijadwalkan ulang.',
-    category: 'general',
-  },
-  {
-    id: '7',
-    question: 'Apakah tersedia pilihan upgrade hotel atau kendaraan?',
-    answer: 'Ya, upgrade tersedia dengan biaya tambahan. Silakan menghubungi kami untuk pilihan upgrade dan informasi harga.',
-    category: 'itinerary',
-  },
-  {
-    id: '8',
-    question: 'Bagaimana jika ada perubahan jadwal dari pihak operator?',
-    answer: 'Jika terjadi perubahan dari pihak kami, Anda akan diberitahu minimal 7 hari sebelumnya. Anda berhak untuk reschedule tanpa biaya atau full refund.',
-    category: 'cancellation',
-  },
-];
-
 type PackageFAQSectionProps = {
   packageId?: string;
 };
@@ -102,8 +51,30 @@ export function PackageFAQSection({ packageId }: PackageFAQSectionProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
+  // Fetch FAQs from API
+  const { data: faqsData, isLoading } = useQuery<{ faqs: Array<{ id: string; question: string; answer: string; category: string | null }> }>({
+    queryKey: ['faqs', 'package', packageId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('app_type', 'package');
+      if (packageId) params.append('package_id', packageId);
+      const res = await fetch(`/api/faqs?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch FAQs');
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Transform FAQs to match component format
+  const faqs: FAQItem[] = (faqsData?.faqs || []).map((faq) => ({
+    id: faq.id,
+    question: faq.question,
+    answer: faq.answer,
+    category: (faq.category as FAQItem['category']) || 'general',
+  }));
+
   // Filter FAQs by search and category
-  const filteredFAQs = MOCK_FAQS.filter((faq) => {
+  const filteredFAQs = faqs.filter((faq) => {
     const matchesSearch = searchQuery
       ? faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
         faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
@@ -159,7 +130,14 @@ export function PackageFAQSection({ packageId }: PackageFAQSectionProps) {
       </Card>
 
       {/* FAQ List */}
-      {filteredFAQs.length === 0 ? (
+      {isLoading ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Memuat FAQ...</p>
+          </CardContent>
+        </Card>
+      ) : filteredFAQs.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <HelpCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />

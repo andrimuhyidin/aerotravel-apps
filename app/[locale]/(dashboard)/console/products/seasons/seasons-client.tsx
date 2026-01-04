@@ -87,7 +87,7 @@ export function SeasonsClient() {
   const currentYear = currentMonth.getFullYear();
 
   const { data, isLoading } = useQuery<SeasonsResponse>({
-    queryKey: [...queryKeys.admin.all, 'products', 'seasons', currentYear],
+    queryKey: queryKeys.admin.packages.seasons(currentYear),
     queryFn: async () => {
       const res = await fetch(`/api/admin/products/seasons?year=${currentYear}`);
       if (!res.ok) throw new Error('Failed to fetch seasons');
@@ -107,7 +107,7 @@ export function SeasonsClient() {
     },
     onSuccess: () => {
       toast.success('Season berhasil dibuat');
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.admin.all, 'products', 'seasons'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.packages.all() });
       closeDialog();
     },
     onError: () => {
@@ -127,7 +127,7 @@ export function SeasonsClient() {
     },
     onSuccess: () => {
       toast.success('Season berhasil diupdate');
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.admin.all, 'products', 'seasons'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.packages.all() });
       closeDialog();
     },
     onError: () => {
@@ -145,7 +145,7 @@ export function SeasonsClient() {
     },
     onSuccess: () => {
       toast.success('Season berhasil dihapus');
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.admin.all, 'products', 'seasons'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.packages.all() });
     },
     onError: () => {
       toast.error('Gagal menghapus season');

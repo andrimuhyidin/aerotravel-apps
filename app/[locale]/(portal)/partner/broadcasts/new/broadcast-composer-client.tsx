@@ -109,24 +109,24 @@ export function BroadcastComposerClient({ locale }: BroadcastComposerClientProps
   });
 
   // Fetch WA templates
-  const { data: templates, isLoading: templatesLoading } = useQuery<WATemplate[]>({
-    queryKey: queryKeys.partner.waTemplates,
+  const { data: templates, isLoading: templatesLoading } = useQuery({
+    queryKey: queryKeys.partner.broadcasts.templates(),
     queryFn: async () => {
       const response = await apiClient.get<{ templates: WATemplate[] }>(
         '/api/partner/broadcasts/templates'
       );
-      return response.templates;
+      return response.data.templates;
     },
   });
 
   // Fetch customers
-  const { data: customers, isLoading: customersLoading } = useQuery<Customer[]>({
-    queryKey: queryKeys.partner.customers,
+  const { data: customers, isLoading: customersLoading } = useQuery({
+    queryKey: queryKeys.partner.customers.list(),
     queryFn: async () => {
       const response = await apiClient.get<{ customers: Customer[] }>(
         '/api/partner/customers?limit=500'
       );
-      return response.customers;
+      return response.data.customers;
     },
     enabled: step >= 2,
   });
@@ -139,10 +139,10 @@ export function BroadcastComposerClient({ locale }: BroadcastComposerClientProps
 
     if (audienceType === 'all') return customers;
     if (audienceType === 'segment' && segment) {
-      return customers.filter((c) => c.segment === segment);
+      return customers.filter((c: Customer) => c.segment === segment);
     }
     if (audienceType === 'custom') {
-      return customers.filter((c) => selectedCustomers.includes(c.id));
+      return customers.filter((c: Customer) => selectedCustomers.includes(c.id));
     }
     return customers;
   }, [customers, form.watch('audienceType'), form.watch('segment'), selectedCustomers]);
@@ -169,7 +169,7 @@ export function BroadcastComposerClient({ locale }: BroadcastComposerClientProps
   // Unique segments
   const segments = useMemo(() => {
     if (!customers) return [];
-    const unique = [...new Set(customers.map((c) => c.segment).filter(Boolean))];
+    const unique = [...new Set(customers.map((c: Customer) => c.segment).filter(Boolean))];
     return unique as string[];
   }, [customers]);
 
@@ -213,7 +213,7 @@ export function BroadcastComposerClient({ locale }: BroadcastComposerClientProps
 
   const selectAllCustomers = () => {
     if (customers) {
-      setSelectedCustomers(customers.map((c) => c.id));
+      setSelectedCustomers(customers.map((c: Customer) => c.id));
     }
   };
 
@@ -290,7 +290,7 @@ export function BroadcastComposerClient({ locale }: BroadcastComposerClientProps
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {templates?.map((t) => (
+                            {templates?.map((t: WATemplate) => (
                               <SelectItem key={t.name} value={t.name}>
                                 {t.name} ({t.category})
                               </SelectItem>

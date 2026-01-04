@@ -10,7 +10,7 @@ import { redirect } from 'next/navigation';
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
 import { locales } from '@/i18n';
-import { createClient, getCurrentUser, hasRole } from '@/lib/supabase/server';
+import { getCurrentUser, hasRole } from '@/lib/supabase/server';
 
 import { TripsClient } from './trips-client';
 
@@ -51,38 +51,12 @@ export default async function ConsoleOperationsTripsPage({ params }: PageProps) 
     redirect(`/${locale}`);
   }
 
-  const supabase = await createClient();
-
-  const { data: tripsData } = await supabase
-    .from('trips')
-    .select(
-      `
-      id,
-      trip_code,
-      trip_date,
-      status,
-      total_pax,
-      package:packages(name)
-    `
-    )
-    .order('trip_date', { ascending: false })
-    .limit(50);
-
-  const trips = (tripsData ?? []) as Array<{
-    id: string;
-    trip_code: string;
-    trip_date: string;
-    status: string;
-    total_pax: number;
-    package: { name: string | null } | null;
-  }>;
-
   return (
     <Section>
       <Container>
         <div className="py-8">
           <h1 className="mb-6 text-3xl font-bold">Trip Management</h1>
-          <TripsClient trips={trips} locale={locale} />
+          <TripsClient locale={locale} />
         </div>
       </Container>
     </Section>

@@ -220,6 +220,19 @@ export async function debitWalletForBooking(
     return { success: false, message: 'Gagal update saldo.' };
   }
 
+  // Emit wallet balance changed event (non-blocking)
+  try {
+    await emitWalletEvent({
+      eventType: 'balance_changed',
+      walletId: wallet.id,
+      amount: -amount, // Negative for debit
+      balanceAfter: newBalance,
+    });
+  } catch (eventError) {
+    // Non-critical - log and continue
+    logger.warn('Failed to emit wallet balance changed event', { error: eventError, walletId: wallet.id });
+  }
+
   return { success: true, message: 'Pembayaran berhasil.' };
 }
 

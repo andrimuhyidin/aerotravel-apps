@@ -30,6 +30,7 @@ import {
 import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
 import { Textarea } from '@/components/ui/textarea';
+import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
 
@@ -81,7 +82,7 @@ export function ResignationsManagementClient({
 
   const { data, isLoading, error, refetch } = useQuery<{ data: Resignation[] }>(
     {
-      queryKey: ['admin', 'guide', 'contracts', 'resignations', statusFilter],
+      queryKey: queryKeys.admin.contracts.resignations({ status: statusFilter }),
       queryFn: async () => {
         const params = new URLSearchParams();
         if (statusFilter !== 'all') {
@@ -116,7 +117,7 @@ export function ResignationsManagementClient({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['admin', 'guide', 'contracts', 'resignations'],
+        queryKey: queryKeys.admin.contracts.resignations(),
       });
       setShowApproveDialog(false);
       setSelectedResignation(null);
@@ -152,7 +153,7 @@ export function ResignationsManagementClient({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['admin', 'guide', 'contracts', 'resignations'],
+        queryKey: queryKeys.admin.contracts.resignations(),
       });
       setShowRejectDialog(false);
       setSelectedResignation(null);

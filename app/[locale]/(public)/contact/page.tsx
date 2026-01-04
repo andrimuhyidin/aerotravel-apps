@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getConfigFromSettings } from '@/lib/seo/config';
 import { locales } from '@/i18n';
 
 type PageProps = {
@@ -82,67 +83,141 @@ export default async function ContactPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
+  // Get dynamic settings
+  const config = await getConfigFromSettings();
+  const contact = config.contact;
+  const business = config.business;
+  const company = config.company;
+
+  // Format phone number for tel: link (remove non-digits)
+  const formatPhoneForTel = (phone: string): string => {
+    return `tel:${phone.replace(/\D/g, '')}`;
+  };
+
+  // Format WhatsApp number for URL (remove non-digits)
+  const formatWhatsAppUrl = (whatsapp: string): string => {
+    return `https://wa.me/${whatsapp.replace(/\D/g, '')}`;
+  };
+
+  // Format address string from address object
+  const formatAddress = (address: typeof contact.address): string => {
+    if (typeof address === 'string') return address;
+    if (!address) return 'Bandar Lampung, Indonesia';
+    const parts = [
+      address.street,
+      address.city,
+      address.province,
+      address.country,
+    ].filter(Boolean);
+    return parts.join(', ') || 'Bandar Lampung, Indonesia';
+  };
+
   const contactInfo = [
     {
       icon: Phone,
       title: 'Telepon',
-      value: '+62 812 3456 7890',
-      href: 'tel:+6281234567890',
+      value: contact.phone || '+62 812 3456 7890',
+      href: formatPhoneForTel(contact.phone || '+62 812 3456 7890'),
     },
     {
       icon: MessageCircle,
       title: 'WhatsApp',
-      value: '+62 812 3456 7890',
-      href: 'https://wa.me/6281234567890',
+      value: contact.whatsapp || '+62 812 3456 7890',
+      href: formatWhatsAppUrl(contact.whatsapp || '+62 812 3456 7890'),
     },
     {
       icon: Mail,
       title: 'Email',
-      value: 'info@aerotravel.co.id',
-      href: 'mailto:info@aerotravel.co.id',
+      value: contact.email || 'info@aerotravel.co.id',
+      href: `mailto:${contact.email || 'info@aerotravel.co.id'}`,
     },
     {
       icon: MapPin,
       title: 'Alamat',
-      value: 'Bandar Lampung, Indonesia',
+      value: formatAddress(contact.address),
       href: '#',
     },
   ];
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
 
+  // Get business hours from settings
+  const businessHours = business.hours;
+  const weekdaysHours =
+    businessHours?.weekdays?.opens && businessHours?.weekdays?.closes
+      ? `${businessHours.weekdays.opens} - ${businessHours.weekdays.closes}`
+      : '08:00 - 17:00';
+  const saturdayHours =
+    businessHours?.saturday?.opens && businessHours?.saturday?.closes
+      ? `${businessHours.saturday.opens} - ${businessHours.saturday.closes}`
+      : null;
+  const sundayHours =
+    businessHours?.sunday?.opens && businessHours?.sunday?.closes
+      ? `${businessHours.sunday.opens} - ${businessHours.sunday.closes}`
+      : null;
+
+  // Format operating hours display
+  let operatingHoursText = `Senin - Jumat: ${weekdaysHours} WIB`;
+  if (saturdayHours) {
+    operatingHoursText += `, Sabtu: ${saturdayHours} WIB`;
+  }
+  if (sundayHours) {
+    operatingHoursText += `, Minggu: ${sundayHours} WIB`;
+  } else if (!saturdayHours) {
+    operatingHoursText += ', Minggu: Tutup';
+  }
+
   // ContactPage structured data
+  const addressObj = typeof contact.address === 'object' && contact.address !== null
+    ? contact.address
+    : { city: 'Bandar Lampung', country: 'Indonesia', countryCode: 'ID' };
+
   const contactPageSchema = {
     '@context': 'https://schema.org',
     '@type': 'ContactPage',
-    name: 'Hubungi Aero Travel',
-    description:
-      'Hubungi tim Aero Travel untuk informasi paket wisata, booking, atau pertanyaan lainnya.',
+    name: `Hubungi ${company.name}`,
+    description: `Hubungi tim ${company.name} untuk informasi paket wisata, booking, atau pertanyaan lainnya.`,
     url: `${baseUrl}/${locale}/contact`,
     mainEntity: {
       '@type': 'TravelAgency',
-      name: 'Aero Travel',
-      telephone: '+62 812 3456 7890',
-      email: 'info@aerotravel.co.id',
+      name: company.name,
+      telephone: contact.phone || '+62 812 3456 7890',
+      email: contact.email || 'info@aerotravel.co.id',
       address: {
         '@type': 'PostalAddress',
-        addressLocality: 'Bandar Lampung',
-        addressCountry: 'ID',
+        streetAddress: addressObj.street || '',
+        addressLocality: addressObj.city || 'Bandar Lampung',
+        addressRegion: addressObj.province || '',
+        postalCode: addressObj.postalCode || '',
+        addressCountry: addressObj.countryCode || 'ID',
       },
-      openingHoursSpecification: {
-        '@type': 'OpeningHoursSpecification',
-        dayOfWeek: [
-          'Monday',
-          'Tuesday',
-          'Wednesday',
-          'Thursday',
-          'Friday',
-          'Saturday',
-          'Sunday',
-        ],
-        opens: '08:00',
-        closes: '21:00',
-      },
+      openingHoursSpecification: businessHours?.weekdays
+        ? {
+            '@type': 'OpeningHoursSpecification',
+            dayOfWeek: [
+              'Monday',
+              'Tuesday',
+              'Wednesday',
+              'Thursday',
+              'Friday',
+            ],
+            opens: businessHours.weekdays.opens || '08:00',
+            closes: businessHours.weekdays.closes || '17:00',
+          }
+        : {
+            '@type': 'OpeningHoursSpecification',
+            dayOfWeek: [
+              'Monday',
+              'Tuesday',
+              'Wednesday',
+              'Thursday',
+              'Friday',
+              'Saturday',
+              'Sunday',
+            ],
+            opens: '08:00',
+            closes: '21:00',
+          },
     },
   };
 
@@ -203,7 +278,7 @@ export default async function ContactPage({ params }: PageProps) {
             <div>
               <p className="text-sm font-medium">Jam Operasional</p>
               <p className="text-xs text-muted-foreground">
-                Senin - Minggu: 08:00 - 21:00 WIB
+                {operatingHoursText}
               </p>
             </div>
           </div>
@@ -268,7 +343,7 @@ export default async function ContactPage({ params }: PageProps) {
               <div className="text-center">
                 <MapPin className="mx-auto mb-2 h-10 w-10 text-primary" />
                 <p className="text-sm text-muted-foreground">
-                  Bandar Lampung, Indonesia
+                  {formatAddress(contact.address)}
                 </p>
               </div>
             </div>

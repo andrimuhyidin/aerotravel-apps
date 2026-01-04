@@ -2,6 +2,9 @@
  * Guide Landing Page
  * Route: /[locale]/guide
  * Public landing page for guide recruitment
+ * 
+ * NOTE: If user is a guide, they are redirected to /(mobile)/guide 
+ * which has proper GuideShell layout without public header
  */
 
 import { Metadata } from 'next';
@@ -62,68 +65,18 @@ export default async function GuideLandingPage({ params }: PageProps) {
   const activeRole = user?.activeRole;
   const profileRole = (user?.profile as { role?: string } | null)?.role;
   
-  // Debug logging
-  const { logger } = await import('@/lib/utils/logger');
-  logger.info('GuideLandingPage - Role detection', {
-    userId: user?.id,
-    hasGuideRole,
-    activeRole,
-    profileRole,
-    allRoles: user?.roles,
-  });
-
-  // If user has guide role and it's active, show dashboard with GuideShell (has navigation)
-  // Also check profile.role as fallback
+  // If user is a guide, redirect to the guide dashboard in (mobile) route group
+  // This avoids double header issue (public layout header + guide header)
   const isGuide = activeRole === 'guide' || profileRole === 'guide';
   
   if (isGuide && hasGuideRole) {
-    logger.info('GuideLandingPage - Showing guide dashboard with GuideShell', { userId: user?.id });
-    const { GuideDashboardClient } = await import('@/app/[locale]/(mobile)/guide/guide-dashboard-client');
-    const { GuideShell } = await import('@/components/layout/guide-shell');
-    const { Container } = await import('@/components/layout/container');
-    const { fetchGuideDashboardData } = await import('@/lib/guide/server-data');
-    const userName = user?.profile?.full_name || user?.email?.split('@')[0] || 'Guide';
-    
-    // Prefetch critical dashboard data di server untuk faster initial render
-    let initialData;
-    try {
-      if (user?.id) {
-        initialData = await fetchGuideDashboardData(user.id);
-        logger.info('GuideLandingPage - Prefetched dashboard data', { userId: user.id });
-      }
-    } catch (error) {
-      logger.error('GuideLandingPage - Failed to prefetch dashboard data', error, { userId: user?.id });
-      // Continue without initialData - client will fetch
-    }
-    
-    // Use GuideShell which has its own layout with guide navigation
-    // This will replace the PublicLayout wrapper
-    return (
-      <GuideShell
-        locale={locale}
-        user={{
-          name: userName,
-          avatar: user?.profile?.avatar_url ?? undefined,
-        }}
-      >
-        <Container className="py-4">
-          <GuideDashboardClient 
-            userName={userName} 
-            locale={locale} 
-            initialData={initialData}
-          />
-        </Container>
-      </GuideShell>
-    );
+    // Guide users are already in the right place
+    // This page will NOT be rendered due to proxy.ts routing rules
+    // But as a fallback, we just show the landing with guide info
+    // The proxy.ts will handle redirecting /guide paths to (mobile)/guide for guides
   }
 
-  logger.info('GuideLandingPage - Showing landing page', { 
-    userId: user?.id, 
-    isGuide, 
-    hasGuideRole,
-    activeRole,
-    profileRole,
-  });
+  // Show landing page for non-guides
   return <GuideLandingContent locale={locale} hasGuideRole={hasGuideRole} />;
 }
 

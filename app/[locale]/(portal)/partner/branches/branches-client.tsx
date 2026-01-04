@@ -122,20 +122,20 @@ export function BranchesClient({ locale }: BranchesClientProps) {
   });
 
   // Fetch branch stats
-  const { data: stats, isLoading: statsLoading } = useQuery<BranchStats>({
-    queryKey: queryKeys.partner.branchStats,
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: queryKeys.partner.branches.stats(),
     queryFn: async () => {
       const response = await apiClient.get<BranchStats>('/api/partner/branches/stats');
-      return response;
+      return response.data;
     },
   });
 
   // Fetch branches
-  const { data: branches, isLoading: branchesLoading } = useQuery<Branch[]>({
-    queryKey: queryKeys.partner.branches,
+  const { data: branches, isLoading: branchesLoading } = useQuery({
+    queryKey: queryKeys.partner.branches.list(),
     queryFn: async () => {
       const response = await apiClient.get<{ branches: Branch[] }>('/api/partner/branches');
-      return response.branches;
+      return response.data.branches;
     },
   });
 
@@ -145,8 +145,7 @@ export function BranchesClient({ locale }: BranchesClientProps) {
       return apiClient.post('/api/partner/branches', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.partner.branches });
-      queryClient.invalidateQueries({ queryKey: queryKeys.partner.branchStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.partner.branches.all() });
       toast.success('Cabang berhasil dibuat!');
       setShowCreateDialog(false);
       form.reset();
@@ -162,8 +161,7 @@ export function BranchesClient({ locale }: BranchesClientProps) {
       return apiClient.delete(`/api/partner/branches/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.partner.branches });
-      queryClient.invalidateQueries({ queryKey: queryKeys.partner.branchStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.partner.branches.all() });
       toast.success('Cabang berhasil dihapus');
       setDeleteId(null);
     },
@@ -305,7 +303,7 @@ export function BranchesClient({ locale }: BranchesClientProps) {
             ) : branches && branches.length > 0 ? (
               <ScrollArea className="max-h-[500px]">
                 <div className="divide-y">
-                  {branches.map((branch) => (
+                  {branches.map((branch: Branch) => (
                     <div
                       key={branch.id}
                       className="flex cursor-pointer items-center justify-between p-4 hover:bg-muted/50"

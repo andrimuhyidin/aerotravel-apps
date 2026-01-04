@@ -4,11 +4,12 @@
  * POST /api/admin/packages - Create new package
  */
 
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 const createPackageSchema = z.object({
@@ -38,15 +39,26 @@ const createPackageSchema = z.object({
 });
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
-  const supabase = await createClient();
+  // Use regular client for auth
+  const authClient = await createClient();
   
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await authClient.auth.getUser();
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Check authorization using user metadata
+  const userRole = user.user_metadata?.role as string;
+  const allowedRoles = ['super_admin', 'ops_admin', 'finance_manager', 'marketing'];
+  if (!userRole || !allowedRoles.includes(userRole)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // Use admin client for data queries
+  const supabase = await createAdminClient();
 
   const { searchParams } = new URL(request.url);
   const status = searchParams.get('status');
@@ -124,15 +136,26 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 });
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
-  const supabase = await createClient();
+  // Use regular client for auth
+  const authClient = await createClient();
   
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await authClient.auth.getUser();
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Check authorization using user metadata
+  const userRole = user.user_metadata?.role as string;
+  const allowedRoles = ['super_admin', 'ops_admin'];
+  if (!userRole || !allowedRoles.includes(userRole)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // Use admin client for data queries
+  const supabase = await createAdminClient();
 
   try {
     const body = await request.json();
@@ -217,6 +240,20 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     }
 
     logger.info('Package created successfully', { packageId: newPackage.id, userId: user.id });
+
+    // Revalidate public package pages for ISR
+    try {
+      revalidatePath('/id/packages', 'page');
+      revalidatePath('/en/packages', 'page');
+      revalidateTag('packages', 'default');
+      
+      logger.info('Package pages revalidated after creation', { packageId: newPackage.id });
+    } catch (revalidateError) {
+      logger.warn('Failed to revalidate package pages', { 
+        error: revalidateError instanceof Error ? revalidateError.message : String(revalidateError), 
+        packageId: newPackage.id 
+      });
+    }
 
     return NextResponse.json({
       success: true,

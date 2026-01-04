@@ -124,6 +124,39 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
     );
   }
 
+  // Emit trip.assigned event (non-blocking)
+  try {
+    const { emitEvent } = await import('@/lib/events/event-bus');
+    const { data: userData } = await supabase.auth.getUser();
+    await emitEvent(
+      {
+        type: 'trip.assigned',
+        app: 'admin',
+        userId: userData.user?.id || 'system',
+        data: {
+          tripId,
+          tripCode: trip.trip_code,
+          tripDate: trip.trip_date,
+          guideId: body.guide_id,
+          guideName: guide.full_name,
+          guideRole: body.guide_role ?? 'lead',
+          assignmentMethod: 'manual',
+          confirmationDeadline: confirmationDeadline.toISOString(),
+        },
+      },
+      {
+        ipAddress: request.headers.get('x-forwarded-for') || undefined,
+        userAgent: request.headers.get('user-agent') || undefined,
+      }
+    ).catch((eventError) => {
+      logger.warn('Failed to emit trip.assigned event', eventError);
+    });
+  } catch (eventError) {
+    logger.warn('Event emission error (non-critical)', {
+      error: eventError instanceof Error ? eventError.message : String(eventError),
+    });
+  }
+
   logger.info('Trip manually assigned successfully', {
     tripId,
     tripCode: trip.trip_code,

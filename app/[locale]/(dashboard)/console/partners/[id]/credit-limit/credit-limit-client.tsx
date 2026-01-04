@@ -103,7 +103,9 @@ export function CreditLimitClient({ partnerId }: CreditLimitClientProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const form = useForm({
+  type FormValues = z.infer<typeof setCreditLimitSchema>;
+  const form = useForm<FormValues>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(setCreditLimitSchema) as any,
     defaultValues: {
       creditLimit: '',

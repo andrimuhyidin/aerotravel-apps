@@ -304,6 +304,36 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
     signatureMethod: body.signature_method,
   });
 
+  // Emit guide.contract_signed event (non-blocking)
+  try {
+    const { emitEvent } = await import('@/lib/events/event-bus');
+    await emitEvent(
+      {
+        type: 'guide.contract_signed',
+        app: 'guide',
+        userId: user.id,
+        data: {
+          contractId,
+          contractNumber: contract.contract_number,
+          guideId: user.id,
+          signatureMethod: body.signature_method,
+          newStatus,
+          isFullySigned: newStatus === 'active',
+        },
+      },
+      {
+        ipAddress: request.headers.get('x-forwarded-for') || undefined,
+        userAgent: request.headers.get('user-agent') || undefined,
+      }
+    ).catch((eventError) => {
+      logger.warn('Failed to emit guide.contract_signed event', eventError);
+    });
+  } catch (eventError) {
+    logger.warn('Event emission error (non-critical)', {
+      error: eventError instanceof Error ? eventError.message : String(eventError),
+    });
+  }
+
   // Send notifications (non-blocking)
   try {
     const { notifyAdminContractSigned, createInAppNotification } = await import('@/lib/integrations/contract-notifications');

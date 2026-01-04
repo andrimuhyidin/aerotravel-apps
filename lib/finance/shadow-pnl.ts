@@ -1,6 +1,9 @@
 /**
  * Shadow P&L Report - Laba Rugi Per Trip
  * PRD 4.5.A - Shadow P&L (Laba Rugi Per Trip)
+ *
+ * Cost structures are configurable via Admin Console (settings table)
+ * Fallback to default constants if settings unavailable
  */
 
 import type { Database } from '@/types/supabase';
@@ -108,8 +111,13 @@ export type PnLSummary = {
   unprofitableTrips: number;
 };
 
+// ============================================
+// DEFAULT VALUES (Fallback)
+// ============================================
+
 /**
  * Default cost structure per trip type
+ * @deprecated Use getCostStructures() for dynamic values
  */
 export const DEFAULT_COST_STRUCTURE: Record<string, CostItem[]> = {
   boat_trip: [
@@ -207,6 +215,13 @@ export const DEFAULT_COST_STRUCTURE: Record<string, CostItem[]> = {
     },
   ],
 };
+
+// ============================================
+// SETTINGS FETCHER
+// ============================================
+
+// Note: getCostStructures() and getCostStructureForType() moved to shadow-pnl-server.ts
+// Import from '@/lib/finance/shadow-pnl-server' for server-side usage
 
 /**
  * Calculate total cost based on pax count

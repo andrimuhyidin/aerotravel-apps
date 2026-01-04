@@ -9,16 +9,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateRAGResponse } from '@/lib/ai/rag';
 import { isFeatureEnabled } from '@/lib/feature-flags/posthog-flags';
 import { aiChatRateLimit } from '@/lib/integrations/rate-limit';
+import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { message, userId } = body;
+    // Get user from session
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!userId) {
+    // Use session user or body userId for public chat
+    const body = await request.json();
+    const { message, userId: bodyUserId } = body;
+    const userId = user?.id || bodyUserId || 'anonymous';
+
+    if (!message) {
       return NextResponse.json(
-        { error: 'User ID required' },
+        { error: 'Message is required' },
         { status: 400 }
       );
     }
@@ -27,7 +34,7 @@ export async function POST(request: NextRequest) {
     const chatbotEnabled = isFeatureEnabled('ai-chatbot', userId);
     if (!chatbotEnabled) {
       return NextResponse.json({
-        message: 'Maaf, fitur chatbot sedang tidak tersedia. Silakan hubungi customer service kami.',
+        response: 'Maaf, fitur chatbot sedang tidak tersedia. Silakan hubungi customer service kami.',
       });
     }
 
@@ -36,7 +43,7 @@ export async function POST(request: NextRequest) {
     if (!success) {
       return NextResponse.json(
         {
-          message: 'Terlalu banyak request. Silakan tunggu sebentar.',
+          response: 'Terlalu banyak request. Silakan tunggu sebentar.',
           limit,
           remaining,
         },
@@ -48,7 +55,7 @@ export async function POST(request: NextRequest) {
     const response = await generateRAGResponse(message, userId);
 
     return NextResponse.json({
-      message: response,
+      response,
       remaining,
     });
   } catch (error) {

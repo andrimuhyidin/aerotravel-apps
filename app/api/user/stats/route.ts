@@ -1,6 +1,8 @@
 /**
  * User Stats API
  * GET /api/user/stats - Get current user's statistics
+ * 
+ * Note: Customer bookings are linked via customer_email (not user_id)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -14,10 +16,10 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
 
   const supabase = await createClient();
 
-  // Get current user
+  // Get current user with email
   const { data: { user } } = await supabase.auth.getUser();
   
-  if (!user) {
+  if (!user || !user.email) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
@@ -26,34 +28,37 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Get booking counts
+  // Get booking counts - use customer_email OR created_by for matching
   const [upcomingResult, completedResult, totalSpentResult] = await Promise.all([
     // Upcoming trips
     supabase
       .from('bookings')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
+      .or(`customer_email.eq.${user.email},created_by.eq.${user.id}`)
+      .is('deleted_at', null)
       .gte('trip_date', today)
-      .in('status', ['pending', 'paid', 'confirmed']),
+      .in('status', ['pending_payment', 'paid', 'confirmed']),
     
     // Completed trips
     supabase
       .from('bookings')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
+      .or(`customer_email.eq.${user.email},created_by.eq.${user.id}`)
+      .is('deleted_at', null)
       .eq('status', 'completed'),
     
     // Total spent
     supabase
       .from('bookings')
       .select('total_amount')
-      .eq('user_id', user.id)
+      .or(`customer_email.eq.${user.email},created_by.eq.${user.id}`)
+      .is('deleted_at', null)
       .in('status', ['paid', 'confirmed', 'completed']),
   ]);
 
   // Calculate total spent
   const totalSpent = (totalSpentResult.data || []).reduce(
-    (sum, b) => sum + (b.total_amount || 0),
+    (sum, b) => sum + (Number(b.total_amount) || 0),
     0
   );
 
@@ -78,4 +83,3 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
     aeroPoints,
   });
 });
-

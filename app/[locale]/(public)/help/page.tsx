@@ -121,38 +121,19 @@ export default async function HelpPage({ params }: PageProps) {
     tripId = assignment?.trip_id as string | undefined;
   }
 
-  const faqItems = [
-    {
-      question: 'Bagaimana cara melakukan check-in attendance?',
-      answer:
-        'Buka halaman Attendance, pastikan GPS aktif dan Anda berada dalam radius meeting point. Klik tombol "Check-In Sekarang" dan tunggu konfirmasi.',
-    },
-    {
-      question: 'Bagaimana cara melihat manifest penumpang?',
-      answer:
-        'Buka halaman Manifest dari dashboard atau menu. Di sana Anda dapat melihat daftar penumpang, menandai status boarding/kembali, dan mengunggah link dokumentasi.',
-    },
-    {
-      question: 'Bagaimana cara mencatat pengeluaran trip?',
-      answer:
-        'Masuk ke detail trip, lalu pilih menu "Pengeluaran". Tambahkan item pengeluaran dengan foto bukti, kemudian simpan. Pengeluaran akan direview oleh admin.',
-    },
-    {
-      question: 'Kapan gaji akan dibayarkan?',
-      answer:
-        'Gaji dan pendapatan trip biasanya dibayarkan setiap akhir bulan atau sesuai jadwal yang telah ditentukan. Anda dapat melihat detail di halaman Wallet.',
-    },
-    {
-      question: 'Bagaimana cara menggunakan fitur SOS?',
-      answer:
-        'Fitur SOS digunakan dalam keadaan darurat. Tekan dan tahan tombol SOS selama 3 detik untuk mengirimkan alert ke tim operasional.',
-    },
-    {
-      question: 'Bagaimana cara mengubah status ketersediaan?',
-      answer:
-        'Buka halaman Dashboard, klik pada status availability saat ini, pilih status baru (Available/Busy/Offline) atau buka halaman "Atur Ketersediaan" untuk pengaturan lebih lanjut.',
-    },
-  ];
+  // Fetch FAQs from database
+  const [faqs, settings] = await Promise.all([
+    getFAQs({ app_type: 'public' }),
+    getSettings(),
+  ]);
+
+  // Transform FAQs to match existing format
+  const faqItems = faqs.map((faq) => ({
+    question: faq.question,
+    answer: faq.answer,
+  }));
+
+  const supportHours = settings['help.support_hours'] || 'Senin - Minggu, 08:00 - 21:00 WIB';
 
   const helpSections = [
     {
@@ -184,7 +165,7 @@ export default async function HelpPage({ params }: PageProps) {
       title: 'Telepon',
       value: '+62 812 3456 7890',
       href: 'tel:+6281234567890',
-      description: 'Senin - Minggu, 08:00 - 21:00 WIB',
+      description: supportHours,
     },
     {
       icon: MessageCircle,
@@ -219,7 +200,7 @@ export default async function HelpPage({ params }: PageProps) {
   const helpKeyPoints = [
     'Panduan penggunaan lengkap untuk semua fitur',
     'FAQ menjawab pertanyaan yang sering diajukan',
-    'Support tersedia Senin-Minggu 08:00-21:00 WIB',
+    `Support tersedia ${supportHours}`,
     'Kontak via WhatsApp, telepon, atau email',
   ];
 
@@ -399,7 +380,7 @@ export default async function HelpPage({ params }: PageProps) {
             <div>
               <p className="text-sm font-semibold">Jam Layanan Support</p>
               <p className="text-xs text-muted-foreground">
-                Senin - Minggu: 08:00 - 21:00 WIB
+                {supportHours}
               </p>
             </div>
           </div>

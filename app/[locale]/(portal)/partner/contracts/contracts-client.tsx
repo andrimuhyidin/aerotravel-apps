@@ -87,15 +87,15 @@ export function ContractsClient({ locale }: ContractsClientProps) {
 
   // Fetch contracts
   const { data: contracts, isLoading } = useQuery<Contract[]>({
-    queryKey: queryKeys.partner.contracts,
+    queryKey: queryKeys.partner.contracts.list(),
     queryFn: async () => {
       const response = await apiClient.get<{ contracts: Contract[] }>('/api/partner/contracts');
-      return response.contracts;
+      return response.data.contracts;
     },
   });
 
-  const pendingContracts = contracts?.filter((c) => c.status === 'pending') || [];
-  const signedContracts = contracts?.filter((c) => c.status === 'signed') || [];
+  const pendingContracts = contracts?.filter((c: Contract) => c.status === 'pending') || [];
+  const signedContracts = contracts?.filter((c: Contract) => c.status === 'signed') || [];
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -156,7 +156,7 @@ export function ContractsClient({ locale }: ContractsClientProps) {
             ) : contracts && contracts.length > 0 ? (
               <ScrollArea className="max-h-[500px]">
                 <div className="divide-y">
-                  {contracts.map((contract) => (
+                  {contracts.map((contract: Contract) => (
                     <div
                       key={contract.id}
                       className="flex cursor-pointer items-center justify-between p-4 hover:bg-muted/50"

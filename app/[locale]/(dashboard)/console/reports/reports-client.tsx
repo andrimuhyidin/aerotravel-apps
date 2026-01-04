@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/utils/logger';
 
 type ReportCategory = 'finance' | 'operations' | 'marketing' | 'hr';
 
@@ -105,7 +106,10 @@ export function ReportsClient() {
     : REPORT_TEMPLATES.filter((t) => t.category === category);
 
   const handleGenerateReport = async (templateId: string, format: 'pdf' | 'excel') => {
-    if (!startDate || !endDate) {
+    // Customers and guide-performance don't need date range
+    const requiresDateRange = !['customers', 'guide-performance'].includes(templateId);
+    
+    if (requiresDateRange && (!startDate || !endDate)) {
       toast.error('Pilih rentang tanggal terlebih dahulu');
       return;
     }
@@ -113,11 +117,54 @@ export function ReportsClient() {
     setIsGenerating(templateId);
 
     try {
-      // Simulate report generation
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Set default date range for reports that don't require it
+      const reportStartDate = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const reportEndDate = endDate || new Date().toISOString().split('T')[0];
+
+      const response = await fetch('/api/admin/reports/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reportType: templateId,
+          format,
+          startDate: reportStartDate,
+          endDate: reportEndDate,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate report');
+      }
+
+      const result = await response.json();
+
+      // Download file
+      const binaryString = atob(result.data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: result.mimeType });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = result.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
       toast.success(`Laporan ${format.toUpperCase()} berhasil di-generate`);
-    } catch {
-      toast.error('Gagal generate laporan');
+    } catch (error) {
+      logger.error('Failed to generate report', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Gagal generate laporan'
+      );
     } finally {
       setIsGenerating(null);
     }

@@ -141,6 +141,26 @@ export const PATCH = withErrorHandler(
             approvedAmount,
             approverNotes
           );
+          
+          // Emit corporate.approval_approved event (non-blocking)
+          if (result.success) {
+            try {
+              const { emitEvent } = await import('@/lib/events/event-bus');
+              await emitEvent({
+                type: 'corporate.approval_approved',
+                app: 'corporate',
+                userId: user.id,
+                data: {
+                  approvalId,
+                  corporateId: corporate.id,
+                  approvedAmount,
+                  approverNotes,
+                },
+              }).catch((e) => logger.warn('Failed to emit approval event', { error: e instanceof Error ? e.message : String(e) }));
+            } catch (e) {
+              // Non-blocking
+            }
+          }
           break;
 
         case 'reject':
@@ -158,6 +178,25 @@ export const PATCH = withErrorHandler(
             );
           }
           result = await rejectBooking(approvalId, user.id, rejectionReason);
+          
+          // Emit corporate.approval_rejected event (non-blocking)
+          if (result.success) {
+            try {
+              const { emitEvent } = await import('@/lib/events/event-bus');
+              await emitEvent({
+                type: 'corporate.approval_rejected',
+                app: 'corporate',
+                userId: user.id,
+                data: {
+                  approvalId,
+                  corporateId: corporate.id,
+                  rejectionReason,
+                },
+              }).catch((e) => logger.warn('Failed to emit rejection event', { error: e instanceof Error ? e.message : String(e) }));
+            } catch (e) {
+              // Non-blocking
+            }
+          }
           break;
 
         case 'cancel':

@@ -1,30 +1,51 @@
 /**
  * Rate Limit Configurations for Guide App
- * 
+ *
  * Prevents abuse of AI endpoints and file uploads
  * Based on security audit recommendations
+ *
+ * Values are configurable via Admin Console (settings table)
+ * Fallback to default constants if settings unavailable
  */
 
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 
 import { env } from '@/lib/env';
+import { DEFAULT_RATE_LIMITS } from '@/lib/settings/rate-limits';
 
 // Initialize Redis client (with fallback for development)
-const redis = env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN
-  ? new Redis({
-      url: env.UPSTASH_REDIS_REST_URL,
-      token: env.UPSTASH_REDIS_REST_TOKEN,
-    })
-  : null;
+const redis =
+  env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN
+    ? new Redis({
+        url: env.UPSTASH_REDIS_REST_URL,
+        token: env.UPSTASH_REDIS_REST_TOKEN,
+      })
+    : null;
 
-// Rate limit configurations
+// Rate limit configurations (sync defaults, use async functions for dynamic values)
+// @deprecated Use getRateLimitSettings() for dynamic values
 export const guideRateLimitConfig = {
-  ai: { limit: 10, window: '1m' as const },       // AI endpoints: 10 requests/min
-  upload: { limit: 5, window: '1m' as const },    // File uploads: 5 uploads/min
-  sos: { limit: 3, window: '1h' as const },       // Emergency SOS: 3/hour
-  push: { limit: 20, window: '1m' as const },     // Push notifications: 20/min
-  ocr: { limit: 5, window: '1m' as const },       // OCR processing: 5/min
+  ai: {
+    limit: DEFAULT_RATE_LIMITS.guideAi.limit,
+    window: DEFAULT_RATE_LIMITS.guideAi.window as '1m',
+  },
+  upload: {
+    limit: DEFAULT_RATE_LIMITS.guideUpload.limit,
+    window: DEFAULT_RATE_LIMITS.guideUpload.window as '1m',
+  },
+  sos: {
+    limit: DEFAULT_RATE_LIMITS.guideSos.limit,
+    window: DEFAULT_RATE_LIMITS.guideSos.window as '1h',
+  },
+  push: {
+    limit: DEFAULT_RATE_LIMITS.guidePush.limit,
+    window: DEFAULT_RATE_LIMITS.guidePush.window as '1m',
+  },
+  ocr: {
+    limit: DEFAULT_RATE_LIMITS.guideOcr.limit,
+    window: DEFAULT_RATE_LIMITS.guideOcr.window as '1m',
+  },
 } as const;
 
 /**
@@ -136,10 +157,28 @@ export async function checkGuideRateLimit(
 /**
  * Create rate limit response headers
  */
-export function createRateLimitHeaders(remaining: number, reset: number): HeadersInit {
+export function createRateLimitHeaders(
+  remaining: number,
+  reset: number
+): HeadersInit {
   return {
     'X-RateLimit-Remaining': remaining.toString(),
     'X-RateLimit-Reset': reset.toString(),
+  };
+}
+
+/**
+ * Get guide rate limit settings from database
+ */
+export async function getGuideRateLimitSettings() {
+  const { getRateLimitSettings } = await import('@/lib/settings/rate-limits');
+  const settings = await getRateLimitSettings();
+  return {
+    ai: settings.guideAi,
+    upload: settings.guideUpload,
+    sos: settings.guideSos,
+    push: settings.guidePush,
+    ocr: settings.guideOcr,
   };
 }
 

@@ -30,10 +30,10 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // ESLint - ignore errors during build
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // ESLint configuration removed - use next lint command instead
+  // eslint: {
+  //   ignoreDuringBuilds: true,
+  // },
 
   // i18n configuration (handled by next-intl middleware)
   // Locales: id (default), en

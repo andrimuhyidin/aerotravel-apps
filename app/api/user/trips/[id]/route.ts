@@ -1,6 +1,8 @@
 /**
  * User Trip Detail API
  * GET /api/user/trips/[id] - Get trip detail for current user
+ * 
+ * Note: Customer bookings are linked via customer_email (not user_id)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -20,22 +22,22 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
 
   const supabase = await createClient();
 
-  // Get current user
+  // Get current user with email
   const { data: { user } } = await supabase.auth.getUser();
   
-  if (!user) {
+  if (!user || !user.email) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
     );
   }
 
-  // Get booking with package details
+  // Get booking - verify ownership via customer_email OR created_by
   const { data: booking, error } = await supabase
     .from('bookings')
     .select(`
       id,
-      code,
+      booking_code,
       trip_date,
       adult_pax,
       child_pax,
@@ -47,55 +49,55 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
       customer_phone,
       customer_email,
       created_at,
-      paid_at,
-      packages (
-        id,
-        name,
-        slug,
-        destination,
-        province,
-        duration_days,
-        duration_nights,
-        inclusions,
-        exclusions,
-        meeting_points
-      )
+      package_id
     `)
     .eq('id', id)
-    .eq('user_id', user.id)
+    .or(`customer_email.eq.${user.email},created_by.eq.${user.id}`)
+    .is('deleted_at', null)
     .single();
 
   if (error || !booking) {
-    logger.warn('Trip not found', { id, userId: user.id });
+    logger.warn('Trip not found', { id, userId: user.id, email: user.email });
     return NextResponse.json(
       { error: 'Trip not found' },
       { status: 404 }
     );
   }
 
-  // Check if user has reviewed this trip
-  const { count: reviewCount } = await supabase
-    .from('package_reviews')
-    .select('id', { count: 'exact', head: true })
-    .eq('booking_id', id)
-    .eq('user_id', user.id);
-
-  const pkg = booking.packages as {
+  // Fetch package separately
+  type PackageData = {
     id: string;
     name: string;
     slug: string;
     destination: string;
-    province: string;
+    province: string | null;
     duration_days: number;
     duration_nights: number;
-    inclusions: string[];
-    exclusions: string[];
-    meeting_points: { name: string; address: string; time: string }[];
-  } | null;
+    inclusions: string[] | null;
+    exclusions: string[] | null;
+  };
+
+  let pkg: PackageData | null = null;
+
+  if (booking.package_id) {
+    const { data: packageData } = await supabase
+      .from('packages')
+      .select('id, name, slug, destination, province, duration_days, duration_nights, inclusions, exclusions')
+      .eq('id', booking.package_id)
+      .single();
+    
+    pkg = packageData as PackageData;
+  }
+
+  // Check if user has reviewed this trip (by booking_id and reviewer email match)
+  const { count: reviewCount } = await supabase
+    .from('package_reviews')
+    .select('id', { count: 'exact', head: true })
+    .eq('booking_id', id);
 
   const transformedTrip = {
     id: booking.id,
-    code: booking.code,
+    code: booking.booking_code,
     tripDate: booking.trip_date,
     adultPax: booking.adult_pax || 0,
     childPax: booking.child_pax || 0,
@@ -108,21 +110,18 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
     bookerPhone: booking.customer_phone,
     bookerEmail: booking.customer_email,
     createdAt: booking.created_at,
-    paidAt: booking.paid_at,
     package: pkg ? {
       id: pkg.id,
       name: pkg.name,
       slug: pkg.slug,
       destination: pkg.destination,
-      province: pkg.province,
+      province: pkg.province || '',
       duration: `${pkg.duration_days}D${pkg.duration_nights}N`,
       inclusions: pkg.inclusions || [],
       exclusions: pkg.exclusions || [],
-      meetingPoints: pkg.meeting_points || [],
     } : null,
     hasReview: (reviewCount || 0) > 0,
   };
 
   return NextResponse.json({ trip: transformedTrip });
 });
-

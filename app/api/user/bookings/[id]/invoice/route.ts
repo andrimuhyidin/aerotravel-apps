@@ -1,6 +1,8 @@
 /**
  * User Booking Invoice API
  * GET /api/user/bookings/[id]/invoice - Download invoice PDF
+ * 
+ * Note: Customer bookings are linked via customer_email (not user_id)
  */
 
 import { renderToBuffer } from '@react-pdf/renderer';
@@ -26,57 +28,47 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
 
   const supabase = await createClient();
 
-  // Get current user
+  // Get current user with email
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (!user || !user.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Get booking with package and branch details
+  // Get booking with price snapshot - verify ownership via customer_email OR created_by
   const { data: booking, error } = await supabase
     .from('bookings')
     .select(`
       id,
-      code,
+      booking_code,
       trip_date,
       adult_pax,
       child_pax,
       infant_pax,
+      price_per_adult,
+      price_per_child,
+      subtotal,
+      discount_amount,
+      tax_amount,
       total_amount,
       status,
       customer_name,
       customer_phone,
       customer_email,
       created_at,
-      paid_at,
       special_requests,
-      packages (
-        id,
-        name,
-        destination,
-        duration_days,
-        duration_nights,
-        adult_price,
-        child_price,
-        infant_price
-      ),
-      branches (
-        id,
-        name,
-        address,
-        phone,
-        email
-      )
+      package_id,
+      branch_id
     `)
     .eq('id', id)
-    .eq('user_id', user.id)
+    .or(`customer_email.eq.${user.email},created_by.eq.${user.id}`)
+    .is('deleted_at', null)
     .single();
 
   if (error || !booking) {
-    logger.warn('Booking not found', { id, userId: user.id });
+    logger.warn('Booking not found', { id, email: user.email });
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
@@ -89,56 +81,73 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
     );
   }
 
-  // Type assertions
-  const pkg = booking.packages as unknown as {
+  // Fetch package for name/destination info
+  let pkg: {
     id: string;
     name: string;
     destination: string;
     duration_days: number;
     duration_nights: number;
-    adult_price: number;
-    child_price: number;
-    infant_price: number;
-  } | null;
+  } | null = null;
 
-  const branch = booking.branches as unknown as {
+  // Fetch branch for company info
+  let branch: {
     id: string;
     name: string;
-    address: string;
-    phone: string;
-    email: string;
-  } | null;
+    address: string | null;
+    phone: string | null;
+    email: string | null;
+  } | null = null;
 
-  // Build invoice items
+  if (booking.package_id) {
+    const { data: packageData } = await supabase
+      .from('packages')
+      .select('id, name, destination, duration_days, duration_nights')
+      .eq('id', booking.package_id)
+      .single();
+    pkg = packageData;
+  }
+
+  if (booking.branch_id) {
+    const { data: branchData } = await supabase
+      .from('branches')
+      .select('id, name, address, phone, email')
+      .eq('id', booking.branch_id)
+      .single();
+    branch = branchData;
+  }
+
+  // Build invoice items using booking price snapshot (not package prices)
   const items: InvoiceData['items'] = [];
+  const adultPrice = Number(booking.price_per_adult) || 0;
+  const childPrice = Number(booking.price_per_child) || 0;
+  const infantPrice = 0; // Usually free or included
 
-  if (pkg) {
-    if (booking.adult_pax > 0) {
-      items.push({
-        description: `${pkg.name} - Dewasa (${pkg.duration_days}D${pkg.duration_nights}N)`,
-        quantity: booking.adult_pax,
-        unitPrice: pkg.adult_price || 0,
-        total: (pkg.adult_price || 0) * booking.adult_pax,
-      });
-    }
+  if (booking.adult_pax > 0) {
+    items.push({
+      description: `${pkg?.name || 'Paket Wisata'} - Dewasa${pkg ? ` (${pkg.duration_days}D${pkg.duration_nights}N)` : ''}`,
+      quantity: booking.adult_pax,
+      unitPrice: adultPrice,
+      total: adultPrice * booking.adult_pax,
+    });
+  }
 
-    if (booking.child_pax > 0) {
-      items.push({
-        description: `${pkg.name} - Anak`,
-        quantity: booking.child_pax,
-        unitPrice: pkg.child_price || 0,
-        total: (pkg.child_price || 0) * booking.child_pax,
-      });
-    }
+  if (booking.child_pax > 0) {
+    items.push({
+      description: `${pkg?.name || 'Paket Wisata'} - Anak`,
+      quantity: booking.child_pax,
+      unitPrice: childPrice,
+      total: childPrice * booking.child_pax,
+    });
+  }
 
-    if (booking.infant_pax > 0) {
-      items.push({
-        description: `${pkg.name} - Bayi`,
-        quantity: booking.infant_pax,
-        unitPrice: pkg.infant_price || 0,
-        total: (pkg.infant_price || 0) * booking.infant_pax,
-      });
-    }
+  if (booking.infant_pax > 0) {
+    items.push({
+      description: `${pkg?.name || 'Paket Wisata'} - Bayi`,
+      quantity: booking.infant_pax,
+      unitPrice: infantPrice,
+      total: infantPrice * booking.infant_pax,
+    });
   }
 
   // If no items calculated, use total as single line item
@@ -146,18 +155,18 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
     items.push({
       description: pkg?.name || 'Paket Wisata',
       quantity: 1,
-      unitPrice: booking.total_amount,
-      total: booking.total_amount,
+      unitPrice: Number(booking.total_amount),
+      total: Number(booking.total_amount),
     });
   }
 
   // Calculate subtotal
-  const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+  const subtotal = Number(booking.subtotal) || items.reduce((sum, item) => sum + item.total, 0);
 
   // Build invoice data
   const invoiceData: InvoiceData = {
-    invoiceNumber: `INV-${booking.code}`,
-    invoiceDate: new Date(booking.created_at).toLocaleDateString('id-ID', {
+    invoiceNumber: `INV-${booking.booking_code}`,
+    invoiceDate: new Date(booking.created_at || Date.now()).toLocaleDateString('id-ID', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -178,22 +187,25 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
     customerEmail: booking.customer_email || undefined,
     items,
     subtotal,
-    total: booking.total_amount,
+    total: Number(booking.total_amount),
     paymentStatus: booking.status === 'paid' || booking.status === 'confirmed' ? 'paid' : 'pending',
-    paymentMethod: booking.paid_at ? 'Transfer/Online Payment' : undefined,
+    paymentMethod: booking.status === 'paid' || booking.status === 'confirmed' ? 'Transfer/Online Payment' : undefined,
     notes: booking.special_requests || undefined,
   };
 
   try {
     // Generate PDF buffer
     const pdfBuffer = await renderToBuffer(InvoicePDF({ data: invoiceData }));
+    
+    // Convert buffer to Uint8Array for NextResponse
+    const uint8Array = new Uint8Array(pdfBuffer);
 
     // Return PDF response
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(uint8Array, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="invoice-${booking.code}.pdf"`,
+        'Content-Disposition': `attachment; filename="invoice-${booking.booking_code}.pdf"`,
         'Cache-Control': 'private, max-age=3600',
       },
     });
@@ -202,4 +214,3 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
     return NextResponse.json({ error: 'Failed to generate invoice' }, { status: 500 });
   }
 });
-

@@ -73,29 +73,45 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       );
     }
 
-    // Log the event to app_events table for audit/realtime
-    const { error: eventError } = await client
-      .from('app_events')
-      .insert({
-        event_type: `wallet.${eventType}`,
-        user_id: user.id,
-        entity_type: 'wallet',
-        entity_id: walletId,
-        payload: {
-          eventType,
-          walletId,
-          amount,
-          balanceAfter,
-          transactionId,
-          partnerId,
-          ...metadata,
+    // Emit via unified event bus
+    try {
+      const { emitEvent } = await import('@/lib/events/event-bus');
+      
+      // Map eventType to unified event types
+      const eventTypeMap: Record<string, string> = {
+        balance_changed: 'wallet.balance_changed',
+        topup_completed: 'wallet.transaction_completed',
+        withdrawal_requested: 'wallet.balance_changed',
+        credit_used: 'wallet.balance_changed',
+        credit_repaid: 'wallet.transaction_completed',
+      };
+      
+      const unifiedEventType = eventTypeMap[eventType] || 'wallet.balance_changed';
+      
+      await emitEvent(
+        {
+          type: unifiedEventType as 'wallet.balance_changed' | 'wallet.transaction_completed',
+          app: 'partner',
+          userId: user.id,
+          data: {
+            eventType,
+            walletId,
+            amount,
+            balanceAfter,
+            transactionId,
+            partnerId,
+            ...metadata,
+          },
         },
-      });
-
-    if (eventError) {
-      // Log but don't fail - event logging is not critical
-      logger.warn('Failed to log wallet event to app_events', {
-        error: eventError,
+        {
+          ipAddress: request.headers.get('x-forwarded-for') || undefined,
+          userAgent: request.headers.get('user-agent') || undefined,
+        }
+      );
+    } catch (eventBusError) {
+      // Log but don't fail - event bus is not critical
+      logger.warn('Failed to emit wallet event via event bus', {
+        error: eventBusError,
         eventType,
         walletId,
       });

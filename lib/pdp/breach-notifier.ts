@@ -55,58 +55,85 @@ export async function notifyAffectedUsers(
     return false;
   }
 
+  // Get template processor
+  const { processEmailTemplateWithFallback } = await import('@/lib/templates/email');
+
+  const fallbackHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #d32f2f;">Pemberitahuan Insiden Keamanan Data</h2>
+      
+      <p>Kepada Yth. {{user_name}},</p>
+      
+      <p>Kami menginformasikan bahwa telah terjadi insiden keamanan data yang mungkin mempengaruhi informasi Anda:</p>
+      
+      <div style="background-color: #f5f5f5; padding: 15px; border-left: 4px solid #d32f2f; margin: 20px 0;">
+        <strong>Jenis Insiden:</strong> {{incident_title}}<br/>
+        <strong>Tanggal Insiden:</strong> {{incident_date}}<br/>
+        <strong>Tingkat Keparahan:</strong> {{severity}}<br/>
+        <strong>Data yang Terpengaruh:</strong> {{affected_data_types}}
+      </div>
+      
+      <p><strong>Deskripsi:</strong></p>
+      <p>{{description}}</p>
+      
+      {{#if remediation_steps}}
+      <p><strong>Langkah yang Telah Kami Ambil:</strong></p>
+      <p>{{remediation_steps}}</p>
+      {{/if}}
+      
+      <p><strong>Apa yang Harus Anda Lakukan:</strong></p>
+      <ul>
+        <li>Segera ubah password akun Anda</li>
+        <li>Aktifkan autentikasi dua faktor (2FA)</li>
+        <li>Waspadai email atau pesan mencurigakan</li>
+        <li>Pantau aktivitas akun Anda secara berkala</li>
+      </ul>
+      
+      <p>Kami mohon maaf atas ketidaknyamanan ini. Keamanan data Anda adalah prioritas utama kami.</p>
+      
+      <p>Untuk informasi lebih lanjut atau pertanyaan, silakan hubungi:</p>
+      <p><strong>Email:</strong> {{privacy_email}}<br/>
+      <strong>Telepon:</strong> {{privacy_phone}}</p>
+      
+      <p>Hormat kami,<br/>Tim {{company_name}}</p>
+      
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;"/>
+      <p style="font-size: 12px; color: #666;">
+        Pemberitahuan ini dikirimkan sesuai dengan ketentuan UU Perlindungan Data Pribadi No. 27 Tahun 2022.
+      </p>
+    </div>
+  `;
+
   // Send notification emails
   let sentCount = 0;
   for (const user of users) {
     try {
+      const variables = {
+        user_name: user.full_name || 'Pelanggan',
+        incident_title: incident.title as string,
+        incident_date: new Date(incident.incident_date as string).toLocaleDateString('id-ID'),
+        severity: (incident.severity as string).toUpperCase(),
+        affected_data_types: (incident.affected_data_types as string[]).join(', '),
+        description: incident.description as string,
+        remediation_steps: incident.remediation_steps as string | undefined,
+        privacy_email: 'privacy@aerotravel.co.id',
+        privacy_phone: '+62 812 3456 7890',
+        company_name: 'Aero Travel',
+      };
+
+      const processed = await processEmailTemplateWithFallback(
+        'data_breach_notification',
+        variables,
+        {
+          subject: `PENTING: Pemberitahuan Insiden Keamanan Data - {{incident_title}}`,
+          html: fallbackHtml,
+        }
+      );
+
       await sendEmail({
         to: user.email,
-        subject: `PENTING: Pemberitahuan Insiden Keamanan Data - ${incident.title}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #d32f2f;">Pemberitahuan Insiden Keamanan Data</h2>
-            
-            <p>Kepada Yth. ${user.full_name},</p>
-            
-            <p>Kami menginformasikan bahwa telah terjadi insiden keamanan data yang mungkin mempengaruhi informasi Anda:</p>
-            
-            <div style="background-color: #f5f5f5; padding: 15px; border-left: 4px solid #d32f2f; margin: 20px 0;">
-              <strong>Jenis Insiden:</strong> ${incident.title}<br/>
-              <strong>Tanggal Insiden:</strong> ${new Date(incident.incident_date).toLocaleDateString('id-ID')}<br/>
-              <strong>Tingkat Keparahan:</strong> ${incident.severity.toUpperCase()}<br/>
-              <strong>Data yang Terpengaruh:</strong> ${(incident.affected_data_types as string[]).join(', ')}
-            </div>
-            
-            <p><strong>Deskripsi:</strong></p>
-            <p>${incident.description}</p>
-            
-            ${incident.remediation_steps ? `
-              <p><strong>Langkah yang Telah Kami Ambil:</strong></p>
-              <p>${incident.remediation_steps}</p>
-            ` : ''}
-            
-            <p><strong>Apa yang Harus Anda Lakukan:</strong></p>
-            <ul>
-              <li>Segera ubah password akun Anda</li>
-              <li>Aktifkan autentikasi dua faktor (2FA)</li>
-              <li>Waspadai email atau pesan mencurigakan</li>
-              <li>Pantau aktivitas akun Anda secara berkala</li>
-            </ul>
-            
-            <p>Kami mohon maaf atas ketidaknyamanan ini. Keamanan data Anda adalah prioritas utama kami.</p>
-            
-            <p>Untuk informasi lebih lanjut atau pertanyaan, silakan hubungi:</p>
-            <p><strong>Email:</strong> privacy@aerotravel.co.id<br/>
-            <strong>Telepon:</strong> +62 812 3456 7890</p>
-            
-            <p>Hormat kami,<br/>Tim Aero Travel</p>
-            
-            <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;"/>
-            <p style="font-size: 12px; color: #666;">
-              Pemberitahuan ini dikirimkan sesuai dengan ketentuan UU Perlindungan Data Pribadi No. 27 Tahun 2022.
-            </p>
-          </div>
-        `,
+        subject: processed.subject,
+        html: processed.html,
       });
       sentCount++;
     } catch (error) {

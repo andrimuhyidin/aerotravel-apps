@@ -13,6 +13,7 @@ import { useParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useAppSettings } from '@/hooks/use-settings';
 import { logger } from '@/lib/utils/logger';
 
 type PartnerHeaderProps = {
@@ -29,6 +30,7 @@ export function PartnerHeader({
 }: PartnerHeaderProps) {
   const params = useParams();
   const locale = params.locale as string;
+  const appSettings = useAppSettings('partner');
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {

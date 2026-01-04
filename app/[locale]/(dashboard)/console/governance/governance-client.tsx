@@ -62,69 +62,24 @@ type GovernanceData = {
 };
 
 async function fetchGovernanceData(): Promise<GovernanceData> {
-  // Sample data - in production, fetch from API
+  const response = await fetch('/api/admin/governance/approvals');
+  if (!response.ok) {
+    throw new Error('Failed to fetch governance data');
+  }
+  const data = await response.json();
+
+  // Calculate compliance score (placeholder - would need more data)
+  const complianceScore = data.stats.expiredContracts > 0 ? 60 : 85;
+
   return {
-    pendingApprovals: [
-      {
-        id: '1',
-        type: 'refund',
-        title: 'Refund Request - BK-001234',
-        requestedBy: 'Admin CS',
-        requestedAt: new Date(Date.now() - 2 * 3600000).toISOString(),
-        status: 'pending',
-        priority: 'high',
-      },
-      {
-        id: '2',
-        type: 'discount',
-        title: 'Special Discount 20% - Corporate Client',
-        requestedBy: 'Marketing',
-        requestedAt: new Date(Date.now() - 5 * 3600000).toISOString(),
-        status: 'pending',
-        priority: 'medium',
-      },
-      {
-        id: '3',
-        type: 'expense',
-        title: 'Expense Claim - Fuel Cost',
-        requestedBy: 'Guide Budi',
-        requestedAt: new Date(Date.now() - 24 * 3600000).toISOString(),
-        status: 'pending',
-        priority: 'low',
-      },
-    ],
-    contracts: [
-      {
-        id: 'c1',
-        type: 'guide',
-        name: 'Kontrak Guide - Budi Santoso',
-        status: 'active',
-        expiryDate: '2026-06-30',
-        signedBy: 'Super Admin',
-      },
-      {
-        id: 'c2',
-        type: 'vendor',
-        name: 'Perjanjian Vendor - Kapal Pahawang',
-        status: 'active',
-        expiryDate: '2026-03-15',
-        signedBy: 'Super Admin',
-      },
-      {
-        id: 'c3',
-        type: 'partner',
-        name: 'MoU Travel Agent - Jakarta Tours',
-        status: 'pending',
-        expiryDate: null,
-        signedBy: null,
-      },
-    ],
-    complianceScore: 85,
-    stats: {
-      totalContracts: 15,
-      activeContracts: 12,
-      pendingApprovals: 3,
-      expiringContracts: 2,
+    pendingApprovals: data.pendingApprovals || [],
+    contracts: data.contracts || [],
+    complianceScore,
+    stats: data.stats || {
+      totalContracts: 0,
+      activeContracts: 0,
+      pendingApprovals: 0,
+      expiringContracts: 0,
     },
   };
 }

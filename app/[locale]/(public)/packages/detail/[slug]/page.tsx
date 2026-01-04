@@ -21,6 +21,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { ViewPackageTracker } from '@/components/analytics/page-journey-tracker';
+import { Container } from '@/components/layout/container';
+import { Section } from '@/components/layout/section';
 import { PackageReviewList } from '@/components/public/package-review-list';
 import { AISummary } from '@/components/seo/ai-summary';
 import { AuthorByline } from '@/components/seo/author-bio';
@@ -270,195 +272,207 @@ export default async function PackageDetailPage({ params }: Props) {
         category={pkg.package_type}
       />
       
-      <div className="flex flex-col pb-24">
-      {/* Hero Image */}
-      <div className="relative">
-        <div className="aspect-[4/3] bg-gradient-to-br from-primary/30 to-aero-teal/30">
-          <div className="flex h-full items-center justify-center text-7xl">
-            🏝️
+      {/* Hero Section */}
+      <Section className="relative p-0" spacing="none">
+        <div className="relative">
+          <div className="aspect-[4/3] bg-gradient-to-br from-primary/30 to-aero-teal/30">
+            <div className="flex h-full items-center justify-center text-7xl">
+              🏝️
+            </div>
           </div>
-        </div>
 
-        {/* Back & Actions */}
-        <div className="absolute left-0 right-0 top-0 flex items-center justify-between p-4">
-          <Link
-            href={`/${locale}/packages`}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 backdrop-blur"
-          >
-            <ChevronLeft className="h-6 w-6 text-white" />
-          </Link>
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-full bg-black/30 backdrop-blur text-white hover:bg-black/50"
+          {/* Back & Actions */}
+          <div className="absolute left-0 right-0 top-0 flex items-center justify-between p-4">
+            <Link
+              href={`/${locale}/packages`}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 backdrop-blur"
+              aria-label="Kembali ke daftar paket"
             >
-              <Share2 className="h-5 w-5" />
-            </Button>
+              <ChevronLeft className="h-6 w-6 text-white" />
+            </Link>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full bg-black/30 backdrop-blur text-white hover:bg-black/50"
+                aria-label="Bagikan paket"
+              >
+                <Share2 className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
-        </div>
 
-        {/* Badge */}
-        <div className="absolute bottom-4 left-4 flex gap-2">
-          <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white">
-            {pkg.package_type === 'open_trip' ? 'Open Trip' : 'Private'}
-          </span>
-          <span className="flex items-center gap-1 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white backdrop-blur">
-            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-            {(pkg.average_rating || 0).toFixed(1)}
-          </span>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="px-5 pt-5">
-        {/* Title & Location */}
-        <h1 className="mb-2 text-xl font-bold leading-tight">{pkg.name}</h1>
-        <div className="mb-4 flex items-center gap-1 text-sm text-muted-foreground">
-          <MapPin className="h-4 w-4" />
-          {pkg.destination}, {pkg.province}
-        </div>
-
-        {/* Quick Info */}
-        <div className="mb-5 flex gap-4">
-          <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
-            <Clock className="h-4 w-4 text-primary" />
-            <span className="text-xs font-medium">
-              {pkg.duration_days}H{pkg.duration_nights}M
+          {/* Badge */}
+          <div className="absolute bottom-4 left-4 flex gap-2">
+            <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white">
+              {pkg.package_type === 'open_trip' ? 'Open Trip' : 'Private'}
+            </span>
+            <span className="flex items-center gap-1 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white backdrop-blur">
+              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+              {(pkg.average_rating || 0).toFixed(1)}
             </span>
           </div>
-          <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
-            <Users className="h-4 w-4 text-primary" />
-            <span className="text-xs font-medium">
-              {pkg.min_pax}-{pkg.max_pax} pax
-            </span>
-          </div>
-          <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
-            <Calendar className="h-4 w-4 text-primary" />
-            <span className="text-xs font-medium">Setiap Hari</span>
-          </div>
         </div>
+      </Section>
 
-        {/* AI Summary - Optimized for AI extraction */}
-        <div className="mb-6">
-          <AISummary summary={aiSummary} bulletPoints={aiKeyPoints} />
-        </div>
+      {/* Main Content */}
+      <Section className="bg-background" spacing="md">
+        <Container>
+          {/* Header Section */}
+          <header className="mb-6">
+            <h1 className="mb-2 text-xl font-bold leading-tight">{pkg.name}</h1>
+            <div className="mb-4 flex items-center gap-1 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4" />
+              {pkg.destination}, {pkg.province}
+            </div>
 
-        {/* Author/Curator Info */}
-        <div className="mb-6">
-          <AuthorByline
-            name={author.name}
-            role={author.role}
-            image={author.image}
-            date="Trip Curator"
-          />
-        </div>
+            {/* Quick Info */}
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
+                <Clock className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium">
+                  {pkg.duration_days}H{pkg.duration_nights}M
+                </span>
+              </div>
+              <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
+                <Users className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium">
+                  {pkg.min_pax}-{pkg.max_pax} pax
+                </span>
+              </div>
+              <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium">Setiap Hari</span>
+              </div>
+            </div>
+          </header>
 
-        {/* Description */}
-        <div className="mb-6">
-          <h2 className="mb-2 text-sm font-semibold">Deskripsi</h2>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            {pkg.description ||
-              'Paket wisata premium dengan pengalaman terbaik.'}
-          </p>
-        </div>
+          {/* AI Summary Section */}
+          <section id="summary" className="mb-6">
+            <AISummary summary={aiSummary} bulletPoints={aiKeyPoints} />
+          </section>
 
-        {/* Price Tiers */}
-        {prices.length > 0 && (
-          <div className="mb-6">
-            <h2 className="mb-3 text-sm font-semibold">Harga</h2>
-            <div className="space-y-2">
-              {prices.map((tier, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between rounded-xl bg-muted/50 p-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      {tier.min_pax}-{tier.max_pax} orang
+          {/* Author Section */}
+          <section id="author" className="mb-6">
+            <AuthorByline
+              name={author.name}
+              role={author.role}
+              image={author.image}
+              date="Trip Curator"
+            />
+          </section>
+
+          {/* Description Section */}
+          <section id="description" className="mb-6">
+            <h2 className="mb-2 text-sm font-semibold">Deskripsi</h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {pkg.description ||
+                'Paket wisata premium dengan pengalaman terbaik.'}
+            </p>
+          </section>
+
+          {/* Price Section */}
+          {prices.length > 0 && (
+            <section id="pricing" className="mb-6">
+              <h2 className="mb-3 text-sm font-semibold">Harga</h2>
+              <div className="space-y-2">
+                {prices.map((tier, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between rounded-xl bg-muted/50 p-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        {tier.min_pax}-{tier.max_pax} orang
+                      </span>
+                    </div>
+                    <span className="text-sm font-bold text-primary">
+                      {formatPrice(tier.price_publish)}
                     </span>
                   </div>
-                  <span className="text-sm font-bold text-primary">
-                    {formatPrice(tier.price_publish)}
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Inclusions Section */}
+          {inclusions.length > 0 && (
+            <section id="inclusions" className="mb-6">
+              <h2 className="mb-3 text-sm font-semibold">Sudah Termasuk</h2>
+              <ul className="space-y-2">
+                {inclusions.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-100">
+                      <Check className="h-3 w-3 text-green-600" />
+                    </div>
+                    <span className="text-sm">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Exclusions Section */}
+          {exclusions.length > 0 && (
+            <section id="exclusions" className="mb-6">
+              <h2 className="mb-3 text-sm font-semibold">Tidak Termasuk</h2>
+              <ul className="space-y-2">
+                {exclusions.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100">
+                      <X className="h-3 w-3 text-red-600" />
+                    </div>
+                    <span className="text-sm">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Reviews Section */}
+          <section id="reviews" className="mb-6">
+            <PackageReviewList slug={slug} initialLimit={3} />
+          </section>
+
+          {/* Trust Signals Section */}
+          <section id="trust" className="mb-6">
+            <TrustBar />
+          </section>
+
+          {/* Related Packages Section */}
+          {relatedLinks.length > 0 && (
+            <section id="related" className="mb-6">
+              <RelatedContent
+                title="Paket Serupa"
+                links={relatedLinks}
+              />
+            </section>
+          )}
+
+          {/* Contact Section */}
+          <section id="contact" className="mb-6">
+            <div className="rounded-2xl bg-muted/50 p-4">
+              <h2 className="mb-2 text-sm font-semibold">Ada Pertanyaan?</h2>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Hubungi tim kami untuk info lebih lanjut
+              </p>
+              <a
+                href="https://wa.me/6281234567890"
+                className="flex items-center justify-center gap-2 rounded-xl bg-green-500 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-600"
+                aria-label="Hubungi via WhatsApp"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Chat WhatsApp
+              </a>
             </div>
-          </div>
-        )}
-
-        {/* Inclusions */}
-        {inclusions.length > 0 && (
-          <div className="mb-6">
-            <h2 className="mb-3 text-sm font-semibold">Sudah Termasuk</h2>
-            <div className="space-y-2">
-              {inclusions.map((item, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-100">
-                    <Check className="h-3 w-3 text-green-600" />
-                  </div>
-                  <span className="text-sm">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Exclusions */}
-        {exclusions.length > 0 && (
-          <div className="mb-6">
-            <h2 className="mb-3 text-sm font-semibold">Tidak Termasuk</h2>
-            <div className="space-y-2">
-              {exclusions.map((item, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100">
-                    <X className="h-3 w-3 text-red-600" />
-                  </div>
-                  <span className="text-sm">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Reviews Section */}
-        <PackageReviewList slug={slug} initialLimit={3} />
-
-        {/* Trust Signals */}
-        <div className="my-6">
-          <TrustBar />
-        </div>
-
-        {/* Related Packages */}
-        {relatedLinks.length > 0 && (
-          <div className="my-6">
-            <RelatedContent
-              title="Paket Serupa"
-              links={relatedLinks}
-            />
-          </div>
-        )}
-
-        {/* Contact */}
-        <div className="mt-6 rounded-2xl bg-muted/50 p-4">
-          <p className="mb-2 text-sm font-semibold">Ada Pertanyaan?</p>
-          <p className="mb-3 text-xs text-muted-foreground">
-            Hubungi tim kami untuk info lebih lanjut
-          </p>
-          <a
-            href="https://wa.me/6281234567890"
-            className="flex items-center justify-center gap-2 rounded-xl bg-green-500 py-2.5 text-sm font-medium text-white"
-          >
-            <MessageCircle className="h-4 w-4" />
-            Chat WhatsApp
-          </a>
-        </div>
-      </div>
+          </section>
+        </Container>
+      </Section>
 
       {/* Bottom Fixed CTA */}
       <div className="fixed bottom-16 left-0 right-0 z-40">
-        <div className="mx-auto w-full max-w-md border-t bg-background px-5 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
+        <Container className="mx-auto w-full max-w-md border-t bg-background px-5 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <p className="text-xs text-muted-foreground">Mulai dari</p>
@@ -475,8 +489,7 @@ export default async function PackageDetailPage({ params }: Props) {
               </Button>
             </Link>
           </div>
-        </div>
-      </div>
+        </Container>
       </div>
     </>
   );

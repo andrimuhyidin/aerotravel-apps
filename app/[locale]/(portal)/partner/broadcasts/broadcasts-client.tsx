@@ -129,20 +129,20 @@ export function BroadcastsClient({ locale }: BroadcastsClientProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // Fetch broadcast stats
-  const { data: stats, isLoading: statsLoading } = useQuery<BroadcastStats>({
-    queryKey: queryKeys.partner.broadcastStats,
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: queryKeys.partner.broadcasts.stats(),
     queryFn: async () => {
       const response = await apiClient.get<BroadcastStats>('/api/partner/broadcasts/stats');
-      return response;
+      return response.data;
     },
   });
 
   // Fetch broadcast list
-  const { data: broadcasts, isLoading: broadcastsLoading } = useQuery<Broadcast[]>({
-    queryKey: queryKeys.partner.broadcasts,
+  const { data: broadcasts, isLoading: broadcastsLoading } = useQuery({
+    queryKey: queryKeys.partner.broadcasts.list(),
     queryFn: async () => {
       const response = await apiClient.get<{ broadcasts: Broadcast[] }>('/api/partner/broadcasts');
-      return response.broadcasts;
+      return response.data.broadcasts;
     },
   });
 
@@ -152,8 +152,7 @@ export function BroadcastsClient({ locale }: BroadcastsClientProps) {
       return apiClient.delete(`/api/partner/broadcasts/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.partner.broadcasts });
-      queryClient.invalidateQueries({ queryKey: queryKeys.partner.broadcastStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.partner.broadcasts.all() });
       toast.success('Broadcast berhasil dihapus');
       setDeleteId(null);
     },
@@ -168,7 +167,7 @@ export function BroadcastsClient({ locale }: BroadcastsClientProps) {
       return apiClient.post(`/api/partner/broadcasts/${id}/${action}`);
     },
     onSuccess: (_data, { action }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.partner.broadcasts });
+      queryClient.invalidateQueries({ queryKey: queryKeys.partner.broadcasts.all() });
       toast.success(action === 'pause' ? 'Broadcast dijeda' : 'Broadcast dilanjutkan');
     },
     onError: () => {
@@ -273,7 +272,7 @@ export function BroadcastsClient({ locale }: BroadcastsClientProps) {
             ) : broadcasts && broadcasts.length > 0 ? (
               <ScrollArea className="h-[400px]">
                 <div className="divide-y">
-                  {broadcasts.map((broadcast) => (
+                  {broadcasts.map((broadcast: Broadcast) => (
                     <div
                       key={broadcast.id}
                       className="flex items-center justify-between p-4 hover:bg-muted/50"

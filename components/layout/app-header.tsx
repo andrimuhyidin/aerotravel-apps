@@ -8,8 +8,10 @@
 import { Plane, Search, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 import { RoleSwitcher } from '@/components/role-switcher';
+import { useSettings } from '@/hooks/use-settings';
 import { cn } from '@/lib/utils';
 
 type AppHeaderProps = {
@@ -30,22 +32,38 @@ export function AppHeader({
   onSearchClick,
 }: AppHeaderProps) {
   const router = useRouter();
+  const { settings } = useSettings();
+
+  const appName = settings?.branding?.app_name || 'AeroTravel';
+  const logoUrl = settings?.branding?.logo_url || null;
 
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 w-full',
-        variant === 'default' && 'border-b bg-background',
+        'sticky top-0 z-50 w-full bg-background',
+        variant === 'default' && 'border-b',
         variant === 'transparent' && 'border-transparent bg-transparent'
       )}
     >
       <div className="flex h-14 items-center gap-3 px-4">
         {/* Logo */}
         <Link href={`/${locale}`} className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-            <Plane className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-sm font-bold">AeroTravel</span>
+          {logoUrl ? (
+            <div className="relative h-7 w-7">
+              <Image
+                src={logoUrl}
+                alt={appName}
+                fill
+                className="object-contain"
+                sizes="28px"
+              />
+            </div>
+          ) : (
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
+              <Plane className="h-4 w-4 text-white" />
+            </div>
+          )}
+          <span className="text-sm font-bold">{appName}</span>
         </Link>
 
         {/* Search Bar - Central (Gojek/Traveloka style) */}

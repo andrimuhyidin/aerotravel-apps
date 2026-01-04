@@ -191,7 +191,7 @@ export function LicensesListClient() {
     mutationFn: deleteLicense,
     onSuccess: () => {
       toast.success('Izin berhasil dihapus');
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.compliance.licenses._def });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.compliance.licenses() });
       setDeleteDialogOpen(false);
       setLicenseToDelete(null);
     },

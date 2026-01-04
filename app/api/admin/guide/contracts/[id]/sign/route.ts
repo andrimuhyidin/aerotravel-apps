@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
 import { getBranchContext, withBranchFilter } from '@/lib/branch/branch-injection';
-import { COMPANY_CONFIG } from '@/lib/config/company';
+import { getCompanyConfig } from '@/lib/config/company';
 import { createClient, hasRole } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -48,6 +48,7 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
 
   const body = signSchema.parse(await request.json());
   const branchContext = await getBranchContext(user.id);
+  const companyConfig = await getCompanyConfig();
   const client = supabase as unknown as any;
 
   // Get contract
@@ -299,10 +300,10 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
         feeType: fullContract.fee_type || 'fixed',
         paymentTerms: fullContract.payment_terms || undefined,
         termsAndConditions: (fullContract.terms_and_conditions as Record<string, unknown>) || {},
-        companyName: COMPANY_CONFIG.name,
-        companyAddress: COMPANY_CONFIG.address,
-        companyPhone: COMPANY_CONFIG.phone,
-        companyEmail: COMPANY_CONFIG.email,
+        companyName: companyConfig.name,
+        companyAddress: companyConfig.address,
+        companyPhone: companyConfig.phone,
+        companyEmail: companyConfig.email,
         guideName: (fullContract.guide as { full_name?: string })?.full_name || 'Guide',
         guideAddress: (fullContract.guide as { address?: string })?.address || undefined,
         guidePhone: (fullContract.guide as { phone?: string })?.phone || undefined,

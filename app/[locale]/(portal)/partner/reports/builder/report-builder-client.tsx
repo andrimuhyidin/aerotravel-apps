@@ -163,12 +163,12 @@ export function ReportBuilderClient({ locale }: ReportBuilderClientProps) {
 
   // Fetch saved reports
   const { data: savedReports, isLoading: reportsLoading } = useQuery<SavedReport[]>({
-    queryKey: queryKeys.partner.customReports,
+    queryKey: queryKeys.partner.customReports.list(),
     queryFn: async () => {
       const response = await apiClient.get<{ reports: SavedReport[] }>(
         '/api/partner/reports/custom'
       );
-      return response.reports;
+      return response.data.reports;
     },
   });
 
@@ -206,7 +206,7 @@ export function ReportBuilderClient({ locale }: ReportBuilderClientProps) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.partner.customReports });
+      queryClient.invalidateQueries({ queryKey: queryKeys.partner.customReports.all() });
       toast.success('Report template tersimpan!');
       setShowSaveDialog(false);
     },
@@ -328,7 +328,7 @@ export function ReportBuilderClient({ locale }: ReportBuilderClientProps) {
                 ) : savedReports && savedReports.length > 0 ? (
                   <ScrollArea className="max-h-[200px]">
                     <div className="divide-y">
-                      {savedReports.map((report) => (
+                      {savedReports.map((report: SavedReport) => (
                         <button
                           key={report.id}
                           className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/50"

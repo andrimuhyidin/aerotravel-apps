@@ -51,9 +51,20 @@ export async function POST(request: NextRequest) {
     // Find booking by external_id (booking code)
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
-      .select('id, code, customer_name, customer_phone, customer_email, package_id, trip_date, total_amount, packages(name)')
-      .eq('code', body.external_id)
+      .select('id, booking_code, customer_name, customer_phone, customer_email, package_id, trip_date, total_amount, customer_id, mitra_id')
+      .eq('booking_code', body.external_id)
       .single();
+    
+    // Fetch package separately if needed
+    let packageData: { name: string } | null = null;
+    if (booking?.package_id) {
+      const { data: pkg } = await supabase
+        .from('packages')
+        .select('name')
+        .eq('id', booking.package_id)
+        .single();
+      packageData = pkg;
+    }
 
     if (bookingError || !booking) {
       logger.error('Booking not found for webhook', { externalId: body.external_id });
@@ -61,25 +72,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true, error: 'Booking not found' });
     }
 
-    // Update payment record
-    await supabase
-      .from('payments')
-      .update({
-        status: body.status.toLowerCase(),
-        paid_at: body.paid_at || null,
-        payment_method: body.payment_method || null,
-        payment_channel: body.payment_channel || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('invoice_id', body.id);
-
     // Handle based on status
     if (body.status === 'PAID') {
       // Update booking status to confirmed/paid
       await supabase
         .from('bookings')
         .update({
-          status: 'paid',
+          status: 'paid' as const,
           paid_at: body.paid_at || new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
@@ -87,7 +86,7 @@ export async function POST(request: NextRequest) {
 
       logger.info('Booking payment confirmed', { 
         bookingId: booking.id,
-        code: booking.code,
+        bookingCode: booking.booking_code,
       });
 
       // Send WhatsApp confirmation (best effort)
@@ -103,7 +102,7 @@ export async function POST(request: NextRequest) {
             phone,
             `✅ *Pembayaran Berhasil!*\n\n` +
             `Halo ${booking.customer_name},\n\n` +
-            `Booking Anda dengan kode *${booking.code}* telah berhasil dibayar.\n\n` +
+            `Booking Anda dengan kode *${booking.booking_code}* telah berhasil dibayar.\n\n` +
             `Tim kami akan segera menghubungi Anda untuk konfirmasi detail perjalanan.\n\n` +
             `Terima kasih telah memilih Aero Travel! 🌴`
           );
@@ -116,51 +115,128 @@ export async function POST(request: NextRequest) {
       // Send email confirmation via Resend (best effort)
       try {
         if (booking.customer_email) {
-          const packageData = booking.packages as { name: string } | null;
           await sendBookingConfirmationEmail({
-            bookingCode: booking.code,
+            bookingCode: booking.booking_code,
             customerName: booking.customer_name,
             customerEmail: booking.customer_email,
             packageName: packageData?.name,
             tripDate: booking.trip_date,
             totalAmount: booking.total_amount,
           });
-          logger.info('Email confirmation sent', { bookingCode: booking.code });
+          logger.info('Email confirmation sent', { bookingCode: booking.booking_code });
         }
       } catch (emailError) {
         logger.error('Failed to send email confirmation', emailError);
         // Don't fail the webhook for email errors
       }
 
+      // Emit payment.received event (non-blocking)
+      try {
+        const userId = booking.customer_id || booking.mitra_id || '';
+        const { emitEvent } = await import('@/lib/events/event-bus');
+        await emitEvent({
+          type: 'payment.received',
+          app: 'customer',
+          userId,
+          data: {
+            bookingId: booking.id,
+            bookingCode: booking.booking_code,
+            amount: body.amount,
+            paymentMethod: 'xendit',
+            paymentChannel: body.payment_channel,
+          },
+        }).catch((e) => logger.warn('Failed to emit payment.received', { error: e instanceof Error ? e.message : String(e) }));
+      } catch (e) {
+        // Non-blocking
+      }
+
+      // Emit booking.status_changed event (non-blocking)
+      try {
+        const userId = booking.customer_id || booking.mitra_id || '';
+        const { emitEvent } = await import('@/lib/events/event-bus');
+        await emitEvent({
+          type: 'booking.status_changed',
+          app: 'customer',
+          userId,
+          data: {
+            bookingId: booking.id,
+            bookingCode: booking.booking_code,
+            oldStatus: 'pending_payment',
+            newStatus: 'paid',
+            packageId: booking.package_id,
+          },
+        }).catch((e) => logger.warn('Failed to emit booking.status_changed', { error: e instanceof Error ? e.message : String(e) }));
+      } catch (e) {
+        // Non-blocking
+      }
+
     } else if (body.status === 'EXPIRED') {
-      // Update booking status to expired
+      // Update booking status to cancelled (expired payments -> cancelled booking)
       await supabase
         .from('bookings')
         .update({
-          status: 'expired',
+          status: 'cancelled' as const,
+          cancellation_reason: 'Payment expired',
           updated_at: new Date().toISOString(),
         })
         .eq('id', booking.id);
 
       logger.info('Booking payment expired', { 
         bookingId: booking.id,
-        code: booking.code,
+        bookingCode: booking.booking_code,
       });
 
+      // Emit payment.failed event for expired payments (non-blocking)
+      try {
+        const userId = booking.customer_id || booking.mitra_id || '';
+        const { emitEvent } = await import('@/lib/events/event-bus');
+        await emitEvent({
+          type: 'payment.failed',
+          app: 'customer',
+          userId,
+          data: {
+            bookingId: booking.id,
+            bookingCode: booking.booking_code,
+            reason: 'expired',
+          },
+        }).catch((e) => logger.warn('Failed to emit payment.failed', { error: e instanceof Error ? e.message : String(e) }));
+      } catch (e) {
+        // Non-blocking
+      }
+
     } else if (body.status === 'FAILED') {
-      // Update booking status to failed
+      // Update booking status to cancelled (failed payments -> cancelled booking)
       await supabase
         .from('bookings')
         .update({
-          status: 'failed',
+          status: 'cancelled' as const,
+          cancellation_reason: 'Payment failed',
           updated_at: new Date().toISOString(),
         })
         .eq('id', booking.id);
 
       logger.info('Booking payment failed', { 
         bookingId: booking.id,
-        code: booking.code,
+        bookingCode: booking.booking_code,
       });
+
+      // Emit payment.failed event (non-blocking)
+      try {
+        const userId = booking.customer_id || booking.mitra_id || '';
+        const { emitEvent } = await import('@/lib/events/event-bus');
+        await emitEvent({
+          type: 'payment.failed',
+          app: 'customer',
+          userId,
+          data: {
+            bookingId: booking.id,
+            bookingCode: booking.booking_code,
+            reason: 'failed',
+          },
+        }).catch((e) => logger.warn('Failed to emit payment.failed', { error: e instanceof Error ? e.message : String(e) }));
+      } catch (e) {
+        // Non-blocking
+      }
     }
 
     return NextResponse.json({ received: true, status: body.status });
@@ -170,4 +246,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true, error: 'Processing error' });
   }
 }
-

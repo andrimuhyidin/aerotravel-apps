@@ -98,6 +98,67 @@
     --elevation-lg: var(--shadow-lg);
     --elevation-xl: var(--shadow-xl);
     --elevation-2xl: var(--shadow-2xl);
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* ================================= */
+    /* Future Minimalist 2026 Theme      */
+    /* ================================= */
+    
+    /* Enhanced Breathable Spacing */
+    --fm-spacing-card-mobile: 1.25rem;     /* 20px */
+    --fm-spacing-card-desktop: 2rem;       /* 32px */
+    --fm-spacing-section: 2.5rem;          /* 40px */
+    --fm-spacing-component: 1.5rem;        /* 24px */
+    
+    /* Larger Border Radius */
+    --fm-radius-card: 1rem;                /* 16px */
+    --fm-radius-button: 0.75rem;           /* 12px */
+    --fm-radius-modal: 1.5rem;             /* 24px */
+    --fm-radius-badge: 9999px;             /* Full */
+    
+    /* Glassmorphism */
+    --fm-glass-blur-sm: 8px;
+    --fm-glass-blur-md: 12px;
+    --fm-glass-blur-lg: 16px;
+    --fm-glass-bg: rgba(255, 255, 255, 0.7);
+    --fm-glass-bg-elevated: rgba(255, 255, 255, 0.85);
+    --fm-glass-bg-subtle: rgba(255, 255, 255, 0.5);
+    --fm-glass-border: rgba(255, 255, 255, 0.3);
+    --fm-glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+    
+    /* Soft Gradient Background */
+    --fm-gradient-bg: linear-gradient(
+      135deg,
+      hsl(210 40% 98%) 0%,
+      hsl(220 30% 96%) 50%,
+      hsl(200 40% 97%) 100%
+    );
+    
+    /* Accent Gradients */
+    --fm-gradient-primary: linear-gradient(135deg, hsl(220 90% 60%) 0%, hsl(260 85% 65%) 100%);
+    --fm-gradient-success: linear-gradient(135deg, hsl(150 70% 50%) 0%, hsl(170 65% 45%) 100%);
+    --fm-gradient-warning: linear-gradient(135deg, hsl(35 95% 55%) 0%, hsl(25 90% 50%) 100%);
+    --fm-gradient-danger: linear-gradient(135deg, hsl(0 80% 60%) 0%, hsl(350 75% 55%) 100%);
+    --fm-gradient-info: linear-gradient(135deg, hsl(200 90% 55%) 0%, hsl(220 85% 60%) 100%);
+    
+    /* Gradient Shadows */
+    --fm-shadow-primary: 0 4px 14px 0 rgba(99, 102, 241, 0.39);
+    --fm-shadow-success: 0 4px 14px 0 rgba(16, 185, 129, 0.39);
+    --fm-shadow-warning: 0 4px 14px 0 rgba(245, 158, 11, 0.39);
+    --fm-shadow-danger: 0 4px 14px 0 rgba(239, 68, 68, 0.39);
+    
+    /* Motion Timing */
+    --fm-motion-fast: 150ms;
+    --fm-motion-base: 300ms;
+    --fm-motion-slow: 500ms;
+    --fm-motion-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   
   /* Shimmer Animation untuk loading states */
@@ -141,6 +202,28 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Future Minimalist Dark Mode */
+    --fm-glass-bg: rgba(30, 30, 30, 0.7);
+    --fm-glass-bg-elevated: rgba(40, 40, 40, 0.85);
+    --fm-glass-bg-subtle: rgba(25, 25, 25, 0.5);
+    --fm-glass-border: rgba(255, 255, 255, 0.1);
+    --fm-glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+    
+    --fm-gradient-bg: linear-gradient(
+      135deg,
+      hsl(222 30% 8%) 0%,
+      hsl(220 25% 10%) 50%,
+      hsl(225 30% 9%) 100%
+    );
   }
 }
 
@@ -299,6 +382,129 @@
   .active-scale-sm:active {
     transform: scale(0.98);
   }
+  
+  /* ================================= */
+  /* Future Minimalist Utilities       */
+  /* ================================= */
+  
+  /* Glassmorphism Cards */
+  .glass-card {
+    background: var(--fm-glass-bg);
+    backdrop-filter: blur(var(--fm-glass-blur-md));
+    -webkit-backdrop-filter: blur(var(--fm-glass-blur-md));
+    border: 1px solid var(--fm-glass-border);
+    box-shadow: var(--fm-glass-shadow);
+  }
+  
+  .glass-card-elevated {
+    background: var(--fm-glass-bg-elevated);
+    backdrop-filter: blur(var(--fm-glass-blur-lg));
+    -webkit-backdrop-filter: blur(var(--fm-glass-blur-lg));
+    border: 1px solid var(--fm-glass-border);
+    box-shadow: var(--fm-glass-shadow), 0 8px 32px rgba(0, 0, 0, 0.08);
+  }
+  
+  .glass-card-subtle {
+    background: var(--fm-glass-bg-subtle);
+    backdrop-filter: blur(var(--fm-glass-blur-sm));
+    -webkit-backdrop-filter: blur(var(--fm-glass-blur-sm));
+    border: 1px solid var(--fm-glass-border);
+  }
+  
+  /* Solid Header - More visible, less transparency */
+  .glass-header {
+    background: hsl(var(--background));
+    border-bottom: 1px solid hsl(var(--border));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  
+  /* Solid Sidebar - More visible, less transparency */
+  .glass-sidebar {
+    background: hsl(var(--background));
+    border-right: 1px solid hsl(var(--border));
+  }
+  
+  /* Soft Gradient Background */
+  .fm-gradient-bg {
+    background: var(--fm-gradient-bg);
+  }
+  
+  /* Gradient Buttons */
+  .gradient-primary {
+    background: var(--fm-gradient-primary);
+    color: white;
+    box-shadow: var(--fm-shadow-primary);
+  }
+  
+  .gradient-primary:hover {
+    box-shadow: 0 6px 20px 0 rgba(99, 102, 241, 0.5);
+    transform: translateY(-1px);
+  }
+  
+  .gradient-success {
+    background: var(--fm-gradient-success);
+    color: white;
+    box-shadow: var(--fm-shadow-success);
+  }
+  
+  .gradient-success:hover {
+    box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.5);
+    transform: translateY(-1px);
+  }
+  
+  .gradient-warning {
+    background: var(--fm-gradient-warning);
+    color: white;
+    box-shadow: var(--fm-shadow-warning);
+  }
+  
+  .gradient-warning:hover {
+    box-shadow: 0 6px 20px 0 rgba(245, 158, 11, 0.5);
+    transform: translateY(-1px);
+  }
+  
+  .gradient-danger {
+    background: var(--fm-gradient-danger);
+    color: white;
+    box-shadow: var(--fm-shadow-danger);
+  }
+  
+  .gradient-danger:hover {
+    box-shadow: 0 6px 20px 0 rgba(239, 68, 68, 0.5);
+    transform: translateY(-1px);
+  }
+  
+  /* Breathable Spacing */
+  .fm-card-padding {
+    padding: var(--fm-spacing-card-mobile);
+  }
+  
+  @media (min-width: 768px) {
+    .fm-card-padding {
+      padding: var(--fm-spacing-card-desktop);
+    }
+  }
+  
+  .fm-section-gap {
+    gap: var(--fm-spacing-section);
+  }
+  
+  .fm-component-gap {
+    gap: var(--fm-spacing-component);
+  }
+  
+  /* Future Minimalist Border Radius */
+  .fm-rounded-card {
+    border-radius: var(--fm-radius-card);
+  }
+  
+  .fm-rounded-button {
+    border-radius: var(--fm-radius-button);
+  }
+  
+  .fm-rounded-modal {
+    border-radius: var(--fm-radius-modal);
+  }
 }
 
 @keyframes fadeIn {
@@ -376,6 +582,76 @@
   }
 }
 
+/* Future Minimalist Keyframes */
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Staggered Card Entrance Animation */
+.fm-card-enter {
+  animation: cardEnter var(--fm-motion-base) var(--fm-motion-spring) forwards;
+  opacity: 0;
+}
+
+.fm-card-enter:nth-child(1) { animation-delay: 0ms; }
+.fm-card-enter:nth-child(2) { animation-delay: 100ms; }
+.fm-card-enter:nth-child(3) { animation-delay: 200ms; }
+.fm-card-enter:nth-child(4) { animation-delay: 300ms; }
+.fm-card-enter:nth-child(5) { animation-delay: 400ms; }
+.fm-card-enter:nth-child(6) { animation-delay: 500ms; }
+.fm-card-enter:nth-child(7) { animation-delay: 600ms; }
+.fm-card-enter:nth-child(8) { animation-delay: 700ms; }
+
+/* Animated gradient background */
+.fm-animated-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 15s ease infinite;
+}
+
+/* Pulse for status indicators */
+.fm-pulse {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
 /* Print styles */
 @media print {
   .no-print {
@@ -412,5 +688,79 @@
   /* Allow some essential transitions for UX */
   .essential-transition {
     transition-duration: 150ms !important;
+  }
+  
+  /* Disable Future Minimalist animations */
+  .fm-card-enter,
+  .fm-animated-gradient,
+  .fm-pulse {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+  
+  /* Disable gradient button hover animations */
+  .gradient-primary:hover,
+  .gradient-success:hover,
+  .gradient-warning:hover,
+  .gradient-danger:hover {
+    transform: none !important;
+  }
+}
+
+/* Performance: GPU acceleration for animated elements */
+.glass-card,
+.glass-card-elevated,
+.glass-card-subtle,
+.glass-header,
+.glass-sidebar {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Optimize backdrop-filter performance */
+@supports (backdrop-filter: blur(12px)) {
+  .glass-card,
+  .glass-card-elevated,
+  .glass-card-subtle,
+  .glass-header,
+  .glass-sidebar {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Fallback for browsers without backdrop-filter support */
+@supports not (backdrop-filter: blur(12px)) {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.95);
+  }
+  
+  .glass-card-elevated {
+    background: rgba(255, 255, 255, 0.98);
+  }
+  
+  .glass-card-subtle {
+    background: rgba(255, 255, 255, 0.9);
+  }
+  
+  .dark .glass-card {
+    background: rgba(30, 30, 30, 0.95);
+  }
+  
+  .dark .glass-card-elevated {
+    background: rgba(40, 40, 40, 0.98);
+  }
+  
+  .dark .glass-card-subtle {
+    background: rgba(25, 25, 25, 0.9);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }

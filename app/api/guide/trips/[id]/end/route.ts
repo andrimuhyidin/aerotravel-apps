@@ -367,6 +367,45 @@ export const POST = withErrorHandler(async (
   await invalidateUserCache(user.id);
   await invalidateCache(`guide:leaderboard:*`); // Invalidate all leaderboards
 
+  // Emit trip.status_changed event (non-blocking)
+  try {
+    const { emitEvent } = await import('@/lib/events/event-bus');
+    
+    // Get trip info for event
+    const { data: tripInfo } = await client
+      .from('trips')
+      .select('trip_code, package_id, start_date')
+      .eq('id', tripId)
+      .single();
+
+    await emitEvent(
+      {
+        type: 'trip.status_changed',
+        app: 'guide',
+        userId: user.id,
+        data: {
+          tripId: tripId,
+          tripCode: tripInfo?.trip_code || tripId,
+          oldStatus: trip?.status || 'on_trip',
+          newStatus: 'completed',
+          packageId: tripInfo?.package_id,
+          startDate: tripInfo?.start_date,
+          forceComplete: forceComplete || false,
+        },
+      },
+      {
+        ipAddress: request.headers.get('x-forwarded-for') || undefined,
+        userAgent: request.headers.get('user-agent') || undefined,
+      }
+    ).catch((eventError) => {
+      logger.warn('Failed to emit trip.status_changed event', eventError);
+    });
+  } catch (eventError) {
+    logger.warn('Event emission error (non-critical)', {
+      error: eventError instanceof Error ? eventError.message : String(eventError),
+    });
+  }
+
   return NextResponse.json({
     success: true,
     message: 'Trip berhasil diselesaikan',

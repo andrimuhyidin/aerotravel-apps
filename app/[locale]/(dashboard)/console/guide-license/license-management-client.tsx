@@ -29,6 +29,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 
 type Application = {
@@ -83,7 +84,7 @@ export function LicenseManagementClient({ locale }: LicenseManagementClientProps
     page: number;
     limit: number;
   }>({
-    queryKey: ['admin-license-applications', statusFilter],
+    queryKey: queryKeys.admin.licenses.applications({ status: statusFilter }),
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== 'all') {
@@ -111,7 +112,7 @@ export function LicenseManagementClient({ locale }: LicenseManagementClientProps
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-license-applications'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.licenses.all() });
       toast.success('License berhasil diterbitkan');
       setShowIssueDialog(false);
       setSelectedApp(null);

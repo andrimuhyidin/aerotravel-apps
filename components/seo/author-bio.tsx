@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Author Bio Component
  * For E-E-A-T SEO signals
@@ -10,6 +12,7 @@ import { cn } from '@/lib/utils';
 import type { AuthorBioProps } from '@/lib/seo/types';
 import { generateAuthorSchema } from '@/lib/seo/structured-data';
 import { JsonLd } from '@/components/seo/json-ld';
+import { useSettings } from '@/hooks/use-settings';
 
 export function AuthorBio({
   name,
@@ -22,6 +25,11 @@ export function AuthorBio({
   verified = false,
   className,
 }: AuthorBioProps) {
+  const { settings } = useSettings();
+  const companyName = settings?.branding?.app_name || 'MyAeroTravel';
+  const companyUrl =
+    process.env.NEXT_PUBLIC_APP_URL || 'https://aerotravel.co.id';
+
   const authorSchema = generateAuthorSchema({
     name,
     jobTitle: role,
@@ -29,8 +37,8 @@ export function AuthorBio({
     image,
     sameAs: [linkedIn, twitter].filter(Boolean) as string[],
     worksFor: {
-      name: 'MyAeroTravel',
-      url: 'https://aerotravel.co.id',
+      name: companyName,
+      url: companyUrl,
     },
   });
 

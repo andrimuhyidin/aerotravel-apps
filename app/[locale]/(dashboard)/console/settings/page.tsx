@@ -1,15 +1,13 @@
 /**
- * Settings Page
+ * Settings Overview Page
  * Route: /[locale]/console/settings
- * Admin-only system settings management
+ * Admin-only system settings dashboard
  */
 
 import { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
-import { Container } from '@/components/layout/container';
-import { Section } from '@/components/layout/section';
 import { locales } from '@/i18n';
-import { SettingsClient } from './settings-client';
+import { SettingsOverviewClient } from './settings-overview-client';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -31,7 +29,7 @@ export async function generateMetadata({
   return {
     title: 'System Settings - Aero Travel Console',
     description:
-      'Kelola pengaturan sistem global seperti radius absensi, denda keterlambatan, dan lainnya',
+      'Kelola pengaturan sistem global seperti branding, operasional, financial, dan lainnya',
     alternates: {
       canonical: `${baseUrl}/${locale}/console/settings`,
     },
@@ -42,13 +40,5 @@ export default async function ConsoleSettingsPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  return (
-    <Section>
-      <Container>
-        <div className="py-8">
-          <SettingsClient />
-        </div>
-      </Container>
-    </Section>
-  );
+  return <SettingsOverviewClient locale={locale} />;
 }

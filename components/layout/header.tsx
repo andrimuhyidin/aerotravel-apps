@@ -1,5 +1,10 @@
+'use client';
+
 import { Bell, Plane, Search } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
+
+import { useSettings } from '@/hooks/use-settings';
 
 type HeaderProps = {
   locale: string;
@@ -7,15 +12,32 @@ type HeaderProps = {
 
 // Mobile native header - logo left, actions right
 export function Header({ locale }: HeaderProps) {
+  const { settings } = useSettings();
+
+  const appName = settings?.branding?.app_name || 'AeroTravel';
+  const logoUrl = settings?.branding?.logo_url || null;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="flex h-12 items-center justify-between px-4">
         {/* Logo - Left */}
         <Link href={`/${locale}`} className="flex items-center gap-1.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-            <Plane className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-base font-bold">AeroTravel</span>
+          {logoUrl ? (
+            <div className="relative h-7 w-7">
+              <Image
+                src={logoUrl}
+                alt={appName}
+                fill
+                className="object-contain"
+                sizes="28px"
+              />
+            </div>
+          ) : (
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
+              <Plane className="h-4 w-4 text-white" />
+            </div>
+          )}
+          <span className="text-base font-bold">{appName}</span>
         </Link>
 
         {/* Actions - Right */}

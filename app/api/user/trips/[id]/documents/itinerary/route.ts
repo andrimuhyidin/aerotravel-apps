@@ -1,6 +1,8 @@
 /**
  * User Trip Itinerary Document API
  * GET /api/user/trips/[id]/documents/itinerary - Generate itinerary PDF
+ * 
+ * Note: Customer bookings are linked via customer_email (not user_id)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -20,47 +22,37 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
 
   const supabase = await createClient();
 
-  // Get current user
+  // Get current user with email
   const { data: { user } } = await supabase.auth.getUser();
   
-  if (!user) {
+  if (!user || !user.email) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
     );
   }
 
-  // Get booking with full package details
+  // Get booking - verify ownership via customer_email OR created_by
   const { data: booking, error } = await supabase
     .from('bookings')
     .select(`
       id,
-      code,
+      booking_code,
       trip_date,
       adult_pax,
       child_pax,
       infant_pax,
       status,
       customer_name,
-      packages (
-        id,
-        name,
-        destination,
-        duration_days,
-        duration_nights,
-        itinerary,
-        inclusions,
-        exclusions,
-        meeting_points,
-        important_notes
-      )
+      package_id
     `)
     .eq('id', id)
-    .eq('user_id', user.id)
+    .or(`customer_email.eq.${user.email},created_by.eq.${user.id}`)
+    .is('deleted_at', null)
     .single();
 
   if (error || !booking) {
-    logger.warn('Booking not found for itinerary', { id, userId: user.id });
+    logger.warn('Booking not found for itinerary', { id, email: user.email });
     return NextResponse.json(
       { error: 'Booking not found' },
       { status: 404 }
@@ -75,45 +67,47 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
     );
   }
 
-  const pkg = booking.packages as {
+  // Fetch package separately
+  type PackageData = {
     name: string;
     destination: string;
     duration_days: number;
     duration_nights: number;
-    itinerary: { day: number; title: string; activities: string[] }[];
-    inclusions: string[];
-    exclusions: string[];
-    meeting_points: { name: string; address: string; time: string }[];
-    important_notes: string[];
-  } | null;
+    itinerary: { day: number; title: string; activities: string[] }[] | null;
+    inclusions: string[] | null;
+    exclusions: string[] | null;
+  };
+
+  let pkg: PackageData | null = null;
+
+  if (booking.package_id) {
+    const { data: packageData } = await supabase
+      .from('packages')
+      .select('name, destination, duration_days, duration_nights, itinerary, inclusions, exclusions')
+      .eq('id', booking.package_id)
+      .single();
+    pkg = packageData as PackageData;
+  }
 
   // Generate itinerary HTML
-  const itineraryHtml = (pkg?.itinerary || []).map((day) => `
+  const itineraryHtml = (pkg?.itinerary || []).map((day: { day: number; title: string; activities: string[] }) => `
     <div class="day-section">
       <div class="day-header">Hari ${day.day}: ${day.title}</div>
       <ul class="activities">
-        ${(day.activities || []).map((a) => `<li>${a}</li>`).join('')}
+        ${(day.activities || []).map((a: string) => `<li>${a}</li>`).join('')}
       </ul>
     </div>
   `).join('');
 
-  const inclusionsHtml = (pkg?.inclusions || []).map((i) => `<li>✓ ${i}</li>`).join('');
-  const exclusionsHtml = (pkg?.exclusions || []).map((e) => `<li>✗ ${e}</li>`).join('');
-  
-  const meetingPointsHtml = (pkg?.meeting_points || []).map((mp) => `
-    <div class="meeting-point">
-      <strong>${mp.name}</strong><br>
-      <span class="address">${mp.address}</span><br>
-      <span class="time">⏰ ${mp.time}</span>
-    </div>
-  `).join('');
+  const inclusionsHtml = (pkg?.inclusions || []).map((i: string) => `<li>✓ ${i}</li>`).join('');
+  const exclusionsHtml = (pkg?.exclusions || []).map((e: string) => `<li>✗ ${e}</li>`).join('');
 
   const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Itinerary ${booking.code}</title>
+      <title>Itinerary ${booking.booking_code}</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 40px; max-width: 700px; margin: 0 auto; }
         .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2563eb; padding-bottom: 20px; }
@@ -146,17 +140,11 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
         <div class="title">${pkg?.name || 'Paket Wisata'}</div>
         <div class="meta">
           ${pkg?.destination || '-'} | ${pkg?.duration_days || 0}D${pkg?.duration_nights || 0}N<br>
-          Booking: ${booking.code} | Tanggal: ${booking.trip_date}<br>
+          Booking: ${booking.booking_code} | Tanggal: ${booking.trip_date}<br>
           Peserta: ${booking.customer_name} + ${(booking.adult_pax || 0) + (booking.child_pax || 0) + (booking.infant_pax || 0) - 1} orang
         </div>
       </div>
       
-      ${meetingPointsHtml ? `
-        <div class="section">
-          <div class="section-title">📍 Titik Berkumpul</div>
-          ${meetingPointsHtml}
-        </div>
-      ` : ''}
       
       <div class="section">
         <div class="section-title">📅 Jadwal Perjalanan</div>
@@ -199,8 +187,7 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
   return new NextResponse(htmlContent, {
     headers: {
       'Content-Type': 'text/html',
-      'Content-Disposition': `attachment; filename="itinerary-${booking.code}.html"`,
+      'Content-Disposition': `attachment; filename="itinerary-${booking.booking_code}.html"`,
     },
   });
 });
-

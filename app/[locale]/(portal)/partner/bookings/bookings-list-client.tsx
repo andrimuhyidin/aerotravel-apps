@@ -1,18 +1,12 @@
 /**
  * Partner Bookings List Client Component
  * REDESIGNED - Grouped by status, Clean cards, Better UX
+ * Uses TanStack Query for data fetching and caching
  */
 
 'use client';
 
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { formatCurrency } from '@/lib/partner/package-utils';
-import { logger } from '@/lib/utils/logger';
-import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
 import {
   Calendar,
   Search,
@@ -23,8 +17,17 @@ import {
   XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
+
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatCurrency } from '@/lib/partner/package-utils';
+import queryKeys from '@/lib/queries/query-keys';
+import { cn } from '@/lib/utils';
 
 type Booking = {
   id: string;
@@ -58,15 +61,16 @@ type BookingsResponse = {
 };
 
 export function BookingsListClient({ locale }: { locale: string }) {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Memoize loadBookings to prevent recreating on every render
-  const loadBookings = useCallback(async () => {
-    setLoading(true);
-    try {
+
+  // Use TanStack Query for data fetching and caching
+  const { data, isLoading, error } = useQuery<BookingsResponse>({
+    queryKey: queryKeys.partner.bookings.list({
+      status: activeTab !== 'all' ? activeTab : undefined,
+      search: searchQuery || undefined,
+    }),
+    queryFn: async () => {
       const params = new URLSearchParams({
         ...(activeTab !== 'all' && { status: activeTab }),
         ...(searchQuery && { search: searchQuery }),
@@ -74,20 +78,18 @@ export function BookingsListClient({ locale }: { locale: string }) {
 
       const res = await fetch(`/api/partner/bookings?${params}`);
       if (!res.ok) throw new Error('Failed to fetch bookings');
+      return res.json();
+    },
+    staleTime: 30_000, // 30 seconds
+  });
 
-      const data: BookingsResponse = await res.json();
-      setBookings(data.bookings);
-    } catch (error) {
-      logger.error('Failed to load bookings', error);
-      toast.error('Gagal memuat data booking');
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab, searchQuery]);
+  // Show error toast if query fails
+  if (error) {
+    toast.error('Gagal memuat data booking');
+  }
 
-  useEffect(() => {
-    loadBookings();
-  }, [loadBookings]);
+  const bookings = data?.bookings ?? [];
+  const loading = isLoading;
 
   const statusTabs = [
     { id: 'all', label: 'Semua' },
@@ -174,7 +176,7 @@ export function BookingsListClient({ locale }: { locale: string }) {
 
 // Booking Card Component - ELEGANT & COMPACT VERSION
 function BookingCard({ booking, locale }: { booking: Booking; locale: string }) {
-  const totalPax = booking.adult_pax + booking.child_pax + booking.infant_pax;
+  const _totalPax = booking.adult_pax + booking.child_pax + booking.infant_pax;
   const commission = booking.nta_total
     ? booking.total_amount - booking.nta_total
     : 0;

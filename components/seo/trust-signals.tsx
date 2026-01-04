@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Trust Signals Component
  * For E-E-A-T and credibility indicators
@@ -9,13 +11,29 @@ import { Award, Users, Star, Calendar, Shield, CheckCircle } from 'lucide-react'
 import { cn } from '@/lib/utils';
 import type { TrustSignalsProps } from '@/lib/seo/types';
 import { STATS, CERTIFICATIONS } from '@/lib/seo/config';
+import { useSettings } from '@/hooks/use-settings';
 
 export function TrustSignals({ stats, certifications, className }: TrustSignalsProps) {
+  const { settings } = useSettings();
+  const statsFromSettings = settings?.stats;
+
   const displayStats = stats || [
-    { value: STATS.totalCustomers, label: 'Pelanggan' },
-    { value: STATS.totalTrips, label: 'Trip' },
-    { value: STATS.yearsInBusiness, label: 'Tahun' },
-    { value: STATS.satisfactionRate, label: 'Kepuasan' },
+    {
+      value: statsFromSettings?.total_customers || STATS.totalCustomers,
+      label: 'Pelanggan',
+    },
+    {
+      value: statsFromSettings?.total_trips || STATS.totalTrips,
+      label: 'Trip',
+    },
+    {
+      value: statsFromSettings?.years_in_business || STATS.yearsInBusiness,
+      label: 'Tahun',
+    },
+    {
+      value: statsFromSettings?.satisfaction_rate || STATS.satisfactionRate,
+      label: 'Kepuasan',
+    },
   ];
 
   const displayCertifications = certifications || CERTIFICATIONS;
@@ -71,6 +89,16 @@ export function TrustSignals({ stats, certifications, className }: TrustSignalsP
  * Trust Bar - compact horizontal trust indicators
  */
 export function TrustBar({ className }: { className?: string }) {
+  const { settings } = useSettings();
+  const statsFromSettings = settings?.stats;
+
+  const totalCustomers =
+    statsFromSettings?.total_customers || STATS.totalCustomers;
+  const averageRating =
+    statsFromSettings?.average_rating || String(STATS.averageRating);
+  const yearsInBusiness =
+    statsFromSettings?.years_in_business || STATS.yearsInBusiness;
+
   return (
     <div
       className={cn(
@@ -80,15 +108,15 @@ export function TrustBar({ className }: { className?: string }) {
     >
       <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
         <Users className="h-4 w-4 text-teal-600" />
-        <span>{STATS.totalCustomers} Pelanggan</span>
+        <span>{totalCustomers} Pelanggan</span>
       </div>
       <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
         <Star className="h-4 w-4 text-yellow-500" />
-        <span>{STATS.averageRating}/5 Rating</span>
+        <span>{averageRating}/5 Rating</span>
       </div>
       <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
         <Calendar className="h-4 w-4 text-teal-600" />
-        <span>{STATS.yearsInBusiness} Tahun Pengalaman</span>
+        <span>{yearsInBusiness} Tahun Pengalaman</span>
       </div>
       <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
         <Award className="h-4 w-4 text-teal-600" />

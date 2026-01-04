@@ -1,6 +1,6 @@
 /**
  * Trip Detail Client Component
- * Displays trip details with document downloads
+ * Displays trip details with document downloads and realtime status updates
  */
 
 'use client';
@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useBookingRealtime } from '@/hooks/use-booking-realtime';
 import { logger } from '@/lib/utils/logger';
 
 import { LiveTrackingSection } from './live-tracking-section';
@@ -78,9 +79,22 @@ export function TripDetailClient({ locale, tripId }: TripDetailClientProps) {
   const [downloadingItinerary, setDownloadingItinerary] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
 
+  // Realtime booking status updates
+  const { onStatusChange, isSubscribed } = useBookingRealtime(tripId);
+
   useEffect(() => {
     fetchTripDetail();
   }, [tripId]);
+
+  // Handle realtime status changes
+  useEffect(() => {
+    onStatusChange((newStatus) => {
+      if (trip && trip.status !== newStatus) {
+        setTrip((prev) => prev ? { ...prev, status: newStatus } : null);
+        toast.info(`Status booking diperbarui: ${newStatus}`);
+      }
+    });
+  }, [onStatusChange, trip]);
 
   const fetchTripDetail = async () => {
     try {

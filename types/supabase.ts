@@ -90,6 +90,99 @@ export type Database = {
         }
         Relationships: []
       }
+      about_awards: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          display_order: number | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          display_order?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          display_order?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      about_stats: {
+        Row: {
+          id: string
+          label: string
+          value: string
+          display_order: number | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          label: string
+          value: string
+          display_order?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          label?: string
+          value?: string
+          display_order?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      about_values: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          icon_name: string | null
+          display_order: number | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          icon_name?: string | null
+          display_order?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          icon_name?: string | null
+          display_order?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       admin_push_subscriptions: {
         Row: {
           id: string
@@ -123,6 +216,39 @@ export type Database = {
           active?: boolean | null
           created_at?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      advisory_acknowledgments: {
+        Row: {
+          id: string
+          advisory_id: string
+          trip_id: string | null
+          acknowledged_by: string
+          acknowledged_at: string
+          acknowledgment_notes: string | null
+          mitigation_actions: string[] | null
+          proceed_with_trip: boolean | null
+        }
+        Insert: {
+          id?: string
+          advisory_id: string
+          trip_id?: string | null
+          acknowledged_by: string
+          acknowledged_at?: string
+          acknowledgment_notes?: string | null
+          mitigation_actions?: string[] | null
+          proceed_with_trip?: boolean | null
+        }
+        Update: {
+          id?: string
+          advisory_id?: string
+          trip_id?: string | null
+          acknowledged_by?: string
+          acknowledged_at?: string
+          acknowledgment_notes?: string | null
+          mitigation_actions?: string[] | null
+          proceed_with_trip?: boolean | null
         }
         Relationships: []
       }
@@ -546,6 +672,39 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_modifications: {
+        Row: {
+          id: string
+          booking_id: string
+          modified_by: string
+          modification_type: string
+          old_value: Json | null
+          new_value: Json | null
+          reason: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          booking_id: string
+          modified_by: string
+          modification_type: string
+          old_value?: Json | null
+          new_value?: Json | null
+          reason?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          booking_id?: string
+          modified_by?: string
+          modification_type?: string
+          old_value?: Json | null
+          new_value?: Json | null
+          reason?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       booking_passengers: {
         Row: {
           id: string
@@ -831,6 +990,99 @@ export type Database = {
         }
         Relationships: []
       }
+      broadcast_delivery_logs: {
+        Row: {
+          id: string
+          broadcast_id: string
+          recipient_id: string
+          delivery_method: string
+          status: string | null
+          sent_at: string | null
+          delivered_at: string | null
+          opened_at: string | null
+          error_message: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          broadcast_id: string
+          recipient_id: string
+          delivery_method: string
+          status?: string | null
+          sent_at?: string | null
+          delivered_at?: string | null
+          opened_at?: string | null
+          error_message?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          broadcast_id?: string
+          recipient_id?: string
+          delivery_method?: string
+          status?: string | null
+          sent_at?: string | null
+          delivered_at?: string | null
+          opened_at?: string | null
+          error_message?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      broadcast_notifications: {
+        Row: {
+          id: string
+          title: string
+          message: string
+          sent_by: string
+          target_roles: string[] | null
+          target_branches: string[] | null
+          delivery_method: string[] | null
+          scheduled_for: string | null
+          sent_at: string | null
+          recipient_count: number | null
+          success_count: number | null
+          failed_count: number | null
+          status: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          message: string
+          sent_by: string
+          target_roles?: string[] | null
+          target_branches?: string[] | null
+          delivery_method?: string[] | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          recipient_count?: number | null
+          success_count?: number | null
+          failed_count?: number | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          message?: string
+          sent_by?: string
+          target_roles?: string[] | null
+          target_branches?: string[] | null
+          delivery_method?: string[] | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          recipient_count?: number | null
+          success_count?: number | null
+          failed_count?: number | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       broadcast_reads: {
         Row: {
           id: string
@@ -849,6 +1101,45 @@ export type Database = {
           broadcast_id?: string
           guide_id?: string
           read_at?: string | null
+        }
+        Relationships: []
+      }
+      bulk_action_logs: {
+        Row: {
+          id: string
+          action_type: string
+          target_table: string
+          affected_ids: string[]
+          affected_count: number
+          successful_count: number
+          failed_count: number
+          payload: Json | null
+          performed_by: string
+          performed_at: string | null
+        }
+        Insert: {
+          id?: string
+          action_type: string
+          target_table: string
+          affected_ids: string[]
+          affected_count: number
+          successful_count: number
+          failed_count: number
+          payload?: Json | null
+          performed_by: string
+          performed_at?: string | null
+        }
+        Update: {
+          id?: string
+          action_type?: string
+          target_table?: string
+          affected_ids?: string[]
+          affected_count?: number
+          successful_count?: number
+          failed_count?: number
+          payload?: Json | null
+          performed_by?: string
+          performed_at?: string | null
         }
         Relationships: []
       }
@@ -912,6 +1203,414 @@ export type Database = {
           updated_by?: string | null
           created_at?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      campaign_recipients: {
+        Row: {
+          id: string
+          campaign_id: string
+          customer_id: string
+          email: string
+          sent_at: string | null
+          delivered_at: string | null
+          opened_at: string | null
+          clicked_at: string | null
+          bounced_at: string | null
+          bounce_reason: string | null
+          unsubscribed_at: string | null
+          open_count: number | null
+          click_count: number | null
+          clicked_links: Json | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          campaign_id: string
+          customer_id: string
+          email: string
+          sent_at?: string | null
+          delivered_at?: string | null
+          opened_at?: string | null
+          clicked_at?: string | null
+          bounced_at?: string | null
+          bounce_reason?: string | null
+          unsubscribed_at?: string | null
+          open_count?: number | null
+          click_count?: number | null
+          clicked_links?: Json | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          campaign_id?: string
+          customer_id?: string
+          email?: string
+          sent_at?: string | null
+          delivered_at?: string | null
+          opened_at?: string | null
+          clicked_at?: string | null
+          bounced_at?: string | null
+          bounce_reason?: string | null
+          unsubscribed_at?: string | null
+          open_count?: number | null
+          click_count?: number | null
+          clicked_links?: Json | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      cancellation_policies: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          days_before_trip: number
+          refund_percentage: number
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          days_before_trip: number
+          refund_percentage: number
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          days_before_trip?: number
+          refund_percentage?: number
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      chse_certificates: {
+        Row: {
+          id: string
+          branch_id: string
+          certificate_number: string | null
+          certificate_type: string
+          issuing_authority: string | null
+          issued_date: string
+          valid_from: string
+          valid_until: string
+          certificate_url: string | null
+          supporting_documents: string[] | null
+          status: string | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          certificate_number?: string | null
+          certificate_type: string
+          issuing_authority?: string | null
+          issued_date: string
+          valid_from: string
+          valid_until: string
+          certificate_url?: string | null
+          supporting_documents?: string[] | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          certificate_number?: string | null
+          certificate_type?: string
+          issuing_authority?: string | null
+          issued_date?: string
+          valid_from?: string
+          valid_until?: string
+          certificate_url?: string | null
+          supporting_documents?: string[] | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      chse_checklist_templates: {
+        Row: {
+          id: string
+          branch_id: string
+          name: string
+          description: string | null
+          version: string | null
+          checklist_items: Json
+          is_active: boolean | null
+          is_default: boolean | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          name: string
+          description?: string | null
+          version?: string | null
+          checklist_items?: Json
+          is_active?: boolean | null
+          is_default?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          name?: string
+          description?: string | null
+          version?: string | null
+          checklist_items?: Json
+          is_active?: boolean | null
+          is_default?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      chse_daily_logs: {
+        Row: {
+          id: string
+          branch_id: string
+          trip_id: string | null
+          log_date: string
+          clean_score: number | null
+          clean_items: Json | null
+          clean_notes: string | null
+          clean_photos: string[] | null
+          health_score: number | null
+          health_items: Json | null
+          health_notes: string | null
+          temperature_logs: Json | null
+          safety_score: number | null
+          safety_items: Json | null
+          safety_notes: string | null
+          environment_score: number | null
+          environment_items: Json | null
+          environment_notes: string | null
+          overall_score: number | null
+          logged_by: string
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          trip_id?: string | null
+          log_date?: string
+          clean_score?: number | null
+          clean_items?: Json | null
+          clean_notes?: string | null
+          clean_photos?: string[] | null
+          health_score?: number | null
+          health_items?: Json | null
+          health_notes?: string | null
+          temperature_logs?: Json | null
+          safety_score?: number | null
+          safety_items?: Json | null
+          safety_notes?: string | null
+          environment_score?: number | null
+          environment_items?: Json | null
+          environment_notes?: string | null
+          overall_score?: number | null
+          logged_by: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          trip_id?: string | null
+          log_date?: string
+          clean_score?: number | null
+          clean_items?: Json | null
+          clean_notes?: string | null
+          clean_photos?: string[] | null
+          health_score?: number | null
+          health_items?: Json | null
+          health_notes?: string | null
+          temperature_logs?: Json | null
+          safety_score?: number | null
+          safety_items?: Json | null
+          safety_notes?: string | null
+          environment_score?: number | null
+          environment_items?: Json | null
+          environment_notes?: string | null
+          overall_score?: number | null
+          logged_by?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      community_contributions: {
+        Row: {
+          id: string
+          branch_id: string
+          contribution_type: string
+          title: string
+          description: string | null
+          beneficiary_name: string
+          beneficiary_type: string | null
+          beneficiary_location: string | null
+          monetary_value: number | null
+          in_kind_value: number | null
+          total_value: number | null
+          currency: string | null
+          volunteer_hours: number | null
+          volunteers_count: number | null
+          contribution_date: string
+          evidence_urls: string[] | null
+          receipt_url: string | null
+          estimated_beneficiaries: number | null
+          impact_description: string | null
+          status: string | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          contribution_type: string
+          title: string
+          description?: string | null
+          beneficiary_name: string
+          beneficiary_type?: string | null
+          beneficiary_location?: string | null
+          monetary_value?: number | null
+          in_kind_value?: number | null
+          total_value?: number | null
+          currency?: string | null
+          volunteer_hours?: number | null
+          volunteers_count?: number | null
+          contribution_date: string
+          evidence_urls?: string[] | null
+          receipt_url?: string | null
+          estimated_beneficiaries?: number | null
+          impact_description?: string | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          contribution_type?: string
+          title?: string
+          description?: string | null
+          beneficiary_name?: string
+          beneficiary_type?: string | null
+          beneficiary_location?: string | null
+          monetary_value?: number | null
+          in_kind_value?: number | null
+          total_value?: number | null
+          currency?: string | null
+          volunteer_hours?: number | null
+          volunteers_count?: number | null
+          contribution_date?: string
+          evidence_urls?: string[] | null
+          receipt_url?: string | null
+          estimated_beneficiaries?: number | null
+          impact_description?: string | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      community_feedback: {
+        Row: {
+          id: string
+          branch_id: string
+          feedback_source: string
+          source_name: string | null
+          source_contact: string | null
+          category: string
+          title: string
+          description: string
+          sentiment: string | null
+          severity: string | null
+          response_required: boolean | null
+          response_text: string | null
+          responded_at: string | null
+          responded_by: string | null
+          status: string | null
+          resolution_notes: string | null
+          follow_up_date: string | null
+          follow_up_notes: string | null
+          received_at: string | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          feedback_source: string
+          source_name?: string | null
+          source_contact?: string | null
+          category: string
+          title: string
+          description: string
+          sentiment?: string | null
+          severity?: string | null
+          response_required?: boolean | null
+          response_text?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string | null
+          resolution_notes?: string | null
+          follow_up_date?: string | null
+          follow_up_notes?: string | null
+          received_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          feedback_source?: string
+          source_name?: string | null
+          source_contact?: string | null
+          category?: string
+          title?: string
+          description?: string
+          sentiment?: string | null
+          severity?: string | null
+          response_required?: boolean | null
+          response_text?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string | null
+          resolution_notes?: string | null
+          follow_up_date?: string | null
+          follow_up_notes?: string | null
+          received_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
         }
         Relationships: []
       }
@@ -1020,6 +1719,339 @@ export type Database = {
           push_sent?: boolean | null
           push_sent_at?: string | null
           created_at?: string | null
+        }
+        Relationships: []
+      }
+      compliance_audit_logs: {
+        Row: {
+          id: string
+          branch_id: string
+          audit_type: string
+          audit_name: string
+          audit_scope: string | null
+          auditor_name: string
+          auditor_type: string
+          auditor_organization: string | null
+          auditor_credentials: string | null
+          audit_date: string
+          audit_start_time: string | null
+          audit_end_time: string | null
+          findings: Json | null
+          compliance_score: number | null
+          max_score: number | null
+          scoring_methodology: string | null
+          score_breakdown: Json | null
+          non_conformities_major: number | null
+          non_conformities_minor: number | null
+          observations: number | null
+          non_conformities: string[] | null
+          corrective_actions_required: string[] | null
+          corrective_action_deadline: string | null
+          audit_result: string | null
+          certification_recommendation: boolean | null
+          next_audit_date: string | null
+          follow_up_required: boolean | null
+          follow_up_date: string | null
+          follow_up_notes: string | null
+          evidence_urls: string[] | null
+          report_url: string | null
+          signed_by: string | null
+          signature_date: string | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          audit_type: string
+          audit_name: string
+          audit_scope?: string | null
+          auditor_name: string
+          auditor_type: string
+          auditor_organization?: string | null
+          auditor_credentials?: string | null
+          audit_date: string
+          audit_start_time?: string | null
+          audit_end_time?: string | null
+          findings?: Json | null
+          compliance_score?: number | null
+          max_score?: number | null
+          scoring_methodology?: string | null
+          score_breakdown?: Json | null
+          non_conformities_major?: number | null
+          non_conformities_minor?: number | null
+          observations?: number | null
+          non_conformities?: string[] | null
+          corrective_actions_required?: string[] | null
+          corrective_action_deadline?: string | null
+          audit_result?: string | null
+          certification_recommendation?: boolean | null
+          next_audit_date?: string | null
+          follow_up_required?: boolean | null
+          follow_up_date?: string | null
+          follow_up_notes?: string | null
+          evidence_urls?: string[] | null
+          report_url?: string | null
+          signed_by?: string | null
+          signature_date?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          audit_type?: string
+          audit_name?: string
+          audit_scope?: string | null
+          auditor_name?: string
+          auditor_type?: string
+          auditor_organization?: string | null
+          auditor_credentials?: string | null
+          audit_date?: string
+          audit_start_time?: string | null
+          audit_end_time?: string | null
+          findings?: Json | null
+          compliance_score?: number | null
+          max_score?: number | null
+          scoring_methodology?: string | null
+          score_breakdown?: Json | null
+          non_conformities_major?: number | null
+          non_conformities_minor?: number | null
+          observations?: number | null
+          non_conformities?: string[] | null
+          corrective_actions_required?: string[] | null
+          corrective_action_deadline?: string | null
+          audit_result?: string | null
+          certification_recommendation?: boolean | null
+          next_audit_date?: string | null
+          follow_up_required?: boolean | null
+          follow_up_date?: string | null
+          follow_up_notes?: string | null
+          evidence_urls?: string[] | null
+          report_url?: string | null
+          signed_by?: string | null
+          signature_date?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      compliance_checklist_assessments: {
+        Row: {
+          id: string
+          checklist_id: string
+          audit_id: string | null
+          branch_id: string
+          assessment_date: string
+          assessor_id: string
+          responses: Json
+          total_score: number | null
+          max_possible_score: number | null
+          compliance_percentage: number | null
+          compliant_count: number | null
+          non_compliant_count: number | null
+          partial_count: number | null
+          not_applicable_count: number | null
+          overall_notes: string | null
+          recommendations: string[] | null
+          status: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          checklist_id: string
+          audit_id?: string | null
+          branch_id: string
+          assessment_date: string
+          assessor_id: string
+          responses?: Json
+          total_score?: number | null
+          max_possible_score?: number | null
+          compliance_percentage?: number | null
+          compliant_count?: number | null
+          non_compliant_count?: number | null
+          partial_count?: number | null
+          not_applicable_count?: number | null
+          overall_notes?: string | null
+          recommendations?: string[] | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          checklist_id?: string
+          audit_id?: string | null
+          branch_id?: string
+          assessment_date?: string
+          assessor_id?: string
+          responses?: Json
+          total_score?: number | null
+          max_possible_score?: number | null
+          compliance_percentage?: number | null
+          compliant_count?: number | null
+          non_compliant_count?: number | null
+          partial_count?: number | null
+          not_applicable_count?: number | null
+          overall_notes?: string | null
+          recommendations?: string[] | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      compliance_checklists: {
+        Row: {
+          id: string
+          checklist_name: string
+          checklist_code: string | null
+          standard_type: string
+          version: string | null
+          items: Json
+          total_items: number | null
+          total_weight: number | null
+          is_active: boolean | null
+          effective_date: string | null
+          expiry_date: string | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          checklist_name: string
+          checklist_code?: string | null
+          standard_type: string
+          version?: string | null
+          items?: Json
+          total_items?: number | null
+          total_weight?: number | null
+          is_active?: boolean | null
+          effective_date?: string | null
+          expiry_date?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          checklist_name?: string
+          checklist_code?: string | null
+          standard_type?: string
+          version?: string | null
+          items?: Json
+          total_items?: number | null
+          total_weight?: number | null
+          is_active?: boolean | null
+          effective_date?: string | null
+          expiry_date?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      compliance_status_tracker: {
+        Row: {
+          id: string
+          branch_id: string
+          standard_type: string
+          current_status: string | null
+          compliance_level: number | null
+          last_assessment_date: string | null
+          last_assessment_id: string | null
+          last_score: number | null
+          is_certified: boolean | null
+          certification_id: string | null
+          certification_valid_until: string | null
+          open_non_conformities: number | null
+          overdue_actions: number | null
+          next_assessment_date: string | null
+          next_certification_date: string | null
+          last_updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          standard_type: string
+          current_status?: string | null
+          compliance_level?: number | null
+          last_assessment_date?: string | null
+          last_assessment_id?: string | null
+          last_score?: number | null
+          is_certified?: boolean | null
+          certification_id?: string | null
+          certification_valid_until?: string | null
+          open_non_conformities?: number | null
+          overdue_actions?: number | null
+          next_assessment_date?: string | null
+          next_certification_date?: string | null
+          last_updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          standard_type?: string
+          current_status?: string | null
+          compliance_level?: number | null
+          last_assessment_date?: string | null
+          last_assessment_id?: string | null
+          last_score?: number | null
+          is_certified?: boolean | null
+          certification_id?: string | null
+          certification_valid_until?: string | null
+          open_non_conformities?: number | null
+          overdue_actions?: number | null
+          next_assessment_date?: string | null
+          next_certification_date?: string | null
+          last_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      consent_purposes: {
+        Row: {
+          id: string
+          purpose_code: string
+          purpose_name: string
+          description: string | null
+          is_mandatory: boolean | null
+          category: string
+          legal_basis: string | null
+          retention_period: number | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          purpose_code: string
+          purpose_name: string
+          description?: string | null
+          is_mandatory?: boolean | null
+          category: string
+          legal_basis?: string | null
+          retention_period?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          purpose_code?: string
+          purpose_name?: string
+          description?: string | null
+          is_mandatory?: boolean | null
+          category?: string
+          legal_basis?: string | null
+          retention_period?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1449,6 +2481,276 @@ export type Database = {
         }
         Relationships: []
       }
+      crisis_communication_plans: {
+        Row: {
+          id: string
+          branch_id: string
+          plan_name: string
+          plan_code: string | null
+          description: string | null
+          version: string | null
+          crisis_type: Database["public"]["Enums"]["crisis_type"]
+          escalation_matrix: Json | null
+          communication_templates: Json | null
+          response_procedures: string[] | null
+          emergency_contacts: Json | null
+          required_resources: Json | null
+          training_requirements: string[] | null
+          is_active: boolean | null
+          last_reviewed_at: string | null
+          reviewed_by: string | null
+          next_review_date: string | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          plan_name: string
+          plan_code?: string | null
+          description?: string | null
+          version?: string | null
+          crisis_type: Database["public"]["Enums"]["crisis_type"]
+          escalation_matrix?: Json | null
+          communication_templates?: Json | null
+          response_procedures?: string[] | null
+          emergency_contacts?: Json | null
+          required_resources?: Json | null
+          training_requirements?: string[] | null
+          is_active?: boolean | null
+          last_reviewed_at?: string | null
+          reviewed_by?: string | null
+          next_review_date?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          plan_name?: string
+          plan_code?: string | null
+          description?: string | null
+          version?: string | null
+          crisis_type?: Database["public"]["Enums"]["crisis_type"]
+          escalation_matrix?: Json | null
+          communication_templates?: Json | null
+          response_procedures?: string[] | null
+          emergency_contacts?: Json | null
+          required_resources?: Json | null
+          training_requirements?: string[] | null
+          is_active?: boolean | null
+          last_reviewed_at?: string | null
+          reviewed_by?: string | null
+          next_review_date?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      crisis_drill_records: {
+        Row: {
+          id: string
+          branch_id: string
+          plan_id: string | null
+          drill_name: string
+          drill_type: string
+          scenario_description: string | null
+          scheduled_at: string
+          started_at: string | null
+          completed_at: string | null
+          duration_minutes: number | null
+          participants: Json | null
+          objectives_met: Json | null
+          gaps_identified: string[] | null
+          recommendations: string[] | null
+          overall_score: number | null
+          status: string | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          plan_id?: string | null
+          drill_name: string
+          drill_type: string
+          scenario_description?: string | null
+          scheduled_at: string
+          started_at?: string | null
+          completed_at?: string | null
+          duration_minutes?: number | null
+          participants?: Json | null
+          objectives_met?: Json | null
+          gaps_identified?: string[] | null
+          recommendations?: string[] | null
+          overall_score?: number | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          plan_id?: string | null
+          drill_name?: string
+          drill_type?: string
+          scenario_description?: string | null
+          scheduled_at?: string
+          started_at?: string | null
+          completed_at?: string | null
+          duration_minutes?: number | null
+          participants?: Json | null
+          objectives_met?: Json | null
+          gaps_identified?: string[] | null
+          recommendations?: string[] | null
+          overall_score?: number | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      crisis_event_updates: {
+        Row: {
+          id: string
+          event_id: string
+          update_type: string
+          previous_level: Database["public"]["Enums"]["escalation_level"] | null
+          new_level: Database["public"]["Enums"]["escalation_level"] | null
+          title: string
+          description: string | null
+          actions_taken: string[] | null
+          attachment_urls: string[] | null
+          updated_by: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          update_type: string
+          previous_level?: Database["public"]["Enums"]["escalation_level"] | null
+          new_level?: Database["public"]["Enums"]["escalation_level"] | null
+          title: string
+          description?: string | null
+          actions_taken?: string[] | null
+          attachment_urls?: string[] | null
+          updated_by: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          update_type?: string
+          previous_level?: Database["public"]["Enums"]["escalation_level"] | null
+          new_level?: Database["public"]["Enums"]["escalation_level"] | null
+          title?: string
+          description?: string | null
+          actions_taken?: string[] | null
+          attachment_urls?: string[] | null
+          updated_by?: string
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      crisis_events: {
+        Row: {
+          id: string
+          branch_id: string
+          trip_id: string | null
+          plan_id: string | null
+          event_code: string | null
+          crisis_type: Database["public"]["Enums"]["crisis_type"]
+          title: string
+          description: string | null
+          location_name: string | null
+          latitude: number | null
+          longitude: number | null
+          current_level: Database["public"]["Enums"]["escalation_level"]
+          status: string | null
+          occurred_at: string
+          detected_at: string
+          contained_at: string | null
+          resolved_at: string | null
+          people_affected: number | null
+          injuries_count: number | null
+          fatalities_count: number | null
+          communications_log: Json | null
+          resolution_summary: string | null
+          lessons_learned: string | null
+          follow_up_actions: string[] | null
+          reported_by: string
+          incident_commander: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          trip_id?: string | null
+          plan_id?: string | null
+          event_code?: string | null
+          crisis_type: Database["public"]["Enums"]["crisis_type"]
+          title: string
+          description?: string | null
+          location_name?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          current_level?: Database["public"]["Enums"]["escalation_level"]
+          status?: string | null
+          occurred_at: string
+          detected_at: string
+          contained_at?: string | null
+          resolved_at?: string | null
+          people_affected?: number | null
+          injuries_count?: number | null
+          fatalities_count?: number | null
+          communications_log?: Json | null
+          resolution_summary?: string | null
+          lessons_learned?: string | null
+          follow_up_actions?: string[] | null
+          reported_by: string
+          incident_commander?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          trip_id?: string | null
+          plan_id?: string | null
+          event_code?: string | null
+          crisis_type?: Database["public"]["Enums"]["crisis_type"]
+          title?: string
+          description?: string | null
+          location_name?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          current_level?: Database["public"]["Enums"]["escalation_level"]
+          status?: string | null
+          occurred_at?: string
+          detected_at?: string
+          contained_at?: string | null
+          resolved_at?: string | null
+          people_affected?: number | null
+          injuries_count?: number | null
+          fatalities_count?: number | null
+          communications_log?: Json | null
+          resolution_summary?: string | null
+          lessons_learned?: string | null
+          follow_up_actions?: string[] | null
+          reported_by?: string
+          incident_commander?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       cron_job_logs: {
         Row: {
           id: string
@@ -1482,6 +2784,141 @@ export type Database = {
           records_processed?: number | null
           error_message?: string | null
           metadata?: Json | null
+        }
+        Relationships: []
+      }
+      custom_reports: {
+        Row: {
+          id: string
+          report_name: string
+          description: string | null
+          report_type: string
+          data_source: string
+          columns: Json
+          filters: Json | null
+          grouping: Json | null
+          sorting: Json | null
+          aggregations: Json | null
+          chart_type: string | null
+          chart_config: Json | null
+          schedule_enabled: boolean | null
+          schedule_cron: string | null
+          schedule_recipients: string[] | null
+          last_run_at: string | null
+          next_run_at: string | null
+          is_public: boolean | null
+          shared_with: string[] | null
+          created_by: string
+          updated_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          report_name: string
+          description?: string | null
+          report_type: string
+          data_source: string
+          columns: Json
+          filters?: Json | null
+          grouping?: Json | null
+          sorting?: Json | null
+          aggregations?: Json | null
+          chart_type?: string | null
+          chart_config?: Json | null
+          schedule_enabled?: boolean | null
+          schedule_cron?: string | null
+          schedule_recipients?: string[] | null
+          last_run_at?: string | null
+          next_run_at?: string | null
+          is_public?: boolean | null
+          shared_with?: string[] | null
+          created_by: string
+          updated_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          report_name?: string
+          description?: string | null
+          report_type?: string
+          data_source?: string
+          columns?: Json
+          filters?: Json | null
+          grouping?: Json | null
+          sorting?: Json | null
+          aggregations?: Json | null
+          chart_type?: string | null
+          chart_config?: Json | null
+          schedule_enabled?: boolean | null
+          schedule_cron?: string | null
+          schedule_recipients?: string[] | null
+          last_run_at?: string | null
+          next_run_at?: string | null
+          is_public?: boolean | null
+          shared_with?: string[] | null
+          created_by?: string
+          updated_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      customer_communications: {
+        Row: {
+          id: string
+          customer_id: string
+          communication_type: string
+          direction: string | null
+          subject: string | null
+          content: string | null
+          outcome: string | null
+          follow_up_required: boolean | null
+          follow_up_date: string | null
+          follow_up_notes: string | null
+          booking_id: string | null
+          attachments: Json | null
+          metadata: Json | null
+          created_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          customer_id: string
+          communication_type: string
+          direction?: string | null
+          subject?: string | null
+          content?: string | null
+          outcome?: string | null
+          follow_up_required?: boolean | null
+          follow_up_date?: string | null
+          follow_up_notes?: string | null
+          booking_id?: string | null
+          attachments?: Json | null
+          metadata?: Json | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          customer_id?: string
+          communication_type?: string
+          direction?: string | null
+          subject?: string | null
+          content?: string | null
+          outcome?: string | null
+          follow_up_required?: boolean | null
+          follow_up_date?: string | null
+          follow_up_notes?: string | null
+          booking_id?: string | null
+          attachments?: Json | null
+          metadata?: Json | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1548,6 +2985,123 @@ export type Database = {
         }
         Relationships: []
       }
+      data_breach_incidents: {
+        Row: {
+          id: string
+          incident_date: string
+          detected_at: string
+          severity: string
+          affected_data_types: string[]
+          affected_users_count: number | null
+          affected_user_ids: string[] | null
+          title: string
+          description: string
+          root_cause: string | null
+          attack_vector: string | null
+          remediation_steps: string | null
+          remediation_completed_at: string | null
+          notification_sent_at: string | null
+          notification_method: string | null
+          reported_to_authority_at: string | null
+          authority_report_number: string | null
+          status: string | null
+          created_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          incident_date: string
+          detected_at: string
+          severity: string
+          affected_data_types: string[]
+          affected_users_count?: number | null
+          affected_user_ids?: string[] | null
+          title: string
+          description: string
+          root_cause?: string | null
+          attack_vector?: string | null
+          remediation_steps?: string | null
+          remediation_completed_at?: string | null
+          notification_sent_at?: string | null
+          notification_method?: string | null
+          reported_to_authority_at?: string | null
+          authority_report_number?: string | null
+          status?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          incident_date?: string
+          detected_at?: string
+          severity?: string
+          affected_data_types?: string[]
+          affected_users_count?: number | null
+          affected_user_ids?: string[] | null
+          title?: string
+          description?: string
+          root_cause?: string | null
+          attack_vector?: string | null
+          remediation_steps?: string | null
+          remediation_completed_at?: string | null
+          notification_sent_at?: string | null
+          notification_method?: string | null
+          reported_to_authority_at?: string | null
+          authority_report_number?: string | null
+          status?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      data_export_requests: {
+        Row: {
+          id: string
+          user_id: string
+          request_type: string
+          export_format: string | null
+          status: string | null
+          file_url: string | null
+          file_size_bytes: number | null
+          expires_at: string | null
+          started_at: string | null
+          completed_at: string | null
+          error_message: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          request_type: string
+          export_format?: string | null
+          status?: string | null
+          file_url?: string | null
+          file_size_bytes?: number | null
+          expires_at?: string | null
+          started_at?: string | null
+          completed_at?: string | null
+          error_message?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          request_type?: string
+          export_format?: string | null
+          status?: string | null
+          file_url?: string | null
+          file_size_bytes?: number | null
+          expires_at?: string | null
+          started_at?: string | null
+          completed_at?: string | null
+          error_message?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       data_retention_logs: {
         Row: {
           id: string
@@ -1575,6 +3129,165 @@ export type Database = {
           original_trip_date?: string | null
           deleted_at?: string
           files_deleted?: string[] | null
+        }
+        Relationships: []
+      }
+      data_retention_policies: {
+        Row: {
+          id: string
+          data_type: string
+          table_name: string
+          description: string | null
+          retention_days: number
+          legal_basis: string | null
+          auto_delete_enabled: boolean | null
+          delete_function_name: string | null
+          last_cleanup_at: string | null
+          next_cleanup_at: string | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          data_type: string
+          table_name: string
+          description?: string | null
+          retention_days: number
+          legal_basis?: string | null
+          auto_delete_enabled?: boolean | null
+          delete_function_name?: string | null
+          last_cleanup_at?: string | null
+          next_cleanup_at?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          data_type?: string
+          table_name?: string
+          description?: string | null
+          retention_days?: number
+          legal_basis?: string | null
+          auto_delete_enabled?: boolean | null
+          delete_function_name?: string | null
+          last_cleanup_at?: string | null
+          next_cleanup_at?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      destination_risk_history: {
+        Row: {
+          id: string
+          destination_id: string
+          previous_threat_level: Database["public"]["Enums"]["threat_level"] | null
+          new_threat_level: Database["public"]["Enums"]["threat_level"] | null
+          previous_risk_factors: Json | null
+          new_risk_factors: Json | null
+          change_reason: string | null
+          changed_by: string
+          changed_at: string | null
+        }
+        Insert: {
+          id?: string
+          destination_id: string
+          previous_threat_level?: Database["public"]["Enums"]["threat_level"] | null
+          new_threat_level?: Database["public"]["Enums"]["threat_level"] | null
+          previous_risk_factors?: Json | null
+          new_risk_factors?: Json | null
+          change_reason?: string | null
+          changed_by: string
+          changed_at?: string | null
+        }
+        Update: {
+          id?: string
+          destination_id?: string
+          previous_threat_level?: Database["public"]["Enums"]["threat_level"] | null
+          new_threat_level?: Database["public"]["Enums"]["threat_level"] | null
+          previous_risk_factors?: Json | null
+          new_risk_factors?: Json | null
+          change_reason?: string | null
+          changed_by?: string
+          changed_at?: string | null
+        }
+        Relationships: []
+      }
+      destination_risk_profiles: {
+        Row: {
+          id: string
+          branch_id: string
+          location_name: string
+          location_code: string | null
+          description: string | null
+          latitude: number | null
+          longitude: number | null
+          region: string | null
+          risk_category: Database["public"]["Enums"]["risk_category"]
+          threat_level: Database["public"]["Enums"]["threat_level"]
+          risk_factors: Json | null
+          seasonal_risks: Json | null
+          mitigation_measures: string[] | null
+          required_equipment: string[] | null
+          emergency_procedures: string[] | null
+          last_assessed_at: string | null
+          assessed_by: string | null
+          valid_until: string | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          location_name: string
+          location_code?: string | null
+          description?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          region?: string | null
+          risk_category?: Database["public"]["Enums"]["risk_category"]
+          threat_level?: Database["public"]["Enums"]["threat_level"]
+          risk_factors?: Json | null
+          seasonal_risks?: Json | null
+          mitigation_measures?: string[] | null
+          required_equipment?: string[] | null
+          emergency_procedures?: string[] | null
+          last_assessed_at?: string | null
+          assessed_by?: string | null
+          valid_until?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          location_name?: string
+          location_code?: string | null
+          description?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          region?: string | null
+          risk_category?: Database["public"]["Enums"]["risk_category"]
+          threat_level?: Database["public"]["Enums"]["threat_level"]
+          risk_factors?: Json | null
+          seasonal_risks?: Json | null
+          mitigation_measures?: string[] | null
+          required_equipment?: string[] | null
+          emergency_procedures?: string[] | null
+          last_assessed_at?: string | null
+          assessed_by?: string | null
+          valid_until?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
         }
         Relationships: []
       }
@@ -1707,6 +3420,249 @@ export type Database = {
         }
         Relationships: []
       }
+      email_campaigns: {
+        Row: {
+          id: string
+          campaign_name: string
+          subject: string
+          preview_text: string | null
+          content_html: string
+          content_text: string | null
+          segment_conditions: Json | null
+          exclude_conditions: Json | null
+          scheduled_for: string | null
+          sent_at: string | null
+          recipient_count: number | null
+          sent_count: number | null
+          delivered_count: number | null
+          opened_count: number | null
+          clicked_count: number | null
+          bounced_count: number | null
+          unsubscribed_count: number | null
+          status: string | null
+          template_id: string | null
+          created_by: string | null
+          updated_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          campaign_name: string
+          subject: string
+          preview_text?: string | null
+          content_html: string
+          content_text?: string | null
+          segment_conditions?: Json | null
+          exclude_conditions?: Json | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          recipient_count?: number | null
+          sent_count?: number | null
+          delivered_count?: number | null
+          opened_count?: number | null
+          clicked_count?: number | null
+          bounced_count?: number | null
+          unsubscribed_count?: number | null
+          status?: string | null
+          template_id?: string | null
+          created_by?: string | null
+          updated_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          campaign_name?: string
+          subject?: string
+          preview_text?: string | null
+          content_html?: string
+          content_text?: string | null
+          segment_conditions?: Json | null
+          exclude_conditions?: Json | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          recipient_count?: number | null
+          sent_count?: number | null
+          delivered_count?: number | null
+          opened_count?: number | null
+          clicked_count?: number | null
+          bounced_count?: number | null
+          unsubscribed_count?: number | null
+          status?: string | null
+          template_id?: string | null
+          created_by?: string | null
+          updated_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          id: string
+          template_key: string
+          name: string
+          subject_template: string
+          body_html_template: string
+          body_text_template: string | null
+          variables: Json | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+          key: string | null
+        }
+        Insert: {
+          id?: string
+          template_key: string
+          name: string
+          subject_template: string
+          body_html_template: string
+          body_text_template?: string | null
+          variables?: Json | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          key?: string | null
+        }
+        Update: {
+          id?: string
+          template_key?: string
+          name?: string
+          subject_template?: string
+          body_html_template?: string
+          body_text_template?: string | null
+          variables?: Json | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          key?: string | null
+        }
+        Relationships: []
+      }
+      emergency_notifications_log: {
+        Row: {
+          id: string
+          branch_id: string | null
+          reference_type: string
+          reference_id: string
+          recipient_name: string
+          recipient_phone: string | null
+          recipient_email: string | null
+          relationship: string | null
+          notification_type: string
+          message_template: string | null
+          message_content: string | null
+          status: string | null
+          sent_at: string | null
+          delivered_at: string | null
+          acknowledged_at: string | null
+          error_message: string | null
+          retry_count: number | null
+          sent_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id?: string | null
+          reference_type: string
+          reference_id: string
+          recipient_name: string
+          recipient_phone?: string | null
+          recipient_email?: string | null
+          relationship?: string | null
+          notification_type: string
+          message_template?: string | null
+          message_content?: string | null
+          status?: string | null
+          sent_at?: string | null
+          delivered_at?: string | null
+          acknowledged_at?: string | null
+          error_message?: string | null
+          retry_count?: number | null
+          sent_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string | null
+          reference_type?: string
+          reference_id?: string
+          recipient_name?: string
+          recipient_phone?: string | null
+          recipient_email?: string | null
+          relationship?: string | null
+          notification_type?: string
+          message_template?: string | null
+          message_content?: string | null
+          status?: string | null
+          sent_at?: string | null
+          delivered_at?: string | null
+          acknowledged_at?: string | null
+          error_message?: string | null
+          retry_count?: number | null
+          sent_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      employee_attendance: {
+        Row: {
+          id: string
+          employee_id: string
+          attendance_date: string
+          check_in_time: string | null
+          check_out_time: string | null
+          status: string | null
+          late_minutes: number | null
+          overtime_minutes: number | null
+          work_hours: number | null
+          notes: string | null
+          location: string | null
+          check_in_location: Json | null
+          check_out_location: Json | null
+          recorded_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          employee_id: string
+          attendance_date: string
+          check_in_time?: string | null
+          check_out_time?: string | null
+          status?: string | null
+          late_minutes?: number | null
+          overtime_minutes?: number | null
+          work_hours?: number | null
+          notes?: string | null
+          location?: string | null
+          check_in_location?: Json | null
+          check_out_location?: Json | null
+          recorded_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          employee_id?: string
+          attendance_date?: string
+          check_in_time?: string | null
+          check_out_time?: string | null
+          status?: string | null
+          late_minutes?: number | null
+          overtime_minutes?: number | null
+          work_hours?: number | null
+          notes?: string | null
+          location?: string | null
+          check_in_location?: Json | null
+          check_out_location?: Json | null
+          recorded_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       expense_categories: {
         Row: {
           id: string
@@ -1819,6 +3775,45 @@ export type Database = {
           paid_at?: string | null
           payment_proof_url?: string | null
           requested_by?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      faqs: {
+        Row: {
+          id: string
+          app_type: string | null
+          package_id: string | null
+          category: string | null
+          question: string
+          answer: string
+          display_order: number | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          app_type?: string | null
+          package_id?: string | null
+          category?: string | null
+          question: string
+          answer: string
+          display_order?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          app_type?: string | null
+          package_id?: string | null
+          category?: string | null
+          question?: string
+          answer?: string
+          display_order?: number | null
+          is_active?: boolean | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -1944,6 +3939,30 @@ export type Database = {
           created_by?: string | null
           created_at?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      filter_usage_stats: {
+        Row: {
+          id: string
+          filter_id: string | null
+          user_id: string | null
+          used_at: string | null
+          result_count: number | null
+        }
+        Insert: {
+          id?: string
+          filter_id?: string | null
+          user_id?: string | null
+          used_at?: string | null
+          result_count?: number | null
+        }
+        Update: {
+          id?: string
+          filter_id?: string | null
+          user_id?: string | null
+          used_at?: string | null
+          result_count?: number | null
         }
         Relationships: []
       }
@@ -2455,6 +4474,123 @@ export type Database = {
           status?: string | null
           completed_at?: string | null
           reward_description?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      guide_competency_assessments: {
+        Row: {
+          id: string
+          guide_id: string
+          certification_type: string
+          assessment_date: string
+          assessor_name: string | null
+          assessor_institution: string | null
+          assessor_license_number: string | null
+          knowledge_score: number | null
+          skill_score: number | null
+          attitude_score: number | null
+          overall_score: number | null
+          result: string | null
+          competency_gaps: string[] | null
+          recommendations: string | null
+          certificate_number: string | null
+          certificate_url: string | null
+          certificate_valid_until: string | null
+          notes: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          guide_id: string
+          certification_type: string
+          assessment_date: string
+          assessor_name?: string | null
+          assessor_institution?: string | null
+          assessor_license_number?: string | null
+          knowledge_score?: number | null
+          skill_score?: number | null
+          attitude_score?: number | null
+          overall_score?: number | null
+          result?: string | null
+          competency_gaps?: string[] | null
+          recommendations?: string | null
+          certificate_number?: string | null
+          certificate_url?: string | null
+          certificate_valid_until?: string | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          guide_id?: string
+          certification_type?: string
+          assessment_date?: string
+          assessor_name?: string | null
+          assessor_institution?: string | null
+          assessor_license_number?: string | null
+          knowledge_score?: number | null
+          skill_score?: number | null
+          attitude_score?: number | null
+          overall_score?: number | null
+          result?: string | null
+          competency_gaps?: string[] | null
+          recommendations?: string | null
+          certificate_number?: string | null
+          certificate_url?: string | null
+          certificate_valid_until?: string | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      guide_competency_unit_progress: {
+        Row: {
+          id: string
+          guide_id: string
+          unit_id: string
+          status: string | null
+          score: number | null
+          attempts_count: number | null
+          started_at: string | null
+          completed_at: string | null
+          expires_at: string | null
+          evidence_urls: string[] | null
+          assessor_notes: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          guide_id: string
+          unit_id: string
+          status?: string | null
+          score?: number | null
+          attempts_count?: number | null
+          started_at?: string | null
+          completed_at?: string | null
+          expires_at?: string | null
+          evidence_urls?: string[] | null
+          assessor_notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          guide_id?: string
+          unit_id?: string
+          status?: string | null
+          score?: number | null
+          attempts_count?: number | null
+          started_at?: string | null
+          completed_at?: string | null
+          expires_at?: string | null
+          evidence_urls?: string[] | null
+          assessor_notes?: string | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -4680,6 +6816,240 @@ export type Database = {
         }
         Relationships: []
       }
+      incident_follow_ups: {
+        Row: {
+          id: string
+          incident_id: string
+          branch_id: string | null
+          follow_up_type: string
+          title: string
+          description: string | null
+          status: string | null
+          priority: string | null
+          due_date: string | null
+          next_action_date: string | null
+          completed_at: string | null
+          assigned_to: string | null
+          notes: string | null
+          action_taken: string[] | null
+          attachments: string[] | null
+          resolution_summary: string | null
+          outcome: string | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          incident_id: string
+          branch_id?: string | null
+          follow_up_type: string
+          title: string
+          description?: string | null
+          status?: string | null
+          priority?: string | null
+          due_date?: string | null
+          next_action_date?: string | null
+          completed_at?: string | null
+          assigned_to?: string | null
+          notes?: string | null
+          action_taken?: string[] | null
+          attachments?: string[] | null
+          resolution_summary?: string | null
+          outcome?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          incident_id?: string
+          branch_id?: string | null
+          follow_up_type?: string
+          title?: string
+          description?: string | null
+          status?: string | null
+          priority?: string | null
+          due_date?: string | null
+          next_action_date?: string | null
+          completed_at?: string | null
+          assigned_to?: string | null
+          notes?: string | null
+          action_taken?: string[] | null
+          attachments?: string[] | null
+          resolution_summary?: string | null
+          outcome?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      incident_injuries: {
+        Row: {
+          id: string
+          incident_id: string
+          person_type: string
+          person_name: string
+          person_id: string | null
+          injury_type: string
+          injury_description: string | null
+          body_parts_affected: string[] | null
+          first_aid_given: boolean | null
+          first_aid_description: string | null
+          medical_attention_required: boolean | null
+          hospitalized: boolean | null
+          hospital_name: string | null
+          current_status: string | null
+          requires_follow_up: boolean | null
+          follow_up_notes: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          incident_id: string
+          person_type: string
+          person_name: string
+          person_id?: string | null
+          injury_type: string
+          injury_description?: string | null
+          body_parts_affected?: string[] | null
+          first_aid_given?: boolean | null
+          first_aid_description?: string | null
+          medical_attention_required?: boolean | null
+          hospitalized?: boolean | null
+          hospital_name?: string | null
+          current_status?: string | null
+          requires_follow_up?: boolean | null
+          follow_up_notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          incident_id?: string
+          person_type?: string
+          person_name?: string
+          person_id?: string | null
+          injury_type?: string
+          injury_description?: string | null
+          body_parts_affected?: string[] | null
+          first_aid_given?: boolean | null
+          first_aid_description?: string | null
+          medical_attention_required?: boolean | null
+          hospitalized?: boolean | null
+          hospital_name?: string | null
+          current_status?: string | null
+          requires_follow_up?: boolean | null
+          follow_up_notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      incident_insurance_claims: {
+        Row: {
+          id: string
+          incident_id: string
+          branch_id: string | null
+          claim_number: string | null
+          claim_type: string
+          insurance_company_id: string | null
+          insurance_company_name: string | null
+          policy_number: string | null
+          claimant_name: string
+          claimant_type: string
+          claimant_contact: string | null
+          description: string | null
+          amount_claimed: number | null
+          amount_approved: number | null
+          currency: string | null
+          documents_submitted: string[] | null
+          documents_required: string[] | null
+          submitted_at: string | null
+          acknowledged_at: string | null
+          under_review_at: string | null
+          decision_at: string | null
+          paid_at: string | null
+          status: string | null
+          rejection_reason: string | null
+          adjuster_name: string | null
+          adjuster_phone: string | null
+          adjuster_email: string | null
+          notes: string | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          incident_id: string
+          branch_id?: string | null
+          claim_number?: string | null
+          claim_type: string
+          insurance_company_id?: string | null
+          insurance_company_name?: string | null
+          policy_number?: string | null
+          claimant_name: string
+          claimant_type: string
+          claimant_contact?: string | null
+          description?: string | null
+          amount_claimed?: number | null
+          amount_approved?: number | null
+          currency?: string | null
+          documents_submitted?: string[] | null
+          documents_required?: string[] | null
+          submitted_at?: string | null
+          acknowledged_at?: string | null
+          under_review_at?: string | null
+          decision_at?: string | null
+          paid_at?: string | null
+          status?: string | null
+          rejection_reason?: string | null
+          adjuster_name?: string | null
+          adjuster_phone?: string | null
+          adjuster_email?: string | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          incident_id?: string
+          branch_id?: string | null
+          claim_number?: string | null
+          claim_type?: string
+          insurance_company_id?: string | null
+          insurance_company_name?: string | null
+          policy_number?: string | null
+          claimant_name?: string
+          claimant_type?: string
+          claimant_contact?: string | null
+          description?: string | null
+          amount_claimed?: number | null
+          amount_approved?: number | null
+          currency?: string | null
+          documents_submitted?: string[] | null
+          documents_required?: string[] | null
+          submitted_at?: string | null
+          acknowledged_at?: string | null
+          under_review_at?: string | null
+          decision_at?: string | null
+          paid_at?: string | null
+          status?: string | null
+          rejection_reason?: string | null
+          adjuster_name?: string | null
+          adjuster_phone?: string | null
+          adjuster_email?: string | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
       incident_reports: {
         Row: {
           id: string
@@ -5022,6 +7392,180 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_items: {
+        Row: {
+          id: string
+          invoice_id: string
+          description: string
+          quantity: number
+          unit_price: number
+          discount: number | null
+          subtotal: number
+          sort_order: number | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          invoice_id: string
+          description: string
+          quantity?: number
+          unit_price: number
+          discount?: number | null
+          subtotal: number
+          sort_order?: number | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          invoice_id?: string
+          description?: string
+          quantity?: number
+          unit_price?: number
+          discount?: number | null
+          subtotal?: number
+          sort_order?: number | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      invoice_send_logs: {
+        Row: {
+          id: string
+          invoice_id: string
+          send_method: string
+          recipient_email: string | null
+          recipient_phone: string | null
+          email_sent: boolean | null
+          whatsapp_sent: boolean | null
+          pdf_url: string | null
+          error_message: string | null
+          sent_by: string
+          sent_at: string | null
+        }
+        Insert: {
+          id?: string
+          invoice_id: string
+          send_method: string
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          email_sent?: boolean | null
+          whatsapp_sent?: boolean | null
+          pdf_url?: string | null
+          error_message?: string | null
+          sent_by: string
+          sent_at?: string | null
+        }
+        Update: {
+          id?: string
+          invoice_id?: string
+          send_method?: string
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          email_sent?: boolean | null
+          whatsapp_sent?: boolean | null
+          pdf_url?: string | null
+          error_message?: string | null
+          sent_by?: string
+          sent_at?: string | null
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          id: string
+          invoice_number: string
+          booking_id: string | null
+          trip_id: string | null
+          customer_id: string | null
+          corporate_id: string | null
+          invoice_type: string
+          subtotal: number
+          tax_rate: number | null
+          tax_amount: number | null
+          discount_amount: number | null
+          discount_reason: string | null
+          total_amount: number
+          due_date: string | null
+          payment_terms: string | null
+          status: string | null
+          paid_amount: number | null
+          paid_at: string | null
+          pdf_url: string | null
+          notes: string | null
+          internal_notes: string | null
+          generated_by: string | null
+          sent_at: string | null
+          sent_to: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cancellation_reason: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          invoice_number: string
+          booking_id?: string | null
+          trip_id?: string | null
+          customer_id?: string | null
+          corporate_id?: string | null
+          invoice_type?: string
+          subtotal: number
+          tax_rate?: number | null
+          tax_amount?: number | null
+          discount_amount?: number | null
+          discount_reason?: string | null
+          total_amount: number
+          due_date?: string | null
+          payment_terms?: string | null
+          status?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          pdf_url?: string | null
+          notes?: string | null
+          internal_notes?: string | null
+          generated_by?: string | null
+          sent_at?: string | null
+          sent_to?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancellation_reason?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          invoice_number?: string
+          booking_id?: string | null
+          trip_id?: string | null
+          customer_id?: string | null
+          corporate_id?: string | null
+          invoice_type?: string
+          subtotal?: number
+          tax_rate?: number | null
+          tax_amount?: number | null
+          discount_amount?: number | null
+          discount_reason?: string | null
+          total_amount?: number
+          due_date?: string | null
+          payment_terms?: string | null
+          status?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          pdf_url?: string | null
+          notes?: string | null
+          internal_notes?: string | null
+          generated_by?: string | null
+          sent_at?: string | null
+          sent_to?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancellation_reason?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       kol_trips: {
         Row: {
           id: string
@@ -5091,6 +7635,342 @@ export type Database = {
         }
         Relationships: []
       }
+      leave_balances: {
+        Row: {
+          id: string
+          employee_id: string
+          year: number
+          leave_type: string
+          total_days: number
+          used_days: number
+          remaining_days: number
+          carried_over: number | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          employee_id: string
+          year: number
+          leave_type: string
+          total_days?: number
+          used_days?: number
+          remaining_days?: number
+          carried_over?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          employee_id?: string
+          year?: number
+          leave_type?: string
+          total_days?: number
+          used_days?: number
+          remaining_days?: number
+          carried_over?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      leave_requests: {
+        Row: {
+          id: string
+          employee_id: string
+          leave_type: string
+          start_date: string
+          end_date: string
+          days_count: number
+          reason: string | null
+          attachment_url: string | null
+          status: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          review_notes: string | null
+          cancelled_at: string | null
+          cancellation_reason: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          employee_id: string
+          leave_type: string
+          start_date: string
+          end_date: string
+          days_count: number
+          reason?: string | null
+          attachment_url?: string | null
+          status?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_notes?: string | null
+          cancelled_at?: string | null
+          cancellation_reason?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          employee_id?: string
+          leave_type?: string
+          start_date?: string
+          end_date?: string
+          days_count?: number
+          reason?: string | null
+          attachment_url?: string | null
+          status?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_notes?: string | null
+          cancelled_at?: string | null
+          cancellation_reason?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      legal_pages: {
+        Row: {
+          id: string
+          page_type: string
+          title: string
+          content_html: string
+          last_updated: string | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          page_type: string
+          title: string
+          content_html: string
+          last_updated?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          page_type?: string
+          title?: string
+          content_html?: string
+          last_updated?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      local_employment_metrics: {
+        Row: {
+          id: string
+          branch_id: string
+          period_month: string
+          total_employees: number | null
+          local_employees: number | null
+          local_percentage: number | null
+          female_employees: number | null
+          male_employees: number | null
+          female_percentage: number | null
+          full_time_employees: number | null
+          part_time_employees: number | null
+          seasonal_employees: number | null
+          total_vendors: number | null
+          local_vendors: number | null
+          local_vendors_percentage: number | null
+          total_operational_spend: number | null
+          local_spend_amount: number | null
+          local_spend_percentage: number | null
+          local_food_spend: number | null
+          local_services_spend: number | null
+          local_supplies_spend: number | null
+          notes: string | null
+          created_at: string | null
+          updated_at: string | null
+          recorded_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          period_month: string
+          total_employees?: number | null
+          local_employees?: number | null
+          local_percentage?: number | null
+          female_employees?: number | null
+          male_employees?: number | null
+          female_percentage?: number | null
+          full_time_employees?: number | null
+          part_time_employees?: number | null
+          seasonal_employees?: number | null
+          total_vendors?: number | null
+          local_vendors?: number | null
+          local_vendors_percentage?: number | null
+          total_operational_spend?: number | null
+          local_spend_amount?: number | null
+          local_spend_percentage?: number | null
+          local_food_spend?: number | null
+          local_services_spend?: number | null
+          local_supplies_spend?: number | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          recorded_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          period_month?: string
+          total_employees?: number | null
+          local_employees?: number | null
+          local_percentage?: number | null
+          female_employees?: number | null
+          male_employees?: number | null
+          female_percentage?: number | null
+          full_time_employees?: number | null
+          part_time_employees?: number | null
+          seasonal_employees?: number | null
+          total_vendors?: number | null
+          local_vendors?: number | null
+          local_vendors_percentage?: number | null
+          total_operational_spend?: number | null
+          local_spend_amount?: number | null
+          local_spend_percentage?: number | null
+          local_food_spend?: number | null
+          local_services_spend?: number | null
+          local_supplies_spend?: number | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          recorded_by?: string | null
+        }
+        Relationships: []
+      }
+      local_suppliers: {
+        Row: {
+          id: string
+          branch_id: string
+          supplier_name: string
+          supplier_type: string
+          contact_person: string | null
+          phone: string | null
+          email: string | null
+          address: string | null
+          is_local: boolean | null
+          locality: string | null
+          distance_km: number | null
+          business_registration: string | null
+          is_small_business: boolean | null
+          is_women_owned: boolean | null
+          is_cooperative: boolean | null
+          employees_count: number | null
+          certifications: string[] | null
+          partnership_since: string | null
+          contract_type: string | null
+          total_spend_ytd: number | null
+          average_monthly_spend: number | null
+          is_active: boolean | null
+          notes: string | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          supplier_name: string
+          supplier_type: string
+          contact_person?: string | null
+          phone?: string | null
+          email?: string | null
+          address?: string | null
+          is_local?: boolean | null
+          locality?: string | null
+          distance_km?: number | null
+          business_registration?: string | null
+          is_small_business?: boolean | null
+          is_women_owned?: boolean | null
+          is_cooperative?: boolean | null
+          employees_count?: number | null
+          certifications?: string[] | null
+          partnership_since?: string | null
+          contract_type?: string | null
+          total_spend_ytd?: number | null
+          average_monthly_spend?: number | null
+          is_active?: boolean | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          supplier_name?: string
+          supplier_type?: string
+          contact_person?: string | null
+          phone?: string | null
+          email?: string | null
+          address?: string | null
+          is_local?: boolean | null
+          locality?: string | null
+          distance_km?: number | null
+          business_registration?: string | null
+          is_small_business?: boolean | null
+          is_women_owned?: boolean | null
+          is_cooperative?: boolean | null
+          employees_count?: number | null
+          certifications?: string[] | null
+          partnership_since?: string | null
+          contract_type?: string | null
+          total_spend_ytd?: number | null
+          average_monthly_spend?: number | null
+          is_active?: boolean | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      loyalty_adjustments: {
+        Row: {
+          id: string
+          customer_id: string
+          points_change: number
+          reason: string
+          adjustment_type: string
+          reference_id: string | null
+          reference_type: string | null
+          adjusted_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          customer_id: string
+          points_change: number
+          reason: string
+          adjustment_type: string
+          reference_id?: string | null
+          reference_type?: string | null
+          adjusted_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          customer_id?: string
+          points_change?: number
+          reason?: string
+          adjustment_type?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          adjusted_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       loyalty_points: {
         Row: {
           id: string
@@ -5116,6 +7996,102 @@ export type Database = {
           balance?: number
           lifetime_earned?: number
           lifetime_spent?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      loyalty_points_adjustments: {
+        Row: {
+          id: string
+          customer_id: string
+          points: number
+          adjustment_type: string
+          reason: string
+          reference_id: string | null
+          reference_type: string | null
+          balance_before: number
+          balance_after: number
+          expiry_date: string | null
+          created_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          customer_id: string
+          points: number
+          adjustment_type: string
+          reason: string
+          reference_id?: string | null
+          reference_type?: string | null
+          balance_before: number
+          balance_after: number
+          expiry_date?: string | null
+          created_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          customer_id?: string
+          points?: number
+          adjustment_type?: string
+          reason?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          balance_before?: number
+          balance_after?: number
+          expiry_date?: string | null
+          created_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      loyalty_rewards: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          category: string | null
+          points_cost: number
+          value_in_rupiah: number | null
+          image_url: string | null
+          stock: number | null
+          valid_until: string | null
+          terms: Json | null
+          is_active: boolean | null
+          display_order: number | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          category?: string | null
+          points_cost: number
+          value_in_rupiah?: number | null
+          image_url?: string | null
+          stock?: number | null
+          valid_until?: string | null
+          terms?: Json | null
+          is_active?: boolean | null
+          display_order?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          category?: string | null
+          points_cost?: number
+          value_in_rupiah?: number | null
+          image_url?: string | null
+          stock?: number | null
+          valid_until?: string | null
+          terms?: Json | null
+          is_active?: boolean | null
+          display_order?: number | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -5235,6 +8211,159 @@ export type Database = {
           notes?: string | null
           created_at?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      marine_protection_zones: {
+        Row: {
+          id: string
+          zone_name: string
+          zone_code: string | null
+          zone_type: string
+          polygon_coordinates: Json
+          center_latitude: number | null
+          center_longitude: number | null
+          radius_km: number | null
+          restrictions: string[]
+          max_speed_knots: number | null
+          max_vessels: number | null
+          allowed_activities: string[] | null
+          prohibited_activities: string[] | null
+          seasonal_restrictions: Json | null
+          penalty_info: string | null
+          authority: string | null
+          contact_info: Json | null
+          source: string | null
+          source_reference: string | null
+          designation_date: string | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          zone_name: string
+          zone_code?: string | null
+          zone_type: string
+          polygon_coordinates: Json
+          center_latitude?: number | null
+          center_longitude?: number | null
+          radius_km?: number | null
+          restrictions: string[]
+          max_speed_knots?: number | null
+          max_vessels?: number | null
+          allowed_activities?: string[] | null
+          prohibited_activities?: string[] | null
+          seasonal_restrictions?: Json | null
+          penalty_info?: string | null
+          authority?: string | null
+          contact_info?: Json | null
+          source?: string | null
+          source_reference?: string | null
+          designation_date?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          zone_name?: string
+          zone_code?: string | null
+          zone_type?: string
+          polygon_coordinates?: Json
+          center_latitude?: number | null
+          center_longitude?: number | null
+          radius_km?: number | null
+          restrictions?: string[]
+          max_speed_knots?: number | null
+          max_vessels?: number | null
+          allowed_activities?: string[] | null
+          prohibited_activities?: string[] | null
+          seasonal_restrictions?: Json | null
+          penalty_info?: string | null
+          authority?: string | null
+          contact_info?: Json | null
+          source?: string | null
+          source_reference?: string | null
+          designation_date?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      marine_wildlife_sightings: {
+        Row: {
+          id: string
+          trip_id: string | null
+          zone_id: string | null
+          branch_id: string | null
+          species_name: string
+          species_type: string
+          common_name: string | null
+          estimated_count: number | null
+          count_certainty: string | null
+          latitude: number
+          longitude: number
+          sighted_at: string
+          behavior_observed: string | null
+          health_status: string | null
+          photo_urls: string[] | null
+          notes: string | null
+          conservation_status: string | null
+          reported_to_authority: boolean | null
+          authority_reference: string | null
+          sighted_by: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          trip_id?: string | null
+          zone_id?: string | null
+          branch_id?: string | null
+          species_name: string
+          species_type: string
+          common_name?: string | null
+          estimated_count?: number | null
+          count_certainty?: string | null
+          latitude: number
+          longitude: number
+          sighted_at: string
+          behavior_observed?: string | null
+          health_status?: string | null
+          photo_urls?: string[] | null
+          notes?: string | null
+          conservation_status?: string | null
+          reported_to_authority?: boolean | null
+          authority_reference?: string | null
+          sighted_by: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          trip_id?: string | null
+          zone_id?: string | null
+          branch_id?: string | null
+          species_name?: string
+          species_type?: string
+          common_name?: string | null
+          estimated_count?: number | null
+          count_certainty?: string | null
+          latitude?: number
+          longitude?: number
+          sighted_at?: string
+          behavior_observed?: string | null
+          health_status?: string | null
+          photo_urls?: string[] | null
+          notes?: string | null
+          conservation_status?: string | null
+          reported_to_authority?: boolean | null
+          authority_reference?: string | null
+          sighted_by?: string
+          created_at?: string | null
         }
         Relationships: []
       }
@@ -5403,6 +8532,111 @@ export type Database = {
         }
         Relationships: []
       }
+      mra_tp_competency_units: {
+        Row: {
+          id: string
+          unit_code: string
+          unit_title: string
+          description: string | null
+          category: string
+          level: number | null
+          prerequisite_units: string[] | null
+          minimum_score: number | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          unit_code: string
+          unit_title: string
+          description?: string | null
+          category: string
+          level?: number | null
+          prerequisite_units?: string[] | null
+          minimum_score?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          unit_code?: string
+          unit_title?: string
+          description?: string | null
+          category?: string
+          level?: number | null
+          prerequisite_units?: string[] | null
+          minimum_score?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      near_miss_reports: {
+        Row: {
+          id: string
+          trip_id: string | null
+          guide_id: string
+          branch_id: string
+          incident_date: string
+          location: string | null
+          description: string
+          potential_consequence: string | null
+          contributing_factors: string[] | null
+          corrective_actions: string | null
+          potential_severity: string | null
+          likelihood: string | null
+          status: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          review_notes: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          trip_id?: string | null
+          guide_id: string
+          branch_id: string
+          incident_date: string
+          location?: string | null
+          description: string
+          potential_consequence?: string | null
+          contributing_factors?: string[] | null
+          corrective_actions?: string | null
+          potential_severity?: string | null
+          likelihood?: string | null
+          status?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          trip_id?: string | null
+          guide_id?: string
+          branch_id?: string
+          incident_date?: string
+          location?: string | null
+          description?: string
+          potential_consequence?: string | null
+          contributing_factors?: string[] | null
+          corrective_actions?: string | null
+          potential_severity?: string | null
+          likelihood?: string | null
+          status?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notification_logs: {
         Row: {
           id: string
@@ -5491,6 +8725,42 @@ export type Database = {
           notification_type?: string
           enabled?: boolean | null
           channels?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      notification_templates: {
+        Row: {
+          id: string
+          template_key: string
+          name: string
+          message_template: string
+          variables: Json | null
+          channel: string
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          template_key: string
+          name: string
+          message_template: string
+          variables?: Json | null
+          channel?: string
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          template_key?: string
+          name?: string
+          message_template?: string
+          variables?: Json | null
+          channel?: string
+          is_active?: boolean | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -6759,6 +10029,195 @@ export type Database = {
         }
         Relationships: []
       }
+      passenger_emergency_contacts: {
+        Row: {
+          id: string
+          passenger_id: string
+          booking_id: string | null
+          branch_id: string | null
+          contact_name: string
+          relationship: string
+          phone: string
+          phone_secondary: string | null
+          email: string | null
+          address: string | null
+          city: string | null
+          country: string | null
+          notify_on_emergency: boolean | null
+          notify_on_delay: boolean | null
+          notify_on_incident: boolean | null
+          preferred_contact_method: string | null
+          preferred_language: string | null
+          priority: number | null
+          is_active: boolean | null
+          verified_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          passenger_id: string
+          booking_id?: string | null
+          branch_id?: string | null
+          contact_name: string
+          relationship: string
+          phone: string
+          phone_secondary?: string | null
+          email?: string | null
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          notify_on_emergency?: boolean | null
+          notify_on_delay?: boolean | null
+          notify_on_incident?: boolean | null
+          preferred_contact_method?: string | null
+          preferred_language?: string | null
+          priority?: number | null
+          is_active?: boolean | null
+          verified_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          passenger_id?: string
+          booking_id?: string | null
+          branch_id?: string | null
+          contact_name?: string
+          relationship?: string
+          phone?: string
+          phone_secondary?: string | null
+          email?: string | null
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          notify_on_emergency?: boolean | null
+          notify_on_delay?: boolean | null
+          notify_on_incident?: boolean | null
+          preferred_contact_method?: string | null
+          preferred_language?: string | null
+          priority?: number | null
+          is_active?: boolean | null
+          verified_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      passenger_medical_info: {
+        Row: {
+          id: string
+          passenger_id: string
+          booking_id: string | null
+          has_medical_conditions: boolean | null
+          medical_conditions: string[] | null
+          medical_notes: string | null
+          has_allergies: boolean | null
+          allergies: string[] | null
+          allergy_severity: string | null
+          current_medications: string[] | null
+          medication_notes: string | null
+          blood_type: string | null
+          insurance_company: string | null
+          insurance_policy_number: string | null
+          insurance_phone: string | null
+          mobility_assistance: boolean | null
+          dietary_restrictions: string[] | null
+          special_needs_notes: string | null
+          consent_share_emergency: boolean | null
+          consent_given_at: string | null
+          consent_given_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          passenger_id: string
+          booking_id?: string | null
+          has_medical_conditions?: boolean | null
+          medical_conditions?: string[] | null
+          medical_notes?: string | null
+          has_allergies?: boolean | null
+          allergies?: string[] | null
+          allergy_severity?: string | null
+          current_medications?: string[] | null
+          medication_notes?: string | null
+          blood_type?: string | null
+          insurance_company?: string | null
+          insurance_policy_number?: string | null
+          insurance_phone?: string | null
+          mobility_assistance?: boolean | null
+          dietary_restrictions?: string[] | null
+          special_needs_notes?: string | null
+          consent_share_emergency?: boolean | null
+          consent_given_at?: string | null
+          consent_given_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          passenger_id?: string
+          booking_id?: string | null
+          has_medical_conditions?: boolean | null
+          medical_conditions?: string[] | null
+          medical_notes?: string | null
+          has_allergies?: boolean | null
+          allergies?: string[] | null
+          allergy_severity?: string | null
+          current_medications?: string[] | null
+          medication_notes?: string | null
+          blood_type?: string | null
+          insurance_company?: string | null
+          insurance_policy_number?: string | null
+          insurance_phone?: string | null
+          mobility_assistance?: boolean | null
+          dietary_restrictions?: string[] | null
+          special_needs_notes?: string | null
+          consent_share_emergency?: boolean | null
+          consent_given_at?: string | null
+          consent_given_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      payment_verification_logs: {
+        Row: {
+          id: string
+          payment_id: string
+          action: string
+          previous_status: string | null
+          new_status: string
+          notes: string | null
+          rejection_reason: string | null
+          performed_by: string
+          performed_at: string | null
+        }
+        Insert: {
+          id?: string
+          payment_id: string
+          action: string
+          previous_status?: string | null
+          new_status: string
+          notes?: string | null
+          rejection_reason?: string | null
+          performed_by: string
+          performed_at?: string | null
+        }
+        Update: {
+          id?: string
+          payment_id?: string
+          action?: string
+          previous_status?: string | null
+          new_status?: string
+          notes?: string | null
+          rejection_reason?: string | null
+          performed_by?: string
+          performed_at?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           id: string
@@ -6786,6 +10245,13 @@ export type Database = {
           refunded_at: string | null
           created_at: string | null
           updated_at: string | null
+          is_manual: boolean | null
+          manual_entry_by: string | null
+          bank_name: string | null
+          account_number: string | null
+          proof_url: string | null
+          verification_status: string | null
+          verification_notes: string | null
         }
         Insert: {
           id?: string
@@ -6813,6 +10279,13 @@ export type Database = {
           refunded_at?: string | null
           created_at?: string | null
           updated_at?: string | null
+          is_manual?: boolean | null
+          manual_entry_by?: string | null
+          bank_name?: string | null
+          account_number?: string | null
+          proof_url?: string | null
+          verification_status?: string | null
+          verification_notes?: string | null
         }
         Update: {
           id?: string
@@ -6838,6 +10311,67 @@ export type Database = {
           paid_at?: string | null
           expired_at?: string | null
           refunded_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          is_manual?: boolean | null
+          manual_entry_by?: string | null
+          bank_name?: string | null
+          account_number?: string | null
+          proof_url?: string | null
+          verification_status?: string | null
+          verification_notes?: string | null
+        }
+        Relationships: []
+      }
+      performance_goals: {
+        Row: {
+          id: string
+          employee_id: string
+          review_id: string | null
+          goal_title: string
+          goal_description: string | null
+          target_metric: string | null
+          target_value: string | null
+          due_date: string | null
+          progress: number | null
+          status: string | null
+          completion_notes: string | null
+          completed_at: string | null
+          created_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          employee_id: string
+          review_id?: string | null
+          goal_title: string
+          goal_description?: string | null
+          target_metric?: string | null
+          target_value?: string | null
+          due_date?: string | null
+          progress?: number | null
+          status?: string | null
+          completion_notes?: string | null
+          completed_at?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          employee_id?: string
+          review_id?: string | null
+          goal_title?: string
+          goal_description?: string | null
+          target_metric?: string | null
+          target_value?: string | null
+          due_date?: string | null
+          progress?: number | null
+          status?: string | null
+          completion_notes?: string | null
+          completed_at?: string | null
+          created_by?: string | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -6915,6 +10449,318 @@ export type Database = {
         }
         Relationships: []
       }
+      performance_reviews: {
+        Row: {
+          id: string
+          employee_id: string
+          review_period: string
+          review_type: string
+          reviewer_id: string
+          performance_score: number | null
+          communication_score: number | null
+          teamwork_score: number | null
+          initiative_score: number | null
+          reliability_score: number | null
+          strengths: string | null
+          areas_for_improvement: string | null
+          goals_for_next_period: string | null
+          achievements: string | null
+          reviewer_comments: string | null
+          employee_comments: string | null
+          employee_acknowledged: boolean | null
+          acknowledged_at: string | null
+          status: string | null
+          review_date: string
+          finalized_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          employee_id: string
+          review_period: string
+          review_type?: string
+          reviewer_id: string
+          performance_score?: number | null
+          communication_score?: number | null
+          teamwork_score?: number | null
+          initiative_score?: number | null
+          reliability_score?: number | null
+          strengths?: string | null
+          areas_for_improvement?: string | null
+          goals_for_next_period?: string | null
+          achievements?: string | null
+          reviewer_comments?: string | null
+          employee_comments?: string | null
+          employee_acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          status?: string | null
+          review_date: string
+          finalized_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          employee_id?: string
+          review_period?: string
+          review_type?: string
+          reviewer_id?: string
+          performance_score?: number | null
+          communication_score?: number | null
+          teamwork_score?: number | null
+          initiative_score?: number | null
+          reliability_score?: number | null
+          strengths?: string | null
+          areas_for_improvement?: string | null
+          goals_for_next_period?: string | null
+          achievements?: string | null
+          reviewer_comments?: string | null
+          employee_comments?: string | null
+          employee_acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          status?: string | null
+          review_date?: string
+          finalized_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      permenparekraf_assessment_responses: {
+        Row: {
+          id: string
+          assessment_id: string
+          criteria_id: string
+          score_achieved: number
+          evidence_provided: boolean | null
+          evidence_urls: string[] | null
+          notes: string | null
+          verified_by: string | null
+          verified_at: string | null
+          verification_notes: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          assessment_id: string
+          criteria_id: string
+          score_achieved: number
+          evidence_provided?: boolean | null
+          evidence_urls?: string[] | null
+          notes?: string | null
+          verified_by?: string | null
+          verified_at?: string | null
+          verification_notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          assessment_id?: string
+          criteria_id?: string
+          score_achieved?: number
+          evidence_provided?: boolean | null
+          evidence_urls?: string[] | null
+          notes?: string | null
+          verified_by?: string | null
+          verified_at?: string | null
+          verification_notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      permenparekraf_criteria: {
+        Row: {
+          id: string
+          business_type: string
+          section_code: string
+          criteria_code: string
+          criteria_name: string
+          description: string | null
+          max_score: number
+          weight: number | null
+          is_mandatory: boolean | null
+          required_evidence: string[] | null
+          verification_method: string | null
+          is_active: boolean | null
+          order_index: number | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          business_type: string
+          section_code: string
+          criteria_code: string
+          criteria_name: string
+          description?: string | null
+          max_score: number
+          weight?: number | null
+          is_mandatory?: boolean | null
+          required_evidence?: string[] | null
+          verification_method?: string | null
+          is_active?: boolean | null
+          order_index?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          business_type?: string
+          section_code?: string
+          criteria_code?: string
+          criteria_name?: string
+          description?: string | null
+          max_score?: number
+          weight?: number | null
+          is_mandatory?: boolean | null
+          required_evidence?: string[] | null
+          verification_method?: string | null
+          is_active?: boolean | null
+          order_index?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      permenparekraf_grading_config: {
+        Row: {
+          id: string
+          business_type: string
+          grade: string
+          min_score: number
+          max_score: number
+          mandatory_sections: string[] | null
+          min_section_score: number | null
+          benefits: string | null
+          validity_years: number | null
+          is_active: boolean | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          business_type: string
+          grade: string
+          min_score: number
+          max_score: number
+          mandatory_sections?: string[] | null
+          min_section_score?: number | null
+          benefits?: string | null
+          validity_years?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          business_type?: string
+          grade?: string
+          min_score?: number
+          max_score?: number
+          mandatory_sections?: string[] | null
+          min_section_score?: number | null
+          benefits?: string | null
+          validity_years?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      permenparekraf_self_assessments: {
+        Row: {
+          id: string
+          branch_id: string | null
+          assessment_date: string
+          assessment_type: string
+          assessment_year: number
+          total_score: number | null
+          grade: string | null
+          section_scores: Json
+          section_legalitas: number | null
+          section_sdm: number | null
+          section_sarana_prasarana: number | null
+          section_pelayanan: number | null
+          section_keuangan: number | null
+          section_lingkungan: number | null
+          evidence_urls: string[] | null
+          evidence_notes: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          review_notes: string | null
+          approved_by: string | null
+          approved_at: string | null
+          status: string | null
+          certificate_number: string | null
+          certificate_url: string | null
+          certificate_valid_until: string | null
+          created_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id?: string | null
+          assessment_date: string
+          assessment_type: string
+          assessment_year: number
+          total_score?: number | null
+          grade?: string | null
+          section_scores?: Json
+          section_legalitas?: number | null
+          section_sdm?: number | null
+          section_sarana_prasarana?: number | null
+          section_pelayanan?: number | null
+          section_keuangan?: number | null
+          section_lingkungan?: number | null
+          evidence_urls?: string[] | null
+          evidence_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_notes?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
+          status?: string | null
+          certificate_number?: string | null
+          certificate_url?: string | null
+          certificate_valid_until?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string | null
+          assessment_date?: string
+          assessment_type?: string
+          assessment_year?: number
+          total_score?: number | null
+          grade?: string | null
+          section_scores?: Json
+          section_legalitas?: number | null
+          section_sdm?: number | null
+          section_sarana_prasarana?: number | null
+          section_pelayanan?: number | null
+          section_keuangan?: number | null
+          section_lingkungan?: number | null
+          evidence_urls?: string[] | null
+          evidence_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_notes?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
+          status?: string | null
+          certificate_number?: string | null
+          certificate_url?: string | null
+          certificate_valid_until?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       pre_trip_assessments: {
         Row: {
           id: string
@@ -6937,6 +10783,12 @@ export type Database = {
           notes: string | null
           created_at: string | null
           updated_at: string | null
+          hygiene_verified: boolean | null
+          sanitization_complete: boolean | null
+          health_protocol_followed: boolean | null
+          chse_checklist: Json | null
+          chse_verified_at: string | null
+          chse_verified_by: string | null
         }
         Insert: {
           id?: string
@@ -6959,6 +10811,12 @@ export type Database = {
           notes?: string | null
           created_at?: string | null
           updated_at?: string | null
+          hygiene_verified?: boolean | null
+          sanitization_complete?: boolean | null
+          health_protocol_followed?: boolean | null
+          chse_checklist?: Json | null
+          chse_verified_at?: string | null
+          chse_verified_by?: string | null
         }
         Update: {
           id?: string
@@ -6981,6 +10839,12 @@ export type Database = {
           notes?: string | null
           created_at?: string | null
           updated_at?: string | null
+          hygiene_verified?: boolean | null
+          sanitization_complete?: boolean | null
+          health_protocol_followed?: boolean | null
+          chse_checklist?: Json | null
+          chse_verified_at?: string | null
+          chse_verified_by?: string | null
         }
         Relationships: []
       }
@@ -7146,6 +11010,90 @@ export type Database = {
           requested_by?: string | null
           created_at?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      report_runs: {
+        Row: {
+          id: string
+          report_id: string
+          run_type: string | null
+          status: string | null
+          filters_used: Json | null
+          result_count: number | null
+          result_file_url: string | null
+          error_message: string | null
+          started_at: string | null
+          completed_at: string | null
+          triggered_by: string | null
+        }
+        Insert: {
+          id?: string
+          report_id: string
+          run_type?: string | null
+          status?: string | null
+          filters_used?: Json | null
+          result_count?: number | null
+          result_file_url?: string | null
+          error_message?: string | null
+          started_at?: string | null
+          completed_at?: string | null
+          triggered_by?: string | null
+        }
+        Update: {
+          id?: string
+          report_id?: string
+          run_type?: string | null
+          status?: string | null
+          filters_used?: Json | null
+          result_count?: number | null
+          result_file_url?: string | null
+          error_message?: string | null
+          started_at?: string | null
+          completed_at?: string | null
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
+      report_subscriptions: {
+        Row: {
+          id: string
+          report_id: string
+          user_id: string
+          frequency: string
+          delivery_day: number | null
+          delivery_time: string | null
+          format: string | null
+          is_active: boolean | null
+          last_sent_at: string | null
+          next_send_at: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          report_id: string
+          user_id: string
+          frequency?: string
+          delivery_day?: number | null
+          delivery_time?: string | null
+          format?: string | null
+          is_active?: boolean | null
+          last_sent_at?: string | null
+          next_send_at?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          report_id?: string
+          user_id?: string
+          frequency?: string
+          delivery_day?: number | null
+          delivery_time?: string | null
+          format?: string | null
+          is_active?: boolean | null
+          last_sent_at?: string | null
+          next_send_at?: string | null
+          created_at?: string | null
         }
         Relationships: []
       }
@@ -7383,6 +11331,135 @@ export type Database = {
         }
         Relationships: []
       }
+      sanitization_records: {
+        Row: {
+          id: string
+          branch_id: string
+          trip_id: string | null
+          sanitization_type: string
+          areas_sanitized: string[] | null
+          products_used: string[] | null
+          started_at: string
+          completed_at: string | null
+          duration_minutes: number | null
+          photo_before: string | null
+          photo_after: string | null
+          performed_by: string
+          verified_by: string | null
+          verified_at: string | null
+          status: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          trip_id?: string | null
+          sanitization_type: string
+          areas_sanitized?: string[] | null
+          products_used?: string[] | null
+          started_at: string
+          completed_at?: string | null
+          duration_minutes?: number | null
+          photo_before?: string | null
+          photo_after?: string | null
+          performed_by: string
+          verified_by?: string | null
+          verified_at?: string | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          trip_id?: string | null
+          sanitization_type?: string
+          areas_sanitized?: string[] | null
+          products_used?: string[] | null
+          started_at?: string
+          completed_at?: string | null
+          duration_minutes?: number | null
+          photo_before?: string | null
+          photo_after?: string | null
+          performed_by?: string
+          verified_by?: string | null
+          verified_at?: string | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      scheduled_notifications: {
+        Row: {
+          id: string
+          notification_type: string
+          recipient_id: string | null
+          recipient_role: string | null
+          recipient_filter: Json | null
+          title: string
+          message: string
+          delivery_method: string
+          schedule_time: string
+          repeat_pattern: string | null
+          repeat_until: string | null
+          last_run_at: string | null
+          next_run_at: string | null
+          run_count: number | null
+          max_runs: number | null
+          status: string | null
+          metadata: Json | null
+          created_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          notification_type: string
+          recipient_id?: string | null
+          recipient_role?: string | null
+          recipient_filter?: Json | null
+          title: string
+          message: string
+          delivery_method: string
+          schedule_time: string
+          repeat_pattern?: string | null
+          repeat_until?: string | null
+          last_run_at?: string | null
+          next_run_at?: string | null
+          run_count?: number | null
+          max_runs?: number | null
+          status?: string | null
+          metadata?: Json | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          notification_type?: string
+          recipient_id?: string | null
+          recipient_role?: string | null
+          recipient_filter?: Json | null
+          title?: string
+          message?: string
+          delivery_method?: string
+          schedule_time?: string
+          repeat_pattern?: string | null
+          repeat_until?: string | null
+          last_run_at?: string | null
+          next_run_at?: string | null
+          run_count?: number | null
+          max_runs?: number | null
+          status?: string | null
+          metadata?: Json | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       season_calendar: {
         Row: {
           id: string
@@ -7461,6 +11538,42 @@ export type Database = {
         }
         Relationships: []
       }
+      security_events: {
+        Row: {
+          id: string
+          event_type: string
+          email: string | null
+          user_id: string | null
+          ip_address: string | null
+          user_agent: string | null
+          metadata: Json | null
+          severity: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          event_type: string
+          email?: string | null
+          user_id?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          metadata?: Json | null
+          severity?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          event_type?: string
+          email?: string | null
+          user_id?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          metadata?: Json | null
+          severity?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       seo_pages: {
         Row: {
           id: string
@@ -7532,6 +11645,8 @@ export type Database = {
           is_public: boolean | null
           updated_by: string | null
           updated_at: string | null
+          value_encrypted: string | null
+          is_sensitive: boolean | null
         }
         Insert: {
           id?: string
@@ -7543,6 +11658,8 @@ export type Database = {
           is_public?: boolean | null
           updated_by?: string | null
           updated_at?: string | null
+          value_encrypted?: string | null
+          is_sensitive?: boolean | null
         }
         Update: {
           id?: string
@@ -7554,6 +11671,8 @@ export type Database = {
           is_public?: boolean | null
           updated_by?: string | null
           updated_at?: string | null
+          value_encrypted?: string | null
+          is_sensitive?: boolean | null
         }
         Relationships: []
       }
@@ -7719,6 +11838,141 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_assessments: {
+        Row: {
+          id: string
+          branch_id: string | null
+          supplier_name: string
+          supplier_type: string
+          contact_person: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          has_environmental_policy: boolean | null
+          waste_management_score: number | null
+          carbon_reduction_efforts: string | null
+          uses_renewable_energy: boolean | null
+          has_certifications: boolean | null
+          certification_urls: string[] | null
+          overall_rating: number | null
+          compliance_status: string | null
+          assessment_date: string
+          next_review_date: string | null
+          assessed_by: string | null
+          assessment_notes: string | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id?: string | null
+          supplier_name: string
+          supplier_type: string
+          contact_person?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          has_environmental_policy?: boolean | null
+          waste_management_score?: number | null
+          carbon_reduction_efforts?: string | null
+          uses_renewable_energy?: boolean | null
+          has_certifications?: boolean | null
+          certification_urls?: string[] | null
+          overall_rating?: number | null
+          compliance_status?: string | null
+          assessment_date: string
+          next_review_date?: string | null
+          assessed_by?: string | null
+          assessment_notes?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string | null
+          supplier_name?: string
+          supplier_type?: string
+          contact_person?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          has_environmental_policy?: boolean | null
+          waste_management_score?: number | null
+          carbon_reduction_efforts?: string | null
+          uses_renewable_energy?: boolean | null
+          has_certifications?: boolean | null
+          certification_urls?: string[] | null
+          overall_rating?: number | null
+          compliance_status?: string | null
+          assessment_date?: string
+          next_review_date?: string | null
+          assessed_by?: string | null
+          assessment_notes?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sustainability_certifications: {
+        Row: {
+          id: string
+          branch_id: string
+          certification_name: string
+          certification_type: string
+          certification_body: string | null
+          certification_number: string | null
+          issued_date: string
+          valid_from: string
+          valid_until: string
+          status: string | null
+          certificate_url: string | null
+          audit_report_url: string | null
+          renewal_date: string | null
+          renewal_reminder_sent: boolean | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          certification_name: string
+          certification_type: string
+          certification_body?: string | null
+          certification_number?: string | null
+          issued_date: string
+          valid_from: string
+          valid_until: string
+          status?: string | null
+          certificate_url?: string | null
+          audit_report_url?: string | null
+          renewal_date?: string | null
+          renewal_reminder_sent?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          certification_name?: string
+          certification_type?: string
+          certification_body?: string | null
+          certification_number?: string | null
+          issued_date?: string
+          valid_from?: string
+          valid_until?: string
+          status?: string | null
+          certificate_url?: string | null
+          audit_report_url?: string | null
+          renewal_date?: string | null
+          renewal_reminder_sent?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
       sustainability_goals: {
         Row: {
           id: string
@@ -7731,6 +11985,14 @@ export type Database = {
           created_by: string
           created_at: string | null
           updated_at: string | null
+          goal_type: string | null
+          target_value: number | null
+          target_unit: string | null
+          current_value: number | null
+          status: string | null
+          baseline_value: number | null
+          baseline_date: string | null
+          notes: string | null
         }
         Insert: {
           id?: string
@@ -7743,6 +12005,14 @@ export type Database = {
           created_by: string
           created_at?: string | null
           updated_at?: string | null
+          goal_type?: string | null
+          target_value?: number | null
+          target_unit?: string | null
+          current_value?: number | null
+          status?: string | null
+          baseline_value?: number | null
+          baseline_date?: string | null
+          notes?: string | null
         }
         Update: {
           id?: string
@@ -7755,6 +12025,167 @@ export type Database = {
           created_by?: string
           created_at?: string | null
           updated_at?: string | null
+          goal_type?: string | null
+          target_value?: number | null
+          target_unit?: string | null
+          current_value?: number | null
+          status?: string | null
+          baseline_value?: number | null
+          baseline_date?: string | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      sustainability_initiatives: {
+        Row: {
+          id: string
+          branch_id: string
+          title: string
+          description: string | null
+          initiative_type: string
+          target_metric: string | null
+          target_value: number | null
+          target_unit: string | null
+          start_date: string
+          end_date: string | null
+          status: string | null
+          current_progress: number | null
+          milestones: Json | null
+          budget_allocated: number | null
+          budget_spent: number | null
+          responsible_person: string | null
+          estimated_impact: string | null
+          actual_impact: string | null
+          documentation_urls: string[] | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          title: string
+          description?: string | null
+          initiative_type: string
+          target_metric?: string | null
+          target_value?: number | null
+          target_unit?: string | null
+          start_date: string
+          end_date?: string | null
+          status?: string | null
+          current_progress?: number | null
+          milestones?: Json | null
+          budget_allocated?: number | null
+          budget_spent?: number | null
+          responsible_person?: string | null
+          estimated_impact?: string | null
+          actual_impact?: string | null
+          documentation_urls?: string[] | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          title?: string
+          description?: string | null
+          initiative_type?: string
+          target_metric?: string | null
+          target_value?: number | null
+          target_unit?: string | null
+          start_date?: string
+          end_date?: string | null
+          status?: string | null
+          current_progress?: number | null
+          milestones?: Json | null
+          budget_allocated?: number | null
+          budget_spent?: number | null
+          responsible_person?: string | null
+          estimated_impact?: string | null
+          actual_impact?: string | null
+          documentation_urls?: string[] | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      sustainability_metrics_monthly: {
+        Row: {
+          id: string
+          branch_id: string
+          metric_month: string
+          total_waste_kg: number | null
+          plastic_waste_kg: number | null
+          organic_waste_kg: number | null
+          recycled_waste_kg: number | null
+          recycling_rate: number | null
+          total_fuel_liters: number | null
+          total_co2_kg: number | null
+          co2_per_passenger_kg: number | null
+          co2_per_trip_kg: number | null
+          total_trips: number | null
+          total_passengers: number | null
+          total_distance_nm: number | null
+          total_water_liters: number | null
+          water_per_passenger_liters: number | null
+          previous_month_co2_kg: number | null
+          previous_month_waste_kg: number | null
+          co2_change_percent: number | null
+          waste_change_percent: number | null
+          calculated_at: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          metric_month: string
+          total_waste_kg?: number | null
+          plastic_waste_kg?: number | null
+          organic_waste_kg?: number | null
+          recycled_waste_kg?: number | null
+          recycling_rate?: number | null
+          total_fuel_liters?: number | null
+          total_co2_kg?: number | null
+          co2_per_passenger_kg?: number | null
+          co2_per_trip_kg?: number | null
+          total_trips?: number | null
+          total_passengers?: number | null
+          total_distance_nm?: number | null
+          total_water_liters?: number | null
+          water_per_passenger_liters?: number | null
+          previous_month_co2_kg?: number | null
+          previous_month_waste_kg?: number | null
+          co2_change_percent?: number | null
+          waste_change_percent?: number | null
+          calculated_at?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          metric_month?: string
+          total_waste_kg?: number | null
+          plastic_waste_kg?: number | null
+          organic_waste_kg?: number | null
+          recycled_waste_kg?: number | null
+          recycling_rate?: number | null
+          total_fuel_liters?: number | null
+          total_co2_kg?: number | null
+          co2_per_passenger_kg?: number | null
+          co2_per_trip_kg?: number | null
+          total_trips?: number | null
+          total_passengers?: number | null
+          total_distance_nm?: number | null
+          total_water_liters?: number | null
+          water_per_passenger_liters?: number | null
+          previous_month_co2_kg?: number | null
+          previous_month_waste_kg?: number | null
+          co2_change_percent?: number | null
+          waste_change_percent?: number | null
+          calculated_at?: string | null
+          created_at?: string | null
         }
         Relationships: []
       }
@@ -8157,6 +12588,78 @@ export type Database = {
         }
         Relationships: []
       }
+      travel_advisories: {
+        Row: {
+          id: string
+          source: string
+          source_reference: string | null
+          source_url: string | null
+          advisory_type: string
+          severity: string
+          severity_code: number | null
+          affected_locations: Json | null
+          affected_regions: string[] | null
+          title: string
+          description: string
+          impact_description: string | null
+          recommendations: string[] | null
+          valid_from: string
+          valid_until: string | null
+          is_active: boolean | null
+          weather_data: Json | null
+          maritime_data: Json | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          source: string
+          source_reference?: string | null
+          source_url?: string | null
+          advisory_type: string
+          severity?: string
+          severity_code?: number | null
+          affected_locations?: Json | null
+          affected_regions?: string[] | null
+          title: string
+          description: string
+          impact_description?: string | null
+          recommendations?: string[] | null
+          valid_from: string
+          valid_until?: string | null
+          is_active?: boolean | null
+          weather_data?: Json | null
+          maritime_data?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          source?: string
+          source_reference?: string | null
+          source_url?: string | null
+          advisory_type?: string
+          severity?: string
+          severity_code?: number | null
+          affected_locations?: Json | null
+          affected_regions?: string[] | null
+          title?: string
+          description?: string
+          impact_description?: string | null
+          recommendations?: string[] | null
+          valid_from?: string
+          valid_until?: string | null
+          is_active?: boolean | null
+          weather_data?: Json | null
+          maritime_data?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
       travel_circle_contributions: {
         Row: {
           id: string
@@ -8394,6 +12897,45 @@ export type Database = {
           created_at?: string | null
           updated_at?: string | null
           fee_amount?: number | null
+        }
+        Relationships: []
+      }
+      trip_destination_risks: {
+        Row: {
+          id: string
+          trip_id: string
+          destination_id: string | null
+          threat_level_at_departure: Database["public"]["Enums"]["threat_level"] | null
+          risk_factors_snapshot: Json | null
+          seasonal_risk_snapshot: Json | null
+          acknowledged_by: string | null
+          acknowledged_at: string | null
+          acknowledgment_notes: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          trip_id: string
+          destination_id?: string | null
+          threat_level_at_departure?: Database["public"]["Enums"]["threat_level"] | null
+          risk_factors_snapshot?: Json | null
+          seasonal_risk_snapshot?: Json | null
+          acknowledged_by?: string | null
+          acknowledged_at?: string | null
+          acknowledgment_notes?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          trip_id?: string
+          destination_id?: string | null
+          threat_level_at_departure?: Database["public"]["Enums"]["threat_level"] | null
+          risk_factors_snapshot?: Json | null
+          seasonal_risk_snapshot?: Json | null
+          acknowledged_by?: string | null
+          acknowledged_at?: string | null
+          acknowledgment_notes?: string | null
+          created_at?: string | null
         }
         Relationships: []
       }
@@ -8700,6 +13242,63 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_zone_compliance: {
+        Row: {
+          id: string
+          trip_id: string
+          zone_id: string
+          branch_id: string | null
+          entered_at: string
+          exited_at: string | null
+          duration_minutes: number | null
+          entry_latitude: number | null
+          entry_longitude: number | null
+          compliance_status: string
+          violations: Json | null
+          acknowledged_by: string | null
+          acknowledged_at: string | null
+          notes: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          trip_id: string
+          zone_id: string
+          branch_id?: string | null
+          entered_at: string
+          exited_at?: string | null
+          duration_minutes?: number | null
+          entry_latitude?: number | null
+          entry_longitude?: number | null
+          compliance_status?: string
+          violations?: Json | null
+          acknowledged_by?: string | null
+          acknowledged_at?: string | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          trip_id?: string
+          zone_id?: string
+          branch_id?: string | null
+          entered_at?: string
+          exited_at?: string | null
+          duration_minutes?: number | null
+          entry_latitude?: number | null
+          entry_longitude?: number | null
+          compliance_status?: string
+          violations?: Json | null
+          acknowledged_by?: string | null
+          acknowledged_at?: string | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       trips: {
         Row: {
           id: string
@@ -8787,6 +13386,513 @@ export type Database = {
         }
         Relationships: []
       }
+      trm_competency_assessments: {
+        Row: {
+          id: string
+          user_id: string
+          assessor_id: string | null
+          branch_id: string | null
+          assessment_type: string
+          competencies: Json
+          overall_score: number | null
+          assessed_at: string
+          result: string | null
+          recommendations: string[] | null
+          improvement_areas: string[] | null
+          follow_up_required: boolean | null
+          follow_up_date: string | null
+          evidence_urls: string[] | null
+          notes: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          assessor_id?: string | null
+          branch_id?: string | null
+          assessment_type: string
+          competencies?: Json
+          overall_score?: number | null
+          assessed_at?: string
+          result?: string | null
+          recommendations?: string[] | null
+          improvement_areas?: string[] | null
+          follow_up_required?: boolean | null
+          follow_up_date?: string | null
+          evidence_urls?: string[] | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          assessor_id?: string | null
+          branch_id?: string | null
+          assessment_type?: string
+          competencies?: Json
+          overall_score?: number | null
+          assessed_at?: string
+          result?: string | null
+          recommendations?: string[] | null
+          improvement_areas?: string[] | null
+          follow_up_required?: boolean | null
+          follow_up_date?: string | null
+          evidence_urls?: string[] | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      trm_improvement_actions: {
+        Row: {
+          id: string
+          branch_id: string
+          source_type: string
+          source_id: string | null
+          title: string
+          description: string | null
+          category: string
+          priority: string | null
+          assigned_to: string | null
+          due_date: string | null
+          completed_at: string | null
+          status: string | null
+          verified_by: string | null
+          verified_at: string | null
+          verification_notes: string | null
+          effectiveness_rating: number | null
+          effectiveness_notes: string | null
+          evidence_urls: string[] | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          source_type: string
+          source_id?: string | null
+          title: string
+          description?: string | null
+          category: string
+          priority?: string | null
+          assigned_to?: string | null
+          due_date?: string | null
+          completed_at?: string | null
+          status?: string | null
+          verified_by?: string | null
+          verified_at?: string | null
+          verification_notes?: string | null
+          effectiveness_rating?: number | null
+          effectiveness_notes?: string | null
+          evidence_urls?: string[] | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          source_type?: string
+          source_id?: string | null
+          title?: string
+          description?: string | null
+          category?: string
+          priority?: string | null
+          assigned_to?: string | null
+          due_date?: string | null
+          completed_at?: string | null
+          status?: string | null
+          verified_by?: string | null
+          verified_at?: string | null
+          verification_notes?: string | null
+          effectiveness_rating?: number | null
+          effectiveness_notes?: string | null
+          evidence_urls?: string[] | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      trm_kpi_targets: {
+        Row: {
+          id: string
+          branch_id: string
+          target_year: number
+          target_quarter: number | null
+          target_risk_assessment_rate: number | null
+          target_max_high_risk_trips: number | null
+          target_max_incidents: number | null
+          target_incident_resolution_days: number | null
+          target_zero_high_severity: boolean | null
+          target_response_time_minutes: number | null
+          target_sos_acknowledgment_minutes: number | null
+          target_training_compliance_rate: number | null
+          target_safety_briefing_rate: number | null
+          target_zero_injuries: boolean | null
+          target_overall_score: number | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          target_year: number
+          target_quarter?: number | null
+          target_risk_assessment_rate?: number | null
+          target_max_high_risk_trips?: number | null
+          target_max_incidents?: number | null
+          target_incident_resolution_days?: number | null
+          target_zero_high_severity?: boolean | null
+          target_response_time_minutes?: number | null
+          target_sos_acknowledgment_minutes?: number | null
+          target_training_compliance_rate?: number | null
+          target_safety_briefing_rate?: number | null
+          target_zero_injuries?: boolean | null
+          target_overall_score?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          target_year?: number
+          target_quarter?: number | null
+          target_risk_assessment_rate?: number | null
+          target_max_high_risk_trips?: number | null
+          target_max_incidents?: number | null
+          target_incident_resolution_days?: number | null
+          target_zero_high_severity?: boolean | null
+          target_response_time_minutes?: number | null
+          target_sos_acknowledgment_minutes?: number | null
+          target_training_compliance_rate?: number | null
+          target_safety_briefing_rate?: number | null
+          target_zero_injuries?: boolean | null
+          target_overall_score?: number | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      trm_performance_metrics: {
+        Row: {
+          id: string
+          branch_id: string
+          metric_period: string
+          total_trips: number | null
+          completed_trips: number | null
+          cancelled_trips: number | null
+          incidents_count: number | null
+          incidents_high_severity: number | null
+          incidents_resolved: number | null
+          near_misses_count: number | null
+          risk_assessments_required: number | null
+          risk_assessments_completed: number | null
+          risk_assessments_rate: number | null
+          average_risk_score: number | null
+          high_risk_trips: number | null
+          sos_alerts_count: number | null
+          average_response_time_minutes: number | null
+          fastest_response_time_minutes: number | null
+          slowest_response_time_minutes: number | null
+          guides_total: number | null
+          guides_training_compliant: number | null
+          training_compliance_rate: number | null
+          safety_briefings_completed: number | null
+          safety_briefing_rate: number | null
+          equipment_checks_completed: number | null
+          equipment_check_rate: number | null
+          passenger_injuries: number | null
+          crew_injuries: number | null
+          safety_complaints: number | null
+          overall_trm_score: number | null
+          score_breakdown: Json | null
+          previous_month_score: number | null
+          score_change: number | null
+          calculated_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          metric_period: string
+          total_trips?: number | null
+          completed_trips?: number | null
+          cancelled_trips?: number | null
+          incidents_count?: number | null
+          incidents_high_severity?: number | null
+          incidents_resolved?: number | null
+          near_misses_count?: number | null
+          risk_assessments_required?: number | null
+          risk_assessments_completed?: number | null
+          risk_assessments_rate?: number | null
+          average_risk_score?: number | null
+          high_risk_trips?: number | null
+          sos_alerts_count?: number | null
+          average_response_time_minutes?: number | null
+          fastest_response_time_minutes?: number | null
+          slowest_response_time_minutes?: number | null
+          guides_total?: number | null
+          guides_training_compliant?: number | null
+          training_compliance_rate?: number | null
+          safety_briefings_completed?: number | null
+          safety_briefing_rate?: number | null
+          equipment_checks_completed?: number | null
+          equipment_check_rate?: number | null
+          passenger_injuries?: number | null
+          crew_injuries?: number | null
+          safety_complaints?: number | null
+          overall_trm_score?: number | null
+          score_breakdown?: Json | null
+          previous_month_score?: number | null
+          score_change?: number | null
+          calculated_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          metric_period?: string
+          total_trips?: number | null
+          completed_trips?: number | null
+          cancelled_trips?: number | null
+          incidents_count?: number | null
+          incidents_high_severity?: number | null
+          incidents_resolved?: number | null
+          near_misses_count?: number | null
+          risk_assessments_required?: number | null
+          risk_assessments_completed?: number | null
+          risk_assessments_rate?: number | null
+          average_risk_score?: number | null
+          high_risk_trips?: number | null
+          sos_alerts_count?: number | null
+          average_response_time_minutes?: number | null
+          fastest_response_time_minutes?: number | null
+          slowest_response_time_minutes?: number | null
+          guides_total?: number | null
+          guides_training_compliant?: number | null
+          training_compliance_rate?: number | null
+          safety_briefings_completed?: number | null
+          safety_briefing_rate?: number | null
+          equipment_checks_completed?: number | null
+          equipment_check_rate?: number | null
+          passenger_injuries?: number | null
+          crew_injuries?: number | null
+          safety_complaints?: number | null
+          overall_trm_score?: number | null
+          score_breakdown?: Json | null
+          previous_month_score?: number | null
+          score_change?: number | null
+          calculated_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      trm_quiz_questions: {
+        Row: {
+          id: string
+          module_id: string
+          question_text: string
+          question_type: string | null
+          options: Json | null
+          correct_answer: boolean | null
+          explanation: string | null
+          points: number | null
+          order_index: number | null
+          is_active: boolean | null
+        }
+        Insert: {
+          id?: string
+          module_id: string
+          question_text: string
+          question_type?: string | null
+          options?: Json | null
+          correct_answer?: boolean | null
+          explanation?: string | null
+          points?: number | null
+          order_index?: number | null
+          is_active?: boolean | null
+        }
+        Update: {
+          id?: string
+          module_id?: string
+          question_text?: string
+          question_type?: string | null
+          options?: Json | null
+          correct_answer?: boolean | null
+          explanation?: string | null
+          points?: number | null
+          order_index?: number | null
+          is_active?: boolean | null
+        }
+        Relationships: []
+      }
+      trm_training_completions: {
+        Row: {
+          id: string
+          module_id: string
+          user_id: string
+          branch_id: string | null
+          started_at: string
+          completed_at: string | null
+          progress_percentage: number | null
+          topics_completed: Json | null
+          current_topic_index: number | null
+          total_time_spent_minutes: number | null
+          quiz_attempts: number | null
+          quiz_score: number | null
+          quiz_passed: boolean | null
+          quiz_completed_at: string | null
+          quiz_answers: Json | null
+          certificate_issued: boolean | null
+          certificate_url: string | null
+          certificate_number: string | null
+          valid_until: string | null
+          status: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          module_id: string
+          user_id: string
+          branch_id?: string | null
+          started_at?: string
+          completed_at?: string | null
+          progress_percentage?: number | null
+          topics_completed?: Json | null
+          current_topic_index?: number | null
+          total_time_spent_minutes?: number | null
+          quiz_attempts?: number | null
+          quiz_score?: number | null
+          quiz_passed?: boolean | null
+          quiz_completed_at?: string | null
+          quiz_answers?: Json | null
+          certificate_issued?: boolean | null
+          certificate_url?: string | null
+          certificate_number?: string | null
+          valid_until?: string | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          module_id?: string
+          user_id?: string
+          branch_id?: string | null
+          started_at?: string
+          completed_at?: string | null
+          progress_percentage?: number | null
+          topics_completed?: Json | null
+          current_topic_index?: number | null
+          total_time_spent_minutes?: number | null
+          quiz_attempts?: number | null
+          quiz_score?: number | null
+          quiz_passed?: boolean | null
+          quiz_completed_at?: string | null
+          quiz_answers?: Json | null
+          certificate_issued?: boolean | null
+          certificate_url?: string | null
+          certificate_number?: string | null
+          valid_until?: string | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      trm_training_modules: {
+        Row: {
+          id: string
+          branch_id: string | null
+          module_code: string
+          title: string
+          description: string | null
+          training_type: string
+          objectives: string[] | null
+          learning_outcomes: string[] | null
+          topics: Json | null
+          total_duration_minutes: number | null
+          has_quiz: boolean | null
+          passing_score: number | null
+          max_attempts: number | null
+          material_urls: string[] | null
+          video_urls: string[] | null
+          prerequisites: string[] | null
+          required_certifications: string[] | null
+          target_roles: string[] | null
+          is_active: boolean | null
+          version: string | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id?: string | null
+          module_code: string
+          title: string
+          description?: string | null
+          training_type: string
+          objectives?: string[] | null
+          learning_outcomes?: string[] | null
+          topics?: Json | null
+          total_duration_minutes?: number | null
+          has_quiz?: boolean | null
+          passing_score?: number | null
+          max_attempts?: number | null
+          material_urls?: string[] | null
+          video_urls?: string[] | null
+          prerequisites?: string[] | null
+          required_certifications?: string[] | null
+          target_roles?: string[] | null
+          is_active?: boolean | null
+          version?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string | null
+          module_code?: string
+          title?: string
+          description?: string | null
+          training_type?: string
+          objectives?: string[] | null
+          learning_outcomes?: string[] | null
+          topics?: Json | null
+          total_duration_minutes?: number | null
+          has_quiz?: boolean | null
+          passing_score?: number | null
+          max_attempts?: number | null
+          material_urls?: string[] | null
+          video_urls?: string[] | null
+          prerequisites?: string[] | null
+          required_certifications?: string[] | null
+          target_roles?: string[] | null
+          is_active?: boolean | null
+          version?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: []
+      }
       unified_notifications: {
         Row: {
           id: string
@@ -8823,6 +13929,57 @@ export type Database = {
           read?: boolean | null
           read_at?: string | null
           created_at?: string | null
+        }
+        Relationships: []
+      }
+      user_consents: {
+        Row: {
+          id: string
+          user_id: string
+          purpose_id: string
+          consent_given: boolean
+          consent_method: string | null
+          consent_timestamp: string | null
+          ip_address: string | null
+          user_agent: string | null
+          device_info: Json | null
+          withdrawn_at: string | null
+          withdrawal_reason: string | null
+          consent_version: number | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          purpose_id: string
+          consent_given: boolean
+          consent_method?: string | null
+          consent_timestamp?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          device_info?: Json | null
+          withdrawn_at?: string | null
+          withdrawal_reason?: string | null
+          consent_version?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          purpose_id?: string
+          consent_given?: boolean
+          consent_method?: string | null
+          consent_timestamp?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          device_info?: Json | null
+          withdrawn_at?: string | null
+          withdrawal_reason?: string | null
+          consent_version?: number | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -8994,6 +14151,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_saved_filters: {
+        Row: {
+          id: string
+          user_id: string
+          module: string
+          filter_name: string
+          filter_conditions: Json
+          is_default: boolean | null
+          is_shared: boolean | null
+          usage_count: number | null
+          last_used_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          module: string
+          filter_name: string
+          filter_conditions: Json
+          is_default?: boolean | null
+          is_shared?: boolean | null
+          usage_count?: number | null
+          last_used_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          module?: string
+          filter_name?: string
+          filter_conditions?: Json
+          is_default?: boolean | null
+          is_shared?: boolean | null
+          usage_count?: number | null
+          last_used_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           id: string
@@ -9035,6 +14234,10 @@ export type Database = {
           logo_url: string | null
           points: number | null
           company_id: string | null
+          loyalty_points: number | null
+          loyalty_tier: string | null
+          total_bookings: number | null
+          total_spent: number | null
         }
         Insert: {
           id: string
@@ -9076,6 +14279,10 @@ export type Database = {
           logo_url?: string | null
           points?: number | null
           company_id?: string | null
+          loyalty_points?: number | null
+          loyalty_tier?: string | null
+          total_bookings?: number | null
+          total_spent?: number | null
         }
         Update: {
           id?: string
@@ -9117,6 +14324,10 @@ export type Database = {
           logo_url?: string | null
           points?: number | null
           company_id?: string | null
+          loyalty_points?: number | null
+          loyalty_tier?: string | null
+          total_bookings?: number | null
+          total_spent?: number | null
         }
         Relationships: []
       }
@@ -9336,6 +14547,261 @@ export type Database = {
         }
         Relationships: []
       }
+      water_tank_logs: {
+        Row: {
+          id: string
+          tank_id: string
+          trip_id: string | null
+          previous_level_liters: number | null
+          new_level_liters: number
+          change_liters: number | null
+          action_type: string
+          logged_by: string
+          logged_at: string | null
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          tank_id: string
+          trip_id?: string | null
+          previous_level_liters?: number | null
+          new_level_liters: number
+          change_liters?: number | null
+          action_type: string
+          logged_by: string
+          logged_at?: string | null
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          tank_id?: string
+          trip_id?: string | null
+          previous_level_liters?: number | null
+          new_level_liters?: number
+          change_liters?: number | null
+          action_type?: string
+          logged_by?: string
+          logged_at?: string | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      water_tanks: {
+        Row: {
+          id: string
+          branch_id: string
+          vessel_id: string | null
+          tank_name: string
+          tank_type: string
+          capacity_liters: number
+          current_level_liters: number | null
+          current_percentage: number | null
+          last_checked_at: string | null
+          last_refilled_at: string | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          vessel_id?: string | null
+          tank_name: string
+          tank_type: string
+          capacity_liters: number
+          current_level_liters?: number | null
+          current_percentage?: number | null
+          last_checked_at?: string | null
+          last_refilled_at?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          vessel_id?: string | null
+          tank_name?: string
+          tank_type?: string
+          capacity_liters?: number
+          current_level_liters?: number | null
+          current_percentage?: number | null
+          last_checked_at?: string | null
+          last_refilled_at?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      water_usage_logs: {
+        Row: {
+          id: string
+          trip_id: string | null
+          branch_id: string
+          usage_type: string
+          quantity_liters: number
+          source: string
+          source_location: string | null
+          logged_by: string
+          logged_at: string | null
+          notes: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          trip_id?: string | null
+          branch_id: string
+          usage_type: string
+          quantity_liters: number
+          source?: string
+          source_location?: string | null
+          logged_by: string
+          logged_at?: string | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          trip_id?: string | null
+          branch_id?: string
+          usage_type?: string
+          quantity_liters?: number
+          source?: string
+          source_location?: string | null
+          logged_by?: string
+          logged_at?: string | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      weather_cache: {
+        Row: {
+          id: string
+          location_key: string
+          latitude: number | null
+          longitude: number | null
+          region: string | null
+          current_weather: Json | null
+          forecast_hourly: Json | null
+          forecast_daily: Json | null
+          maritime_conditions: Json | null
+          source: string | null
+          raw_response: Json | null
+          fetched_at: string
+          expires_at: string
+        }
+        Insert: {
+          id?: string
+          location_key: string
+          latitude?: number | null
+          longitude?: number | null
+          region?: string | null
+          current_weather?: Json | null
+          forecast_hourly?: Json | null
+          forecast_daily?: Json | null
+          maritime_conditions?: Json | null
+          source?: string | null
+          raw_response?: Json | null
+          fetched_at?: string
+          expires_at: string
+        }
+        Update: {
+          id?: string
+          location_key?: string
+          latitude?: number | null
+          longitude?: number | null
+          region?: string | null
+          current_weather?: Json | null
+          forecast_hourly?: Json | null
+          forecast_daily?: Json | null
+          maritime_conditions?: Json | null
+          source?: string | null
+          raw_response?: Json | null
+          fetched_at?: string
+          expires_at?: string
+        }
+        Relationships: []
+      }
+      zone_violation_reports: {
+        Row: {
+          id: string
+          compliance_id: string
+          zone_id: string
+          trip_id: string
+          branch_id: string | null
+          violation_type: string
+          severity: string
+          description: string
+          latitude: number | null
+          longitude: number | null
+          occurred_at: string
+          evidence_urls: string[] | null
+          gps_data: Json | null
+          status: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          penalty_applied: string | null
+          penalty_amount: number | null
+          created_at: string | null
+          updated_at: string | null
+          reported_by: string | null
+        }
+        Insert: {
+          id?: string
+          compliance_id: string
+          zone_id: string
+          trip_id: string
+          branch_id?: string | null
+          violation_type: string
+          severity?: string
+          description: string
+          latitude?: number | null
+          longitude?: number | null
+          occurred_at: string
+          evidence_urls?: string[] | null
+          gps_data?: Json | null
+          status?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          penalty_applied?: string | null
+          penalty_amount?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          reported_by?: string | null
+        }
+        Update: {
+          id?: string
+          compliance_id?: string
+          zone_id?: string
+          trip_id?: string
+          branch_id?: string | null
+          violation_type?: string
+          severity?: string
+          description?: string
+          latitude?: number | null
+          longitude?: number | null
+          occurred_at?: string
+          evidence_urls?: string[] | null
+          gps_data?: Json | null
+          status?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          penalty_applied?: string | null
+          penalty_amount?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          reported_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       corporate_usage_by_department: {
@@ -9383,6 +14849,16 @@ export type Database = {
         }
         Relationships: []
       }
+      v_permenparekraf_criteria_summary: {
+        Row: {
+          business_type: string | null
+          section_code: string | null
+          criteria_count: number | null
+          total_weight: number | null
+          avg_max_score: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       apply_discount_code: {
@@ -9402,6 +14878,10 @@ export type Database = {
         Returns: unknown
       }
       auto_calculate_co2_emissions: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      auto_expire_certifications: {
         Args: Record<string, unknown>
         Returns: unknown
       }
@@ -9445,6 +14925,18 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      calculate_assessment_grade: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      calculate_branch_training_compliance: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      calculate_chse_score: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       calculate_co2_emissions: {
         Args: Record<string, unknown>
         Returns: unknown
@@ -9457,7 +14949,19 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      calculate_crisis_response_time: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      calculate_destination_risk_score: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       calculate_guide_wallet_balance: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      calculate_monthly_sustainability_metrics: {
         Args: Record<string, unknown>
         Returns: unknown
       }
@@ -9473,11 +14977,23 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      calculate_trm_metrics: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       can_trip_start: {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      check_brute_force_attack: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       check_budget_alert: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      check_certificate_expiry: {
         Args: Record<string, unknown>
         Returns: unknown
       }
@@ -9509,6 +15025,10 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      check_user_training_compliance: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       check_wallet_milestones: {
         Args: Record<string, unknown>
         Returns: unknown
@@ -9521,6 +15041,18 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      create_emergency_notification_batch: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      decrypt_setting: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      encrypt_setting: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       ensure_single_default_bank_account: {
         Args: Record<string, unknown>
         Returns: unknown
@@ -9530,6 +15062,10 @@ export type Database = {
         Returns: unknown
       }
       expire_gift_vouchers: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      expire_old_export_files: {
         Args: Record<string, unknown>
         Returns: unknown
       }
@@ -9565,11 +15101,23 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      generate_crisis_event_code: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       generate_daily_insurance_manifests: {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      generate_incident_report_number: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       generate_insurance_manifest: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      generate_invoice_number: {
         Args: Record<string, unknown>
         Returns: unknown
       }
@@ -9593,11 +15141,43 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      get_community_impact_summary: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      get_compliance_dashboard: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       get_compliance_score: {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      get_current_seasonal_risk: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       get_expiring_certifications: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      get_guide_competency_completion: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      get_incident_summary: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      get_location_advisories: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      get_near_miss_stats: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      get_nearby_zones: {
         Args: Record<string, unknown>
         Returns: unknown
       }
@@ -9617,11 +15197,39 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      get_security_event_summary: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       get_setting: {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      get_supplier_compliance_summary: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      get_suppliers_by_type: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      get_trip_emergency_contacts: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      get_trip_water_summary: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       get_user_branch_id: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      get_user_consent: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      get_user_consent_summary: {
         Args: Record<string, unknown>
         Returns: unknown
       }
@@ -9749,6 +15357,10 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      has_mra_tp_certification: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       hnsw_bit_support: {
         Args: Record<string, unknown>
         Returns: unknown
@@ -9773,11 +15385,23 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      is_admin_from_jwt: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       is_internal_staff: {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      is_point_in_zone: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       is_super_admin: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      is_weather_cache_valid: {
         Args: Record<string, unknown>
         Returns: unknown
       }
@@ -9825,11 +15449,23 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      log_destination_risk_change: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       log_guide_assignment_audit: {
         Args: Record<string, unknown>
         Returns: unknown
       }
       log_partner_tier_change: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      log_settings_change: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      log_tank_level_change: {
         Args: Record<string, unknown>
         Returns: unknown
       }
@@ -9997,6 +15633,10 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      update_compliance_status_from_assessment: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       update_contract_updated_at: {
         Args: Record<string, unknown>
         Returns: unknown
@@ -10010,6 +15650,10 @@ export type Database = {
         Returns: unknown
       }
       update_discount_codes_timestamp: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      update_email_templates_updated_at: {
         Args: Record<string, unknown>
         Returns: unknown
       }
@@ -10029,11 +15673,23 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      update_incident_reports_updated_at: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       update_integration_settings_timestamp: {
         Args: Record<string, unknown>
         Returns: unknown
       }
       update_last_reminder_sent: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      update_near_miss_timestamp: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      update_notification_templates_updated_at: {
         Args: Record<string, unknown>
         Returns: unknown
       }
@@ -10077,7 +15733,15 @@ export type Database = {
         Args: Record<string, unknown>
         Returns: unknown
       }
+      update_supplier_assessment_timestamp: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
       update_updated_at_column: {
+        Args: Record<string, unknown>
+        Returns: unknown
+      }
+      update_user_loyalty_points: {
         Args: Record<string, unknown>
         Returns: unknown
       }
@@ -10232,12 +15896,14 @@ export type Database = {
     contribution_status: "pending" | "paid" | "late" | "missed"
     corporate_approval_status: "pending" | "approved" | "rejected" | "cancelled"
     corporate_transaction_type: "topup" | "employee_allocation" | "booking_debit" | "refund_credit" | "adjustment"
+    crisis_type: "weather" | "medical" | "security" | "accident" | "natural_disaster" | "equipment_failure" | "other"
     cron_job_status: "running" | "completed" | "failed"
     customer_wallet_transaction_type: "refund_credit" | "booking_debit" | "topup" | "withdrawal" | "adjustment"
     deduction_reason: "late_check_in" | "missing_documentation" | "complaint" | "damage" | "other"
     deduction_type: "late_penalty" | "no_documentation" | "damage" | "other"
     discount_type: "percentage" | "fixed"
     disposal_method: "landfill" | "recycling" | "incineration" | "ocean"
+    escalation_level: "level_1" | "level_2" | "level_3" | "critical"
     expense_category: "fuel" | "food" | "ticket" | "transport" | "equipment" | "emergency" | "other"
     expense_request_status: "draft" | "pending_manager" | "pending_director" | "approved" | "rejected" | "paid" | "cancelled"
     feedback_rating: "excellent" | "good" | "needs_improvement"
@@ -10276,11 +15942,13 @@ export type Database = {
     promo_priority: "low" | "medium" | "high"
     question_type: "multiple_choice" | "rating"
     refund_status: "pending" | "approved" | "processing" | "completed" | "rejected"
+    risk_category: "marine" | "land" | "mixed" | "air"
     salary_payment_status: "pending" | "documentation_required" | "ready" | "paid" | "cancelled"
     season_type: "high_season" | "peak_season" | "low_season"
     sos_alert_type: "emergency" | "medical" | "security" | "weather" | "mechanical" | "other"
     sos_status: "active" | "acknowledged" | "responding" | "resolved" | "false_alarm"
     split_bill_status: "pending" | "partial_paid" | "fully_paid" | "expired" | "cancelled"
+    threat_level: "low" | "medium" | "high" | "critical"
     ticket_category: "facility_issue" | "food_issue" | "guide_complaint" | "safety_issue" | "payment_issue" | "refund_request" | "general_inquiry" | "other"
     ticket_priority: "low" | "medium" | "high" | "urgent"
     ticket_status: "open" | "in_progress" | "escalated" | "resolved" | "closed"

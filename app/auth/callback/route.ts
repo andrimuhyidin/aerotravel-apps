@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { createClient } from '@/lib/supabase/server';
+import { warmUserCache } from '@/lib/cache/redis-cache';
+import { logger } from '@/lib/utils/logger';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -19,18 +21,32 @@ export async function GET(request: NextRequest) {
       }
 
       // Get active role (multi-role support)
-      const { getActiveRole } = await import('@/lib/session/active-role');
-      const activeRole = await getActiveRole(data.user.id);
+      const { getActiveRole, getUserRoles } = await import('@/lib/session/active-role');
       
-      // Fallback to profile role if no active role
-      const { data: profile } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
-
-      const profileRole = (profile as { role?: string } | null)?.role;
+      // Parallel fetch for better performance
+      const [activeRole, roles, profileResult] = await Promise.all([
+        getActiveRole(data.user.id),
+        getUserRoles(data.user.id),
+        supabase.from('users').select('*').eq('id', data.user.id).single(),
+      ]);
+      
+      const profile = profileResult.data as Record<string, unknown> | null;
+      const profileRole = profile?.role as string | null;
       const finalRole = activeRole || profileRole;
+      
+      // PERFORMANCE: Warm user cache for faster first page load
+      try {
+        await warmUserCache(
+          data.user.id,
+          profile,
+          activeRole,
+          roles
+        );
+        logger.info('User cache warmed on login', { userId: data.user.id, role: finalRole });
+      } catch (cacheError) {
+        // Don't block login if cache warming fails
+        logger.error('Failed to warm user cache', cacheError, { userId: data.user.id });
+      }
       
       // Role-based redirect map
       const roleRedirectMap: Record<string, string> = {

@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+import { useSettings } from '@/hooks/use-settings';
+
 type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -90,7 +92,22 @@ function MenuCard({ section }: { section: MenuSection }) {
   );
 }
 
+// Format WhatsApp number for URL (remove non-digits)
+function formatWhatsAppUrl(whatsapp: string): string {
+  const number = whatsapp.replace(/\D/g, '');
+  return `https://wa.me/${number}`;
+}
+
 export function GuestMenuSections({ locale }: { locale: string }) {
+  const { settings } = useSettings();
+  const whatsappUrl = settings?.contact?.whatsapp
+    ? formatWhatsAppUrl(settings.contact.whatsapp)
+    : 'https://wa.me/6281234567890'; // fallback
+
+  const appStoreUrl = settings?.['app.app_store_url'] || '#';
+  const playStoreUrl = settings?.['app.play_store_url'] || '#';
+  const appVersion = settings?.['app.version'] || '1.0.0';
+
   const menuSections: MenuSection[] = [
     {
       title: 'Pengaturan',
@@ -122,7 +139,7 @@ export function GuestMenuSections({ locale }: { locale: string }) {
         {
           icon: MessageCircle,
           label: 'Hubungi via WhatsApp',
-          href: 'https://wa.me/6281234567890',
+          href: whatsappUrl,
           external: true,
           iconColor: 'bg-emerald-500',
         },
@@ -140,8 +157,23 @@ export function GuestMenuSections({ locale }: { locale: string }) {
         {
           icon: Star,
           label: 'Beri Rating di App Store',
-          href: '#',
+          href: appStoreUrl,
+          external: appStoreUrl !== '#',
           iconColor: 'bg-yellow-500',
+        },
+        {
+          icon: Star,
+          label: 'Beri Rating di Play Store',
+          href: playStoreUrl,
+          external: playStoreUrl !== '#',
+          iconColor: 'bg-green-500',
+        },
+        {
+          icon: Info,
+          label: 'Versi Aplikasi',
+          value: appVersion,
+          href: '#',
+          iconColor: 'bg-gray-500',
         },
       ],
     },
@@ -177,6 +209,15 @@ export function GuestMenuSections({ locale }: { locale: string }) {
 }
 
 export function LoggedInMenuSections({ locale }: { locale: string }) {
+  const { settings } = useSettings();
+  const whatsappUrl = settings?.contact?.whatsapp
+    ? formatWhatsAppUrl(settings.contact.whatsapp)
+    : 'https://wa.me/6281234567890'; // fallback
+
+  const appStoreUrl = settings?.['app.app_store_url'] || '#';
+  const playStoreUrl = settings?.['app.play_store_url'] || '#';
+  const appVersion = settings?.['app.version'] || '1.0.0';
+
   const menuSections: MenuSection[] = [
     {
       title: 'Pengaturan',
@@ -214,7 +255,7 @@ export function LoggedInMenuSections({ locale }: { locale: string }) {
         {
           icon: MessageCircle,
           label: 'Hubungi via WhatsApp',
-          href: 'https://wa.me/6281234567890',
+          href: whatsappUrl,
           external: true,
           iconColor: 'bg-emerald-500',
         },
@@ -232,8 +273,23 @@ export function LoggedInMenuSections({ locale }: { locale: string }) {
         {
           icon: Star,
           label: 'Beri Rating di App Store',
-          href: '#',
+          href: appStoreUrl,
+          external: appStoreUrl !== '#',
           iconColor: 'bg-yellow-500',
+        },
+        {
+          icon: Star,
+          label: 'Beri Rating di Play Store',
+          href: playStoreUrl,
+          external: playStoreUrl !== '#',
+          iconColor: 'bg-green-500',
+        },
+        {
+          icon: Info,
+          label: 'Versi Aplikasi',
+          value: appVersion,
+          href: '#',
+          iconColor: 'bg-gray-500',
         },
       ],
     },

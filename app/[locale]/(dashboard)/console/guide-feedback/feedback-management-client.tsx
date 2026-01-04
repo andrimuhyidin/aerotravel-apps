@@ -103,7 +103,7 @@ export function FeedbackManagementClient({
     page: number;
     limit: number;
   }>({
-    queryKey: ['admin-feedbacks', statusFilter],
+    queryKey: queryKeys.admin.feedbacks.list({ status: statusFilter }),
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== 'all') {
@@ -151,7 +151,7 @@ export function FeedbackManagementClient({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-feedbacks'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.feedbacks.all() });
       queryClient.invalidateQueries({
         queryKey: queryKeys.guide.feedback.stats(),
       });

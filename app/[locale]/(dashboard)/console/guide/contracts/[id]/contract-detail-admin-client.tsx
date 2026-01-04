@@ -37,6 +37,7 @@ import { Label } from '@/components/ui/label';
 import { LoadingState } from '@/components/ui/loading-state';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/utils/logger';
 
@@ -87,7 +88,7 @@ export function ContractDetailAdminClient({
   const [activeTab, setActiveTab] = useState('details');
 
   const { data, isLoading, error, refetch } = useQuery<{ contract: Contract }>({
-    queryKey: ['admin', 'guide', 'contracts', 'detail', contractId],
+    queryKey: queryKeys.admin.contracts.detail(contractId),
     queryFn: async () => {
       const res = await fetch(`/api/admin/guide/contracts/${contractId}`);
       if (!res.ok) throw new Error('Failed to load contract');
@@ -109,8 +110,8 @@ export function ContractDetailAdminClient({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'guide', 'contracts'] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'guide', 'contracts', 'detail', contractId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.contracts.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.contracts.detail(contractId) });
       toast.success('Kontrak telah dikirim ke guide');
     },
     onError: (error) => {
@@ -133,8 +134,8 @@ export function ContractDetailAdminClient({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'guide', 'contracts'] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'guide', 'contracts', 'detail', contractId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.contracts.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.contracts.detail(contractId) });
       toast.success('Kontrak telah ditandatangani dan aktif');
     },
     onError: (error) => {
@@ -157,8 +158,8 @@ export function ContractDetailAdminClient({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'guide', 'contracts'] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'guide', 'contracts', 'detail', contractId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.contracts.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.contracts.detail(contractId) });
       setShowTerminateDialog(false);
       setTerminationReason('');
       toast.success('Kontrak telah dihentikan');
@@ -169,9 +170,23 @@ export function ContractDetailAdminClient({
     },
   });
 
+  // Sanction type definition
+  type Sanction = {
+    id: string;
+    title: string;
+    description: string;
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    status: 'active' | 'resolved';
+    violation_date: string;
+    fine_amount?: number | string;
+    suspension_start_date?: string;
+    suspension_end_date?: string;
+    resolution_notes?: string;
+  };
+
   // Fetch sanctions
-  const { data: sanctionsData, refetch: refetchSanctions } = useQuery<{ data: Array<unknown> }>({
-    queryKey: ['admin', 'guide', 'contracts', 'sanctions', contractId],
+  const { data: sanctionsData, refetch: refetchSanctions } = useQuery<{ data: Sanction[] }>({
+    queryKey: queryKeys.admin.contracts.sanctions(contractId),
     queryFn: async () => {
       const res = await fetch(`/api/admin/guide/contracts/${contractId}/sanctions`);
       if (!res.ok) return { data: [] };
@@ -180,7 +195,7 @@ export function ContractDetailAdminClient({
     enabled: !!contract,
   });
 
-  const sanctions = sanctionsData?.data || [];
+  const sanctions: Sanction[] = sanctionsData?.data || [];
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('id-ID', {
@@ -421,7 +436,7 @@ export function ContractDetailAdminClient({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {sanctions.map((sanction: any) => (
+                    {sanctions.map((sanction) => (
                       <div
                         key={sanction.id}
                         className="rounded-lg border border-slate-200 p-4"
@@ -661,7 +676,7 @@ function SanctionDialog({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'guide', 'contracts', 'sanctions', contractId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.contracts.sanctions(contractId) });
       onOpenChange(false);
       resetForm();
       onSuccess();
@@ -754,7 +769,7 @@ function SanctionDialog({
             <Label>Jenis Sanksi *</Label>
             <select
               value={sanctionType}
-              onChange={(e) => setSanctionType(e.target.value as any)}
+              onChange={(e) => setSanctionType(e.target.value as 'warning' | 'suspension' | 'fine' | 'demotion' | 'termination')}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg"
             >
               <option value="warning">Peringatan</option>
@@ -769,7 +784,7 @@ function SanctionDialog({
             <Label>Tingkat Keparahan *</Label>
             <select
               value={severity}
-              onChange={(e) => setSeverity(e.target.value as any)}
+              onChange={(e) => setSeverity(e.target.value as 'low' | 'medium' | 'high' | 'critical')}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg"
             >
               <option value="low">Rendah</option>

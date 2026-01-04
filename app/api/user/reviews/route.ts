@@ -1,6 +1,8 @@
 /**
  * User Reviews API
  * POST /api/user/reviews - Submit a review for a completed trip
+ * 
+ * Note: Customer bookings are linked via customer_email (not user_id)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -24,7 +26,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const parsed = reviewSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: 'Invalid review data', details: parsed.error.errors },
+      { error: 'Invalid review data', details: parsed.error.issues },
       { status: 400 }
     );
   }
@@ -34,26 +36,27 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const supabase = await createClient();
 
-  // Get current user
+  // Get current user with email
   const { data: { user } } = await supabase.auth.getUser();
   
-  if (!user) {
+  if (!user || !user.email) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
     );
   }
 
-  // Get booking and verify ownership
+  // Get booking and verify ownership via customer_email OR created_by
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
-    .select('id, status, package_id, user_id')
+    .select('id, status, package_id, customer_email, created_by')
     .eq('id', data.bookingId)
-    .eq('user_id', user.id)
+    .or(`customer_email.eq.${user.email},created_by.eq.${user.id}`)
+    .is('deleted_at', null)
     .single();
 
   if (bookingError || !booking) {
-    logger.warn('Booking not found for review', { bookingId: data.bookingId });
+    logger.warn('Booking not found for review', { bookingId: data.bookingId, email: user.email });
     return NextResponse.json(
       { error: 'Booking not found' },
       { status: 404 }
@@ -68,12 +71,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     );
   }
 
-  // Check if already reviewed
+  // Check if already reviewed (by reviewer_id in package_reviews)
   const { count: existingReview } = await supabase
     .from('package_reviews')
     .select('id', { count: 'exact', head: true })
     .eq('booking_id', data.bookingId)
-    .eq('user_id', user.id);
+    .eq('reviewer_id', user.id);
 
   if (existingReview && existingReview > 0) {
     return NextResponse.json(
@@ -88,9 +91,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     .insert({
       package_id: booking.package_id,
       booking_id: data.bookingId,
-      user_id: user.id,
-      rating: data.rating,
-      review: sanitizeInput(data.review),
+      reviewer_id: user.id,
+      reviewer_name: user.user_metadata?.full_name || user.email || 'Anonymous',
+      overall_rating: data.rating,
+      review_text: sanitizeInput(data.review),
       status: 'published', // Auto-publish, can add moderation later
       created_at: new Date().toISOString(),
     })
@@ -105,8 +109,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     );
   }
 
-  // Update package average rating (trigger can also do this)
-  await updatePackageRating(supabase, booking.package_id);
+  // Note: Package average rating should be updated via database trigger or separate job
 
   logger.info('Review submitted successfully', { 
     reviewId: review.id,
@@ -119,30 +122,4 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     message: 'Review submitted successfully',
   }, { status: 201 });
 });
-
-async function updatePackageRating(supabase: Awaited<ReturnType<typeof createClient>>, packageId: string) {
-  try {
-    // Calculate new average
-    const { data: reviews } = await supabase
-      .from('package_reviews')
-      .select('rating')
-      .eq('package_id', packageId)
-      .eq('status', 'published');
-
-    if (reviews && reviews.length > 0) {
-      const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-      const reviewCount = reviews.length;
-
-      await supabase
-        .from('packages')
-        .update({
-          average_rating: Math.round(avgRating * 10) / 10,
-          review_count: reviewCount,
-        })
-        .eq('id', packageId);
-    }
-  } catch (error) {
-    logger.error('Failed to update package rating', error);
-  }
-}
 

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Calendar, FileText, Loader2, Save, Upload } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -32,10 +32,10 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import queryKeys from '@/lib/queries/query-keys';
 
-// Zod schema
+// Zod schema - Using Zod v4 syntax
 const createLicenseSchema = z.object({
-  licenseType: z.enum(['nib', 'skdn', 'sisupar', 'tdup', 'asita', 'chse'], {
-    required_error: 'Pilih jenis izin',
+  licenseType: z.enum(['nib', 'skdn', 'sisupar', 'tdup', 'asita', 'chse'] as const, {
+    message: 'Pilih jenis izin',
   }),
   licenseNumber: z.string().min(1, 'Nomor izin wajib diisi').max(100),
   licenseName: z.string().min(1, 'Nama izin wajib diisi').max(200),
@@ -47,8 +47,8 @@ const createLicenseSchema = z.object({
   // ASITA-specific fields
   asitaDetails: z.object({
     nia: z.string().min(1, 'NIA wajib diisi').max(50),
-    membershipType: z.enum(['regular', 'premium', 'corporate'], {
-      required_error: 'Pilih tipe keanggotaan',
+    membershipType: z.enum(['regular', 'premium', 'corporate'] as const, {
+      message: 'Pilih tipe keanggotaan',
     }),
     dpdRegion: z.string().max(100).nullable().optional(),
     memberSince: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal tidak valid'),
@@ -94,6 +94,8 @@ async function createLicense(data: CreateLicensePayload): Promise<{ id: string }
 export function CreateLicenseClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
+  const locale = (params?.locale as string) || 'id';
   const queryClient = useQueryClient();
   const preselectedType = searchParams.get('type');
 
@@ -123,7 +125,7 @@ export function CreateLicenseClient() {
         nia: '',
         membershipType: 'regular',
         dpdRegion: '',
-        memberSince: new Date().toISOString().split('T')[0],
+        memberSince: new Date().toISOString().split('T')[0] ?? '',
       });
     }
   }, [selectedType, form]);
@@ -132,9 +134,9 @@ export function CreateLicenseClient() {
     mutationFn: createLicense,
     onSuccess: (data) => {
       toast.success('Izin berhasil ditambahkan');
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.compliance.licenses._def });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.compliance.licenses() });
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.compliance.dashboard() });
-      router.push(`/console/compliance/licenses/${data.id}`);
+      router.push(`/${locale}/console/compliance/licenses/${data.id}`);
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Gagal menambahkan izin');

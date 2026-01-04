@@ -1,6 +1,7 @@
 /**
  * Finance Dashboard Client Component
  * Displays P&L summary, trends, and trip performance
+ * With realtime wallet transaction updates
  */
 
 'use client';
@@ -41,6 +42,7 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { formatCurrency, getProfitStatus, type TripPnL, type PnLSummary } from '@/lib/finance/shadow-pnl';
 import queryKeys from '@/lib/queries/query-keys';
+import { useAdminWalletRealtimeSync } from '@/hooks/use-wallet-realtime';
 
 type MonthlyTrend = {
   month: string;
@@ -74,8 +76,11 @@ async function fetchDashboardData(period: string): Promise<DashboardData> {
 export function FinanceDashboardClient() {
   const [period, setPeriod] = useState('month');
 
+  // Realtime wallet updates for admin
+  const { status: realtimeStatus } = useAdminWalletRealtimeSync();
+
   const { data, isLoading, error, refetch, isRefetching } = useQuery({
-    queryKey: [...queryKeys.admin.all, 'finance-dashboard', period],
+    queryKey: queryKeys.admin.finance.dashboard(period),
     queryFn: () => fetchDashboardData(period),
   });
 

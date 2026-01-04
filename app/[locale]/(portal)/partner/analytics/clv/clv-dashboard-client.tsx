@@ -115,26 +115,26 @@ export function CLVDashboardClient({ locale }: CLVDashboardClientProps) {
   const [activeTab, setActiveTab] = useState<'all' | 'high' | 'at-risk'>('all');
 
   // Fetch CLV stats
-  const { data: stats, isLoading: statsLoading } = useQuery<CLVStats>({
-    queryKey: queryKeys.partner.clvStats,
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: queryKeys.partner.clv.stats(),
     queryFn: async () => {
       const response = await apiClient.get<CLVStats>('/api/partner/analytics/clv');
-      return response;
+      return response.data;
     },
   });
 
   // Fetch customer CLV list
-  const { data: customers, isLoading: customersLoading } = useQuery<CustomerCLV[]>({
-    queryKey: queryKeys.partner.clvCustomers,
+  const { data: customers, isLoading: customersLoading } = useQuery({
+    queryKey: queryKeys.partner.clv.customers(),
     queryFn: async () => {
       const response = await apiClient.get<{ customers: CustomerCLV[] }>(
         '/api/partner/analytics/clv/customers'
       );
-      return response.customers;
+      return response.data.customers;
     },
   });
 
-  const filteredCustomers = customers?.filter((c) => {
+  const filteredCustomers = customers?.filter((c: CustomerCLV) => {
     if (activeTab === 'high') return c.segment === 'high';
     if (activeTab === 'at-risk') return c.churnRisk === 'high';
     return true;
@@ -145,7 +145,7 @@ export function CLVDashboardClient({ locale }: CLVDashboardClientProps) {
       <PageHeader
         title="Customer Lifetime Value"
         description="Analisis nilai pelanggan dan risiko churn"
-        backHref={`/${locale}/partner/analytics`}
+        backLink={`/${locale}/partner/analytics`}
       />
 
       <div className="space-y-4 px-4">
@@ -243,7 +243,7 @@ export function CLVDashboardClient({ locale }: CLVDashboardClientProps) {
             <CardContent>
               <div className="flex gap-2">
                 {['high', 'medium', 'low'].map((seg) => {
-                  const count = customers.filter((c) => c.segment === seg).length;
+                  const count = customers.filter((c: CustomerCLV) => c.segment === seg).length;
                   const percentage = customers.length > 0 
                     ? (count / customers.length) * 100 
                     : 0;
@@ -305,7 +305,7 @@ export function CLVDashboardClient({ locale }: CLVDashboardClientProps) {
               ) : (
                 <ScrollArea className="h-[400px]">
                   <div className="divide-y">
-                    {filteredCustomers.map((customer, index) => (
+                    {filteredCustomers.map((customer: CustomerCLV, index: number) => (
                       <div
                         key={customer.id}
                         className="flex cursor-pointer items-center justify-between p-4 hover:bg-muted/50"

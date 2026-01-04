@@ -7,16 +7,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { withErrorHandler } from '@/lib/api/error-handler';
-import { createClient, hasRole } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 export const GET = withErrorHandler(async () => {
-  const supabase = await createClient();
+  // Use regular client for auth
+  const authClient = await createClient();
 
-  const allowed = await hasRole(['super_admin', 'ops_admin']);
-  if (!allowed) {
+  const {
+    data: { user },
+  } = await authClient.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Check authorization using user metadata
+  const userRole = user.user_metadata?.role as string;
+  const allowedRoles = ['super_admin', 'ops_admin'];
+  if (!userRole || !allowedRoles.includes(userRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+
+  // Use admin client for data queries
+  const supabase = await createAdminClient();
 
   const { data, error } = await supabase
     .from('sos_alerts')
@@ -26,16 +40,16 @@ export const GET = withErrorHandler(async () => {
       trip_id,
       guide_id,
       branch_id,
-      alert_type,
       status,
       latitude,
       longitude,
+      location_name,
       accuracy_meters,
       created_at,
       acknowledged_at,
       resolved_at,
       message,
-      guide:users(full_name, phone),
+      guide:users!sos_alerts_guide_id_fkey(full_name, phone),
       trip:trips(trip_code, trip_date)
     `
     )
@@ -51,12 +65,26 @@ export const GET = withErrorHandler(async () => {
 });
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
-  const supabase = await createClient();
+  // Use regular client for auth
+  const authClient = await createClient();
 
-  const allowed = await hasRole(['super_admin', 'ops_admin']);
-  if (!allowed) {
+  const {
+    data: { user },
+  } = await authClient.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Check authorization using user metadata
+  const userRole = user.user_metadata?.role as string;
+  const allowedRoles = ['super_admin', 'ops_admin'];
+  if (!userRole || !allowedRoles.includes(userRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+
+  // Use admin client for data queries
+  const supabase = await createAdminClient();
 
   const body = (await request.json()) as {
     id?: string;
@@ -68,14 +96,6 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   if (!id || !action) {
     return NextResponse.json({ error: 'Missing id or action' }, { status: 400 });
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const now = new Date().toISOString();

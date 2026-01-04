@@ -2,6 +2,8 @@
  * User Trip Waiver API
  * POST /api/user/trips/[id]/waiver - Sign liability waiver
  * GET /api/user/trips/[id]/waiver - Get waiver status
+ * 
+ * Note: Customer bookings are linked via customer_email (not user_id)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -26,25 +28,26 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
 
   const supabase = await createClient();
 
-  // Get current user
+  // Get current user with email
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (!user || !user.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Get booking waiver status
+  // Get booking waiver status - verify via customer_email OR created_by
   const { data: booking, error } = await supabase
     .from('bookings')
     .select('id, waiver_signed_at, waiver_signature_url')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .or(`customer_email.eq.${user.email},created_by.eq.${user.id}`)
+    .is('deleted_at', null)
     .single();
 
   if (error || !booking) {
-    logger.warn('Booking not found', { id, userId: user.id });
+    logger.warn('Booking not found', { id, email: user.email });
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
@@ -66,12 +69,12 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
 
   const supabase = await createClient();
 
-  // Get current user
+  // Get current user with email
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (!user || !user.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -92,16 +95,17 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
     );
   }
 
-  // Verify booking exists and belongs to user
+  // Verify booking exists and belongs to user via customer_email OR created_by
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
     .select('id, waiver_signed_at, trip_date, status')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .or(`customer_email.eq.${user.email},created_by.eq.${user.id}`)
+    .is('deleted_at', null)
     .single();
 
   if (bookingError || !booking) {
-    logger.warn('Booking not found', { id, userId: user.id });
+    logger.warn('Booking not found', { id, email: user.email });
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
@@ -154,8 +158,7 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
       waiver_signer_ip: clientIp,
       waiver_signer_user_agent: userAgent,
     })
-    .eq('id', id)
-    .eq('user_id', user.id);
+    .eq('id', id);
 
   if (updateError) {
     logger.error('Failed to update booking with waiver', updateError);
@@ -175,4 +178,3 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Route
     signatureUrl,
   });
 });
-

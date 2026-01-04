@@ -53,6 +53,21 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   let processed = 0;
   let failed = 0;
 
+  // Get template processor
+  const { processNotificationTemplateWithFallback } = await import('@/lib/templates/notification');
+
+  const fallbackTemplate = `⚠️ *GUIDE ABSENT DETECTED* ⚠️
+
+*Guide:* {{guide_name}}
+*Trip:* {{trip_code}}
+*Meeting Time:* {{meeting_time}}
+*Minutes Late:* {{minutes_late}} menit
+
+Guide belum melakukan check-in 15 menit setelah meeting time.
+
+Mohon segera ditindaklanjuti dari dashboard Admin.
+Detail: {{trip_url}}`;
+
   for (const notification of pendingNotifications) {
     try {
       const guideName = notification.guide_name || 'Unknown Guide';
@@ -63,19 +78,22 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         timeStyle: 'short',
       });
       const minutesLate = notification.minutes_late || 0;
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-      // Build WhatsApp message
-      const message = `⚠️ *GUIDE ABSENT DETECTED* ⚠️
+      // Use template with variables
+      const variables = {
+        guide_name: guideName,
+        trip_code: tripCode,
+        meeting_time: meetingTime,
+        minutes_late: minutesLate,
+        trip_url: `${baseUrl}/admin/trips/${notification.trip_id}`,
+      };
 
-*Guide:* ${guideName}
-*Trip:* ${tripCode}
-*Meeting Time:* ${meetingTime}
-*Minutes Late:* ${minutesLate} menit
-
-Guide belum melakukan check-in 15 menit setelah meeting time.
-
-Mohon segera ditindaklanjuti dari dashboard Admin.
-Detail: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/trips/${notification.trip_id}`;
+      const message = await processNotificationTemplateWithFallback(
+        'guide_absence',
+        variables,
+        fallbackTemplate
+      );
 
       // Send WhatsApp
       await sendTextMessage(opsPhone, message);

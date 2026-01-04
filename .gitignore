@@ -56,3 +56,11 @@ storybook-static/
 # OS
 .DS_Store
 Thumbs.db
+
+# Backup files
+*.bak
+*._*.bak
+
+# macOS metadata files
+._*
+.DS_Store

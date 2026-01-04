@@ -90,7 +90,7 @@ export function PwaSettingsClient({ locale }: PwaSettingsClientProps) {
         const registration = await navigator.serviceWorker.getRegistration();
         if (registration?.active) {
           // For demo, use timestamp
-          setSwVersion(new Date().toISOString().split('T')[0]);
+          setSwVersion(new Date().toISOString().split('T')[0] ?? null);
         }
       }
     };

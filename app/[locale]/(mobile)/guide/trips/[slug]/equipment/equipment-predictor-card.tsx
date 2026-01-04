@@ -228,7 +228,7 @@ export function EquipmentPredictorCard({
                         {prediction.safetyAlert ? (
                           <AlertTriangle className="h-4 w-4 text-red-500" />
                         ) : (
-                          <Tool className="h-4 w-4 text-slate-500" />
+                          <Wrench className="h-4 w-4 text-slate-500" />
                         )}
                         <span className="font-medium text-sm">
                           {prediction.equipmentName}

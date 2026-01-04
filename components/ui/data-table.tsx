@@ -19,7 +19,7 @@ import { EmptyState } from './empty-state';
 
 export type DataTableColumn<T> = {
   key: string;
-  header: string;
+  header: string | (() => React.ReactNode);
   accessor: (row: T) => React.ReactNode;
   className?: string;
   headerClassName?: string;
@@ -76,7 +76,7 @@ export function DataTable<T extends Record<string, unknown>>({
                 key={column.key}
                 className={cn(column.headerClassName)}
               >
-                {column.header}
+                {typeof column.header === 'function' ? column.header() : column.header}
               </TableHead>
             ))}
           </TableRow>

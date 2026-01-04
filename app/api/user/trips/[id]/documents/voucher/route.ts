@@ -1,6 +1,8 @@
 /**
  * User Trip Voucher Document API
  * GET /api/user/trips/[id]/documents/voucher - Generate booking voucher PDF
+ * 
+ * Note: Customer bookings are linked via customer_email (not user_id)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -20,22 +22,22 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
 
   const supabase = await createClient();
 
-  // Get current user
+  // Get current user with email
   const { data: { user } } = await supabase.auth.getUser();
   
-  if (!user) {
+  if (!user || !user.email) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
     );
   }
 
-  // Get booking
+  // Get booking - verify ownership via customer_email OR created_by
   const { data: booking, error } = await supabase
     .from('bookings')
     .select(`
       id,
-      code,
+      booking_code,
       trip_date,
       adult_pax,
       child_pax,
@@ -45,21 +47,15 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
       customer_name,
       customer_phone,
       customer_email,
-      paid_at,
-      packages (
-        id,
-        name,
-        destination,
-        duration_days,
-        duration_nights
-      )
+      package_id
     `)
     .eq('id', id)
-    .eq('user_id', user.id)
+    .or(`customer_email.eq.${user.email},created_by.eq.${user.id}`)
+    .is('deleted_at', null)
     .single();
 
   if (error || !booking) {
-    logger.warn('Booking not found for voucher', { id, userId: user.id });
+    logger.warn('Booking not found for voucher', { id, email: user.email });
     return NextResponse.json(
       { error: 'Booking not found' },
       { status: 404 }
@@ -74,15 +70,23 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
     );
   }
 
-  // Generate simple HTML voucher (in production, use proper PDF generation)
-  const pkg = booking.packages as { name: string; destination: string } | null;
+  // Fetch package separately
+  let pkg: { name: string; destination: string } | null = null;
+  if (booking.package_id) {
+    const { data: packageData } = await supabase
+      .from('packages')
+      .select('name, destination')
+      .eq('id', booking.package_id)
+      .single();
+    pkg = packageData;
+  }
   
   const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
-      <title>E-Voucher ${booking.code}</title>
+      <title>E-Voucher ${booking.booking_code}</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 40px; max-width: 600px; margin: 0 auto; }
         .header { text-align: center; margin-bottom: 30px; }
@@ -103,7 +107,7 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
         <p>E-Voucher Trip</p>
       </div>
       
-      <div class="voucher-code">${booking.code}</div>
+      <div class="voucher-code">${booking.booking_code}</div>
       
       <div style="text-align: center; margin-bottom: 30px;">
         <span class="status">✓ ${booking.status.toUpperCase()}</span>
@@ -149,7 +153,7 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
         <div class="section-title">Pembayaran</div>
         <div class="info-row">
           <span class="info-label">Total</span>
-          <span class="info-value" style="font-size: 18px; color: #2563eb;">Rp ${booking.total_amount.toLocaleString('id-ID')}</span>
+          <span class="info-value" style="font-size: 18px; color: #2563eb;">Rp ${Number(booking.total_amount).toLocaleString('id-ID')}</span>
         </div>
       </div>
       
@@ -166,8 +170,7 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
   return new NextResponse(htmlContent, {
     headers: {
       'Content-Type': 'text/html',
-      'Content-Disposition': `attachment; filename="voucher-${booking.code}.html"`,
+      'Content-Disposition': `attachment; filename="voucher-${booking.booking_code}.html"`,
     },
   });
 });
-

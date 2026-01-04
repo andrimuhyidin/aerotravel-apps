@@ -6,6 +6,8 @@ import { cookies } from 'next/headers';
 
 import type { Database } from '@/types/supabase';
 import { getActiveRole, getUserRoles } from '@/lib/session/active-role';
+// PERFORMANCE: Static import instead of dynamic import
+import { getCached } from '@/lib/cache/redis-cache';
 
 /**
  * Create admin client with service role key
@@ -66,7 +68,11 @@ export async function createClient() {
 
 /**
  * Get current user with profile and multi-role support
- * Optimized with caching for better performance
+ * 
+ * PERFORMANCE OPTIMIZED:
+ * - Static import for redis-cache (no dynamic import latency)
+ * - Parallel fetching of profile, activeRole, and roles
+ * - Redis caching with 5 minute TTL
  */
 export async function getCurrentUser() {
   const supabase = await createClient();
@@ -78,28 +84,26 @@ export async function getCurrentUser() {
   if (!user) return null;
 
   // Cache user data for 5 minutes to reduce database queries
-  const { getCached, cacheKeys, cacheTTL } = await import('@/lib/cache/redis-cache');
   const cacheKey = `user:${user.id}:full`;
   
   const cachedUser = await getCached(
     cacheKey,
     300, // 5 minutes TTL
     async () => {
-      const { data: profileData } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      // PERFORMANCE: Parallel fetching instead of sequential
+      const [profileResult, activeRole, roles] = await Promise.all([
+        supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single(),
+        getActiveRole(user.id),
+        getUserRoles(user.id),
+      ]);
 
-      const profile = profileData as
+      const profile = profileResult.data as
         | Database['public']['Tables']['users']['Row']
         | null;
-
-      // Get active role (server-side session)
-      const activeRole = await getActiveRole(user.id);
-
-      // Get all user roles
-      const roles = await getUserRoles(user.id);
 
       return {
         profile,

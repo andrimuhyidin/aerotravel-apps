@@ -29,8 +29,8 @@ export function RegisterForm({ locale }: RegisterFormProps) {
       setError(result.error);
       setLoading(false);
     } else if (result?.success) {
-      // Track successful signup
-      trackSignup(result.userId || 'pending', 'customer', 'email');
+      // Track successful signup (userId will be available after verification)
+      trackSignup('pending', 'customer', 'email');
       
       setSuccess(true);
       setLoading(false);

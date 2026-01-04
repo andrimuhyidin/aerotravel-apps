@@ -89,16 +89,18 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (!user || !user.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   // First, check if this is a booking ID (from my-trips) and get the trip
+  // Verify ownership via customer_email OR created_by
   const { data: booking } = await supabase
     .from('bookings')
-    .select('id, trip_id, user_id, trip_date, status')
+    .select('id, trip_id, customer_email, trip_date, status')
     .eq('id', tripId)
-    .eq('user_id', user.id)
+    .or(`customer_email.eq.${user.email},created_by.eq.${user.id}`)
+    .is('deleted_at', null)
     .single();
 
   let actualTripId = tripId;
@@ -132,7 +134,7 @@ export const GET = withErrorHandler(async (_request: NextRequest, context: Route
       ),
       bookings (
         id,
-        user_id
+        customer_email
       )
     `
     )

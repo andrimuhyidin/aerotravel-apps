@@ -44,6 +44,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 
 type AiDocument = {
@@ -99,7 +100,7 @@ export function AiDocumentsManagementClient({ locale: _locale }: AiDocumentsMana
 
   // Fetch stats
   const { data: stats } = useQuery({
-    queryKey: ['admin-ai-documents-stats'],
+    queryKey: queryKeys.admin.aiDocuments.stats(),
     queryFn: async () => {
       const res = await fetch('/api/admin/ai-documents/stats');
       if (!res.ok) throw new Error('Failed to fetch stats');
@@ -111,7 +112,7 @@ export function AiDocumentsManagementClient({ locale: _locale }: AiDocumentsMana
   const { data, isLoading, error, refetch } = useQuery<{
     documents: AiDocument[];
   }>({
-    queryKey: ['admin-ai-documents', typeFilter, isActiveFilter],
+    queryKey: queryKeys.admin.aiDocuments.list({ type: typeFilter, isActive: isActiveFilter }),
     queryFn: async () => {
       const params = new URLSearchParams();
       if (typeFilter !== 'all') {
@@ -142,7 +143,7 @@ export function AiDocumentsManagementClient({ locale: _locale }: AiDocumentsMana
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-ai-documents'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.aiDocuments.all() });
       setCreateDialogOpen(false);
       setFormData({ title: '', document_type: 'sop', content: '', branch_id: null, is_active: true });
       toast.success('Document created successfully');
@@ -167,7 +168,7 @@ export function AiDocumentsManagementClient({ locale: _locale }: AiDocumentsMana
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-ai-documents'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.aiDocuments.all() });
       setEditDialogOpen(false);
       setSelectedDocument(null);
       toast.success('Document updated successfully');
@@ -190,7 +191,7 @@ export function AiDocumentsManagementClient({ locale: _locale }: AiDocumentsMana
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-ai-documents'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.aiDocuments.all() });
       setDeleteDialogOpen(false);
       setSelectedDocument(null);
       toast.success('Document deleted successfully');

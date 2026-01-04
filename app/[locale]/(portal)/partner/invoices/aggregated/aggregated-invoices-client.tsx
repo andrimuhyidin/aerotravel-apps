@@ -31,6 +31,7 @@ import {
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
+import type { DateRange } from 'react-day-picker';
 
 type AggregatedInvoiceData = {
   period: 'weekly' | 'monthly';
@@ -53,8 +54,7 @@ type AggregatedInvoiceData = {
 export function AggregatedInvoicesClient({ locale }: { locale: string }) {
   const [loading, setLoading] = useState(false);
   const [period, setPeriod] = useState<'weekly' | 'monthly'>('monthly');
-  const [dateFrom, setDateFrom] = useState<Date | null>(null);
-  const [dateTo, setDateTo] = useState<Date | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [data, setData] = useState<AggregatedInvoiceData | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -66,9 +66,9 @@ export function AggregatedInvoicesClient({ locale }: { locale: string }) {
         period,
       });
 
-      if (dateFrom && dateTo) {
-        params.append('from', dateFrom.toISOString().split('T')[0]!);
-        params.append('to', dateTo.toISOString().split('T')[0]!);
+      if (dateRange?.from && dateRange?.to) {
+        params.append('from', dateRange.from.toISOString().split('T')[0]!);
+        params.append('to', dateRange.to.toISOString().split('T')[0]!);
       }
 
       if (statusFilter !== 'all') {
@@ -203,14 +203,8 @@ export function AggregatedInvoicesClient({ locale }: { locale: string }) {
             <div>
               <label className="text-sm font-medium mb-2 block">Rentang Tanggal (Opsional)</label>
               <DateRangePicker
-                dateFrom={dateFrom}
-                dateTo={dateTo}
-                onDateFromChange={setDateFrom}
-                onDateToChange={setDateTo}
-                onClear={() => {
-                  setDateFrom(null);
-                  setDateTo(null);
-                }}
+                value={dateRange}
+                onChange={setDateRange}
                 className="w-full"
               />
             </div>

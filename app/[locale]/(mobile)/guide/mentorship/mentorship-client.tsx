@@ -263,10 +263,15 @@ export function MentorshipClient({ locale: _locale }: MentorshipClientProps) {
               icon={GraduationCap}
               title="Belum ada mentor"
               description="Cari mentor untuk membantu pengembangan karir Anda sebagai guide"
-              action={{
-                label: 'Cari Mentor',
-                onClick: () => document.querySelector('[data-value="find"]')?.dispatchEvent(new Event('click')),
-              }}
+              action={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.querySelector('[data-value="find"]')?.dispatchEvent(new Event('click'))}
+                >
+                  Cari Mentor
+                </Button>
+              }
             />
           ) : (
             asMentee.map((mentorship) => (

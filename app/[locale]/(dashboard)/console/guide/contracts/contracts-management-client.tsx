@@ -37,6 +37,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import queryKeys from '@/lib/queries/query-keys';
 import { cn } from '@/lib/utils';
 
 type Contract = {
@@ -72,7 +73,7 @@ export function ContractsManagementClient({ locale }: ContractsManagementClientP
     contracts: Contract[];
     total: number;
   }>({
-    queryKey: ['admin', 'guide', 'contracts', { status: statusFilter, type: typeFilter, search: searchQuery }],
+    queryKey: queryKeys.admin.contracts.list({ status: statusFilter, type: typeFilter, search: searchQuery }),
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== 'all') params.set('status', statusFilter);
@@ -118,7 +119,7 @@ export function ContractsManagementClient({ locale }: ContractsManagementClientP
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'guide', 'contracts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.contracts.all() });
     },
   });
 
@@ -136,7 +137,7 @@ export function ContractsManagementClient({ locale }: ContractsManagementClientP
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'guide', 'contracts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.contracts.all() });
     },
   });
 

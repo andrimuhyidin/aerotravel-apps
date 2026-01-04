@@ -3,6 +3,7 @@
 /**
  * Trip Detail Client Component
  * Menampilkan ringkasan trip dan manifest real-time
+ * With realtime trip status updates
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -58,6 +59,7 @@ import type { LocationPoint } from '@/lib/utils/maps';
 import { cacheLocationPoint } from '@/lib/utils/maps';
 
 import { useTripCrew } from '@/hooks/use-trip-crew';
+import { useTripRealtime } from '@/hooks/use-trip-realtime';
 import { toast } from 'sonner';
 import { RiskAssessmentDialog } from './risk-assessment-dialog';
 import { TripReadinessDialog } from './trip-readiness-dialog';
@@ -127,6 +129,23 @@ export function TripDetailClient({
   const { data: crewData } = useTripCrew(tripId);
   const crewRole = crewData?.currentUserRole ?? null;
   const isLeadGuide = crewData?.isLeadGuide ?? false;
+
+  // Realtime trip status updates
+  const { onUpdate, isSubscribed: isRealtimeSubscribed } = useTripRealtime(tripId);
+
+  // Handle realtime trip updates
+  useEffect(() => {
+    onUpdate((updatedTrip) => {
+      // Invalidate queries when trip is updated
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.trips.all(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.guide.tripsDetail(tripId),
+      });
+      toast.info(`Status trip diperbarui: ${updatedTrip.status}`);
+    });
+  }, [onUpdate, queryClient, tripId]);
 
   // Fetch assignment status, trip status, and trip details
   const { data: tripStatusData } = useQuery<{

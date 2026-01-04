@@ -75,15 +75,19 @@ type DashboardData = {
 };
 
 async function fetchDashboardData(): Promise<DashboardData> {
-  // Fetch from multiple endpoints in parallel
-  const [financeRes, tripsRes] = await Promise.allSettled([
-    fetch('/api/admin/finance/dashboard?period=month'),
-    fetch('/api/admin/guide/live-tracking'),
-  ]);
-
   const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+  // Fetch from multiple endpoints in parallel
+  const [financeRes, trackingRes, auditLogRes, sosRes] = await Promise.allSettled([
+    fetch('/api/admin/finance/dashboard?period=month'),
+    fetch('/api/admin/guide/live-tracking'),
+    fetch('/api/admin/audit-log?limit=10&page=1'),
+    fetch('/api/admin/sos').catch(() => null),
+  ]);
 
   // Parse finance data
   let financeData = null;
@@ -93,14 +97,80 @@ async function fetchDashboardData(): Promise<DashboardData> {
 
   // Parse live tracking data
   let trackingData = null;
-  if (tripsRes.status === 'fulfilled' && tripsRes.value.ok) {
-    trackingData = await tripsRes.value.json();
+  if (trackingRes.status === 'fulfilled' && trackingRes.value.ok) {
+    trackingData = await trackingRes.value.json();
   }
+
+  // Parse audit log for recent activities
+  let recentActivities: RecentActivity[] = [];
+  if (auditLogRes.status === 'fulfilled' && auditLogRes.value.ok) {
+    const auditData = await auditLogRes.value.json();
+    type AuditLog = {
+      id: string;
+      action: string;
+      resource_type: string;
+      resource_id?: string;
+      created_at: string;
+    };
+    recentActivities = (auditData.logs || []).slice(0, 5).map((log: AuditLog) => {
+      let type: 'booking' | 'payment' | 'trip' | 'guide' | 'sos' = 'booking';
+      let title = `${log.action} ${log.resource_type}`;
+      let description = log.resource_id || '';
+
+      // Map resource types to activity types
+      if (log.resource_type === 'booking') {
+        type = 'booking';
+        title = 'Booking baru diterima';
+        description = log.resource_id || 'New booking';
+      } else if (log.resource_type === 'payment') {
+        type = 'payment';
+        title = 'Pembayaran dikonfirmasi';
+        description = log.resource_id || 'Payment confirmed';
+      } else if (log.resource_type === 'trip') {
+        type = 'trip';
+        title = 'Trip updated';
+        description = log.resource_id || 'Trip activity';
+      } else if (log.resource_type === 'guide') {
+        type = 'guide';
+        title = 'Guide activity';
+        description = log.resource_id || 'Guide update';
+      }
+
+      return {
+        id: log.id,
+        type,
+        title,
+        description,
+        timestamp: log.created_at,
+        status: log.action === 'create' ? 'success' : log.action === 'update' ? 'warning' : 'danger',
+      };
+    });
+  }
+
+  // Calculate today's bookings from finance data (trips created today)
+  // For now, use monthly bookings as approximation
+  const bookingsToday = 0; // Would need separate query for today's bookings
+
+  // Get SOS alerts count
+  let sosAlerts = 0;
+  if (sosRes && sosRes.status === 'fulfilled' && sosRes.value?.ok) {
+    try {
+      const sosData = await sosRes.value.json();
+      type SOSAlert = { status: string };
+      sosAlerts = sosData.alerts?.filter((a: SOSAlert) => a.status === 'active').length || 0;
+    } catch {
+      // Ignore error
+    }
+  }
+
+  // Calculate bookings trend (compare today vs yesterday)
+  // For now, set to 0 - would need yesterday's data
+  const bookingsTrend = 0;
 
   // Build KPI data from available sources
   const kpi: KPIData = {
-    bookingsToday: 0,
-    bookingsTrend: 0,
+    bookingsToday,
+    bookingsTrend,
     revenueToday: financeData?.summary?.totalRevenue || 0,
     revenueTrend: 12.5, // Calculate from trends if available
     activeTrips: trackingData?.guides?.length || 0,
@@ -108,34 +178,6 @@ async function fetchDashboardData(): Promise<DashboardData> {
     pendingPayments: 0,
     pendingPaymentsTrend: 0,
   };
-
-  // Generate sample recent activities (in production, fetch from audit log)
-  const recentActivities: RecentActivity[] = [
-    {
-      id: '1',
-      type: 'booking',
-      title: 'Booking baru diterima',
-      description: 'Paket Pahawang 2D1N - 4 pax',
-      timestamp: new Date().toISOString(),
-      status: 'success',
-    },
-    {
-      id: '2',
-      type: 'payment',
-      title: 'Pembayaran dikonfirmasi',
-      description: 'Rp 2.500.000 - Transfer Bank',
-      timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-      status: 'success',
-    },
-    {
-      id: '3',
-      type: 'trip',
-      title: 'Trip dimulai',
-      description: 'TRIP-2026-001 - Guide: Budi',
-      timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-      status: 'success',
-    },
-  ];
 
   // Generate upcoming trips from finance data
   const upcomingTrips: UpcomingTrip[] = (financeData?.trips || [])
@@ -150,13 +192,16 @@ async function fetchDashboardData(): Promise<DashboardData> {
       status: trip.status,
     }));
 
+  // Get pending approvals (would need governance API)
+  const pendingApprovals = 0; // Placeholder - will be replaced when governance API is available
+
   return {
     kpi,
     recentActivities,
     upcomingTrips,
     activeGuides: trackingData?.guides?.length || 0,
-    pendingApprovals: 3,
-    sosAlerts: 0,
+    pendingApprovals,
+    sosAlerts,
     monthlyRevenue: financeData?.summary?.totalRevenue || 0,
     monthlyBookings: financeData?.summary?.totalTrips || 0,
   };
