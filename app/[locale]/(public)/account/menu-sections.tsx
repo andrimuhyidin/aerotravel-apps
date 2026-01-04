@@ -183,12 +183,12 @@ export function GuestMenuSections({ locale }: { locale: string }) {
         {
           icon: FileText,
           label: 'Syarat & Ketentuan',
-          href: `/${locale}/terms`,
+          href: `/${locale}/legal/terms`,
         },
         {
           icon: Shield,
           label: 'Kebijakan Privasi',
-          href: `/${locale}/privacy`,
+          href: `/${locale}/legal/privacy`,
         },
       ],
     },
@@ -299,12 +299,12 @@ export function LoggedInMenuSections({ locale }: { locale: string }) {
         {
           icon: FileText,
           label: 'Syarat & Ketentuan',
-          href: `/${locale}/terms`,
+          href: `/${locale}/legal/terms`,
         },
         {
           icon: Shield,
           label: 'Kebijakan Privasi',
-          href: `/${locale}/privacy`,
+          href: `/${locale}/legal/privacy`,
         },
       ],
     },
