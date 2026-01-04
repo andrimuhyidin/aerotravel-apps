@@ -64,3 +64,27 @@ Thumbs.db
 # macOS metadata files
 ._*
 .DS_Store
+
+# =============================================
+# Large folders - excluded to reduce repo size
+# These are development/documentation files only
+# =============================================
+
+# Documentation (internal docs, can regenerate)
+/docs/
+
+# Database migrations (already applied to Supabase)
+/supabase/
+
+# SQL scripts (already executed)
+/scripts/
+
+# Test files (run locally only)
+/tests/
+
+# Plop templates (development only)
+/templates/
+
+# Vercel env file (contains secrets)
+.env.vercel
+/.github/
