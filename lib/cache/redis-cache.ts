@@ -38,6 +38,16 @@ function getRedisClient(): Redis | null {
 }
 
 /**
+ * Check if running in static generation context
+ * During Next.js static generation, external fetches with no-store are blocked
+ */
+function isStaticGeneration(): boolean {
+  // During build/static generation, certain headers/features aren't available
+  // We can detect this by checking the environment
+  return process.env.NEXT_PHASE === 'phase-production-build';
+}
+
+/**
  * Get cached data or fetch and cache
  * @param key Cache key
  * @param ttl Time to live in seconds
@@ -52,6 +62,11 @@ export async function getCached<T>(
   ttl: number,
   fetcher: () => Promise<T>
 ): Promise<T> {
+  // Skip cache during static generation to avoid no-store fetch errors
+  if (isStaticGeneration()) {
+    return fetcher();
+  }
+
   const redis = getRedisClient();
 
   // If Redis is not available, just fetch
@@ -96,7 +111,8 @@ export async function getCached<T>(
     return data;
   } catch (error) {
     // If cache fails, still return fetched data
-    logger.error('Cache error, falling back to direct fetch', error, { key });
+    // Use warn instead of error since fallback is expected behavior
+    logger.warn('Cache unavailable, using direct fetch', { key });
     return fetcher();
   }
 }
@@ -120,8 +136,9 @@ export async function setCache<T>(
   try {
     // Upstash auto-serializes objects, so we can pass value directly
     await redis.setex(key, ttl, value as unknown as string);
-  } catch (error) {
-    logger.error('Failed to set cache', error, { key });
+  } catch {
+    // Silent fail for cache set - not critical
+    logger.debug('Cache set skipped', { key });
   }
 }
 
@@ -158,8 +175,8 @@ export async function getCache<T>(key: string): Promise<T | null> {
     
     // For primitive types, return as-is
     return cached as T;
-  } catch (error) {
-    logger.error('Failed to get cache', error, { key });
+  } catch {
+    // Silent fail for cache get - not critical
     return null;
   }
 }
@@ -184,8 +201,9 @@ export async function invalidateCache(key: string): Promise<void> {
       await redis.del(key);
     }
     logger.debug('Cache invalidated', { key });
-  } catch (error) {
-    logger.error('Failed to invalidate cache', error, { key });
+  } catch {
+    // Silent fail for cache invalidate - not critical
+    logger.debug('Cache invalidate skipped', { key });
   }
 }
 
@@ -354,7 +372,8 @@ export async function warmUserCache(
         : Promise.resolve(),
     ]);
     logger.debug('User cache warmed', { userId });
-  } catch (error) {
-    logger.error('Failed to warm user cache', error, { userId });
+  } catch {
+    // Silent fail for cache warm - not critical
+    logger.debug('User cache warm skipped', { userId });
   }
 }
